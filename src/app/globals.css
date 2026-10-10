@@ -3,10 +3,11 @@
 @layer base {
   :root {
     --font-sans: var(--font-sans, "Manrope", ui-sans-serif, system-ui, sans-serif);
-    --font-display: var(--font-display, "Sora", ui-sans-serif, system-ui, sans-serif);
+    --font-display: var(--font-display, "Space Grotesk", ui-sans-serif, system-ui, sans-serif);
+    --font-mono: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
 
-    --background: #f8fafc;
-    --foreground: #0f172a;
+    --background: #e7eef6;
+    --foreground: #0b1220;
     
     --card: #ffffff;
     --card-foreground: #0f172a;
@@ -39,8 +40,9 @@
     /* Borders */
     --border: #e2e8f0;
 
-    /* Hero Gradient: Deep Navy to Vibrant SEDUC Blue to Sky */
-    --gradient-hero: linear-gradient(115deg, rgba(7, 30, 61, 0.95) 0%, rgba(5, 84, 157, 0.88) 48%, rgba(2, 132, 199, 0.72) 100%);
+    /* Hero Gradient: deep space navy with a cyan horizon */
+    --gradient-hero: linear-gradient(118deg, rgba(2, 6, 18, 0.94) 0%, rgba(6, 28, 58, 0.82) 46%, rgba(8, 80, 110, 0.55) 100%);
+    --glow: #22d3ee;
   }
 
   html {
@@ -124,4 +126,61 @@
 .backdrop-blur-md {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.gradient-text {
+  background: linear-gradient(100deg, #05549d 0%, #0284c7 42%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.16) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 30% 40%, black 10%, transparent 72%);
+}
+
+.site-mesh {
+  background-color: #e7eef6;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(34, 211, 238, 0.16), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(5, 84, 157, 0.12), transparent 46%),
+    linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+.animate-float {
+  animation: float 7s ease-in-out infinite;
+}
+
+.hud-frame {
+  background:
+    linear-gradient(160deg, rgba(8, 18, 36, 0.72), rgba(4, 10, 22, 0.55));
+  box-shadow:
+    0 0 0 1px rgba(34, 211, 238, 0.28),
+    0 30px 80px -30px rgba(34, 211, 238, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.glow-card {
+  box-shadow: 0 18px 40px -28px rgba(2, 132, 199, 0.55);
+}
+
+.glow-card:hover {
+  box-shadow:
+    0 0 0 1px rgba(34, 211, 238, 0.45),
+    0 24px 50px -24px rgba(8, 145, 178, 0.55);
 }

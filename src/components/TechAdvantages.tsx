@@ -54,7 +54,7 @@ export default function TechAdvantages() {
   ];
 
   return (
-    <section id="tecnologia" className="py-24 bg-white relative">
+    <section id="tecnologia" className="relative py-24">
       
       {/* Indicador de Rolagem Flutuante */}
       <div className="-mt-12 sm:-mt-14 mb-10 flex justify-center relative z-30">
@@ -94,7 +94,7 @@ export default function TechAdvantages() {
           {advantages.map((item, idx) => (
             <div
               key={idx}
-              className="group relative p-8 rounded-3xl bg-white border border-gray-100 shadow-sm hover:shadow-2xl hover:border-blue-200 transition-all duration-500 card-hover flex flex-col justify-between"
+              className="glow-card group relative flex flex-col justify-between rounded-3xl border border-white/80 bg-white/80 p-8 backdrop-blur-sm transition-all duration-500 hover:-translate-y-1 hover:border-cyan-300"
             >
               <div>
                 {/* Ícone Tech com fundo translúcido */}

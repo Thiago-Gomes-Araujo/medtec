@@ -34,7 +34,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
   });
 
   return (
-    <section id="noticias" className="py-20 bg-white">
+    <section id="noticias" className="py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
         
         {/* Cabeçalho */}

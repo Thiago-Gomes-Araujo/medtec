@@ -49,7 +49,7 @@ export default function Methodology() {
   ];
 
   return (
-    <section id="como-funciona" className="py-24 bg-gradient-to-b from-slate-50 via-white to-slate-50 relative overflow-hidden">
+    <section id="como-funciona" className="relative overflow-hidden py-24">
       
       {/* Luzes decorativas de fundo */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
@@ -76,12 +76,12 @@ export default function Methodology() {
         <div className="relative">
           
           {/* Linha de Conexão Horizontal Desktop */}
-          <div className="hidden lg:block absolute top-[52%] left-6 right-6 h-1 bg-gradient-to-r from-blue-200 via-sky-300 to-blue-400 pointer-events-none z-0" />
+          <div className="pointer-events-none absolute left-6 right-6 top-[52%] z-0 hidden h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent lg:block" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-6 items-stretch relative z-10">
             {steps.map((item, idx) => (
               <div key={item.step} className="relative group h-full">
-                <div className="relative flex flex-col justify-start bg-white rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 min-h-[340px] w-full">
+                <div className="glow-card relative flex min-h-[340px] w-full flex-col justify-start rounded-3xl border border-white/80 bg-white/80 p-6 backdrop-blur-sm transition-all duration-500 hover:-translate-y-1 hover:border-cyan-300">
                   
                   {/* Badge Numérico Flutuante */}
                   <div className="absolute -top-5 left-8 w-11 h-11 bg-gradient-to-br from-primary to-primary-light rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">

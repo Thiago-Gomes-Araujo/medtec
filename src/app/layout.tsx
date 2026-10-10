@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Manrope, Sora } from 'next/font/google';
+import { JetBrains_Mono, Manrope, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 
 const manrope = Manrope({
@@ -8,10 +8,17 @@ const manrope = Manrope({
   display: 'swap',
 });
 
-const sora = Sora({
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
   variable: '--font-display',
-  weight: ['400', '600', '700', '800'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  weight: ['400', '500', '600'],
   display: 'swap',
 });
 
@@ -45,12 +52,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${manrope.variable} ${sora.variable} scroll-smooth`}>
+    <html lang="pt-BR" className={`${manrope.variable} ${spaceGrotesk.variable} ${jetbrains.variable} scroll-smooth`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans antialiased selection:bg-[#2d46e5] selection:text-white flex flex-col">
+      <body className="site-mesh min-h-screen text-slate-800 font-sans antialiased selection:bg-cyan-400 selection:text-slate-950 flex flex-col">
         {children}
       </body>
     </html>

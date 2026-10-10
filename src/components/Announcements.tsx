@@ -49,7 +49,7 @@ export default function Announcements({ announcements }: AnnouncementsProps) {
   };
 
   return (
-    <section id="avisos" className="py-12 bg-slate-50 border-b border-slate-200/80">
+    <section id="avisos" className="border-y border-cyan-900/10 py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-8">
         
         {/* Cabeçalho da Seção */}
