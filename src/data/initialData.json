@@ -1,0 +1,154 @@
+{
+  "siteInfo": {
+    "title": "Ensino Médio com Mediação Tecnológica - Governo de Rondônia",
+    "shortName": "MEDTEC Rondônia",
+    "slogan": "Conectando Saberes e Transformando Vidas no Campo, nas Águas e nas Florestas",
+    "aboutTitle": "Democratizando a Educação com Tecnologia e Equidade",
+    "aboutText": "O Ensino Médio com Mediação Tecnológica (MEDTEC) é um projeto educacional estruturante do Governo de Rondônia, executado pela Secretaria de Estado da Educação (SEDUC). Instituído pela Lei Estadual nº 3.846/2016, o MEDTEC assegura o direito à Educação Básica para jovens que vivem em comunidades rurais, assentamentos agrícolas, terras indígenas, comunidades ribeirinhas e remanescentes quilombolas.",
+    "lawText": "Instituído pela Lei nº 3.846/2016 e estruturado pela Portaria nº 928/2025 - SEDUC/RO",
+    "heroBadge": "Programa Oficial SEDUC / Governo de Rondônia",
+    "heroTitle": "Ensino Médio de Qualidade Onde Você Estiver",
+    "heroDescription": "Aulas ao vivo diretamente dos estúdios televisivos da Coordenadoria de Mídias Educacionais em Porto Velho para centenas de salas conectadas em todo o estado de Rondônia, acompanhadas diariamente por professores mediadores.",
+    "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+  },
+  "stats": {
+    "studentsCount": "15.000+",
+    "schoolsCount": "320+",
+    "citiesCount": "52",
+    "liveHoursCount": "1.800h"
+  },
+  "socials": {
+    "instagram": "https://www.instagram.com/governoro/",
+    "youtube": "https://www.youtube.com/@SeducRondonia",
+    "facebook": "https://www.facebook.com/governoderondonia",
+    "whatsapp": "https://wa.me/5569999999999",
+    "tiktok": "https://www.tiktok.com/@governoro",
+    "email": "medtec@seduc.ro.gov.br",
+    "phone": "(69) 3216-5300",
+    "address": "Av. Farquar, 2986 - Bairro Pedrinhas, Palácio Rio Madeira, Porto Velho - RO"
+  },
+  "announcements": [
+    {
+      "id": "aviso-1",
+      "title": "Início do Calendário Letivo 2026 e Transmissões ao Vivo",
+      "content": "Informamos a todas as escolas e salas conectadas que a grade de aulas ao vivo transmitidas via satélite iniciará pontualmente às 07h30 para o turno matutino.",
+      "type": "urgente",
+      "date": "10/10/2026",
+      "linkText": "Ver Grade Curricular",
+      "linkUrl": "#grade-aulas",
+      "active": true
+    },
+    {
+      "id": "aviso-2",
+      "title": "Acolhimento Pedagógico aos Professores Mediadores",
+      "content": "A Coordenadoria de Mídias Educacionais convoca os professores mediadores presenciais para a semana de formação e alinhamento de tecnologias digitais.",
+      "type": "aviso",
+      "date": "08/10/2026",
+      "linkText": "Orientações Pedagógicas",
+      "linkUrl": "#orientacoes",
+      "active": true
+    },
+    {
+      "id": "aviso-3",
+      "title": "Novo Componente: Noções Básicas de Agroecologia e Zootecnia (NBAZ)",
+      "content": "Estudantes dos itinerários formativos do MEDTEC já contam com o material complementar em PDF sobre sustentabilidade agroflorestal rondoniense.",
+      "type": "informativo",
+      "date": "05/10/2026",
+      "linkText": "Acessar Material",
+      "linkUrl": "#itinerarios",
+      "active": true
+    }
+  ],
+  "news": [
+    {
+      "id": "noticia-1",
+      "title": "SEDUC expande sinal e infraestrutura tecnológica para comunidades ribeirinhas no Rio Guaporé",
+      "slug": "seduc-expande-sinal-comunidades-ribeirinhas-rio-guapore",
+      "excerpt": "Novas antenas de conexão de alta velocidade e kits multimídia foram entregues para garantir transmissão contínua de aulas ao vivo a jovens ribeirinhos.",
+      "content": "Com o compromisso de levar educação inovadora e inclusiva a cada rincão de Rondônia, a Secretaria de Estado da Educação (SEDUC) concluiu a nova fase de modernização dos pontos de recepção de sinal do MEDTEC ao longo do Rio Guaporé.\n\nO projeto MEDTEC, estabelecido pela Lei Estadual nº 3.846/2016, quebra as barreiras geográficas da Amazônia. Professores especialistas nos estúdios da capital Porto Velho ministram aulas ao vivo transmitidas simultaneamente para as salas nas aldeias e comunidades remotas, com o acompanhamento presencial diário de professores mediadores.\n\n'Nossos jovens não precisam mais se deslocar por horas em barcos ou se afastar de suas famílias para concluir o Ensino Médio com excelência pedagógica', destacou a equipe pedagógica de Mídias Educacionais.",
+      "coverImage": "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1200&q=80",
+      "author": "Assessoria de Comunicação SEDUC",
+      "category": "Infraestrutura",
+      "publishedAt": "09/10/2026",
+      "featured": true,
+      "tags": ["MEDTEC", "Tecnologia", "Ribeirinhos", "Seduc Rondônia"]
+    },
+    {
+      "id": "noticia-2",
+      "title": "Estudantes do MEDTEC se destacam com projetos de Agroecologia e Inovação Sustentável",
+      "slug": "estudantes-medtec-destacam-agroecologia-sustentavel",
+      "excerpt": "Aulas práticas do componente NBAZ (Noções Básicas de Agroecologia e Zootecnia) geram impacto socioeconômico direto na produção agrícola familiar.",
+      "content": "Aliando a Formação Geral Básica aos Itinerários Formativos inovadores, alunos do interior de Rondônia desenvolveram hortas comunitárias e sistemas agroflorestais sustentáveis como parte do componente curricular NBAZ.\n\nA integração entre a teoria veiculada pelos estúdios centrais e as oficinas de campo coordenadas pelos professores mediadores locais reforça a relevância do MEDTEC para o desenvolvimento regional sustentável.",
+      "coverImage": "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=1200&q=80",
+      "author": "Coordenação de Mídias Educacionais",
+      "category": "Pedagógico",
+      "publishedAt": "06/10/2026",
+      "featured": true,
+      "tags": ["Agroecologia", "BNCC", "Itinerários", "Juventude"]
+    },
+    {
+      "id": "noticia-3",
+      "title": "Estúdios de TV do MEDTEC em Porto Velho recebem novos equipamentos de transmissão 4K",
+      "slug": "estudios-tv-medtec-novos-equipamentos-transmissao",
+      "excerpt": "Atualização tecnológica garante maior fidelidade de áudio, recursos de realidade aumentada e maior dinamismo pedagógico nas aulas diárias.",
+      "content": "A Coordenadoria de Mídias Educacionais da SEDUC apresentou o novo arranjo tecnológico de seus estúdios de gravação e transmissão ao vivo. A modernização inclui câmeras de altíssima definição, teleprompters interativos, mesas de corte digitais e integração direta com enquetes em tempo real para os alunos nas salas de aula conectadas em todos os 52 municípios rondonienses.",
+      "coverImage": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
+      "author": "Núcleo de Tecnologia SEDUC",
+      "category": "Tecnologia",
+      "publishedAt": "01/10/2026",
+      "featured": false,
+      "tags": ["Estúdios", "Transmissão", "Ao Vivo", "Inovação"]
+    }
+  ],
+  "gallery": [
+    {
+      "id": "gal-1",
+      "title": "Transmissão ao Vivo nos Estúdios Centrais",
+      "description": "Professores especialistas ministrando aulas com recursos audiovisuais e tecnologia interativa em Porto Velho.",
+      "imageUrl": "https://images.unsplash.com/photo-1492619375914-88005aa9e8fb?auto=format&fit=crop&w=800&q=80",
+      "category": "Estúdios",
+      "date": "Outubro 2026"
+    },
+    {
+      "id": "gal-2",
+      "title": "Sala de Aula Conectada na Zona Rural",
+      "description": "Estudantes acompanhando a aula mediada com o apoio do professor presencial e material didático da SEDUC.",
+      "imageUrl": "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80",
+      "category": "Salas de Aula",
+      "date": "Setembro 2026"
+    },
+    {
+      "id": "gal-3",
+      "title": "Atendimento às Comunidades Indígenas",
+      "description": "Inclusão educacional com respeito às tradições, garantindo acesso pleno ao Ensino Médio nas aldeias.",
+      "imageUrl": "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80",
+      "category": "Comunidades",
+      "date": "Agosto 2026"
+    },
+    {
+      "id": "gal-4",
+      "title": "Oficina Prática de Ciências e Agroecologia",
+      "description": "Alunos aplicando o aprendizado do componente curricular em experimentos sustentáveis no campo.",
+      "imageUrl": "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80",
+      "category": "Eventos",
+      "date": "Julho 2026"
+    },
+    {
+      "id": "gal-5",
+      "title": "Feira Estadual do Conhecimento MEDTEC",
+      "description": "Apresentação de trabalhos interdisciplinares com participação de polos de todas as regiões de Rondônia.",
+      "imageUrl": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80",
+      "category": "Eventos",
+      "date": "Junho 2026"
+    },
+    {
+      "id": "gal-6",
+      "title": "Equipe de Professores Mediadores em Formação",
+      "description": "Capacitação contínua para utilização das Tecnologias Digitais de Informação e Comunicação (TDICs).",
+      "imageUrl": "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80",
+      "category": "Estúdios",
+      "date": "Maio 2026"
+    }
+  ]
+}
+
