@@ -40,6 +40,15 @@ export default function SiteFooter() {
               <li>
                 <Link href="/noticias" className="hover:text-white transition-colors">Notícias e Comunicados</Link>
               </li>
+              <li>
+                <Link href="/galeria" className="hover:text-white transition-colors">Galeria de Fotos do MEDTEC</Link>
+              </li>
+              <li>
+                <Link href="/faq" className="hover:text-white transition-colors">Perguntas Frequentes (FAQ)</Link>
+              </li>
+              <li>
+                <Link href="/redes" className="hover:text-white transition-colors">Canais de Transmissão e Redes</Link>
+              </li>
             </ul>
           </div>
 

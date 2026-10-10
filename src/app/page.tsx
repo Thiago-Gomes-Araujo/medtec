@@ -11,7 +11,13 @@ import {
   MapPin, 
   Compass, 
   ShieldCheck, 
-  Satellite 
+  Satellite,
+  Image as ImageIcon,
+  HelpCircle,
+  Share2,
+  Eye,
+  ExternalLink,
+  X
 } from 'lucide-react';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
@@ -68,6 +74,19 @@ export default function HomePage() {
   const [dbData, setDbData] = useState<DatabaseSchema>(initialData as DatabaseSchema);
   const [profileTab, setProfileTab] = useState<'prof' | 'alunos'>('prof');
   const [pitchModalOpen, setPitchModalOpen] = useState(false);
+  const [activeResourceModal, setActiveResourceModal] = useState<'galeria' | 'faq' | 'redes' | null>(null);
+
+  // Trava scroll da página quando modal de recurso estiver aberto
+  useEffect(() => {
+    if (activeResourceModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [activeResourceModal]);
 
   // Busca dados dinâmicos mais recentes do banco local (CMS)
   useEffect(() => {
@@ -156,13 +175,13 @@ export default function HomePage() {
                 Avisos & Notícias
               </a>
 
-              <a
-                href="#redes"
-                className="inline-flex items-center gap-2 rounded-xl border border-sky-400/40 bg-sky-600/30 px-5 py-3 text-sm font-semibold text-sky-200 hover:bg-sky-600/50 transition-colors backdrop-blur-sm"
+              <button
+                onClick={() => setActiveResourceModal('redes')}
+                className="inline-flex items-center gap-2 rounded-xl border border-sky-400/40 bg-sky-600/30 px-5 py-3 text-sm font-semibold text-sky-200 hover:bg-sky-600/50 transition-colors backdrop-blur-sm cursor-pointer"
               >
                 <Tv className="h-4 w-4" />
                 Canal ao Vivo
-              </a>
+              </button>
             </div>
 
             {/* Métricas de Impacto (Painéis translúcidos: 15.000+ alunos formados, 320+ salas conectadas) */}
@@ -249,18 +268,201 @@ export default function HomePage() {
         {/* ================= MÓDULO 05: CENTRAL DE NOTÍCIAS COM BUSCA E FILTROS ================= */}
         <NewsSection news={dbData.news} />
 
-        {/* ================= MÓDULO 06: ACERVO MULTIMÍDIA DE FOTOS & REGISTROS ================= */}
-        <GallerySection gallery={dbData.gallery} />
+        {/* ================= CENTRAL DE ACESSO RÁPIDO: BOTÕES PARA GALERIA, FAQ E REDES SOCIAIS ================= */}
+        <SectionWrapper
+          id="recursos"
+          eyebrow="Central de Mídias & Apoio"
+          title="Recursos, Dúvidas e Canais Oficiais"
+          subtitle="Acesse o acervo fotográfico oficial, esclareça dúvidas frequentes e conecte-se aos nossos canais de transmissão e redes sociais através dos botões abaixo."
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* Card 1: Galeria de Fotos */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-xs hover:shadow-xl hover:border-primary/40 transition-all flex flex-col justify-between group">
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                    <ImageIcon className="w-7 h-7" />
+                  </div>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+                    {dbData.gallery.length} Registros
+                  </span>
+                </div>
+                <h3 className="font-display text-lg font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors">
+                  Galeria do MEDTEC
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-6">
+                  Acervo fotográfico oficial das salas de aula no interior, estúdios televisivos em Porto Velho e oficinas pedagógicas.
+                </p>
+              </div>
 
-        {/* ================= MÓDULO 07: PERGUNTAS FREQUENTES (FAQ INTERATIVO) ================= */}
-        <FaqSection />
+              <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
+                <button
+                  onClick={() => setActiveResourceModal('galeria')}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-deep px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>Acessar Galeria de Fotos</span>
+                </button>
+                <Link
+                  href="/galeria"
+                  className="text-center text-xs font-semibold text-slate-500 hover:text-primary py-1 transition-colors"
+                >
+                  Abrir em página dedicada ↗
+                </Link>
+              </div>
+            </div>
 
-        {/* ================= MÓDULO 08: CANAIS DE TRANSMISSÃO & REDES SOCIAIS ================= */}
-        <SocialSection socials={dbData.socials} />
+            {/* Card 2: Perguntas Frequentes (FAQ) */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-xs hover:shadow-xl hover:border-primary/40 transition-all flex flex-col justify-between group">
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                    <HelpCircle className="w-7 h-7" />
+                  </div>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+                    6 Tópicos
+                  </span>
+                </div>
+                <h3 className="font-display text-lg font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors">
+                  Perguntas Frequentes (FAQ)
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-6">
+                  Esclarecimentos sobre a Lei Estadual nº 3.846/2016, validade nacional do diploma, papel do mediador e o itinerário NBAZ.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
+                <button
+                  onClick={() => setActiveResourceModal('faq')}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-deep px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  <span>Consultar Dúvidas (FAQ)</span>
+                </button>
+                <Link
+                  href="/faq"
+                  className="text-center text-xs font-semibold text-slate-500 hover:text-primary py-1 transition-colors"
+                >
+                  Abrir em página dedicada ↗
+                </Link>
+              </div>
+            </div>
+
+            {/* Card 3: Acompanhamento pelas Redes Sociais */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-xs hover:shadow-xl hover:border-primary/40 transition-all flex flex-col justify-between group">
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+                    <Share2 className="w-7 h-7" />
+                  </div>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-primary">
+                    Ao Vivo
+                  </span>
+                </div>
+                <h3 className="font-display text-lg font-bold text-slate-900 mb-2 group-hover:text-primary transition-colors">
+                  Acompanhe nas Redes Sociais
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-6">
+                  Aulas ao vivo no YouTube, bastidores no Instagram, comunidade no Facebook e canal direto de suporte escolar no WhatsApp.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
+                <button
+                  onClick={() => setActiveResourceModal('redes')}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary hover:bg-primary-deep px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-colors cursor-pointer"
+                >
+                  <Tv className="w-4 h-4" />
+                  <span>Ver Redes e Transmissões</span>
+                </button>
+                <Link
+                  href="/redes"
+                  className="text-center text-xs font-semibold text-slate-500 hover:text-primary py-1 transition-colors"
+                >
+                  Abrir em página dedicada ↗
+                </Link>
+              </div>
+            </div>
+
+          </div>
+        </SectionWrapper>
       </main>
 
       {/* RODAPÉ DO SISTEMA */}
       <SiteFooter />
+
+      {/* MODAL INTERATIVO PARA GALERIA, FAQ OU REDES SOCIAIS */}
+      {activeResourceModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in"
+          onClick={() => setActiveResourceModal(null)}
+        >
+          <div 
+            className="relative w-full max-w-6xl max-h-[92vh] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top Bar do Modal */}
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-white font-bold">
+                  {activeResourceModal === 'galeria' && <ImageIcon size={18} />}
+                  {activeResourceModal === 'faq' && <HelpCircle size={18} />}
+                  {activeResourceModal === 'redes' && <Share2 size={18} />}
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base text-white">
+                    {activeResourceModal === 'galeria' && 'Galeria Fotográfica Oficial MEDTEC'}
+                    {activeResourceModal === 'faq' && 'Perguntas Frequentes (FAQ Interativo)'}
+                    {activeResourceModal === 'redes' && 'Canais de Transmissão e Redes Sociais'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {activeResourceModal === 'galeria' && 'Registros de salas, aldeias e estúdios da SEDUC'}
+                    {activeResourceModal === 'faq' && 'Esclarecimentos sobre o programa e normas oficiais'}
+                    {activeResourceModal === 'redes' && 'YouTube, Instagram, Facebook e WhatsApp'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Link
+                  href={activeResourceModal === 'galeria' ? '/galeria' : activeResourceModal === 'faq' ? '/faq' : '/redes'}
+                  className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
+                >
+                  <span>Página dedicada</span>
+                  <ExternalLink size={13} />
+                </Link>
+                <button
+                  onClick={() => setActiveResourceModal(null)}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                  aria-label="Fechar modal"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Conteúdo do Modal com Scroll Interno */}
+            <div className="flex-1 overflow-y-auto p-2 sm:p-6 bg-slate-50">
+              {activeResourceModal === 'galeria' && (
+                <div className="rounded-2xl overflow-hidden shadow-sm">
+                  <GallerySection gallery={dbData.gallery} />
+                </div>
+              )}
+              {activeResourceModal === 'faq' && (
+                <div className="bg-white rounded-2xl p-4 sm:p-8 border border-slate-200 shadow-sm">
+                  <FaqSection />
+                </div>
+              )}
+              {activeResourceModal === 'redes' && (
+                <div className="rounded-2xl overflow-hidden shadow-sm">
+                  <SocialSection socials={dbData.socials} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DOSSIÊ DE APRESENTAÇÃO / PITCH */}
       <PresentationPitchModal

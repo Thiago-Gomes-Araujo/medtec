@@ -20,9 +20,9 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
     { to: '/#avisos', label: 'Avisos' },
     { to: '/#mapa', label: 'Comunidades' },
     { to: '/#noticias', label: 'Notícias' },
-    { to: '/#galeria', label: 'Acervo' },
-    { to: '/#faq', label: 'Dúvidas' },
-    { to: '/#redes', label: 'Transmissões' },
+    { to: '/galeria', label: 'Acervo' },
+    { to: '/faq', label: 'Dúvidas' },
+    { to: '/redes', label: 'Transmissões' },
   ];
 
   return (
