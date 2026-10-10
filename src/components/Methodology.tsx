@@ -1,158 +1,170 @@
+'use client';
+
 import React from 'react';
 import { 
   Tv, 
   Satellite, 
   Users2, 
   GraduationCap, 
-  Layers, 
-  Sparkles, 
+  CheckCircle, 
+  ChevronDown,
+  Layers,
+  Sparkles,
   BookMarked,
-  Clock,
-  CheckCircle
+  ArrowRight
 } from 'lucide-react';
 
 export default function Methodology() {
   const steps = [
     {
       step: '01',
-      title: 'Estúdios Televisivos da SEDUC',
-      desc: 'Professores especialistas elaboram aulas com recursos audiovisuais modernos e transmitem ao vivo direto de Porto Velho.',
-      icon: <Tv className="text-emerald-600" size={24} />,
-      badge: 'Porto Velho'
+      title: 'Produção nos Estúdios',
+      desc: 'Professores especialistas elaboram e gravam aulas com recursos de mídia digital e teleprompters nos estúdios da SEDUC em Porto Velho.',
+      icon: <Tv className="w-8 h-8 text-[#00875a]" />
     },
     {
       step: '02',
       title: 'Transmissão Satelital & IP',
-      desc: 'O sinal chega instantaneamente a escolas estaduais e municipais em todos os 52 municípios de Rondônia.',
-      icon: <Satellite className="text-teal-600" size={24} />,
-      badge: 'Tempo Real'
+      desc: 'O sinal chega em tempo real nas escolas através de antenas receptoras e internet veloz mesmo nos locais mais isolados de Rondônia.',
+      icon: <Satellite className="w-8 h-8 text-[#00875a]" />
     },
     {
       step: '03',
-      title: 'Professor Mediador Presencial',
-      desc: 'Um professor capacitado acompanha a turma na sala de aula, dinamiza discussões, orienta atividades e esclarece dúvidas.',
-      icon: <Users2 className="text-amber-600" size={24} />,
-      badge: 'Na Comunidade'
+      title: 'Professor Mediador',
+      desc: 'Na sala de aula, o professor presencial acolhe a turma, esclarece dúvidas, dinamiza exercícios práticos e avalia o aprendizado.',
+      icon: <Users2 className="w-8 h-8 text-[#00875a]" />
     },
     {
       step: '04',
-      title: 'Aprendizagem Significativa',
-      desc: 'Formação alinhada à BNCC com foco no protagonismo juvenil, resolução de problemas e desenvolvimento regional sustentável.',
-      icon: <GraduationCap className="text-blue-600" size={24} />,
-      badge: 'Futuro & Cidadania'
+      title: 'Itinerários & Agroecologia',
+      desc: 'Estudantes desenvolvem projetos reais de sustentabilidade com o componente NBAZ, Projeto de Vida e trilhas da BNCC.',
+      icon: <Layers className="w-8 h-8 text-[#00875a]" />
+    },
+    {
+      step: '05',
+      title: 'Conclusão & Futuro',
+      desc: 'O aluno conclui o Ensino Médio com diploma regular estadual, preparado para o mercado de trabalho, agronegócio familiar e universidades.',
+      icon: <GraduationCap className="w-8 h-8 text-[#00875a]" />
     }
   ];
 
-  const subjects = [
-    { name: 'Linguagens e suas Tecnologias', type: 'Formação Básica' },
-    { name: 'Matemática e suas Tecnologias', type: 'Formação Básica' },
-    { name: 'Ciências da Natureza', type: 'Formação Básica' },
-    { name: 'Ciências Humanas e Sociais', type: 'Formação Básica' },
-    { name: 'Projeto de Vida', type: 'Itinerário Formativo' },
-    { name: 'Agroecologia e Zootecnia (NBAZ)', type: 'Itinerário Formativo' },
-    { name: 'Trilhas de Aprofundamento', type: 'Itinerário Formativo' },
-    { name: 'Eletivas & Pós-Médio', type: 'Itinerário Formativo' },
-  ];
-
   return (
-    <section id="metodologia" className="py-20 bg-slate-50 border-t border-b border-slate-200/80">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8">
+    <section id="como-funciona" className="py-24 bg-gradient-to-b from-gray-50 via-white to-gray-50 relative overflow-hidden">
+      
+      {/* Luzes decorativas de fundo (Estilo Matrícula Online) */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-blue-100/60 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-emerald-100/60 rounded-full blur-3xl" />
+      </div>
+
+      <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Cabeçalho */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-xs font-bold uppercase tracking-wider">
-            <Layers size={14} className="text-teal-600" />
-            <span>Engrenagem Pedagógica Inovadora</span>
-          </div>
-          
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Como Funciona a Mediação Tecnológica?
+        <div className="text-center max-w-3xl mx-auto mb-20">
+          <span className="inline-block px-4 py-1.5 bg-blue-100 text-[#00875a] rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-4">
+            Passo a Passo Tecnológico
+          </span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight mb-6">
+            Como funciona a dinâmica do <span className="gradient-text">MEDTEC Rondônia?</span>
           </h2>
-          
-          <p className="text-base text-slate-600 leading-relaxed">
-            Uma ponte digital e humana entre os estúdios de produção e as salas de aula em comunidades tradicionais, unindo o melhor da tecnologia à proximidade pedagógica.
+          <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
+            Uma ponte viva entre a produção televisiva de alta tecnologia e o acolhimento humano na sala de aula das comunidades tradicionais e rurais.
           </p>
         </div>
 
-        {/* 4 Etapas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {steps.map((s) => (
-            <div 
-              key={s.step}
-              className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs hover:shadow-md transition-all relative flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    {s.icon}
+        {/* Linha Horizontal e Grid de 5 Passos (Estilo Exato Matrícula Online SEDUC) */}
+        <div className="relative">
+          
+          {/* Linha de Conexão Horizontal Desktop */}
+          <div className="hidden lg:block absolute top-[52%] left-6 right-6 h-1 bg-gradient-to-r from-blue-200 via-sky-300 to-emerald-300 pointer-events-none z-0" />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-6 items-stretch relative z-10">
+            {steps.map((item, idx) => (
+              <div key={item.step} className="relative group h-full">
+                <div className="relative flex flex-col justify-start bg-white rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 min-h-[340px] w-full">
+                  
+                  {/* Badge Numérico Flutuante */}
+                  <div className="absolute -top-5 left-8 w-11 h-11 bg-gradient-to-br from-[#00875a] to-sky-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
+                    {item.step}
                   </div>
-                  <span className="text-3xl font-black text-slate-200 font-mono">
-                    {s.step}
-                  </span>
+
+                  {/* Ícone Circular Centralizado */}
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-sky-100 flex items-center justify-center mx-auto mb-4 mt-6 group-hover:scale-105 transition-transform">
+                    {item.icon}
+                  </div>
+
+                  {/* Textos */}
+                  <div className="flex flex-col items-center text-center mt-2">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-[#00875a] transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
+                      {item.desc}
+                    </p>
+                  </div>
                 </div>
-                
-                <div className="inline-block px-2 py-0.5 mb-2 rounded bg-slate-100 text-slate-600 font-bold text-[10px] uppercase tracking-wider">
-                  {s.badge}
-                </div>
 
-                <h3 className="font-bold text-slate-900 text-base mb-2">
-                  {s.title}
-                </h3>
-
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {s.desc}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Matrizes Curriculares & Portaria nº 928/2025 */}
-        <div className="bg-white rounded-3xl p-8 sm:p-10 border border-slate-200 shadow-sm">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-8 border-b border-slate-100">
-            <div>
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">
-                <BookMarked size={16} />
-                <span>Portaria SEDUC nº 928 de 20 de janeiro de 2025</span>
-              </div>
-              <h3 className="text-2xl font-black text-slate-900">
-                Estrutura das Matrizes Curriculares
-              </h3>
-              <p className="text-sm text-slate-600 mt-1 max-w-2xl">
-                O MEDTEC/RO oferece aos estudantes uma formação integral combinando a Base Nacional Comum Curricular aos novos Itinerários Formativos vocacionados para Rondônia.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200">
-                <CheckCircle size={14} className="text-emerald-600" />
-                Matriz Regular
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 text-xs font-semibold border border-amber-200">
-                <Sparkles size={14} className="text-amber-600" />
-                Matriz Diferenciada
-              </span>
-            </div>
-          </div>
-
-          {/* Grid de Componentes */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pt-8">
-            {subjects.map((sub, idx) => (
-              <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-200/70 hover:bg-emerald-50/50 hover:border-emerald-200 transition-all">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  {sub.type}
-                </span>
-                <h4 className="font-bold text-sm text-slate-900 mt-1">
-                  {sub.name}
-                </h4>
+                {/* Seta no Mobile entre os cards */}
+                {idx < steps.length - 1 && (
+                  <div className="lg:hidden flex justify-center my-3 text-sky-500">
+                    <ChevronDown size={24} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
         </div>
 
+        {/* Quadro das Matrizes Curriculares (Portaria nº 928/2025) */}
+        <div className="mt-20 bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-xl relative overflow-hidden">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-8 border-b border-slate-100">
+            <div>
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-[#00875a] uppercase tracking-wider mb-2">
+                <BookMarked size={16} />
+                <span>Base Legal: Portaria SEDUC nº 928/2025 & Lei nº 3.846/2016</span>
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-black text-slate-900">
+                Formação Geral Básica + Itinerários Formativos
+              </h3>
+              <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+                O programa conta com duas matrizes curriculares adaptadas, alinhadas à BNCC e às necessidades socioambientais da juventude rondoniense.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
+                <CheckCircle size={14} className="text-emerald-600" />
+                Matriz Regular
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
+                <Sparkles size={14} className="text-sky-600" />
+                Matriz Diferenciada
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-sky-300 transition-all">
+              <span className="text-[10px] font-bold text-slate-500 uppercase">BNCC</span>
+              <h4 className="font-bold text-sm text-slate-900 mt-1">Linguagens & Tecnologias</h4>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-sky-300 transition-all">
+              <span className="text-[10px] font-bold text-slate-500 uppercase">BNCC</span>
+              <h4 className="font-bold text-sm text-slate-900 mt-1">Matemática & Aplicações</h4>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-sky-300 transition-all">
+              <span className="text-[10px] font-bold text-emerald-600 uppercase">Inovação</span>
+              <h4 className="font-bold text-sm text-slate-900 mt-1">Agroecologia (NBAZ)</h4>
+            </div>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-sky-300 transition-all">
+              <span className="text-[10px] font-bold text-sky-600 uppercase">Protagonismo</span>
+              <h4 className="font-bold text-sm text-slate-900 mt-1">Projeto de Vida</h4>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
   );
 }
-

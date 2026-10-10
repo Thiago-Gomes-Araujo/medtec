@@ -1,21 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Menu, 
   X, 
   Tv, 
-  BookOpen, 
+  Radio, 
   Bell, 
   Newspaper, 
   Image as ImageIcon, 
   Share2, 
   Lock, 
   ExternalLink,
-  Phone
+  ChevronRight,
+  Sparkles,
+  Zap
 } from 'lucide-react';
-import { InstagramIcon, YoutubeIcon, FacebookIcon } from '@/components/SocialIcons';
+import { InstagramIcon, YoutubeIcon, FacebookIcon, WhatsAppIcon } from '@/components/SocialIcons';
 import { SocialLinks } from '@/types';
 
 interface HeaderProps {
@@ -24,179 +26,240 @@ interface HeaderProps {
 
 export default function Header({ socials }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
-      {/* Barra Governamental Superior */}
-      <div className="bg-emerald-900 text-white text-xs py-1.5 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
-          <div className="flex items-center gap-3">
-            <span className="font-bold tracking-wide text-emerald-300">GOVERNO DO ESTADO DE RONDÔNIA</span>
-            <span className="hidden sm:inline text-emerald-400/50">|</span>
-            <span className="hidden sm:inline text-emerald-200">SEDUC - Secretaria de Estado da Educação</span>
-          </div>
+    <header 
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled 
+          ? 'bg-slate-950/90 backdrop-blur-md border-b border-white/10 shadow-xl py-3' 
+          : 'bg-gradient-to-b from-slate-950/90 via-slate-950/40 to-transparent py-4 sm:py-5'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-4">
           
-          <div className="flex items-center gap-4">
-            <span className="hidden md:inline text-emerald-200/80">Coordenadoria de Mídias Educacionais</span>
+          {/* Logo Oficial Rondônia SEDUC + MEDTEC */}
+          <Link href="/" className="group flex items-center gap-3 shrink-0">
+            {/* Ícone Tech com Glow */}
+            <div className="relative">
+              <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-[#00875a] via-[#0284c7] to-[#05549d] flex items-center justify-center text-white shadow-lg shadow-sky-500/30 group-hover:scale-105 transition-transform">
+                <Tv size={22} className="text-white drop-shadow-md" />
+              </div>
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+            </div>
+
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="font-black text-xl sm:text-2xl tracking-tight text-white drop-shadow-md">
+                  MED<span className="text-sky-400">TEC</span>
+                </span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 backdrop-blur-xs">
+                  RO • TECH
+                </span>
+              </div>
+              <span className="text-[11px] font-medium text-slate-300 hidden sm:block tracking-wide">
+                Governo de Rondônia • SEDUC
+              </span>
+            </div>
+          </Link>
+
+          {/* Links de navegação Desktop (estilo matriculaonline com bolinha ping) */}
+          <nav className="hidden xl:flex items-center gap-1">
+            <Link 
+              href="/" 
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl font-medium text-sm text-white/90 hover:text-white hover:bg-white/10 transition-all"
+            >
+              Início
+            </Link>
+
+            <Link 
+              href="#tecnologia" 
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl font-medium text-sm text-white/90 hover:text-white hover:bg-white/10 transition-all group"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>Tecnologia & Aulas</span>
+            </Link>
+
+            <Link 
+              href="#como-funciona" 
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl font-medium text-sm text-white/90 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <span>Como Funciona</span>
+            </Link>
+
+            <Link 
+              href="#avisos" 
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl font-medium text-sm text-white/90 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <Bell size={14} className="text-amber-400" />
+              <span>Avisos</span>
+            </Link>
+
+            <Link 
+              href="#noticias" 
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl font-medium text-sm text-white/90 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <Newspaper size={14} className="text-sky-400" />
+              <span>Notícias</span>
+            </Link>
+
+            <Link 
+              href="#faq" 
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl font-medium text-sm text-white/90 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <span>Dúvidas</span>
+            </Link>
+          </nav>
+
+          {/* Botões de Ação na Direita */}
+          <div className="flex items-center gap-3">
+            {/* Redes Sociais Compactas */}
             {socials && (
-              <div className="flex items-center gap-3">
-                {socials.instagram && (
-                  <a href={socials.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-300 transition-colors" title="Instagram">
-                    <InstagramIcon size={14} />
-                  </a>
-                )}
+              <div className="hidden md:flex items-center gap-2 border-r border-white/20 pr-3">
                 {socials.youtube && (
-                  <a href={socials.youtube} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-300 transition-colors" title="YouTube">
-                    <YoutubeIcon size={14} />
+                  <a 
+                    href={socials.youtube} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="p-2 rounded-lg bg-white/10 hover:bg-red-600/80 text-white transition-all backdrop-blur-sm" 
+                    title="Canal do YouTube"
+                  >
+                    <YoutubeIcon size={15} />
                   </a>
                 )}
-                {socials.facebook && (
-                  <a href={socials.facebook} target="_blank" rel="noopener noreferrer" className="hover:text-emerald-300 transition-colors" title="Facebook">
-                    <FacebookIcon size={14} />
+                {socials.instagram && (
+                  <a 
+                    href={socials.instagram} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="p-2 rounded-lg bg-white/10 hover:bg-pink-600/80 text-white transition-all backdrop-blur-sm" 
+                    title="Instagram"
+                  >
+                    <InstagramIcon size={15} />
+                  </a>
+                )}
+                {socials.whatsapp && (
+                  <a 
+                    href={socials.whatsapp} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="p-2 rounded-lg bg-white/10 hover:bg-emerald-600/80 text-white transition-all backdrop-blur-sm" 
+                    title="WhatsApp"
+                  >
+                    <WhatsAppIcon size={15} />
                   </a>
                 )}
               </div>
             )}
+
+            {/* Botão de Transmissão / Ao Vivo */}
+            <a
+              href="#tecnologia"
+              className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider border-2 border-white/30 backdrop-blur-sm bg-white/10 text-white hover:bg-white/20 hover:scale-105 transition-all shadow-md"
+            >
+              <Radio size={14} className="text-emerald-400 animate-pulse" />
+              <span>Transmissões</span>
+            </a>
+
+            {/* Botão Painel Gestor CMS */}
+            <Link 
+              href="/admin" 
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-sky-500 hover:from-emerald-400 hover:to-sky-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-sky-500/20 hover:shadow-sky-500/40 hover:scale-105 transition-all"
+            >
+              <Lock size={14} />
+              <span className="hidden sm:inline">Painel Gestor</span>
+              <span className="sm:hidden">Admin</span>
+            </Link>
+
+            {/* Menu Mobile Hambúrguer */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="xl:hidden p-2 rounded-xl text-white bg-white/10 hover:bg-white/20 transition-colors"
+              aria-label="Abrir Menu"
+            >
+              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
           </div>
+
         </div>
-      </div>
-
-      {/* Navegação Principal */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
-        {/* Identidade Visual / Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 flex items-center justify-center text-white font-extrabold text-xl shadow-md group-hover:scale-105 transition-transform">
-            <Tv size={22} className="text-emerald-200" />
-          </div>
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="font-black text-xl tracking-tight text-slate-900 group-hover:text-emerald-700 transition-colors">
-                MED<span className="text-emerald-600">TEC</span>
-              </span>
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">RO</span>
-            </div>
-            <span className="text-[11px] font-medium text-slate-500 hidden sm:block">
-              Mediação Tecnológica de Rondônia
-            </span>
-          </div>
-        </Link>
-
-        {/* Links de navegação Desktop */}
-        <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600">
-          <Link href="#inicio" className="hover:text-emerald-700 transition-colors">
-            Início
-          </Link>
-          <Link href="#sobre" className="hover:text-emerald-700 transition-colors">
-            O Projeto
-          </Link>
-          <Link href="#metodologia" className="hover:text-emerald-700 transition-colors">
-            Como Funciona
-          </Link>
-          <Link href="#avisos" className="hover:text-emerald-700 transition-colors flex items-center gap-1">
-            <Bell size={14} className="text-amber-500" />
-            Avisos
-          </Link>
-          <Link href="#noticias" className="hover:text-emerald-700 transition-colors flex items-center gap-1">
-            <Newspaper size={14} className="text-emerald-600" />
-            Notícias
-          </Link>
-          <Link href="#galeria" className="hover:text-emerald-700 transition-colors flex items-center gap-1">
-            <ImageIcon size={14} className="text-teal-600" />
-            Galeria
-          </Link>
-          <Link href="#redes" className="hover:text-emerald-700 transition-colors flex items-center gap-1">
-            <Share2 size={14} className="text-blue-600" />
-            Redes Sociais
-          </Link>
-        </nav>
-
-        {/* Botão Admin / Painel */}
-        <div className="hidden sm:flex items-center gap-3">
-          <Link 
-            href="/admin" 
-            className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-300 hover:border-emerald-300 transition-all shadow-xs"
-          >
-            <Lock size={13} className="text-slate-500" />
-            <span>Painel Gestor</span>
-          </Link>
-        </div>
-
-        {/* Botão Hambúrguer Mobile */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-hidden"
-          aria-label="Abrir Menu"
-        >
-          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
       </div>
 
       {/* Menu Mobile */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-3 shadow-lg">
-          <div className="flex flex-col space-y-2 text-base font-medium text-slate-700">
+        <div className="xl:hidden bg-slate-950/95 backdrop-blur-2xl border-b border-white/10 px-6 py-6 mt-3 space-y-4 shadow-2xl animate-in slide-in-from-top-4">
+          <div className="flex flex-col space-y-2 text-sm font-semibold text-white">
             <Link 
-              href="#inicio" 
+              href="/" 
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-md hover:bg-slate-50 hover:text-emerald-700"
+              className="px-4 py-2.5 rounded-xl hover:bg-white/10 flex items-center justify-between"
             >
-              Início
+              <span>Início</span>
+              <ChevronRight size={16} className="text-slate-400" />
             </Link>
             <Link 
-              href="#sobre" 
+              href="#tecnologia" 
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-md hover:bg-slate-50 hover:text-emerald-700"
+              className="px-4 py-2.5 rounded-xl hover:bg-white/10 flex items-center justify-between"
             >
-              O Projeto
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                Tecnologia & Aulas
+              </span>
+              <ChevronRight size={16} className="text-slate-400" />
             </Link>
             <Link 
-              href="#metodologia" 
+              href="#como-funciona" 
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-md hover:bg-slate-50 hover:text-emerald-700"
+              className="px-4 py-2.5 rounded-xl hover:bg-white/10 flex items-center justify-between"
             >
-              Como Funciona
+              <span>Como Funciona</span>
+              <ChevronRight size={16} className="text-slate-400" />
             </Link>
             <Link 
               href="#avisos" 
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-md hover:bg-slate-50 hover:text-emerald-700 flex items-center justify-between"
+              className="px-4 py-2.5 rounded-xl hover:bg-white/10 flex items-center justify-between"
             >
-              <span>Avisos e Comunicados</span>
-              <Bell size={16} className="text-amber-500" />
+              <span>Mural de Avisos</span>
+              <Bell size={16} className="text-amber-400" />
             </Link>
             <Link 
               href="#noticias" 
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-md hover:bg-slate-50 hover:text-emerald-700 flex items-center justify-between"
+              className="px-4 py-2.5 rounded-xl hover:bg-white/10 flex items-center justify-between"
             >
               <span>Notícias</span>
-              <Newspaper size={16} className="text-emerald-600" />
+              <Newspaper size={16} className="text-sky-400" />
             </Link>
             <Link 
-              href="#galeria" 
+              href="#faq" 
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-md hover:bg-slate-50 hover:text-emerald-700 flex items-center justify-between"
+              className="px-4 py-2.5 rounded-xl hover:bg-white/10 flex items-center justify-between"
             >
-              <span>Galeria de Fotos</span>
-              <ImageIcon size={16} className="text-teal-600" />
-            </Link>
-            <Link 
-              href="#redes" 
-              onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-md hover:bg-slate-50 hover:text-emerald-700 flex items-center justify-between"
-            >
-              <span>Redes Sociais e Canais</span>
-              <Share2 size={16} className="text-blue-600" />
+              <span>Perguntas Frequentes (FAQ)</span>
+              <ChevronRight size={16} className="text-slate-400" />
             </Link>
           </div>
 
-          <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
+          <div className="pt-4 border-t border-white/10 flex flex-col gap-3">
             <Link 
               href="/admin" 
               onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-700 text-white rounded-lg font-semibold text-sm shadow-sm hover:bg-emerald-800 transition"
+              className="flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-emerald-500 to-sky-500 text-slate-950 rounded-xl font-bold text-sm shadow-lg shadow-sky-500/20"
             >
-              <Lock size={15} />
+              <Lock size={16} />
               Acessar Painel Gerenciável
             </Link>
           </div>

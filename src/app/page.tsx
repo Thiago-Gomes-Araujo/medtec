@@ -1,11 +1,13 @@
 import React from 'react';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
+import TechAdvantages from '@/components/TechAdvantages';
 import Announcements from '@/components/Announcements';
 import AboutSection from '@/components/AboutSection';
 import Methodology from '@/components/Methodology';
 import NewsSection from '@/components/NewsSection';
 import GallerySection from '@/components/GallerySection';
+import FaqSection from '@/components/FaqSection';
 import SocialSection from '@/components/SocialSection';
 import StudentTeacherPortals from '@/components/StudentTeacherPortals';
 import Footer from '@/components/Footer';
@@ -20,11 +22,13 @@ export default function Home() {
       
       <main className="flex-1">
         <Hero siteInfo={data.siteInfo} stats={data.stats} />
+        <TechAdvantages />
         <Announcements announcements={data.announcements} />
         <AboutSection siteInfo={data.siteInfo} />
         <Methodology />
         <NewsSection news={data.news} />
         <GallerySection gallery={data.gallery} />
+        <FaqSection />
         <SocialSection socials={data.socials} />
         <StudentTeacherPortals />
       </main>
