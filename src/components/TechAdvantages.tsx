@@ -56,8 +56,8 @@ export default function TechAdvantages() {
   return (
     <section id="tecnologia" className="py-24 bg-white relative">
       
-      {/* Indicador de Rolagem Flutuante (Estilo Exato Matrícula Online) */}
-      <div className="-mt-32 sm:-mt-36 md:-mt-40 mb-12 flex justify-center relative z-40">
+      {/* Indicador de Rolagem Flutuante */}
+      <div className="-mt-12 sm:-mt-14 mb-10 flex justify-center relative z-30">
         <a 
           href="#tecnologia" 
           className="group flex items-center justify-center relative cursor-pointer"
@@ -78,7 +78,7 @@ export default function TechAdvantages() {
         
         {/* Cabeçalho da Seção */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <span className="inline-block px-4 py-1.5 bg-blue-50 text-[#00875a] border border-blue-100 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-4">
+          <span className="inline-block px-4 py-1.5 bg-blue-50 text-primary border border-blue-100 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-4">
             Pilares da Mediação Tecnológica
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight mb-6">
@@ -102,12 +102,12 @@ export default function TechAdvantages() {
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-sky-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                     {item.icon}
                   </div>
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 group-hover:bg-blue-50 group-hover:text-blue-700 transition-colors">
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 group-hover:bg-blue-50 group-hover:text-primary transition-colors">
                     {item.tag}
                   </span>
                 </div>
 
-                <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-[#00875a] transition-colors">
+                <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-primary transition-colors">
                   {item.title}
                 </h3>
 
@@ -116,8 +116,8 @@ export default function TechAdvantages() {
                 </p>
               </div>
 
-              {/* Linha Inferior Gradiente que expande no hover (Igual ao Matrícula Online) */}
-              <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#00875a] via-sky-500 to-[#05549d] rounded-b-3xl transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
+              {/* Linha Inferior Gradiente que expande no hover */}
+              <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-primary-light to-sky-400 rounded-b-3xl transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
             </div>
           ))}
         </div>

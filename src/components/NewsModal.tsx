@@ -45,7 +45,7 @@ export default function NewsModal({ news, onClose }: NewsModalProps) {
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-6">
-            <span className="px-3 py-1 rounded-md bg-emerald-700 text-white text-xs font-bold shadow-sm">
+            <span className="px-3 py-1 rounded-md bg-primary text-white text-xs font-bold shadow-sm">
               {news.category}
             </span>
           </div>
@@ -55,12 +55,12 @@ export default function NewsModal({ news, onClose }: NewsModalProps) {
         <div className="p-6 sm:p-8 overflow-y-auto space-y-6">
           <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 pb-2 border-b border-slate-100">
             <span className="flex items-center gap-1.5 font-medium">
-              <Calendar size={14} className="text-emerald-600" />
+              <Calendar size={14} className="text-primary" />
               Publicado em: {news.publishedAt}
             </span>
             <span>•</span>
             <span className="flex items-center gap-1.5 font-medium">
-              <User size={14} className="text-emerald-600" />
+              <User size={14} className="text-primary" />
               {news.author}
             </span>
           </div>
@@ -69,8 +69,8 @@ export default function NewsModal({ news, onClose }: NewsModalProps) {
             {news.title}
           </h2>
 
-          <div className="p-4 bg-emerald-50/70 border-l-4 border-emerald-600 rounded-r-xl">
-            <p className="text-sm font-medium text-emerald-950 italic">
+          <div className="p-4 bg-blue-50/70 border-l-4 border-primary rounded-r-xl">
+            <p className="text-sm font-medium text-primary-deep italic">
               {news.excerpt}
             </p>
           </div>

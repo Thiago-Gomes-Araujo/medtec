@@ -49,7 +49,7 @@ export default function ImageModal({ photo, onClose }: ImageModalProps) {
 
         <div className="p-6 bg-slate-900 text-white space-y-2 border-t border-slate-800">
           <div className="flex items-center justify-between gap-4">
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary text-white">
               {photo.category}
             </span>
             <span className="text-xs text-slate-400 flex items-center gap-1 font-medium">

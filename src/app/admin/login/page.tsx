@@ -39,14 +39,14 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-slate-900 to-teal-950 flex flex-col justify-center items-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#071e3d] via-slate-900 to-[#05549d] flex flex-col justify-center items-center p-4">
       
       {/* Card de Login */}
       <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl border border-slate-100 space-y-6">
         
         {/* Topo / Logo */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-700 text-white shadow-lg mb-2">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary text-white shadow-lg mb-2">
             <Tv size={28} />
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
@@ -58,8 +58,8 @@ export default function AdminLoginPage() {
         </div>
 
         {/* Dica de Acesso */}
-        <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-[11px] text-emerald-900 space-y-1">
-          <div className="font-bold flex items-center gap-1.5 text-emerald-800">
+        <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-[11px] text-blue-900 space-y-1">
+          <div className="font-bold flex items-center gap-1.5 text-primary">
             <ShieldCheck size={14} />
             <span>Credenciais padrão para acesso:</span>
           </div>
@@ -87,7 +87,7 @@ export default function AdminLoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Ex: admin"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-sm font-medium"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm font-medium"
               />
               <User size={18} className="absolute left-3 top-3 text-slate-400" />
             </div>
@@ -104,7 +104,7 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-sm font-medium"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm font-medium"
               />
               <KeyRound size={18} className="absolute left-3 top-3 text-slate-400" />
             </div>
@@ -113,7 +113,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 group disabled:opacity-70 cursor-pointer"
+            className="w-full py-3 px-4 rounded-xl bg-primary hover:bg-primary-deep text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 group disabled:opacity-70 cursor-pointer"
           >
             <span>{loading ? 'Entrando...' : 'Acessar Painel de Controle'}</span>
             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -121,7 +121,7 @@ export default function AdminLoginPage() {
         </form>
 
         <div className="text-center pt-2">
-          <Link href="/" className="text-xs text-slate-500 hover:text-emerald-700 font-medium">
+          <Link href="/" className="text-xs text-slate-500 hover:text-primary font-medium">
             ← Voltar para o Portal Público
           </Link>
         </div>

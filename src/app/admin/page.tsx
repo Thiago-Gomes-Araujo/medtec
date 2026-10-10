@@ -26,6 +26,10 @@ import {
   Calendar
 } from 'lucide-react';
 import Link from 'next/link';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
+import PageHeader from '@/components/PageHeader';
+import EditorialKanban from '@/components/EditorialKanban';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -34,6 +38,11 @@ export default function AdminDashboardPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo'>('noticias');
+  const [mainView, setMainView] = useState<'kanban' | 'cms'>('kanban');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginUsername, setLoginUsername] = useState('admin');
+  const [loginPassword, setLoginPassword] = useState('medtec2025');
+  const [loginError, setLoginError] = useState('');
 
   // Estado para formulário de Notícia (novo ou edição)
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
@@ -79,15 +88,15 @@ export default function AdminDashboardPage() {
   const fetchData = async () => {
     try {
       const authRes = await fetch('/api/auth');
-      if (!authRes.ok) {
-        router.push('/admin/login');
-        return;
-      }
-
-      const res = await fetch('/api/data');
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
+      if (authRes.ok) {
+        setIsLoggedIn(true);
+        const res = await fetch('/api/data');
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+        }
+      } else {
+        setIsLoggedIn(false);
       }
     } catch (err) {
       console.error(err);
@@ -313,25 +322,135 @@ export default function AdminDashboardPage() {
     persistData(data);
   };
 
-  if (loading || !data) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-emerald-800 font-bold">
-          <Tv className="animate-spin text-emerald-600" size={24} />
-          <span>Carregando painel de administração...</span>
-        </div>
-      </div>
-    );
-  }
+  const handleInlineLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: loginUsername, password: loginPassword }),
+      });
+      const resData = await res.json();
+      if (res.ok && resData.success) {
+        setIsLoggedIn(true);
+        fetchData();
+      } else {
+        setLoginError(resData.error || 'Credenciais inválidas');
+      }
+    } catch {
+      setLoginError('Falha ao conectar.');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col text-slate-800">
-      
-      {/* Topo do Painel */}
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col text-slate-800">
+      <SiteHeader />
+
+      <PageHeader
+        eyebrow="Acesso restrito (simulação)"
+        title="Painel Editorial SEDUC-RO"
+        text="Todo conteúdo passa por Rascunho → Revisão Jurídica/LGPD → Aprovado → Publicado."
+      />
+
+      <div className="mx-auto max-w-7xl px-4 pt-6 w-full">
+        {/* Main View Switcher */}
+        <div className="flex border-b border-slate-200 mb-8 gap-3">
+          <button
+            onClick={() => setMainView('kanban')}
+            className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+              mainView === 'kanban'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Sparkles className="h-4 w-4" />
+            Pipeline Editorial (Kanban & LGPD)
+          </button>
+          <button
+            onClick={() => setMainView('cms')}
+            className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+              mainView === 'cms'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            Gerenciador Geral de Notícias & Portal CMS
+          </button>
+        </div>
+
+        {mainView === 'kanban' && (
+          <div className="pb-16">
+            <EditorialKanban />
+          </div>
+        )}
+
+        {mainView === 'cms' && (!isLoggedIn || !data) && (
+          <div className="max-w-md mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary text-white shadow-md">
+              <Tv size={24} />
+            </div>
+            <h3 className="font-display font-bold text-lg text-slate-900">
+              Autenticação de Gestor SEDUC
+            </h3>
+            <p className="text-xs text-slate-500">
+              Entre com suas credenciais para gerenciar notícias, galeria e comunicados salvos em disco.
+            </p>
+
+            {loginError && (
+              <div className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
+                {loginError}
+              </div>
+            )}
+
+            <form onSubmit={handleInlineLogin} className="space-y-3 text-left">
+              <div>
+                <label className="text-xs font-semibold text-slate-700">Usuário</label>
+                <input
+                  type="text"
+                  value={loginUsername}
+                  onChange={(e) => setLoginUsername(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-700">Senha</label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full mt-2 py-2.5 rounded-lg bg-primary text-white font-semibold text-xs shadow hover:opacity-90 transition-opacity"
+              >
+                Acessar Gerenciador CMS
+              </button>
+            </form>
+          </div>
+        )}
+
+        {mainView === 'cms' && isLoggedIn && data && (
+          <div className="space-y-6 pb-16">
+            <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-primary"></span>
+                <span className="text-xs font-semibold text-slate-700">Gestor Autenticado: admin (SEDUC)</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="text-xs text-rose-600 font-semibold hover:underline"
+              >
+                Encerrar Sessão
+              </button>
+            </div>
       <header className="bg-slate-900 text-white px-6 py-4 shadow-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-bold text-white shadow-md">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center font-bold text-white shadow-md">
               <Tv size={22} />
             </div>
             <div>
@@ -339,7 +458,7 @@ export default function AdminDashboardPage() {
                 <span className="font-extrabold text-base tracking-tight text-white">
                   Painel de Gestão CMS
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono text-[10px] font-bold">
                   MEDTEC RO
                 </span>
               </div>
@@ -353,7 +472,7 @@ export default function AdminDashboardPage() {
             <Link
               href="/"
               target="_blank"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold border border-slate-700 transition"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 text-xs font-semibold border border-slate-700 transition"
             >
               <Eye size={14} />
               <span>Ver Site Público</span>
@@ -372,7 +491,7 @@ export default function AdminDashboardPage() {
 
       {/* Alerta de Feedback de Salvamento */}
       {saveSuccess && (
-        <div className="bg-emerald-600 text-white text-xs font-bold py-2.5 px-6 text-center flex items-center justify-center gap-2 shadow-sm animate-in fade-in">
+        <div className="bg-primary text-white text-xs font-bold py-2.5 px-6 text-center flex items-center justify-center gap-2 shadow-sm animate-in fade-in">
           <CheckCircle size={16} />
           <span>Alterações salvas com sucesso no banco de dados!</span>
         </div>
@@ -385,7 +504,7 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('noticias')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'noticias'
-                ? 'bg-emerald-700 text-white shadow-xs'
+                ? 'bg-primary text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -397,7 +516,7 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('avisos')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'avisos'
-                ? 'bg-emerald-700 text-white shadow-xs'
+                ? 'bg-primary text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -409,7 +528,7 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('galeria')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'galeria'
-                ? 'bg-emerald-700 text-white shadow-xs'
+                ? 'bg-primary text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -421,7 +540,7 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('redes')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'redes'
-                ? 'bg-emerald-700 text-white shadow-xs'
+                ? 'bg-primary text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -433,7 +552,7 @@ export default function AdminDashboardPage() {
             onClick={() => setActiveTab('siteInfo')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'siteInfo'
-                ? 'bg-emerald-700 text-white shadow-xs'
+                ? 'bg-primary text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
@@ -492,7 +611,7 @@ export default function AdminDashboardPage() {
                       value={newsForm.title}
                       onChange={e => setNewsForm({ ...newsForm, title: e.target.value })}
                       placeholder="Ex: Polo ribeirinho recebe novos computadores do MEDTEC..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     />
                   </div>
 
@@ -501,7 +620,7 @@ export default function AdminDashboardPage() {
                     <select
                       value={newsForm.category}
                       onChange={e => setNewsForm({ ...newsForm, category: e.target.value })}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
                     >
                       <option value="Pedagógico">Pedagógico</option>
                       <option value="Institucional">Institucional</option>
@@ -544,7 +663,7 @@ export default function AdminDashboardPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                     <div>
                       <span className="text-[11px] text-slate-500 block mb-1">1. Fazer upload do computador:</span>
-                      <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-dashed border-slate-300 hover:border-emerald-500 rounded-xl cursor-pointer text-xs font-semibold text-slate-700 hover:text-emerald-700 transition">
+                      <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-dashed border-slate-300 hover:border-primary rounded-xl cursor-pointer text-xs font-semibold text-slate-700 hover:text-primary transition">
                         <Upload size={16} />
                         <span>{uploadingImage ? 'Enviando foto...' : 'Escolher foto do PC'}</span>
                         <input
@@ -576,7 +695,7 @@ export default function AdminDashboardPage() {
                         alt="Preview"
                         className="w-20 h-14 rounded-lg object-cover border border-slate-200 shadow-xs"
                       />
-                      <span className="text-xs text-emerald-700 font-medium truncate max-w-sm">
+                      <span className="text-xs text-primary font-medium truncate max-w-sm">
                         Foto selecionada: {newsForm.coverImage}
                       </span>
                     </div>
@@ -602,7 +721,7 @@ export default function AdminDashboardPage() {
                     value={newsForm.content}
                     onChange={e => setNewsForm({ ...newsForm, content: e.target.value })}
                     placeholder="Escreva aqui os parágrafos completos da notícia..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
 
@@ -612,7 +731,7 @@ export default function AdminDashboardPage() {
                     id="featured"
                     checked={newsForm.featured}
                     onChange={e => setNewsForm({ ...newsForm, featured: e.target.checked })}
-                    className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                    className="rounded text-primary focus:ring-primary h-4 w-4"
                   />
                   <label htmlFor="featured" className="text-xs font-semibold text-slate-700 cursor-pointer">
                     Destacar notícia na página inicial
@@ -623,7 +742,7 @@ export default function AdminDashboardPage() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition cursor-pointer"
+                    className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-deep text-white font-bold text-xs flex items-center gap-2 shadow-sm transition cursor-pointer"
                   >
                     <Save size={16} />
                     <span>{editingNews ? 'Salvar Edição' : 'Publicar Notícia'}</span>
@@ -669,7 +788,7 @@ export default function AdminDashboardPage() {
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                       <button
                         onClick={() => handleEditNews(item)}
-                        className="p-2 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 transition"
+                        className="p-2 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-primary transition"
                         title="Editar notícia"
                       >
                         <Edit3 size={15} />
@@ -766,7 +885,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition"
+                  className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-deep text-white font-bold text-xs flex items-center gap-2 shadow-sm transition"
                 >
                   <Plus size={16} />
                   <span>Cadastrar Aviso</span>
@@ -796,7 +915,7 @@ export default function AdminDashboardPage() {
                         </span>
                         <span className="text-xs text-slate-400">{item.date}</span>
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                          item.active ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-600'
+                          item.active ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-600'
                         }`}>
                           {item.active ? 'Ativo na Home' : 'Oculto'}
                         </span>
@@ -882,7 +1001,7 @@ export default function AdminDashboardPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                     <div>
                       <span className="text-[11px] text-slate-500 block mb-1">1. Enviar do computador:</span>
-                      <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-dashed border-slate-300 hover:border-emerald-500 rounded-xl cursor-pointer text-xs font-semibold text-slate-700 hover:text-emerald-700 transition">
+                      <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-dashed border-slate-300 hover:border-primary rounded-xl cursor-pointer text-xs font-semibold text-slate-700 hover:text-primary transition">
                         <Upload size={16} />
                         <span>{uploadingImage ? 'Enviando...' : 'Fazer Upload da Imagem'}</span>
                         <input
@@ -914,7 +1033,7 @@ export default function AdminDashboardPage() {
                         alt="Preview"
                         className="w-24 h-16 rounded-xl object-cover border border-slate-200 shadow-xs"
                       />
-                      <span className="text-xs text-emerald-700 font-semibold truncate max-w-sm">
+                      <span className="text-xs text-primary font-semibold truncate max-w-sm">
                         Imagem carregada com sucesso!
                       </span>
                     </div>
@@ -924,7 +1043,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition"
+                  className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-deep text-white font-bold text-xs flex items-center gap-2 shadow-sm transition"
                 >
                   <Plus size={16} />
                   <span>Adicionar à Galeria</span>
@@ -1061,7 +1180,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition"
+                  className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-deep text-white font-bold text-xs flex items-center gap-2 shadow-sm transition"
                 >
                   <Save size={16} />
                   <span>Salvar Links e Contatos</span>
@@ -1161,7 +1280,7 @@ export default function AdminDashboardPage() {
               <button
                 onClick={() => persistData(data)}
                 disabled={saving}
-                className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition"
+                className="px-6 py-2.5 rounded-xl bg-primary hover:opacity-95 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition"
               >
                 <Save size={16} />
                 <span>Salvar Configurações</span>
@@ -1172,6 +1291,11 @@ export default function AdminDashboardPage() {
 
       </main>
 
+      </div>
+      )}
+      </div>
+
+      <SiteFooter />
     </div>
   );
 }

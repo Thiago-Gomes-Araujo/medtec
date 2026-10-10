@@ -20,48 +20,48 @@ export default function Methodology() {
       step: '01',
       title: 'Produção nos Estúdios',
       desc: 'Professores especialistas elaboram e gravam aulas com recursos de mídia digital e teleprompters nos estúdios da SEDUC em Porto Velho.',
-      icon: <Tv className="w-8 h-8 text-[#00875a]" />
+      icon: <Tv className="w-8 h-8 text-primary" />
     },
     {
       step: '02',
       title: 'Transmissão Satelital & IP',
       desc: 'O sinal chega em tempo real nas escolas através de antenas receptoras e internet veloz mesmo nos locais mais isolados de Rondônia.',
-      icon: <Satellite className="w-8 h-8 text-[#00875a]" />
+      icon: <Satellite className="w-8 h-8 text-primary" />
     },
     {
       step: '03',
       title: 'Professor Mediador',
       desc: 'Na sala de aula, o professor presencial acolhe a turma, esclarece dúvidas, dinamiza exercícios práticos e avalia o aprendizado.',
-      icon: <Users2 className="w-8 h-8 text-[#00875a]" />
+      icon: <Users2 className="w-8 h-8 text-primary" />
     },
     {
       step: '04',
       title: 'Itinerários & Agroecologia',
       desc: 'Estudantes desenvolvem projetos reais de sustentabilidade com o componente NBAZ, Projeto de Vida e trilhas da BNCC.',
-      icon: <Layers className="w-8 h-8 text-[#00875a]" />
+      icon: <Layers className="w-8 h-8 text-primary" />
     },
     {
       step: '05',
       title: 'Conclusão & Futuro',
       desc: 'O aluno conclui o Ensino Médio com diploma regular estadual, preparado para o mercado de trabalho, agronegócio familiar e universidades.',
-      icon: <GraduationCap className="w-8 h-8 text-[#00875a]" />
+      icon: <GraduationCap className="w-8 h-8 text-primary" />
     }
   ];
 
   return (
-    <section id="como-funciona" className="py-24 bg-gradient-to-b from-gray-50 via-white to-gray-50 relative overflow-hidden">
+    <section id="como-funciona" className="py-24 bg-gradient-to-b from-slate-50 via-white to-slate-50 relative overflow-hidden">
       
-      {/* Luzes decorativas de fundo (Estilo Matrícula Online) */}
+      {/* Luzes decorativas de fundo */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-20 w-80 h-80 bg-blue-100/60 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-emerald-100/60 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-sky-100/60 rounded-full blur-3xl" />
       </div>
 
       <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Cabeçalho */}
         <div className="text-center max-w-3xl mx-auto mb-20">
-          <span className="inline-block px-4 py-1.5 bg-blue-100 text-[#00875a] rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-4">
+          <span className="inline-block px-4 py-1.5 bg-blue-50 text-primary border border-blue-100 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-4">
             Passo a Passo Tecnológico
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight mb-6">
@@ -72,11 +72,11 @@ export default function Methodology() {
           </p>
         </div>
 
-        {/* Linha Horizontal e Grid de 5 Passos (Estilo Exato Matrícula Online SEDUC) */}
+        {/* Linha Horizontal e Grid de 5 Passos */}
         <div className="relative">
           
           {/* Linha de Conexão Horizontal Desktop */}
-          <div className="hidden lg:block absolute top-[52%] left-6 right-6 h-1 bg-gradient-to-r from-blue-200 via-sky-300 to-emerald-300 pointer-events-none z-0" />
+          <div className="hidden lg:block absolute top-[52%] left-6 right-6 h-1 bg-gradient-to-r from-blue-200 via-sky-300 to-blue-400 pointer-events-none z-0" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-6 items-stretch relative z-10">
             {steps.map((item, idx) => (
@@ -84,7 +84,7 @@ export default function Methodology() {
                 <div className="relative flex flex-col justify-start bg-white rounded-3xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 min-h-[340px] w-full">
                   
                   {/* Badge Numérico Flutuante */}
-                  <div className="absolute -top-5 left-8 w-11 h-11 bg-gradient-to-br from-[#00875a] to-sky-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
+                  <div className="absolute -top-5 left-8 w-11 h-11 bg-gradient-to-br from-primary to-primary-light rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
                     {item.step}
                   </div>
 
@@ -95,7 +95,7 @@ export default function Methodology() {
 
                   {/* Textos */}
                   <div className="flex flex-col items-center text-center mt-2">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-[#00875a] transition-colors">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-primary transition-colors">
                       {item.title}
                     </h3>
                     <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
@@ -120,7 +120,7 @@ export default function Methodology() {
         <div className="mt-20 bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-xl relative overflow-hidden">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-8 border-b border-slate-100">
             <div>
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-[#00875a] uppercase tracking-wider mb-2">
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-2">
                 <BookMarked size={16} />
                 <span>Base Legal: Portaria SEDUC nº 928/2025 & Lei nº 3.846/2016</span>
               </div>
@@ -133,8 +133,8 @@ export default function Methodology() {
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
-                <CheckCircle size={14} className="text-emerald-600" />
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 text-primary text-xs font-bold border border-blue-200">
+                <CheckCircle size={14} className="text-primary" />
                 Matriz Regular
               </span>
               <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
@@ -154,11 +154,11 @@ export default function Methodology() {
               <h4 className="font-bold text-sm text-slate-900 mt-1">Matemática & Aplicações</h4>
             </div>
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-sky-300 transition-all">
-              <span className="text-[10px] font-bold text-emerald-600 uppercase">Inovação</span>
+              <span className="text-[10px] font-bold text-sky-600 uppercase">Inovação</span>
               <h4 className="font-bold text-sm text-slate-900 mt-1">Agroecologia (NBAZ)</h4>
             </div>
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-sky-300 transition-all">
-              <span className="text-[10px] font-bold text-sky-600 uppercase">Protagonismo</span>
+              <span className="text-[10px] font-bold text-primary uppercase">Protagonismo</span>
               <h4 className="font-bold text-sm text-slate-900 mt-1">Projeto de Vida</h4>
             </div>
           </div>

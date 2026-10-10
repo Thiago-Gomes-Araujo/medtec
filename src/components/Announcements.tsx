@@ -89,7 +89,7 @@ export default function Announcements({ announcements }: AnnouncementsProps) {
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 text-base group-hover:text-emerald-700 transition-colors mb-2">
+                  <h3 className="font-bold text-slate-900 text-base group-hover:text-primary transition-colors mb-2">
                     {item.title}
                   </h3>
 
@@ -102,7 +102,7 @@ export default function Announcements({ announcements }: AnnouncementsProps) {
                   <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-end">
                     <a
                       href={item.linkUrl}
-                      className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 group/link"
+                      className="text-xs font-semibold text-primary hover:text-primary-deep flex items-center gap-1 group/link"
                     >
                       <span>{item.linkText}</span>
                       <ArrowUpRight size={14} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />

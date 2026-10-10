@@ -1,6 +1,6 @@
 import React from 'react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 import { getDatabase } from '@/lib/db';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -27,8 +27,8 @@ export default async function NoticiaDetalhePage({ params }: Props) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header socials={data.socials} />
+    <div className="flex flex-col min-h-screen bg-[#f8fafc]">
+      <SiteHeader />
 
       {/* Breadcrumb */}
       <div className="bg-slate-100 py-4 border-b border-slate-200">
@@ -115,7 +115,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
         </article>
       </main>
 
-      <Footer socials={data.socials} siteInfo={data.siteInfo} />
+      <SiteFooter />
     </div>
   );
 }

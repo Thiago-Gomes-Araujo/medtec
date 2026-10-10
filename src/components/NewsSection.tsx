@@ -40,7 +40,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
         {/* Cabeçalho */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
-            <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider mb-2">
+            <div className="inline-flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-2">
               <Newspaper size={15} />
               <span>Informativo Oficial SEDUC</span>
             </div>
@@ -54,7 +54,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
 
           <Link
             href="/noticias"
-            className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 hover:text-emerald-900 group"
+            className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary-deep group"
           >
             <span>Ver arquivo completo</span>
             <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -70,7 +70,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   selectedCategory === cat 
-                    ? 'bg-emerald-700 text-white shadow-xs' 
+                    ? 'bg-primary text-white shadow-xs' 
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                 }`}
               >
@@ -85,7 +85,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
               placeholder="Buscar notícia..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-slate-50/50"
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary bg-slate-50/50"
             />
             <Search size={15} className="absolute left-3 top-2.5 text-slate-400" />
           </div>
@@ -114,7 +114,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-3 left-3">
-                    <span className="px-2.5 py-1 rounded-md bg-emerald-800/90 text-white text-[11px] font-bold backdrop-blur-xs">
+                    <span className="px-2.5 py-1 rounded-md bg-primary/90 text-white text-[11px] font-bold backdrop-blur-xs">
                       {item.category}
                     </span>
                   </div>
@@ -146,7 +146,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
                     {/* Título */}
                     <h3 
                       onClick={() => setActiveNewsModal(item)}
-                      className="font-bold text-slate-900 text-lg leading-snug group-hover:text-emerald-700 transition-colors line-clamp-2 cursor-pointer mb-2.5"
+                      className="font-bold text-slate-900 text-lg leading-snug group-hover:text-primary transition-colors line-clamp-2 cursor-pointer mb-2.5"
                     >
                       {item.title}
                     </h3>
@@ -161,7 +161,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                     <button
                       onClick={() => setActiveNewsModal(item)}
-                      className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 group/btn cursor-pointer"
+                      className="text-xs font-bold text-primary hover:text-primary-deep flex items-center gap-1 group/btn cursor-pointer"
                     >
                       <span>Ler notícia completa</span>
                       <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
