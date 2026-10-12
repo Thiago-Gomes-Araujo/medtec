@@ -5,6 +5,7 @@ import { getDatabase } from '@/lib/db';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight, Calendar, User, ArrowLeft, Tag, Share2 } from 'lucide-react';
+import NewsViewTracker from '@/components/NewsViewTracker';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -22,7 +23,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
   const data = getDatabase();
   const newsItem = data.news.find((n) => n.id === id || n.slug === id);
 
-  if (!newsItem) {
+  if (!newsItem || newsItem.published === false) {
     notFound();
   }
 
@@ -41,6 +42,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
         </div>
       </div>
 
+      <NewsViewTracker id={newsItem.id} />
       <main className="flex-1 py-10 bg-white">
         <article className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
           

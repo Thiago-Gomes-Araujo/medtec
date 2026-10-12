@@ -30,6 +30,8 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import EditorialKanban from '@/components/EditorialKanban';
+import SitePhotosManager from '@/components/SitePhotosManager';
+import NewsPublicationPreview from '@/components/NewsPublicationPreview';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -37,7 +39,8 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [activeTab, setActiveTab] = useState<'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo'>('noticias');
+  const [activeTab, setActiveTab] = useState<'fotos' | 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo'>('fotos');
+  const [newsFolder, setNewsFolder] = useState('Todas');
   const [mainView, setMainView] = useState<'kanban' | 'cms'>('kanban');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginUsername, setLoginUsername] = useState('admin');
@@ -54,6 +57,9 @@ export default function AdminDashboardPage() {
     excerpt: '',
     content: '',
     featured: false,
+    urgent: false,
+    folder: 'Geral',
+    published: true,
     publishedAt: '',
   });
 
@@ -195,6 +201,9 @@ export default function AdminDashboardPage() {
         category: newsForm.category || 'Institucional',
         publishedAt: newsForm.publishedAt || new Date().toLocaleDateString('pt-BR'),
         featured: newsForm.featured || false,
+        urgent: newsForm.urgent || false,
+        folder: newsForm.folder?.trim() || 'Geral',
+        published: newsForm.published !== false,
         tags: ['MEDTEC', 'SEDUC-RO'],
       };
       updatedNews.unshift(newItem);
@@ -213,8 +222,19 @@ export default function AdminDashboardPage() {
       excerpt: '',
       content: '',
       featured: false,
+      urgent: false,
+      folder: 'Geral',
+      published: true,
       publishedAt: '',
     });
+  };
+
+  const handleTogglePublished = (id: string) => {
+    if (!data) return;
+    const updatedNews = data.news.map((item) =>
+      item.id === id ? { ...item, published: item.published === false } : item
+    );
+    persistData({ ...data, news: updatedNews });
   };
 
   const handleDeleteNews = (id: string) => {
@@ -342,6 +362,14 @@ export default function AdminDashboardPage() {
       setLoginError('Falha ao conectar.');
     }
   };
+
+  const newsFolders = data
+    ? Array.from(new Set(data.news.map((item) => item.folder?.trim() || 'Geral'))).sort((a, b) =>
+        a.localeCompare(b, 'pt-BR')
+      )
+    : [];
+  const publishedCount = data ? data.news.filter((item) => item.published !== false).length : 0;
+  const draftCount = data ? data.news.length - publishedCount : 0;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col text-slate-800">
@@ -501,6 +529,18 @@ export default function AdminDashboardPage() {
       <div className="bg-white border-b border-slate-200 shadow-xs">
         <div className="max-w-7xl mx-auto px-6 flex flex-wrap gap-2 pt-3">
           <button
+            onClick={() => setActiveTab('fotos')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'fotos'
+                ? 'bg-primary text-white shadow-xs'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <ImageIcon size={16} />
+            <span>Fotos do site</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('noticias')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'noticias'
@@ -565,11 +605,20 @@ export default function AdminDashboardPage() {
       {/* Conteúdo Principal da Aba */}
       <main className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full space-y-8">
         
+        {activeTab === 'fotos' && (
+          <SitePhotosManager
+            data={data}
+            saving={saving}
+            onSave={persistData}
+          />
+        )}
+
         {/* ================= ABA NOTÍCIAS ================= */}
         {activeTab === 'noticias' && (
           <div className="space-y-8">
             {/* Formulário de Criação / Edição */}
-            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start xl:gap-8">
+              <div className="min-w-0">
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
                 <div>
                   <h2 className="text-xl font-black text-slate-900">
@@ -591,6 +640,9 @@ export default function AdminDashboardPage() {
                         excerpt: '',
                         content: '',
                         featured: false,
+                        urgent: false,
+                        folder: 'Geral',
+                        published: true,
                         publishedAt: '',
                       });
                     }}
@@ -628,6 +680,36 @@ export default function AdminDashboardPage() {
                       <option value="Tecnologia">Tecnologia</option>
                       <option value="Eventos">Eventos</option>
                       <option value="Agroecologia">Agroecologia</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Pasta</label>
+                    <input
+                      type="text"
+                      list="pastas-noticias"
+                      value={newsForm.folder || ''}
+                      onChange={(e) => setNewsForm({ ...newsForm, folder: e.target.value })}
+                      placeholder="Ex: Institucional, Eventos, Interior"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm"
+                    />
+                    <datalist id="pastas-noticias">
+                      {newsFolders.map((folder) => (
+                        <option key={folder} value={folder} />
+                      ))}
+                    </datalist>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Situação no site</label>
+                    <select
+                      value={newsForm.published === false ? 'rascunho' : 'publicado'}
+                      onChange={(e) => setNewsForm({ ...newsForm, published: e.target.value === 'publicado' })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-white"
+                    >
+                      <option value="publicado">Publicada — aparece no site</option>
+                      <option value="rascunho">Rascunho — só no painel</option>
                     </select>
                   </div>
                 </div>
@@ -725,17 +807,31 @@ export default function AdminDashboardPage() {
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="featured"
-                    checked={newsForm.featured}
-                    onChange={e => setNewsForm({ ...newsForm, featured: e.target.checked })}
-                    className="rounded text-primary focus:ring-primary h-4 w-4"
-                  />
-                  <label htmlFor="featured" className="text-xs font-semibold text-slate-700 cursor-pointer">
-                    Destacar notícia na página inicial
-                  </label>
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="featured"
+                      checked={!!newsForm.featured}
+                      onChange={e => setNewsForm({ ...newsForm, featured: e.target.checked })}
+                      className="rounded text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <label htmlFor="featured" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                      Destacar na página inicial
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="urgent"
+                      checked={!!newsForm.urgent}
+                      onChange={e => setNewsForm({ ...newsForm, urgent: e.target.checked })}
+                      className="rounded text-rose-600 focus:ring-rose-500 h-4 w-4"
+                    />
+                    <label htmlFor="urgent" className="text-xs font-semibold text-rose-700 cursor-pointer">
+                      Marcar como urgência
+                    </label>
+                  </div>
                 </div>
 
                 <div className="pt-2">
@@ -749,17 +845,84 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
               </form>
+              </div>
+              <NewsPublicationPreview
+                title={newsForm.title || ''}
+                excerpt={newsForm.excerpt || ''}
+                content={newsForm.content || ''}
+                coverImage={newsForm.coverImage || ''}
+                author={newsForm.author || ''}
+                category={newsForm.category || 'Pedagógico'}
+                publishedAt={newsForm.publishedAt || ''}
+                featured={!!newsForm.featured}
+                urgent={!!newsForm.urgent}
+                published={newsForm.published !== false}
+              />
             </div>
 
             {/* Listagem de Notícias Cadastradas */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-4">
-              <h3 className="text-lg font-black text-slate-900">
-                Notícias Cadastradas ({data.news.length})
-              </h3>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">
+                    Notícias por pasta ({data.news.length})
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    <span className="font-bold text-emerald-700">{publishedCount} publicadas</span>
+                    {' · '}
+                    <span className="font-bold text-slate-600">{draftCount} rascunhos</span>
+                  </p>
+                </div>
+              </div>
 
-              <div className="divide-y divide-slate-100">
-                {data.news.map((item) => (
-                  <div key={item.id} className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNewsFolder('Todas')}
+                  className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                    newsFolder === 'Todas' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  Todas ({data.news.length})
+                </button>
+                {newsFolders.map((folder) => {
+                  const total = data.news.filter((item) => (item.folder || 'Geral') === folder).length;
+                  const live = data.news.filter(
+                    (item) => (item.folder || 'Geral') === folder && item.published !== false
+                  ).length;
+                  return (
+                    <button
+                      key={folder}
+                      type="button"
+                      onClick={() => setNewsFolder(folder)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                        newsFolder === folder ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {folder} ({live}/{total})
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-6">
+                {newsFolders
+                  .filter((folder) => newsFolder === 'Todas' || folder === newsFolder)
+                  .map((folder) => {
+                    const items = data.news.filter((item) => (item.folder || 'Geral') === folder);
+                    if (items.length === 0) return null;
+                    const live = items.filter((item) => item.published !== false).length;
+                    return (
+                      <section key={folder}>
+                        <div className="mb-2 flex items-center justify-between">
+                          <h4 className="text-sm font-black text-slate-900">{folder}</h4>
+                          <span className="text-[11px] font-semibold text-slate-500">
+                            {live} publicada{live === 1 ? '' : 's'} · {items.length - live} rascunho{items.length - live === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                        <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+                          {items.map((item) => (
+                  <div key={item.id} className="py-4 px-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <img
                         src={item.coverImage}
@@ -779,13 +942,42 @@ export default function AdminDashboardPage() {
                               Destaque
                             </span>
                           )}
+                          {item.urgent && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 text-rose-800">
+                              Urgente
+                            </span>
+                          )}
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold ${
+                            item.published === false
+                              ? 'bg-slate-200 text-slate-600'
+                              : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {item.published === false ? 'Rascunho' : 'Publicada'}
+                          </span>
                         </div>
                         <h4 className="font-bold text-sm text-slate-900 line-clamp-1">{item.title}</h4>
                         <p className="text-xs text-slate-500 line-clamp-1">{item.excerpt}</p>
+                        <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+                          <Eye size={12} />
+                          <span>
+                            {(item.views || 0).toLocaleString('pt-BR')}{' '}
+                            {(item.views || 0) === 1 ? 'visualização' : 'visualizações'}
+                          </span>
+                        </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      <button
+                        onClick={() => handleTogglePublished(item.id)}
+                        className={`rounded-lg px-2.5 py-2 text-[11px] font-bold ${
+                          item.published === false
+                            ? 'bg-emerald-600 text-white'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {item.published === false ? 'Publicar' : 'Tirar do ar'}
+                      </button>
                       <button
                         onClick={() => handleEditNews(item)}
                         className="p-2 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-primary transition"
@@ -802,7 +994,11 @@ export default function AdminDashboardPage() {
                       </button>
                     </div>
                   </div>
-                ))}
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
               </div>
             </div>
           </div>

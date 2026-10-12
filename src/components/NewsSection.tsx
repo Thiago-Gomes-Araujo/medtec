@@ -27,6 +27,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
   const categories = ['Todas', ...Array.from(new Set(news.map(n => n.category)))];
 
   const filteredNews = news.filter(item => {
+    if (item.published === false) return false;
     const matchesCategory = selectedCategory === 'Todas' || item.category === selectedCategory;
     const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.excerpt.toLowerCase().includes(searchTerm.toLowerCase());

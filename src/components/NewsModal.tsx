@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { NewsItem } from '@/types';
 import { X, Calendar, User, Tag, Share2 } from 'lucide-react';
+import { recordNewsView } from '@/components/NewsViewTracker';
 
 interface NewsModalProps {
   news: NewsItem;
@@ -16,6 +17,7 @@ export default function NewsModal({ news, onClose }: NewsModalProps) {
     };
     window.addEventListener('keydown', handleKeyDown);
     document.body.style.overflow = 'hidden';
+    recordNewsView(news.id);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'auto';

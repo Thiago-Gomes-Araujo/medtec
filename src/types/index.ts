@@ -11,6 +11,10 @@ export interface NewsItem {
   category: string;
   publishedAt: string;
   featured: boolean;
+  urgent?: boolean;
+  folder?: string;
+  published?: boolean;
+  views?: number;
   tags?: string[];
 }
 
@@ -23,6 +27,13 @@ export interface AnnouncementItem {
   linkText?: string;
   linkUrl?: string;
   active: boolean;
+}
+
+export interface BannerItem {
+  id: string;
+  imageUrl: string;
+  title?: string;
+  linkUrl?: string;
 }
 
 export interface GalleryItem {
@@ -62,6 +73,8 @@ export interface SiteInfo {
   heroBadge: string;
   heroTitle: string;
   heroDescription: string;
+  heroImage: string;
+  studioImage: string;
   videoUrl?: string;
 }
 
@@ -72,5 +85,6 @@ export interface DatabaseSchema {
   announcements: AnnouncementItem[];
   news: NewsItem[];
   gallery: GalleryItem[];
+  banners: BannerItem[];
 }
 
