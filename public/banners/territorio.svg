@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560">
+  <defs>
+    <linearGradient id="rio" x1="1600" y1="0" x2="0" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#04386e"/>
+      <stop offset="0.5" stop-color="#05549d"/>
+      <stop offset="1" stop-color="#0b5eae"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="560" fill="url(#rio)"/>
+  <circle cx="220" cy="80" r="180" fill="#ffffff" fill-opacity="0.06"/>
+  <path d="M1080 90c80 36 140 120 128 210-14 100-86 176-180 200" stroke="#ffffff" stroke-opacity="0.28" stroke-width="26" stroke-linecap="round" fill="none"/>
+  <path d="M1140 170c36 28 64 82 56 136" stroke="#7fd3ff" stroke-opacity="0.75" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <text x="220" y="190" fill="#9fd8ff" font-family="Arial, Helvetica, sans-serif" font-size="22" letter-spacing="4">52 MUNIC&#205;PIOS &#183; 100% DO ESTADO</text>
+  <text x="220" y="280" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700">Ensino M&#233;dio</text>
+  <text x="220" y="358" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700">em cada comunidade.</text>
+  <text x="220" y="430" fill="#d6ebff" font-family="Arial, Helvetica, sans-serif" font-size="26">Campo, &#225;guas, aldeias e florestas de Rond&#244;nia.</text>
+</svg>

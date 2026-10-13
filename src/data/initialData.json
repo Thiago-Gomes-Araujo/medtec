@@ -9,8 +9,30 @@
     "heroBadge": "Programa Oficial SEDUC / Governo de Rondônia",
     "heroTitle": "Ensino Médio de Qualidade Onde Você Estiver",
     "heroDescription": "Aulas ao vivo diretamente dos estúdios televisivos da Coordenadoria de Mídias Educacionais em Porto Velho para centenas de salas conectadas em todo o estado de Rondônia, acompanhadas diariamente por professores mediadores.",
+    "heroImage": "/hero.jpg",
+    "studioImage": "/hero.jpg",
     "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
   },
+  "banners": [
+    {
+      "id": "banner-1",
+      "title": "Banner inicial",
+      "imageUrl": "/hero.jpg",
+      "linkUrl": "#noticias"
+    },
+    {
+      "id": "banner-2",
+      "title": "Aulas ao vivo",
+      "imageUrl": "/banners/aulas.svg",
+      "linkUrl": "#como-funciona"
+    },
+    {
+      "id": "banner-3",
+      "title": "Todo o estado",
+      "imageUrl": "/banners/territorio.svg",
+      "linkUrl": "#mapa"
+    }
+  ],
   "stats": {
     "studentsCount": "15.000+",
     "schoolsCount": "320+",

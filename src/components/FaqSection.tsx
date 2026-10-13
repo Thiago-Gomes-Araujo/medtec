@@ -39,7 +39,7 @@ export default function FaqSection() {
         
         {/* Cabeçalho */}
         <div className="text-center mb-16">
-          <span className="inline-block px-4 py-1.5 bg-blue-100 text-[#00875a] rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-4">
+          <span className="inline-block px-4 py-1.5 bg-blue-50 text-primary border border-blue-100 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-4">
             Tire suas dúvidas
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight mb-4">
@@ -72,7 +72,7 @@ export default function FaqSection() {
                     <span 
                       className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-colors ${
                         isOpen 
-                          ? 'bg-[#00875a] text-white' 
+                          ? 'bg-primary text-white' 
                           : 'bg-gray-100 text-gray-500'
                       }`}
                     >
@@ -80,7 +80,7 @@ export default function FaqSection() {
                     </span>
                     <span 
                       className={`font-bold text-base sm:text-lg transition-colors ${
-                        isOpen ? 'text-[#00875a]' : 'text-gray-900'
+                        isOpen ? 'text-primary' : 'text-gray-900'
                       }`}
                     >
                       {faq.q}
@@ -90,7 +90,7 @@ export default function FaqSection() {
                   <span 
                     className={`shrink-0 ml-4 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
                       isOpen 
-                        ? 'bg-[#00875a] text-white rotate-180' 
+                        ? 'bg-primary text-white rotate-180' 
                         : 'bg-gray-100 text-gray-500'
                     }`}
                   >
@@ -112,7 +112,7 @@ export default function FaqSection() {
 
         {/* Box Inferior de Dúvida / Suporte */}
         <div className="mt-14 text-center p-8 rounded-3xl bg-gradient-to-br from-gray-50 to-blue-50 border border-gray-100 shadow-sm flex flex-col items-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-[#00875a] to-sky-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20 text-white">
+          <div className="w-16 h-16 bg-gradient-to-br from-primary to-sky-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20 text-white">
             <HelpCircle size={30} />
           </div>
           <h3 className="text-xl font-bold text-gray-900 mb-2">Ainda tem dúvidas sobre o MEDTEC?</h3>
@@ -121,7 +121,7 @@ export default function FaqSection() {
           </p>
           <a
             href="#redes"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-[#00875a] to-sky-600 text-white font-bold text-sm shadow-md hover:scale-105 transition-all"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-primary to-sky-600 hover:from-primary-deep hover:to-primary text-white font-bold text-sm shadow-md hover:scale-105 transition-all"
           >
             <MessageCircle size={16} />
             <span>Falar com o Suporte da SEDUC</span>

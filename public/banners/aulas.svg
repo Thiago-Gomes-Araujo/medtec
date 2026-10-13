@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560">
+  <defs>
+    <linearGradient id="ceu" x1="0" y1="0" x2="1600" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071e3d"/>
+      <stop offset="0.55" stop-color="#05549d"/>
+      <stop offset="1" stop-color="#0a6ebd"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="560" fill="url(#ceu)"/>
+  <circle cx="1360" cy="120" r="220" fill="#ffffff" fill-opacity="0.07"/>
+  <circle cx="1480" cy="420" r="140" fill="#ffffff" fill-opacity="0.05"/>
+  <path d="M1120 250c90-90 220-110 320-80" stroke="#ffffff" stroke-opacity="0.35" stroke-width="3" fill="none"/>
+  <circle cx="1120" cy="250" r="9" fill="#7fd3ff"/>
+  <circle cx="1440" cy="170" r="7" fill="#ffffff" fill-opacity="0.85"/>
+  <text x="220" y="190" fill="#9fd8ff" font-family="Arial, Helvetica, sans-serif" font-size="22" letter-spacing="4">MEDTEC &#183; SEDUC ROND&#212;NIA</text>
+  <text x="220" y="280" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="68" font-weight="700">Aulas ao vivo,</text>
+  <text x="220" y="358" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="68" font-weight="700">onde voc&#234; estiver.</text>
+  <text x="220" y="430" fill="#d6ebff" font-family="Arial, Helvetica, sans-serif" font-size="26">Do est&#250;dio em Porto Velho para as salas conectadas do estado.</text>
+</svg>
