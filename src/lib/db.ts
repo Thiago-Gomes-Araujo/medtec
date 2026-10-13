@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { DatabaseSchema } from '@/types';
+import { BannerItem, DatabaseSchema } from '@/types';
 import initialData from '@/data/initialData.json';
 
 const DATA_DIR = path.join(process.cwd(), 'src', 'data');
@@ -18,12 +18,43 @@ export function getDatabase(): DatabaseSchema {
     }
 
     const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    const parsed = JSON.parse(raw);
-    return parsed as DatabaseSchema;
+    const parsed = JSON.parse(raw) as Partial<DatabaseSchema>;
+    const defaults = initialData as DatabaseSchema;
+    return {
+      ...defaults,
+      ...parsed,
+      siteInfo: { ...defaults.siteInfo, ...(parsed.siteInfo || {}) },
+      stats: { ...defaults.stats, ...(parsed.stats || {}) },
+      socials: { ...defaults.socials, ...(parsed.socials || {}) },
+      announcements: parsed.announcements ?? defaults.announcements,
+      news: (parsed.news ?? defaults.news).map((item) => ({
+        ...item,
+        folder: item.folder?.trim() || item.category || 'Geral',
+        published: item.published !== false,
+        views: typeof item.views === 'number' && item.views > 0 ? item.views : 0,
+      })),
+      gallery: parsed.gallery ?? defaults.gallery,
+      banners: normalizeBanners(parsed, defaults),
+    };
   } catch (error) {
     console.error('Error reading database file:', error);
     return initialData as DatabaseSchema;
   }
+}
+
+function normalizeBanners(parsed: Partial<DatabaseSchema>, defaults: DatabaseSchema): BannerItem[] {
+  const saved = parsed.banners?.filter((item) => item.imageUrl?.trim());
+  if (saved && saved.length > 0) {
+    return saved.map((item) => ({
+      id: item.id,
+      imageUrl: item.imageUrl.trim(),
+      title: item.title || '',
+      linkUrl: item.linkUrl || '',
+    }));
+  }
+
+  const image = parsed.siteInfo?.heroImage || defaults.siteInfo.heroImage || '/hero.jpg';
+  return [{ id: 'banner-inicial', title: 'Banner inicial', imageUrl: image, linkUrl: '#noticias' }];
 }
 
 export function saveDatabase(data: DatabaseSchema): boolean {

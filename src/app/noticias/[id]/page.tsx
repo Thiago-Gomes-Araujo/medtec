@@ -1,10 +1,11 @@
 import React from 'react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 import { getDatabase } from '@/lib/db';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight, Calendar, User, ArrowLeft, Tag, Share2 } from 'lucide-react';
+import NewsViewTracker from '@/components/NewsViewTracker';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -22,13 +23,13 @@ export default async function NoticiaDetalhePage({ params }: Props) {
   const data = getDatabase();
   const newsItem = data.news.find((n) => n.id === id || n.slug === id);
 
-  if (!newsItem) {
+  if (!newsItem || newsItem.published === false) {
     notFound();
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header socials={data.socials} />
+    <div className="flex flex-col min-h-screen bg-[#f8fafc]">
+      <SiteHeader />
 
       {/* Breadcrumb */}
       <div className="bg-slate-100 py-4 border-b border-slate-200">
@@ -41,6 +42,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
         </div>
       </div>
 
+      <NewsViewTracker id={newsItem.id} />
       <main className="flex-1 py-10 bg-white">
         <article className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
           
@@ -115,7 +117,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
         </article>
       </main>
 
-      <Footer socials={data.socials} siteInfo={data.siteInfo} />
+      <SiteFooter />
     </div>
   );
 }

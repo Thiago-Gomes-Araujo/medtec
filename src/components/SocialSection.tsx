@@ -22,16 +22,16 @@ interface SocialSectionProps {
 
 export default function SocialSection({ socials }: SocialSectionProps) {
   return (
-    <section id="redes" className="py-20 bg-gradient-to-b from-slate-900 to-emerald-950 text-white relative overflow-hidden">
+    <section id="redes" className="py-20 bg-gradient-to-b from-[#071e3d] via-slate-900 to-[#071e3d] text-white relative overflow-hidden">
       {/* Luzes de fundo */}
-      <div className="absolute top-1/2 left-0 w-96 h-96 bg-red-500/10 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
-      <div className="absolute top-1/2 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
+      <div className="absolute top-1/2 left-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
+      <div className="absolute top-1/2 right-0 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl -translate-y-1/2 pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-8">
         
         {/* Cabeçalho */}
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/60 border border-sky-500/30 text-sky-300 text-xs font-bold uppercase tracking-wider">
             <Share2 size={14} />
             <span>Canais Oficiais & Comunidade Digital</span>
           </div>
@@ -175,16 +175,16 @@ export default function SocialSection({ socials }: SocialSectionProps) {
         </div>
 
         {/* Banner do Portal Oficial do Governo de Rondônia */}
-        <div className="mt-12 bg-emerald-900/40 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-md">
+        <div className="mt-12 bg-blue-950/60 border border-sky-500/30 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-md">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-emerald-500/20 rounded-2xl text-emerald-300 shrink-0">
+            <div className="p-3 bg-sky-500/20 rounded-2xl text-sky-300 shrink-0">
               <Globe size={28} />
             </div>
             <div>
               <h4 className="font-bold text-base text-white">
                 Portal Oficial da Secretaria de Estado da Educação de Rondônia
               </h4>
-              <p className="text-xs text-emerald-200 mt-0.5">
+              <p className="text-xs text-sky-200 mt-0.5">
                 Acesse a página do projeto em: rondonia.ro.gov.br/seduc/programas-e-projetos/projetos/conheca-o-projeto/
               </p>
             </div>
