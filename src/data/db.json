@@ -16,20 +16,20 @@
   "banners": [
     {
       "id": "banner-1",
-      "title": "Banner inicial",
       "imageUrl": "/hero.jpg",
+      "title": "Banner inicial",
       "linkUrl": "#noticias"
     },
     {
       "id": "banner-2",
-      "title": "Aulas ao vivo",
       "imageUrl": "/banners/aulas.svg",
+      "title": "Aulas ao vivo",
       "linkUrl": "#como-funciona"
     },
     {
       "id": "banner-3",
-      "title": "Todo o estado",
       "imageUrl": "/banners/territorio.svg",
+      "title": "Todo o estado",
       "linkUrl": "#mapa"
     }
   ],
@@ -101,7 +101,7 @@
       ],
       "folder": "Infraestrutura",
       "published": true,
-      "views": 1
+      "views": 2
     },
     {
       "id": "noticia-2",
