@@ -103,9 +103,11 @@ export default function AdminDashboardPage() {
         }
       } else {
         setIsLoggedIn(false);
+        router.push('/admin/login');
       }
     } catch (err) {
       console.error(err);
+      router.push('/admin/login');
     } finally {
       setLoading(false);
     }
