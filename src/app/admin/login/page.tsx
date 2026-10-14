@@ -81,8 +81,9 @@ export default function AdminLoginPage() {
               <Image
                 src="/logo-medtec.png"
                 alt="Mediação Tecnológica"
-                width={224}
-                height={224}
+                width={256}
+                height={256}
+                unoptimized
                 priority
                 className="w-full h-full object-contain"
               />
@@ -126,13 +127,14 @@ export default function AdminLoginPage() {
           
           {/* Topo do Formulário */}
           <div className="text-center mb-6">
-            {/* Logo Circular do MEDTEC (Tamanho Aumentado) */}
+            {/* Logo Circular do MEDTEC (Tamanho Aumentado e Nitidez Máxima) */}
             <div className="relative w-28 h-28 sm:w-32 sm:h-32 mx-auto mb-4">
               <Image
                 src="/logo-medtec.png"
                 alt="Logo Painel Gestor MEDTEC"
-                width={128}
-                height={128}
+                width={256}
+                height={256}
+                unoptimized
                 priority
                 className="w-full h-full object-contain drop-shadow-sm"
               />
