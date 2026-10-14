@@ -79,12 +79,12 @@ export default function AdminLoginPage() {
             <div className="absolute inset-0 rounded-full bg-sky-400/20 blur-xl scale-110" />
             <div className="relative w-48 h-48 xl:w-56 xl:h-56 rounded-full overflow-hidden border-2 border-sky-400/40 shadow-2xl flex items-center justify-center bg-[#0d223f]">
               <Image
-                src="/logo-medtec-dark.png"
+                src="/logo-medtec.png"
                 alt="Mediação Tecnológica"
                 width={224}
                 height={224}
                 priority
-                className="w-full h-full object-cover scale-105"
+                className="w-full h-full object-contain"
               />
             </div>
           </div>
