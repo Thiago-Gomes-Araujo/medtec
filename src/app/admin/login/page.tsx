@@ -72,17 +72,17 @@ export default function AdminLoginPage() {
           </span>
         </div>
 
-        {/* Centro com Logo circular e Frases de Impacto */}
-        <div className="relative z-10 max-w-lg my-auto py-8">
-          {/* Logo circular com glow */}
-          <div className="relative inline-block mb-10">
+        {/* Centro com Logo circular e Frases de Impacto (Tudo Centralizado) */}
+        <div className="relative z-10 max-w-lg my-auto py-8 mx-auto text-center flex flex-col items-center">
+          {/* Logo circular com glow centralizado */}
+          <div className="relative inline-block mb-8">
             <div className="absolute inset-0 rounded-full bg-sky-400/20 blur-xl scale-110" />
-            <div className="relative w-44 h-44 xl:w-48 xl:h-48 rounded-full overflow-hidden border-2 border-sky-400/40 shadow-2xl flex items-center justify-center bg-[#0d223f]">
+            <div className="relative w-48 h-48 xl:w-56 xl:h-56 rounded-full overflow-hidden border-2 border-sky-400/40 shadow-2xl flex items-center justify-center bg-[#0d223f]">
               <Image
                 src="/logo-medtec-dark.png"
                 alt="Mediação Tecnológica"
-                width={192}
-                height={192}
+                width={224}
+                height={224}
                 priority
                 className="w-full h-full object-cover scale-105"
               />
@@ -95,18 +95,18 @@ export default function AdminLoginPage() {
           </div>
 
           {/* Título Principal */}
-          <h1 className="text-3xl xl:text-[42px] font-extrabold text-white leading-[1.18] tracking-tight">
+          <h1 className="text-3xl xl:text-[40px] font-extrabold text-white leading-[1.18] tracking-tight text-center">
             Conectando pessoas.<br />
             Transformando futuros.
           </h1>
 
           {/* Subtítulo */}
-          <p className="text-slate-300 text-sm xl:text-base font-normal mt-3.5 leading-relaxed">
+          <p className="text-slate-300 text-sm xl:text-base font-normal mt-3.5 leading-relaxed max-w-md text-center">
             A educação vai além da sala de aula.
           </p>
 
-          {/* Traço de acento dourado */}
-          <div className="w-12 h-1 bg-[#f59e0b] rounded-full mt-5" />
+          {/* Traço de acento dourado centralizado */}
+          <div className="w-12 h-1 bg-[#f59e0b] rounded-full mt-5 mx-auto" />
         </div>
 
         {/* Rodapé do painel esquerdo */}
@@ -125,14 +125,14 @@ export default function AdminLoginPage() {
         <div className="w-full max-w-[390px] mx-auto">
           
           {/* Topo do Formulário */}
-          <div className="text-center mb-7">
-            {/* Logo Circular do MEDTEC */}
-            <div className="relative w-24 h-24 mx-auto mb-4">
+          <div className="text-center mb-6">
+            {/* Logo Circular do MEDTEC (Tamanho Aumentado) */}
+            <div className="relative w-28 h-28 sm:w-32 sm:h-32 mx-auto mb-4">
               <Image
                 src="/logo-medtec.png"
                 alt="Logo Painel Gestor MEDTEC"
-                width={96}
-                height={96}
+                width={128}
+                height={128}
                 priority
                 className="w-full h-full object-contain drop-shadow-sm"
               />
