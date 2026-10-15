@@ -6,18 +6,13 @@ import {
   Check,
   FileText,
   Paperclip,
-  CheckCircle2,
   Clock,
-  ShieldCheck,
-  FileCheck,
-  Layers,
-  Sparkles
+  FileCheck
 } from 'lucide-react';
 import {
   etapasEditoriais,
   itensEditoriaisIniciais,
-  ItemEditorial,
-  EtapaEditorial
+  ItemEditorial
 } from '@/data/medtecData';
 
 interface AuditLog {

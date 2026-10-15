@@ -1,24 +1,15 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import SocialSection from '@/components/SocialSection';
+import { getDatabase } from '@/lib/db';
 import initialData from '@/data/initialData.json';
 import { SocialLinks } from '@/types';
 
-export default function RedesPage() {
-  const [socials, setSocials] = useState<SocialLinks>(initialData.socials as SocialLinks);
-
-  useEffect(() => {
-    fetch('/api/data')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data?.socials) setSocials(data.socials);
-      })
-      .catch(err => console.error(err));
-  }, []);
+export default async function RedesPage() {
+  const db = getDatabase();
+  const socials = db.socials || (initialData.socials as SocialLinks);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f8fafc]">

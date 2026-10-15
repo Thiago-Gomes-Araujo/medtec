@@ -10,7 +10,7 @@ export default function SiteFooter() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-3 lg:col-span-2">
             <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-cyan-300">
-              // rede estadual
+              {'// rede estadual'}
             </p>
             <p className="font-display text-2xl font-bold tracking-tight text-white">
               MEDTEC em Foco · Rondônia
@@ -30,14 +30,17 @@ export default function SiteFooter() {
             </h4>
             <ul className="space-y-2 text-sm text-slate-400">
               <li><Link href="/" className="hover:text-cyan-200 transition-colors">Início</Link></li>
+              <li><Link href="/#tecnologia" className="hover:text-cyan-200 transition-colors">Tecnologia MEDTEC</Link></li>
+              <li><Link href="/#como-funciona" className="hover:text-cyan-200 transition-colors">Como Funciona</Link></li>
+              <li><Link href="/avisos" className="hover:text-cyan-200 transition-colors">Mural de Avisos</Link></li>
+              <li><Link href="/comunidades" className="hover:text-cyan-200 transition-colors">O MEDTEC nas Comunidades</Link></li>
+              <li><Link href="/noticias" className="hover:text-cyan-200 transition-colors">Notícias e Comunicados</Link></li>
+              <li><Link href="/acervo" className="hover:text-cyan-200 transition-colors">Acervo Fotográfico</Link></li>
+              <li><Link href="/duvidas" className="hover:text-cyan-200 transition-colors">Dúvidas Frequentes (FAQ)</Link></li>
+              <li><Link href="/ao-vivo" className="hover:text-cyan-200 transition-colors">Ao Vivo & Redes Oficiais</Link></li>
               <li><Link href="/professores" className="hover:text-cyan-200 transition-colors">Professores e Mediadores</Link></li>
               <li><Link href="/alunos" className="hover:text-cyan-200 transition-colors">Histórias de Alunos</Link></li>
-              <li><Link href="/mapa" className="hover:text-cyan-200 transition-colors">Mapa de Escolas Conectadas</Link></li>
               <li><Link href="/transparencia" className="hover:text-cyan-200 transition-colors">Portal da Transparência</Link></li>
-              <li><Link href="/noticias" className="hover:text-cyan-200 transition-colors">Notícias e Comunicados</Link></li>
-              <li><Link href="/galeria" className="hover:text-cyan-200 transition-colors">Galeria de Fotos do MEDTEC</Link></li>
-              <li><Link href="/faq" className="hover:text-cyan-200 transition-colors">Perguntas Frequentes (FAQ)</Link></li>
-              <li><Link href="/redes" className="hover:text-cyan-200 transition-colors">Canais de Transmissão e Redes</Link></li>
             </ul>
           </div>
 

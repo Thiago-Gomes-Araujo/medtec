@@ -1,15 +1,11 @@
-'use client';
-
 import React from 'react';
 import { 
-  Zap, 
   Satellite, 
   Users, 
   GraduationCap, 
   ShieldCheck, 
   Leaf, 
   ArrowDown,
-  MonitorPlay,
   HeartHandshake
 } from 'lucide-react';
 

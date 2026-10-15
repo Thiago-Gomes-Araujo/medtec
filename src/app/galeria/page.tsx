@@ -1,24 +1,15 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import GallerySection from '@/components/GallerySection';
+import { getDatabase } from '@/lib/db';
 import initialData from '@/data/initialData.json';
 import { GalleryItem } from '@/types';
 
-export default function GaleriaPage() {
-  const [gallery, setGallery] = useState<GalleryItem[]>(initialData.gallery as GalleryItem[]);
-
-  useEffect(() => {
-    fetch('/api/data')
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data?.gallery) setGallery(data.gallery);
-      })
-      .catch(err => console.error(err));
-  }, []);
+export default async function GaleriaPage() {
+  const db = getDatabase();
+  const gallery = (db.gallery && db.gallery.length > 0) ? db.gallery : (initialData.gallery as GalleryItem[]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f8fafc]">

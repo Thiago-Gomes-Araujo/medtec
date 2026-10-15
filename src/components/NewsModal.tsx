@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { NewsItem } from '@/types';
-import { X, Calendar, User, Tag, Share2 } from 'lucide-react';
+import { X, Calendar, User, Tag } from 'lucide-react';
 import { recordNewsView } from '@/components/NewsViewTracker';
 
 interface NewsModalProps {
@@ -22,7 +22,7 @@ export default function NewsModal({ news, onClose }: NewsModalProps) {
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'auto';
     };
-  }, [onClose]);
+  }, [news.id, onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">

@@ -9,7 +9,6 @@ import {
   User, 
   Search, 
   ArrowRight, 
-  Tag,
   Eye
 } from 'lucide-react';
 import NewsModal from './NewsModal';

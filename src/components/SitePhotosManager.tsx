@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { DatabaseSchema } from '@/types';
 import { ChevronDown, ChevronUp, Image as ImageIcon, Trash2, Upload } from 'lucide-react';
 import { BannerItem } from '@/types';
@@ -285,11 +285,13 @@ function PhotoSlot({
   onFile: (file: File | undefined) => void;
   onUrl: (url: string) => void;
 }) {
+  const [prevSrc, setPrevSrc] = useState(src);
   const [link, setLink] = useState(src);
 
-  useEffect(() => {
+  if (src !== prevSrc) {
+    setPrevSrc(src);
     setLink(src);
-  }, [src]);
+  }
 
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
