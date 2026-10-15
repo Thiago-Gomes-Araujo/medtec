@@ -31,9 +31,11 @@ Acesse pelo botão no cabeçalho ou diretamente na rota:
 👉 **URL:** `/admin`  
 👉 **Login:** `/admin/login`
 
-### Credenciais Padrão:
-- **Usuário:** `admin`
-- **Senha:** `medtec2025`
+### Configuração de Acesso (Variáveis de Ambiente):
+Configure as variáveis em seu arquivo `.env.local` (consulte [.env.example](file:///.env.example)):
+- `ADMIN_USER`: Usuário do gestor
+- `ADMIN_PASSWORD`: Senha forte do gestor
+- `ADMIN_SESSION_SECRET`: Chave secreta de no mínimo 32 caracteres para assinatura criptográfica de sessões (HMAC-SHA256)
 
 ### No Painel Administrativo você pode:
 1. **Publicar e Editar Notícias**:

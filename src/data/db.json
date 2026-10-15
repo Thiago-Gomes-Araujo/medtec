@@ -144,6 +144,132 @@
       "folder": "Tecnologia",
       "published": true,
       "views": 1
+    },
+    {
+      "id": "noticia-4",
+      "title": "Nova antena amplia sinal em 14 escolas do Baixo Madeira",
+      "slug": "nova-antena-amplia-sinal-14-escolas-baixo-madeira",
+      "excerpt": "Instalação garante aulas ao vivo estáveis mesmo no período de cheia do rio e intempéries climáticas.",
+      "content": "A Coordenadoria de Mídias Educacionais concluiu nesta semana a substituição e modernização das antenas parabólicas de recepção de sinal via satélite em 14 escolas ribeirinhas ao longo do Rio Madeira. A nova tecnologia opera com redundância de banda Ku e garante recepção em Full HD mesmo durante fortes temporais característicos do inverno amazônico.",
+      "coverImage": "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=800&q=70",
+      "author": "Ascom SEDUC-RO",
+      "category": "Infraestrutura",
+      "publishedAt": "02/10/2026",
+      "featured": false,
+      "tags": [
+        "MEDTEC",
+        "Baixo Madeira",
+        "Infraestrutura",
+        "Satélite"
+      ],
+      "folder": "Infraestrutura",
+      "published": true,
+      "views": 0
+    },
+    {
+      "id": "noticia-5",
+      "title": "Feira Cultural MEDTEC reúne estudantes de 30 municípios",
+      "slug": "feira-cultural-medtec-reune-estudantes-30-municipios",
+      "excerpt": "Apresentações de dança, culinária regional e projetos científicos marcaram a edição estadual de 2026.",
+      "content": "Com polos presenciais e transmissão interativa pelo estúdio central da SEDUC, a Feira Cultural e Científica do MEDTEC reuniu mais de 3.000 jovens de 30 municípios rondonienses. Destaque para estandes de robótica agroecológica e valorização dos saberes dos povos originários e comunidades tradicionais.",
+      "coverImage": "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&q=70",
+      "author": "Ascom SEDUC-RO",
+      "category": "Eventos",
+      "publishedAt": "25/09/2026",
+      "featured": false,
+      "tags": [
+        "MEDTEC",
+        "Cultura",
+        "Feira Científica",
+        "Eventos"
+      ],
+      "folder": "Eventos",
+      "published": true,
+      "views": 0
+    },
+    {
+      "id": "noticia-6",
+      "title": "Aulões preparatórios para o ENEM começam na próxima semana",
+      "slug": "auloes-preparatorios-enem-comecam-proxima-semana",
+      "excerpt": "Transmissões especiais aos sábados com revisão intensiva de Linguagens e Ciências da Natureza.",
+      "content": "O cronograma especial Reta Final ENEM 2026 contará com 8 sábados letivos de maratona pedagógica ao vivo. Professores ministrantes analisarão as matrizes de referência do INEP com resolução comentada de itens e simulados digitais aplicados com apoio dos mediadores em cada escola.",
+      "coverImage": "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=800&q=70",
+      "author": "Ascom SEDUC-RO",
+      "category": "Pedagógico",
+      "publishedAt": "18/09/2026",
+      "featured": false,
+      "tags": [
+        "ENEM",
+        "Pedagógico",
+        "Aulões",
+        "Ensino Médio"
+      ],
+      "folder": "Pedagógico",
+      "published": true,
+      "views": 0
+    },
+    {
+      "id": "noticia-7",
+      "title": "Formação continuada capacita 120 professores mediadores",
+      "slug": "formacao-continuada-capacita-120-professores-mediadores",
+      "excerpt": "Curso intensivo aborda metodologias ativas e uso pedagógico integrado de plataformas digitais.",
+      "content": "Realizada no Palácio Rio Madeira e transmitida simultaneamente para as Coordenadorias Regionais de Educação (CREs), a formação aprofundou práticas de tutoria afetiva, avaliação formativa e suporte técnico operacional em sala de aula.",
+      "coverImage": "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=70",
+      "author": "Ascom SEDUC-RO",
+      "category": "Pedagógico",
+      "publishedAt": "05/09/2026",
+      "featured": false,
+      "tags": [
+        "Professores",
+        "Formação",
+        "Mediação",
+        "Pedagógico"
+      ],
+      "folder": "Pedagógico",
+      "published": true,
+      "views": 0
+    },
+    {
+      "id": "noticia-8",
+      "title": "Escolas indígenas de Cacoal recebem novos equipamentos solares",
+      "slug": "escolas-indigenas-cacoal-recebem-novos-equipamentos-solares",
+      "excerpt": "Kits incluem painéis solares para garantir energia estável e ininterrupta durante as transmissões das aulas.",
+      "content": "Em parceria com a Secretaria de Estado do Desenvolvimento Ambiental, escolas estaduais em terras indígenas receberam novos sistemas fotovoltaicos com baterias de lítio de alta durabilidade, assegurando fornecimento elétrico constante para os televisores e receptores de satélite do MEDTEC.",
+      "coverImage": "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&q=70",
+      "author": "Ascom SEDUC-RO",
+      "category": "Infraestrutura",
+      "publishedAt": "28/08/2026",
+      "featured": false,
+      "tags": [
+        "Indígena",
+        "Energia Solar",
+        "Cacoal",
+        "Infraestrutura"
+      ],
+      "folder": "Infraestrutura",
+      "published": true,
+      "views": 0
+    },
+    {
+      "id": "noticia-9",
+      "title": "Olimpíada de Robótica: equipes do MEDTEC sobem ao pódio",
+      "slug": "olimpiada-robotica-equipes-medtec-sobem-ao-podio",
+      "excerpt": "Três equipes de distritos rurais conquistaram medalhas na etapa estadual com protótipos de automação agrícola.",
+      "content": "Alunos de escolas do campo demonstraram que criatividade e mediação de qualidade superam distâncias geográficas. Os projetos premiados solucionam desafios reais como medição automática de nível de água em poços artesianos e estufas comunitárias.",
+      "coverImage": "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800&q=70",
+      "author": "Ascom SEDUC-RO",
+      "category": "Eventos",
+      "publishedAt": "10/08/2026",
+      "featured": false,
+      "tags": [
+        "Robótica",
+        "Inovação",
+        "Rural",
+        "Olimpíada"
+      ],
+      "folder": "Eventos",
+      "published": true,
+      "views": 0
     }
   ],
   "gallery": [

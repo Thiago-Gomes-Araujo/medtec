@@ -43,9 +43,6 @@ export default function AdminDashboardPage() {
   const [newsFolder, setNewsFolder] = useState('Todas');
   const [mainView, setMainView] = useState<'kanban' | 'cms'>('kanban');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loginUsername, setLoginUsername] = useState('admin');
-  const [loginPassword, setLoginPassword] = useState('medtec2025');
-  const [loginError, setLoginError] = useState('');
 
   // Estado para formulário de Notícia (novo ou edição)
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
@@ -86,11 +83,6 @@ export default function AdminDashboardPage() {
   // Upload status
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  // Carrega dados iniciais e verifica sessão
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     try {
       const authRes = await fetch('/api/auth');
@@ -112,6 +104,11 @@ export default function AdminDashboardPage() {
       setLoading(false);
     }
   };
+
+  // Carrega dados iniciais e verifica sessão
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const handleLogout = async () => {
     await fetch('/api/auth', { method: 'DELETE' });
@@ -344,27 +341,6 @@ export default function AdminDashboardPage() {
     persistData(data);
   };
 
-  const handleInlineLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-    try {
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: loginUsername, password: loginPassword }),
-      });
-      const resData = await res.json();
-      if (res.ok && resData.success) {
-        setIsLoggedIn(true);
-        fetchData();
-      } else {
-        setLoginError(resData.error || 'Credenciais inválidas');
-      }
-    } catch {
-      setLoginError('Falha ao conectar.');
-    }
-  };
-
   const newsFolders = data
     ? Array.from(new Set(data.news.map((item) => item.folder?.trim() || 'Geral'))).sort((a, b) =>
         a.localeCompare(b, 'pt-BR')
@@ -417,49 +393,9 @@ export default function AdminDashboardPage() {
         )}
 
         {mainView === 'cms' && (!isLoggedIn || !data) && (
-          <div className="max-w-md mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200 shadow-xl text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-primary text-white shadow-md">
-              <Tv size={24} />
-            </div>
-            <h3 className="font-display font-bold text-lg text-slate-900">
-              Autenticação de Gestor SEDUC
-            </h3>
-            <p className="text-xs text-slate-500">
-              Entre com suas credenciais para gerenciar notícias, galeria e comunicados salvos em disco.
-            </p>
-
-            {loginError && (
-              <div className="text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
-                {loginError}
-              </div>
-            )}
-
-            <form onSubmit={handleInlineLogin} className="space-y-3 text-left">
-              <div>
-                <label className="text-xs font-semibold text-slate-700">Usuário</label>
-                <input
-                  type="text"
-                  value={loginUsername}
-                  onChange={(e) => setLoginUsername(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-700">Senha</label>
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full mt-2 py-2.5 rounded-lg bg-primary text-white font-semibold text-xs shadow hover:opacity-90 transition-opacity"
-              >
-                Acessar Gerenciador CMS
-              </button>
-            </form>
+          <div className="flex flex-col items-center justify-center my-16 space-y-3">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs text-slate-500 font-medium">Carregando dados do painel gestor...</p>
           </div>
         )}
 

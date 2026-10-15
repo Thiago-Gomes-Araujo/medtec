@@ -18,8 +18,8 @@ import {
 } from 'lucide-react';
 
 export default function AdminLoginPage() {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('medtec2025');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
@@ -41,7 +41,9 @@ export default function AdminLoginPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        router.push('/admin');
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectTarget = searchParams.get('redirect') || '/admin';
+        router.push(redirectTarget);
         router.refresh();
       } else {
         setError(data.error || 'Credenciais inválidas. Verifique seu usuário e senha.');
@@ -246,12 +248,10 @@ export default function AdminLoginPage() {
 
           </form>
 
-          {/* Dica de acesso padrão (discreta) */}
-          <div className="mt-4 p-2 bg-slate-50 border border-slate-100 rounded-md text-[11px] text-slate-500 flex items-center justify-between">
-            <span className="flex items-center gap-1 text-slate-600">
-              <Info size={13} className="text-[#005ca9]" /> Acesso padrão:
-            </span>
-            <span className="font-mono text-slate-700">admin / medtec2025</span>
+          {/* Aviso de acesso institucional */}
+          <div className="mt-4 p-2.5 bg-slate-50 border border-slate-100 rounded-md text-[11px] text-slate-500 flex items-center gap-2">
+            <Info size={14} className="text-[#005ca9] shrink-0" />
+            <span>Acesso restrito a gestores e técnicos autorizados da SEDUC-RO.</span>
           </div>
 
           {/* Divisor */}
