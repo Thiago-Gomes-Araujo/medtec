@@ -17,13 +17,23 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
     { to: '/', label: 'Início' },
     { to: '/#tecnologia', label: 'Tecnologia' },
     { to: '/#como-funciona', label: 'Como Funciona' },
-    { to: '/#avisos', label: 'Avisos' },
-    { to: '/#mapa', label: 'Comunidades' },
-    { to: '/#noticias', label: 'Notícias' },
-    { to: '/galeria', label: 'Acervo' },
-    { to: '/faq', label: 'Dúvidas' },
-    { to: '/redes', label: 'Ao vivo' },
+    { to: '/avisos', label: 'Avisos' },
+    { to: '/comunidades', label: 'Comunidades' },
+    { to: '/noticias', label: 'Notícias' },
+    { to: '/acervo', label: 'Acervo' },
+    { to: '/duvidas', label: 'Dúvidas' },
+    { to: '/ao-vivo', label: 'Ao vivo' },
   ];
+
+  const isLinkActive = (to: string) => {
+    if (to === '/') return pathname === '/';
+    if (to === '/comunidades') return pathname === '/comunidades' || pathname === '/mapa';
+    if (to === '/acervo') return pathname === '/acervo' || pathname === '/galeria';
+    if (to === '/duvidas') return pathname === '/duvidas' || pathname === '/faq';
+    if (to === '/ao-vivo') return pathname === '/ao-vivo' || pathname === '/redes';
+    if (to.startsWith('/#')) return false;
+    return pathname === to || pathname.startsWith(to + '/');
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-cyan-400/20 bg-[#050b16]/80 backdrop-blur-xl">
@@ -48,13 +58,13 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
 
         <nav className="hidden items-center gap-0.5 xl:flex">
           {navLinks.map((item) => {
-            const isActive = pathname === item.to;
+            const active = isLinkActive(item.to);
             return (
               <Link
                 key={item.label}
                 href={item.to}
                 className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                  isActive
+                  active
                     ? 'bg-cyan-400/15 text-cyan-200'
                     : 'text-slate-300 hover:bg-white/5 hover:text-white'
                 }`}
@@ -83,7 +93,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
           </Link>
         </div>
 
-        <div className="flex lg:hidden items-center gap-2">
+        <div className="flex xl:hidden items-center gap-2">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Abrir menu"
@@ -95,16 +105,16 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
       </div>
 
       {mobileMenuOpen && (
-        <nav className="grid gap-1 border-t border-cyan-400/15 bg-[#050b16] px-4 py-3 lg:hidden">
+        <nav className="grid gap-1 border-t border-cyan-400/15 bg-[#050b16] px-4 py-3 xl:hidden">
           {navLinks.map((item) => {
-            const isActive = pathname === item.to;
+            const active = isLinkActive(item.to);
             return (
               <Link
                 key={item.to}
                 href={item.to}
                 onClick={() => setMobileMenuOpen(false)}
                 className={`rounded-lg px-3 py-2 text-sm font-medium ${
-                  isActive ? 'bg-cyan-400/15 text-cyan-200' : 'text-slate-200 hover:bg-white/5'
+                  active ? 'bg-cyan-400/15 text-cyan-200' : 'text-slate-200 hover:bg-white/5'
                 }`}
               >
                 {item.label}
