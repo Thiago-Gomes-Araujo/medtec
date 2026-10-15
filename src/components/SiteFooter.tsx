@@ -10,7 +10,7 @@ export default function SiteFooter() {
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-3 lg:col-span-2">
             <p className="font-mono text-[11px] uppercase tracking-[0.28em] text-cyan-300">
-              // rede estadual
+              {'// rede estadual'}
             </p>
             <p className="font-display text-2xl font-bold tracking-tight text-white">
               MEDTEC em Foco · Rondônia

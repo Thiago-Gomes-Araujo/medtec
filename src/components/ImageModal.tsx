@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { GalleryItem } from '@/types';
-import { X, Calendar, Tag } from 'lucide-react';
+import { X, Calendar } from 'lucide-react';
 
 interface ImageModalProps {
   photo: GalleryItem;

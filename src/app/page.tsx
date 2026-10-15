@@ -51,7 +51,7 @@ function SectionWrapper({
     <section id={id} className="mx-auto max-w-7xl px-4 pt-24">
       <div className="mb-8">
         <p className="font-mono text-[11px] font-medium uppercase tracking-[0.28em] text-cyan-700">
-          // {eyebrow}
+          {`// ${eyebrow}`}
         </p>
         <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl lg:text-4xl">
           {title}

@@ -1,12 +1,8 @@
 import React from 'react';
 import { SocialLinks } from '@/types';
 import { 
-  MessageCircle, 
   ExternalLink, 
   Share2, 
-  Tv, 
-  Users, 
-  BellRing,
   Globe
 } from 'lucide-react';
 import { 

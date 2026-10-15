@@ -3,8 +3,6 @@
 import React from 'react';
 import {
   X,
-  CheckCircle2,
-  Award,
   Satellite,
   ShieldCheck,
   TrendingUp,

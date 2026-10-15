@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { DatabaseSchema, NewsItem, AnnouncementItem, GalleryItem } from '@/types';
+import { DatabaseSchema, NewsItem, AnnouncementItem, GalleryItem, AnnouncementType } from '@/types';
 import { 
   Tv, 
   LayoutDashboard, 
@@ -19,11 +19,7 @@ import {
   Upload, 
   Eye, 
   CheckCircle, 
-  AlertCircle, 
-  ExternalLink,
-  Sparkles,
-  Search,
-  Calendar
+  Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
@@ -36,7 +32,6 @@ import NewsPublicationPreview from '@/components/NewsPublicationPreview';
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<DatabaseSchema | null>(null);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'fotos' | 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo'>('fotos');
@@ -83,32 +78,37 @@ export default function AdminDashboardPage() {
   // Upload status
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const fetchData = async () => {
-    try {
-      const authRes = await fetch('/api/auth');
-      if (authRes.ok) {
-        setIsLoggedIn(true);
-        const res = await fetch('/api/data');
-        if (res.ok) {
-          const json = await res.json();
-          setData(json);
-        }
-      } else {
-        setIsLoggedIn(false);
-        router.push('/admin/login');
-      }
-    } catch (err) {
-      console.error(err);
-      router.push('/admin/login');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Carrega dados iniciais e verifica sessão
   useEffect(() => {
-    fetchData();
-  }, []);
+    let isMounted = true;
+
+    async function loadData() {
+      try {
+        const authRes = await fetch('/api/auth');
+        if (!isMounted) return;
+        if (authRes.ok) {
+          setIsLoggedIn(true);
+          const res = await fetch('/api/data');
+          if (res.ok && isMounted) {
+            const json = await res.json();
+            setData(json);
+          }
+        } else {
+          setIsLoggedIn(false);
+          router.push('/admin/login');
+        }
+      } catch (err) {
+        console.error(err);
+        if (isMounted) router.push('/admin/login');
+      }
+    }
+
+    void loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   const handleLogout = async () => {
     await fetch('/api/auth', { method: 'DELETE' });
@@ -140,7 +140,7 @@ export default function AdminDashboardPage() {
       } else {
         alert('Erro ao enviar imagem: ' + (resData.error || 'Erro desconhecido'));
       }
-    } catch (err) {
+    } catch {
       alert('Falha no upload da foto.');
     } finally {
       setUploadingImage(false);
@@ -165,7 +165,7 @@ export default function AdminDashboardPage() {
       } else {
         alert('Erro ao salvar dados no disco.');
       }
-    } catch (err) {
+    } catch {
       alert('Erro de conexão com a API.');
     } finally {
       setSaving(false);
@@ -970,7 +970,7 @@ export default function AdminDashboardPage() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">Nível de Urgência</label>
                     <select
                       value={announcementForm.type}
-                      onChange={e => setAnnouncementForm({ ...announcementForm, type: e.target.value as any })}
+                      onChange={e => setAnnouncementForm({ ...announcementForm, type: e.target.value as AnnouncementType })}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-white"
                     >
                       <option value="aviso">Aviso Importante (Amarelo)</option>
