@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { 
   Tv, 
@@ -10,8 +8,7 @@ import {
   ChevronDown,
   Layers,
   Sparkles,
-  BookMarked,
-  ArrowRight
+  BookMarked
 } from 'lucide-react';
 
 export default function Methodology() {
