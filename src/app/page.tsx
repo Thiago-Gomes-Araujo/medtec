@@ -18,6 +18,7 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import TechAdvantages from '@/components/TechAdvantages';
 import Methodology from '@/components/Methodology';
+import LiveBroadcastSection from '@/components/LiveBroadcastSection';
 import PresentationPitchModal from '@/components/PresentationPitchModal';
 
 export default function HomePage() {
@@ -30,7 +31,7 @@ export default function HomePage() {
 
       <main className="flex-1">
         {/* ================= HERO SECTION: AMAZÔNIA AEROESPACIAL / TELEMETRIA ================= */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-[#040D1A] via-[#07162C] to-[#0b1e38] text-white pt-6 pb-24 lg:pt-12 lg:pb-32">
+        <section id="inicio" className="relative overflow-hidden bg-gradient-to-b from-[#040D1A] via-[#07162C] to-[#0b1e38] text-white pt-6 pb-24 lg:pt-12 lg:pb-32 scroll-mt-20">
           
           {/* Fundo Fotográfico com Overlay e Blend Mode */}
           <img
@@ -157,13 +158,13 @@ export default function HomePage() {
                 </a>
 
                 {/* Botão Secundário */}
-                <Link
-                  href="/ao-vivo"
+                <a
+                  href="#ao-vivo"
                   className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-[#07162C]/70 px-5 py-3.5 text-sm font-semibold text-cyan-100 backdrop-blur-md transition-all hover:border-cyan-400/60 hover:bg-cyan-500/10 hover:text-white cursor-pointer shadow-sm"
                 >
                   <Play className="h-4 w-4 text-rose-400 fill-rose-400/40" />
                   <span>Canal ao vivo</span>
-                </Link>
+                </a>
 
                 {/* Link Terciário Discreto */}
                 <Link
@@ -326,6 +327,9 @@ export default function HomePage() {
 
         {/* ================= TERCEIRA SEÇÃO: METODOLOGIA EM 5 PASSOS ================= */}
         <Methodology />
+
+        {/* ================= QUARTA SEÇÃO: TRANSMISSÕES AO VIVO E REDES OFICIAIS ================= */}
+        <LiveBroadcastSection />
       </main>
 
       {/* RODAPÉ DO SISTEMA */}

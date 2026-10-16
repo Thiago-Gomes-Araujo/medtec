@@ -34,9 +34,9 @@
     }
   ],
   "stats": {
-    "studentsCount": "15.000+",
+    "studentsCount": "10.000+",
     "schoolsCount": "320+",
-    "citiesCount": "52",
+    "citiesCount": "50",
     "liveHoursCount": "1.800h"
   },
   "socials": {
@@ -82,6 +82,26 @@
     }
   ],
   "news": [
+    {
+      "id": "noticia-1792157451748",
+      "title": "Flamengo empata ontem ",
+      "slug": "flamengo-empata-ontem",
+      "excerpt": "Flamengo empata ontem ",
+      "content": "time fdpp preguiçoso ",
+      "coverImage": "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1200&q=80",
+      "author": "Equipe MEDTEC / SEDUC",
+      "category": "Pedagógico",
+      "publishedAt": "16/10/2026",
+      "featured": false,
+      "urgent": true,
+      "folder": "Geral",
+      "published": true,
+      "tags": [
+        "MEDTEC",
+        "SEDUC-RO"
+      ],
+      "views": 1
+    },
     {
       "id": "noticia-1",
       "title": "SEDUC expande sinal e infraestrutura tecnológica para comunidades ribeirinhas no Rio Guaporé",
