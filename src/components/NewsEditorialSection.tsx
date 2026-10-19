@@ -1,19 +1,30 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { NewsItem } from '@/types';
 import {
   Newspaper,
   LayoutGrid,
   List,
-  Maximize2,
   X,
   ChevronLeft,
   ChevronRight,
   Radio,
   Search,
-  ExternalLink
+  CheckCircle2,
+  Clock,
+  ArrowRight,
+  ArrowUpRight,
+  User,
+  Share2,
+  Bookmark,
+  Check,
+  Eye,
+  Calendar,
+  Sparkles,
+  MapPin,
+  ExternalLink,
+  BookOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,22 +32,96 @@ interface NewsEditorialSectionProps {
   news: NewsItem[];
 }
 
-interface NewsMetadata {
-  regCode: string;
+interface EditorialDetails {
   polo: string;
-  bentoClass: string;
-  aspectRatio: string;
+  readingTime: number;
+  tldrPoints: string[];
+  quote: {
+    text: string;
+    author: string;
+    role: string;
+  };
+  impactStats: {
+    label: string;
+    value: string;
+  }[];
 }
 
-// Fallback de imagem de tecnologia e educação de alta resolução
 const FALLBACK_NEWS_COVER =
   'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80';
+
+// Helper de enriquecimento editorial jornalístico para a experiência de leitura
+function getEditorialDetails(item: NewsItem, index: number): EditorialDetails {
+  const polos = [
+    'Calha Fluvial • Baixo Madeira & Rio Guaporé',
+    'Polo Central • Ji-Paraná & Região Central',
+    'Estúdios Centrais SEDUC • Porto Velho',
+    'Terras Indígenas • Cacoal & Vale do Jamari',
+    'Cone Sul • Vilhena & Fronteira Sul',
+    'Vale do Jamari • Ariquemes & Médio Madeira',
+  ];
+  const polo = polos[index % polos.length];
+
+  const words = ((item.content || '') + ' ' + (item.excerpt || '')).split(/\s+/).filter(Boolean).length;
+  const readingTime = Math.max(3, Math.ceil(words / 130));
+
+  const tldrPoints = [
+    item.excerpt || 'Modernização estruturante das ferramentas pedagógicas e da rede de transmissão satelital.',
+    `Transmissões diárias em tempo real a partir de Porto Velho cobrindo escolas e comunidades em ${polo}.`,
+    'Mediação pedagógica presencial diária assegurando equidade educacional conforme Lei Estadual nº 3.846/2016.',
+  ];
+
+  const quotes = [
+    {
+      text: 'Nossos alunos agora debatem os conteúdos com especialistas da capital em tempo real, sem precisar se afastar de suas famílias e de suas raízes comunitárias.',
+      author: 'Prof. Carlos Eduardo Mendonça',
+      role: 'Professor Mediador Presencial • Polo Fluvial'
+    },
+    {
+      text: 'A mediação tecnológica quebrou o isolamento geográfico da nossa aldeia. Hoje temos aulões interativos, simulados digitais e preparação real para o vestibular.',
+      author: 'Mayara Suruí',
+      role: 'Estudante do 3º Ano do Ensino Médio • MEDTEC Rondônia'
+    },
+    {
+      text: 'Cada antena Banda Ku instalada representa a garantia constitucional de que nenhum jovem do campo ou das florestas ficará para trás na educação.',
+      author: 'Profa. Maria Helena Ribeiro',
+      role: 'Coordenadoria de Mídias Educacionais (SEDUC-RO)'
+    },
+    {
+      text: 'A união entre a aula transmitida pelo estúdio de TV e a orientação prática do mediador na sala de aula transforma o aprendizado em algo vivo e aplicável à nossa comunidade.',
+      author: 'Prof. José Arnaldo Silva',
+      role: 'Professor Mediador de Agroecologia • Polo Ji-Paraná'
+    }
+  ];
+  const quote = quotes[index % quotes.length];
+
+  const impactStats = [
+    { label: 'Salas Conectadas', value: `${12 + (index % 8)} Unidades` },
+    { label: 'Estudantes Atendidos', value: `${380 + (index * 45)} Jovens` },
+    { label: 'Municípios Cobertos', value: '52 Cidades' },
+    { label: 'Disponibilidade Satélite', value: '99.8% Sinal Ativo' },
+  ];
+
+  return {
+    polo,
+    readingTime,
+    tldrPoints,
+    quote,
+    impactStats
+  };
+}
 
 export default function NewsEditorialSection({ news = [] }: NewsEditorialSectionProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [viewMode, setViewMode] = useState<'bento' | 'list'>('bento');
+  const [viewMode, setViewMode] = useState<'magazine' | 'list'>('magazine');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  // Conforto visual no Leitor Imersivo: tamanho da fonte ('sm' | 'base' | 'lg' | 'xl')
+  const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg' | 'xl'>('base');
+  const [readingProgress, setReadingProgress] = useState<number>(0);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const articleScrollRef = useRef<HTMLDivElement>(null);
 
   // Filtra itens despublicados
   const publishedNews = useMemo(() => {
@@ -55,17 +140,24 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
     return counts;
   }, [publishedNews]);
 
-  // Lista única de categorias
+  // Lista organizada de categorias (com as 4 principais no início)
   const categoriesList = useMemo(() => {
-    const base = ['Todas'];
+    const primary = ['Todas', 'Pedagógico', 'Infraestrutura', 'Tecnologia', 'Eventos'];
+    const dynamicCats = new Set<string>();
     publishedNews.forEach((item) => {
-      const cat = item.category || 'Geral';
-      if (!base.includes(cat)) {
-        base.push(cat);
+      if (item.category) dynamicCats.add(item.category);
+    });
+
+    const result = [...primary];
+    dynamicCats.forEach((cat) => {
+      if (!result.includes(cat)) {
+        result.push(cat);
       }
     });
-    return base;
-  }, [publishedNews]);
+
+    // Mantém apenas categorias que possuam pelo menos 1 notícia ou sejam "Todas"
+    return result.filter((cat) => cat === 'Todas' || (categoryCounts[cat] || 0) > 0);
+  }, [publishedNews, categoryCounts]);
 
   // Filtro ativo de categoria e busca textual
   const filteredNews = useMemo(() => {
@@ -79,76 +171,14 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
         !term ||
         item.title.toLowerCase().includes(term) ||
         (item.excerpt && item.excerpt.toLowerCase().includes(term)) ||
+        (item.content && item.content.toLowerCase().includes(term)) ||
         (item.tags && item.tags.some((t) => t.toLowerCase().includes(term)));
 
       return matchCat && matchSearch;
     });
   }, [publishedNews, selectedCategory, searchTerm]);
 
-  // Calcula classes de layout Bento proporcionais para formar linhas harmoniosas de 12 colunas
-  const getBentoMeta = useCallback((index: number, total: number): NewsMetadata => {
-    const regCode = `NOT_${String(index + 1).padStart(2, '0')} // RO`;
-    const polos = [
-      'Estúdios SEDUC • Porto Velho',
-      'Calha Fluvial • Baixo Madeira',
-      'Polo Central • Ji-Paraná',
-      'Terras Indígenas • Cacoal',
-      'Polo Fronteira • Vale do Guaporé',
-      'Vale do Jamari • Ariquemes',
-      'Cone Sul • Vilhena'
-    ];
-    const polo = polos[index % polos.length];
-
-    if (total <= 2) {
-      return {
-        regCode,
-        polo,
-        bentoClass: 'md:col-span-6',
-        aspectRatio: 'min-h-[380px]',
-      };
-    }
-
-    // Padrão editorial: 1º destaque grande (8 cols), 2º complemento (4 cols), 3º (5 cols), 4º (7 cols), demais (6 cols)
-    const pattern = index % 6;
-    if (pattern === 0) {
-      return {
-        regCode,
-        polo,
-        bentoClass: 'md:col-span-8 md:row-span-2',
-        aspectRatio: 'min-h-[460px] md:min-h-[520px]',
-      };
-    } else if (pattern === 1) {
-      return {
-        regCode,
-        polo,
-        bentoClass: 'md:col-span-4 md:row-span-2',
-        aspectRatio: 'min-h-[460px] md:min-h-[520px]',
-      };
-    } else if (pattern === 2) {
-      return {
-        regCode,
-        polo,
-        bentoClass: 'md:col-span-5',
-        aspectRatio: 'min-h-[350px]',
-      };
-    } else if (pattern === 3) {
-      return {
-        regCode,
-        polo,
-        bentoClass: 'md:col-span-7',
-        aspectRatio: 'min-h-[350px]',
-      };
-    } else {
-      return {
-        regCode,
-        polo,
-        bentoClass: 'md:col-span-6',
-        aspectRatio: 'min-h-[350px]',
-      };
-    }
-  }, []);
-
-  // Notícia ativa inspecionada no Lightbox
+  // Artigo ativo aberto no Leitor Imersivo
   const activeNews = useMemo(() => {
     if (selectedIndex === null || selectedIndex < 0 || selectedIndex >= filteredNews.length) {
       return null;
@@ -156,12 +186,20 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
     return filteredNews[selectedIndex];
   }, [selectedIndex, filteredNews]);
 
-  const activeMeta = useMemo(() => {
+  const activeEditorial = useMemo(() => {
     if (selectedIndex === null || !activeNews) return null;
-    return getBentoMeta(selectedIndex, filteredNews.length);
-  }, [selectedIndex, activeNews, filteredNews.length, getBentoMeta]);
+    return getEditorialDetails(activeNews, selectedIndex);
+  }, [selectedIndex, activeNews]);
 
-  // Navegação no Lightbox
+  // Notícias recomendadas para a seção "Leia Também" ao final da matéria
+  const relatedNews = useMemo(() => {
+    if (!activeNews) return [];
+    return publishedNews
+      .filter((n) => n.id !== activeNews.id)
+      .slice(0, 2);
+  }, [activeNews, publishedNews]);
+
+  // Navegação no Leitor
   const handlePrev = useCallback(() => {
     if (selectedIndex === null) return;
     setSelectedIndex((prev) => (prev! > 0 ? prev! - 1 : filteredNews.length - 1));
@@ -172,9 +210,28 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
     setSelectedIndex((prev) => (prev! < filteredNews.length - 1 ? prev! + 1 : 0));
   }, [selectedIndex, filteredNews.length]);
 
-  // Atalhos de teclado
+  // Monitoramento do progresso de leitura
+  const handleArticleScroll = useCallback(() => {
+    if (!articleScrollRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = articleScrollRef.current;
+    const scrollableDist = scrollHeight - clientHeight;
+    if (scrollableDist <= 0) {
+      setReadingProgress(100);
+    } else {
+      const pct = Math.min(100, Math.max(0, (scrollTop / scrollableDist) * 100));
+      setReadingProgress(pct);
+    }
+  }, []);
+
+  // Atalhos de teclado no Leitor
   useEffect(() => {
     if (selectedIndex === null) return;
+
+    // Reseta barra de progresso e scroll ao trocar de notícia
+    setReadingProgress(0);
+    if (articleScrollRef.current) {
+      articleScrollRef.current.scrollTo({ top: 0, behavior: 'instant' });
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -195,6 +252,20 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
     };
   }, [selectedIndex, handlePrev, handleNext]);
 
+  // Compartilhar link da matéria
+  const handleShare = () => {
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    }
+  };
+
+  // Separação entre a Manchete de Capa (50/50) e os demais artigos na visualização Revista
+  const featuredArticle = filteredNews.length > 0 ? filteredNews[0] : null;
+  const featuredEditorial = featuredArticle ? getEditorialDetails(featuredArticle, 0) : null;
+  const secondaryArticles = filteredNews.slice(1);
+
   return (
     <div className="relative w-full bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors">
       
@@ -204,12 +275,12 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
       {/* Glow Sutil de Horizonte Ciano */}
       <div className="pointer-events-none absolute -top-24 left-1/2 h-80 w-3/4 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[120px]" />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-8">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-10">
 
         {/* ========================================================
-            BARRA DE FERRAMENTAS TÉCNICA (FILTROS + BUSCA + MODO DE EXIBIÇÃO)
+            BARRA DE CONTROLE EDITORIAL (FILTROS + BUSCA + MODOS)
         ======================================================== */}
-        <div className="border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white/95 dark:bg-[#0C1E38]/90 p-4 shadow-sm dark:shadow-xl backdrop-blur-md flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
           {/* Esquerda: Filtros de Categoria com Contador */}
           <div className="flex flex-wrap items-center gap-2">
@@ -222,14 +293,14 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-mono transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-mono transition-all cursor-pointer ${
                     isSelected
-                      ? 'border border-[#05549D] dark:border-[#00D8FF] bg-[#05549D] dark:bg-[#0C1E38] text-white dark:text-[#E6F4FF] font-semibold shadow-sm dark:shadow-[0_0_14px_rgba(0,216,255,0.22)]'
-                      : 'border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224]/50 text-slate-600 dark:text-[#6482A6] hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      ? 'border border-[#004A99] dark:border-[#00D8FF] bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950 font-bold shadow-sm'
+                      : 'border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224]/60 text-slate-600 dark:text-[#6482A6] hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <span>{cat}</span>
-                  <span className={`text-[10px] font-bold ${isSelected ? 'text-sky-200 dark:text-[#00D8FF]' : 'text-slate-400 dark:text-slate-500'}`}>
+                  <span className={`text-[10px] font-bold ${isSelected ? 'text-sky-200 dark:text-slate-950' : 'text-slate-400 dark:text-slate-500'}`}>
                     [{formattedCount}]
                   </span>
                 </button>
@@ -237,17 +308,17 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
             })}
           </div>
 
-          {/* Direita: Busca Textual Rápida + Alternador de Exibição */}
+          {/* Direita: Busca Textual Rápida + Modos Jornalísticos */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Campo de Busca Rápida */}
-            <div className="relative min-w-[220px]">
+            <div className="relative min-w-[220px] flex-1 sm:flex-initial">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-[#6482A6]" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Pesquisar reportagem..."
-                className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] pl-9 pr-8 py-1.5 text-xs font-mono text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-[#05549D] dark:focus:border-[#00D8FF] focus:outline-none transition-colors"
+                className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] pl-9 pr-8 py-2 text-xs font-mono text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-[#004A99] dark:focus:border-[#00D8FF] focus:outline-none transition-colors"
               />
               {searchTerm && (
                 <button
@@ -259,32 +330,32 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
               )}
             </div>
 
-            {/* Alternador de Modo de Visualização */}
-            <div className="flex items-center gap-1.5 shrink-0 bg-slate-100 dark:bg-[#061224] p-1 rounded-xl border border-slate-200 dark:border-[#1A365D]">
+            {/* Alternador de Modos: MODO REVISTA vs LISTA DE LEITURA */}
+            <div className="flex items-center gap-1 shrink-0 bg-slate-100 dark:bg-[#061224] p-1 rounded-xl border border-slate-200 dark:border-[#1A365D]">
               <button
-                onClick={() => setViewMode('bento')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
-                  viewMode === 'bento'
-                    ? 'bg-white dark:bg-[#0C1E38] text-[#05549D] dark:text-[#00D8FF] border border-slate-200 dark:border-[#00D8FF]/70 shadow-sm font-semibold'
+                onClick={() => setViewMode('magazine')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
+                  viewMode === 'magazine'
+                    ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs border border-slate-200 dark:border-cyan-400/30'
                     : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
                 }`}
-                title="Visualizar em mosaico editorial Bento Grid"
+                title="Modo Revista: Manchete de Capa + Cards Editoriais"
               >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                <span>⊞ BENTO MOSAICO</span>
+                <BookOpen className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">MODO REVISTA</span>
               </button>
 
               <button
                 onClick={() => setViewMode('list')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
                   viewMode === 'list'
-                    ? 'bg-white dark:bg-[#0C1E38] text-[#05549D] dark:text-[#00D8FF] border border-slate-200 dark:border-[#00D8FF]/70 shadow-sm font-semibold'
+                    ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs border border-slate-200 dark:border-cyan-400/30'
                     : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
                 }`}
-                title="Visualizar como índice e arquivo técnico"
+                title="Lista de Leitura: Visualização compacta contínua"
               >
                 <List className="h-3.5 w-3.5" />
-                <span>☰ ÍNDICE TÉCNICO</span>
+                <span className="hidden sm:inline">LISTA DE LEITURA</span>
               </button>
             </div>
           </div>
@@ -292,387 +363,609 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
         </div>
 
         {/* ========================================================
-            3. CONTEÚDO PRINCIPAL: BENTO GRID ASSIMÉTRICO OU ÍNDICE
+            ESTADO VAZIO (NENHUMA MATÉRIA ENCONTRADA)
         ======================================================== */}
-        <AnimatePresence mode="wait">
-          {filteredNews.length === 0 ? (
-            <motion.div
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="rounded-2xl border border-dashed border-slate-300 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38]/40 p-12 text-center"
+        {filteredNews.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-slate-300 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38]/50 p-12 text-center space-y-3">
+            <Newspaper className="mx-auto h-12 w-12 text-slate-400 dark:text-slate-500" />
+            <h3 className="text-base font-bold text-slate-800 dark:text-white font-display">
+              Nenhuma reportagem encontrada
+            </h3>
+            <p className="text-xs font-mono text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+              Não encontramos resultados para os termos ou filtros selecionados. Tente buscar por palavras-chave como &quot;satélite&quot;, &quot;ENEM&quot; ou &quot;agroecologia&quot;.
+            </p>
+            <button
+              onClick={() => {
+                setSelectedCategory('Todas');
+                setSearchTerm('');
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950 text-xs font-mono font-bold hover:opacity-90 transition-opacity cursor-pointer"
             >
-              <Newspaper className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" />
-              <p className="text-sm font-mono text-slate-600 dark:text-slate-300">
-                Nenhuma reportagem encontrada com os termos ou categoria selecionados.
-              </p>
-              <button
-                onClick={() => {
-                  setSelectedCategory('Todas');
-                  setSearchTerm('');
-                }}
-                className="mt-3 text-xs font-mono text-[#05549D] dark:text-[#00D8FF] hover:underline cursor-pointer"
+              Restaurar todas as notícias
+            </button>
+          </div>
+        ) : viewMode === 'magazine' ? (
+          /* ========================================================
+              MODO REVISTA (MANCHETE 50/50 + GRADE DE CARDS COM RESUMO)
+          ======================================================== */
+          <div className="space-y-12">
+            
+            {/* 1. MANCHETE DE CAPA 50/50 (TEXTO FORA DA FOTO!) */}
+            {featuredArticle && featuredEditorial && (
+              <div
+                onClick={() => setSelectedIndex(0)}
+                className="group relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-sm hover:shadow-2xl transition-all duration-300 cursor-pointer"
               >
-                Restaurar visualização completa
-              </button>
-            </motion.div>
-          ) : viewMode === 'bento' ? (
-            /* ================= MODO 1: BENTO MOSAICO ASSIMÉTRICO ================= */
-            <motion.div
-              key="bento-view"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 md:grid-cols-12 gap-5"
-            >
-              {filteredNews.map((item, index) => {
-                const meta = getBentoMeta(index, filteredNews.length);
-                const cover = item.coverImage || FALLBACK_NEWS_COVER;
+                <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
+                  
+                  {/* Coluna da Imagem (lg:col-span-7) */}
+                  <div className="relative lg:col-span-7 min-h-[300px] sm:min-h-[380px] lg:min-h-[460px] overflow-hidden bg-slate-950">
+                    <img
+                      src={featuredArticle.coverImage || FALLBACK_NEWS_COVER}
+                      alt={featuredArticle.title}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
+                      }}
+                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      loading="eager"
+                    />
+                    
+                    {/* Gradiente sutil */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
 
-                return (
-                  <motion.div
-                    key={item.id}
-                    layout
-                    onClick={() => setSelectedIndex(index)}
-                    className={`group relative overflow-hidden rounded-[12px] border border-slate-200 dark:border-[#1A365D] bg-slate-900 hover:border-[#00D8FF] transition-all duration-300 cursor-pointer shadow-lg flex flex-col justify-between ${meta.bentoClass} ${meta.aspectRatio}`}
-                  >
-                    {/* Imagem de Capa com Zoom Suave no Hover */}
+                    {/* Badge de Destaque no Topo da Imagem */}
+                    <div className="absolute top-4 left-4 z-10">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/85 px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-sm">
+                        <Sparkles className="h-3 w-3 text-cyan-300" />
+                        <span>★ REPORTAGEM DE CAPA // {featuredArticle.category?.toUpperCase() || 'INFRAESTRUTURA'}</span>
+                      </span>
+                    </div>
+
+                    {/* Indicador de Tempo no Rodapé da Imagem */}
+                    <div className="absolute bottom-4 right-4 z-10">
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-black/75 px-2.5 py-1 font-mono text-[11px] text-cyan-200 backdrop-blur-sm">
+                        <Clock className="h-3 w-3 text-cyan-300" />
+                        <span>⏱ {featuredEditorial.readingTime} MIN DE LEITURA</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Coluna Editorial (lg:col-span-5 — Fundo Branco no Claro / Marinho no Escuro) */}
+                  <div className="lg:col-span-5 p-6 sm:p-8 lg:p-9 flex flex-col justify-between space-y-5 bg-white dark:bg-[#0C1E38]">
+                    
+                    <div className="space-y-3">
+                      {/* Metadados: Localidade + Tempo de Leitura */}
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-mono font-bold text-[#004A99] dark:text-[#00D8FF] tracking-wider uppercase">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          <span>{featuredEditorial.polo}</span>
+                        </span>
+                        <span>•</span>
+                        <span>{featuredArticle.publishedAt}</span>
+                      </div>
+
+                      {/* Título Jornalístico Forte (Fora da foto!) */}
+                      <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-tight">
+                        {featuredArticle.title}
+                      </h2>
+
+                      {/* Lead / Resumo Atrativo */}
+                      <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed line-clamp-4 font-sans">
+                        {featuredArticle.excerpt}
+                      </p>
+
+                      {/* Box de Prévia: "O que você vai ler nesta matéria" */}
+                      <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] p-3.5 space-y-2 mt-4">
+                        <p className="text-[10px] font-mono uppercase font-bold tracking-wider text-[#004A99] dark:text-[#00D8FF] flex items-center gap-1.5">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span>DESTAQUES DA REPORTAGEM:</span>
+                        </p>
+                        <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300 font-sans">
+                          <li className="flex items-start gap-2">
+                            <span className="text-[#004A99] dark:text-[#00D8FF] font-bold">✓</span>
+                            <span>{featuredEditorial.tldrPoints[0]}</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-[#004A99] dark:text-[#00D8FF] font-bold">✓</span>
+                            <span>{featuredEditorial.tldrPoints[1]}</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Rodapé da Capa: Assinatura + Botão de Leitura Completa */}
+                    <div className="pt-4 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                        <span>Por <strong>{featuredArticle.author || 'Assessoria SEDUC-RO'}</strong></span>
+                      </div>
+
+                      <span className="inline-flex items-center gap-2 rounded-xl bg-[#004A99] hover:bg-[#003875] dark:bg-[#00D8FF] dark:hover:bg-cyan-300 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white dark:text-slate-950 transition-colors shadow-sm shrink-0">
+                        <span>Ler reportagem completa</span>
+                        <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                      </span>
+                    </div>
+
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+            {/* 2. GRADE DE REPORTAGENS COM ESTRUTURA DE REVISTA (3 COLUNAS) */}
+            {secondaryArticles.length > 0 && (
+              <div className="space-y-6 pt-4">
+                <div className="flex items-center justify-between border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-3">
+                  <h3 className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-slate-900 dark:text-[#E6F4FF] flex items-center gap-2">
+                    <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
+                    <span>{'//'} REPORTAGENS &amp; COBERTURAS NOS POLOS</span>
+                  </h3>
+                  <span className="text-[11px] font-mono text-slate-500 dark:text-[#6482A6]">
+                    {secondaryArticles.length} {secondaryArticles.length === 1 ? 'matéria disponível' : 'matérias disponíveis'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {secondaryArticles.map((item, idx) => {
+                    const actualIndex = idx + 1;
+                    const editorial = getEditorialDetails(item, actualIndex);
+                    const cover = item.coverImage || FALLBACK_NEWS_COVER;
+
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => setSelectedIndex(actualIndex)}
+                        className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+                      >
+                        {/* PARTE SUPERIOR: FOTO LIMPA 16:9 (SEM TÍTULO EM CIMA DA FOTO!) */}
+                        <div className="relative aspect-video w-full overflow-hidden bg-slate-950">
+                          <img
+                            src={cover}
+                            alt={item.title}
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
+                            }}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            loading="lazy"
+                          />
+
+                          {/* Tag de Categoria no Topo Esquerdo */}
+                          <div className="absolute top-3 left-3 z-10">
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/80 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+                              {item.category || 'Geral'}
+                            </span>
+                          </div>
+
+                          {/* Tempo de Leitura no Canto Inferior Direito */}
+                          <div className="absolute bottom-2.5 right-2.5 z-10">
+                            <span className="inline-flex items-center gap-1 rounded bg-black/75 px-2 py-0.5 font-mono text-[10px] text-cyan-200 backdrop-blur-sm">
+                              <Clock className="h-2.5 w-2.5 text-cyan-300" />
+                              <span>⏱ {editorial.readingTime} min</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* PARTE INFERIOR: CORPO DE LEITURA EDITORIAL */}
+                        <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
+                          
+                          <div className="space-y-2">
+                            {/* Localidade e Data em Azul Institucional */}
+                            <div className="text-xs font-mono font-bold tracking-wider text-[#004A99] dark:text-[#00D8FF] flex items-center gap-1.5">
+                              <span>{item.publishedAt}</span>
+                              <span>•</span>
+                              <span className="truncate">📍 {editorial.polo}</span>
+                            </div>
+
+                            {/* Título da Notícia */}
+                            <h4 className="font-display text-lg font-bold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2">
+                              {item.title}
+                            </h4>
+
+                            {/* Resumo (Lead de 3 linhas que convida à leitura) */}
+                            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed font-sans">
+                              {item.excerpt}
+                            </p>
+                          </div>
+
+                          {/* Rodapé do Card: Linha Tracejada + Autor + Link */}
+                          <div className="pt-3.5 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex items-center justify-between text-xs">
+                            <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[55%]">
+                              {item.author || 'Coord. de Mídias'}
+                            </span>
+
+                            <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-[#004A99] dark:text-[#00D8FF] group-hover:underline shrink-0">
+                              <span>Continuar lendo</span>
+                              <ArrowUpRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                            </span>
+                          </div>
+
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+          </div>
+        ) : (
+          /* ========================================================
+              MODO LISTA DE LEITURA (COMPACTO PARA LEITURA RÁPIDA)
+          ======================================================== */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-3">
+              <span className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-[#004A99] dark:text-[#00D8FF]">
+                [ ÍNDICE DE LEITURA EM SEQUÊNCIA ]
+              </span>
+              <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                {filteredNews.length} matérias cadastradas
+              </span>
+            </div>
+
+            {filteredNews.map((item, index) => {
+              const editorial = getEditorialDetails(item, index);
+              const cover = item.coverImage || FALLBACK_NEWS_COVER;
+
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedIndex(index)}
+                  className="group rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 flex flex-col sm:flex-row gap-5 items-stretch hover:shadow-lg transition-all duration-200 cursor-pointer"
+                >
+                  {/* Miniatura 16:10 */}
+                  <div className="relative w-full sm:w-64 aspect-[16/10] sm:aspect-auto rounded-xl overflow-hidden shrink-0 bg-slate-950">
                     <img
                       src={cover}
                       alt={item.title}
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
                       }}
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                     />
-
-                    {/* Gradiente Escuro de Proteção e Contraste Tipográfico */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/30 group-hover:from-black/95 group-hover:via-black/55 transition-all duration-300" />
-
-                    {/* Cantoneiras de Viewfinder HUD nos 4 cantos */}
-                    <div className="pointer-events-none absolute left-3 top-3 h-4 w-4 border-l-2 border-t-2 border-[#00D8FF] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="pointer-events-none absolute right-3 top-3 h-4 w-4 border-r-2 border-t-2 border-[#00D8FF] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 border-b-2 border-l-2 border-[#00D8FF] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="pointer-events-none absolute bottom-3 right-3 h-4 w-4 border-b-2 border-r-2 border-[#00D8FF] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                    {/* TOPO DO CARD: BADGE TÉCNICA E CÓDIGO EDITORIAL */}
-                    <div className="relative z-10 flex items-center justify-between p-4 sm:p-5">
-                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-[#00D8FF] text-[11px] uppercase font-mono px-3 py-1 rounded-full font-semibold shadow-sm">
+                    <div className="absolute top-2.5 left-2.5">
+                      <span className="rounded-full bg-slate-950/80 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-white backdrop-blur-sm">
                         {item.category || 'Geral'}
                       </span>
-
-                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-slate-300 group-hover:text-white text-[11px] font-mono px-2.5 py-1 rounded-full transition-colors">
-                        {meta.regCode}
-                      </span>
                     </div>
+                  </div>
 
-                    {/* BASE DO CARD: DATA, POLO, TÍTULO E DESLIZAMENTO DO RESUMO NO HOVER */}
-                    <div className="relative z-10 p-5 sm:p-6 space-y-2">
-                      {/* Linha de Data e Polo Regional */}
-                      <p className="text-[11px] font-mono uppercase tracking-wider text-cyan-200">
-                        {item.publishedAt} • 📍 {meta.polo}
-                      </p>
+                  {/* Conteúdo da Linha */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[#004A99] dark:text-[#00D8FF] font-semibold mb-1">
+                        <span>{item.publishedAt}</span>
+                        <span>•</span>
+                        <span>📍 {editorial.polo}</span>
+                        <span>•</span>
+                        <span className="text-slate-500 dark:text-slate-400">⏱ {editorial.readingTime} min</span>
+                      </div>
 
-                      {/* Título da Notícia em Destaque */}
-                      <h3 className="font-display text-lg sm:text-xl font-medium uppercase leading-snug text-white group-hover:text-[#00D8FF] transition-colors">
+                      <h4 className="font-display text-lg sm:text-xl font-bold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug">
                         {item.title}
-                      </h3>
+                      </h4>
 
-                      {/* Excerpt completo e botão que desliza no hover */}
-                      <div className="max-h-0 opacity-0 group-hover:max-h-56 group-hover:opacity-100 transition-all duration-400 ease-out overflow-hidden">
-                        <p className="text-xs text-slate-200 leading-relaxed font-normal pt-1.5 line-clamp-3">
-                          {item.excerpt}
-                        </p>
-
-                        <div className="mt-3 pt-2.5 border-t border-dashed border-white/20 flex items-center justify-between text-xs font-mono text-[#00D8FF]">
-                          <span className="flex items-center gap-1.5 font-semibold">
-                            <Maximize2 className="h-3.5 w-3.5" />
-                            <span>[ ⊕ ABRIR COBERTURA COMPLETA ]</span>
-                          </span>
-                          <span className="text-[10px] text-slate-300 hidden sm:inline">
-                            {item.author || 'Equipe SEDUC'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          ) : (
-            /* ================= MODO 2: ÍNDICE TÉCNICO EDITORIAL ================= */
-            <motion.div
-              key="list-view"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3 }}
-              className="rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] divide-y divide-dashed divide-slate-200 dark:divide-[#1A365D] overflow-hidden shadow-sm dark:shadow-xl"
-            >
-              {filteredNews.map((item, index) => {
-                const meta = getBentoMeta(index, filteredNews.length);
-                const cover = item.coverImage || FALLBACK_NEWS_COVER;
-
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => setSelectedIndex(index)}
-                    className="group flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 sm:p-5 hover:bg-slate-50 dark:hover:bg-[#0F2647] transition-all cursor-pointer"
-                  >
-                    {/* Código e Miniatura */}
-                    <div className="flex items-center gap-4 shrink-0">
-                      <span className="w-20 font-mono text-xs text-slate-500 dark:text-[#6482A6] font-semibold">
-                        {meta.regCode}
-                      </span>
-
-                      <div className="relative h-16 w-24 sm:h-18 sm:w-28 overflow-hidden rounded-lg border border-slate-200 dark:border-[#1A365D] bg-black">
-                        <img
-                          src={cover}
-                          alt={item.title}
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
-                          }}
-                          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
-                          loading="lazy"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Título e Descrição */}
-                    <div className="flex-1 min-w-0 pr-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="rounded-full border border-sky-300 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2 py-0.5 text-[10px] font-mono uppercase text-[#05549D] dark:text-[#00D8FF] font-semibold">
-                          {item.category || 'Geral'}
-                        </span>
-                        <span className="text-xs font-mono text-slate-500 dark:text-[#6482A6]">
-                          {item.publishedAt} • {meta.polo}
-                        </span>
-                      </div>
-                      <h3 className="font-mono text-sm sm:text-base uppercase font-semibold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#05549D] dark:group-hover:text-[#00D8FF] transition-colors truncate">
-                        {item.title}
-                      </h3>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-1 mt-0.5">
+                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-2 mt-1 leading-relaxed">
                         {item.excerpt}
                       </p>
                     </div>
 
-                    {/* Botão de Inspeção */}
-                    <div className="shrink-0 self-end md:self-center">
-                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] px-3.5 py-1.5 text-xs font-mono text-[#05549D] dark:text-[#00D8FF] group-hover:border-[#05549D] dark:group-hover:border-[#00D8FF] group-hover:bg-[#05549D] dark:group-hover:bg-[#00D8FF] group-hover:text-white dark:group-hover:text-slate-950 transition-all font-semibold">
-                        <Maximize2 className="h-3 w-3" />
-                        <span>INSPECIONAR</span>
+                    <div className="pt-2 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex items-center justify-between text-xs font-mono">
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {item.author || 'Equipe SEDUC-RO'}
+                      </span>
+
+                      <span className="font-bold text-[#004A99] dark:text-[#00D8FF] group-hover:underline flex items-center gap-1">
+                        <span>Ler matéria completa</span>
+                        <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
                       </span>
                     </div>
                   </div>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
       </div>
 
       {/* ========================================================
-          4. MODAL LIGHTBOX SPLIT-SCREEN (INSPEÇÃO DE REPORTAGEM)
+          MODAL / DRAWER "LEITOR EDITORIAL IMERSIVO"
       ======================================================== */}
       <AnimatePresence>
-        {activeNews && activeMeta && (
+        {activeNews && activeEditorial && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-8 bg-[#040B16]/95 backdrop-blur-xl animate-in fade-in duration-200"
+            className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
             onClick={() => setSelectedIndex(null)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              initial={{ scale: 0.96, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.96, opacity: 0, y: 15 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-7xl max-h-[92vh] rounded-2xl border border-[#1A365D] bg-[#071326] shadow-2xl overflow-hidden flex flex-col lg:flex-row"
+              className="relative w-full max-w-4xl max-h-[92vh] rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#071326] shadow-2xl overflow-hidden flex flex-col text-slate-900 dark:text-[#E6F4FF]"
             >
               
-              {/* Botão Fechar Mobile */}
-              <button
-                onClick={() => setSelectedIndex(null)}
-                className="lg:hidden absolute top-3 right-3 z-30 rounded-full border border-white/20 bg-black/70 p-2 text-white hover:bg-white hover:text-black transition-colors"
-                aria-label="Fechar leitor"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              {/* 1. BARRA DE PROGRESSO DE LEITURA (0% a 100%) */}
+              <div className="h-1.5 w-full bg-slate-100 dark:bg-[#061224] shrink-0 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#004A99] via-sky-400 to-[#00D8FF] transition-all duration-75"
+                  style={{ width: `${readingProgress}%` }}
+                />
+              </div>
 
-              {/* ================= COLUNA DA ESQUERDA: VISUALIZADOR HUD (64%) ================= */}
-              <div className="relative lg:w-[64%] bg-[#020710] flex flex-col justify-between p-4 sm:p-6 border-b lg:border-b-0 lg:border-r border-[#1A365D]">
+              {/* 2. BARRA DE CONTROLE SUPERIOR (CONFORTO VISUAL + ATALHOS) */}
+              <div className="border-b border-slate-200 dark:border-[#1A365D] px-5 py-3.5 flex items-center justify-between gap-4 bg-slate-50/80 dark:bg-[#0C1E38]/80 backdrop-blur-sm shrink-0">
                 
-                {/* HUD Superior */}
-                <div className="mb-3 flex items-center justify-between text-xs font-mono text-[#6482A6] border-b border-dashed border-[#1A365D] pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[#E6F4FF] font-semibold">
-                      COBERTURA {String(selectedIndex! + 1).padStart(2, '0')} DE {String(filteredNews.length).padStart(2, '0')}
-                    </span>
-                  </div>
-                  <span className="hidden sm:inline text-[#00D8FF]">
-                    SINAL ATIVO // ARQUIVO DE REPORTAGENS SEDUC-RO
+                {/* Esquerda: Identificação Editorial e Categoria */}
+                <div className="flex items-center gap-2 text-xs font-mono">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold uppercase text-[10px]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    SINAL ATIVO
+                  </span>
+                  <span className="font-semibold text-slate-700 dark:text-cyan-300">
+                    {activeNews.category || 'Geral'}
                   </span>
                 </div>
 
-                {/* Área da Imagem de Capa com Viewfinder */}
-                <div className="relative flex-1 flex items-center justify-center my-auto min-h-[280px] max-h-[55vh] lg:max-h-[64vh] overflow-hidden rounded-xl bg-black/60 p-2 border border-white/5">
-                  {/* Cantoneiras Técnicas */}
-                  <div className="pointer-events-none absolute left-4 top-4 h-5 w-5 border-l-2 border-t-2 border-[#00D8FF]" />
-                  <div className="pointer-events-none absolute right-4 top-4 h-5 w-5 border-r-2 border-t-2 border-[#00D8FF]" />
-                  <div className="pointer-events-none absolute bottom-4 left-4 h-5 w-5 border-b-2 border-l-2 border-[#00D8FF]" />
-                  <div className="pointer-events-none absolute bottom-4 right-4 h-5 w-5 border-b-2 border-r-2 border-[#00D8FF]" />
-
-                  {/* Mira Central */}
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-20">
-                    <div className="h-6 w-px bg-[#00D8FF]" />
-                    <div className="w-6 h-px bg-[#00D8FF]" />
+                {/* Centro: Conforto Visual (Tamanho da Fonte A- / A+) + Tempo de Leitura */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center bg-white dark:bg-[#061224] border border-slate-200 dark:border-[#1A365D] rounded-lg p-0.5 text-xs font-mono">
+                    <button
+                      onClick={() => setFontSize('sm')}
+                      className={`px-2 py-1 rounded ${fontSize === 'sm' ? 'bg-[#004A99] text-white font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
+                      title="Fonte Menor"
+                    >
+                      A-
+                    </button>
+                    <button
+                      onClick={() => setFontSize('base')}
+                      className={`px-2 py-1 rounded ${fontSize === 'base' ? 'bg-[#004A99] text-white font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
+                      title="Fonte Padrão"
+                    >
+                      A
+                    </button>
+                    <button
+                      onClick={() => setFontSize('lg')}
+                      className={`px-2 py-1 rounded ${fontSize === 'lg' ? 'bg-[#004A99] text-white font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
+                      title="Fonte Grande"
+                    >
+                      A+
+                    </button>
                   </div>
 
-                  <img
-                    src={activeNews.coverImage || FALLBACK_NEWS_COVER}
-                    alt={activeNews.title}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
-                    }}
-                    className="max-h-full max-w-full object-contain rounded-lg shadow-2xl select-none"
-                  />
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-[#061224] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1A365D]">
+                    <Clock className="h-3 w-3 text-[#004A99] dark:text-[#00D8FF]" />
+                    <span>⏱ {activeEditorial.readingTime} min</span>
+                  </span>
                 </div>
 
-                {/* HUD Inferior: Controles de Navegação */}
-                <div className="mt-3 flex items-center justify-between pt-3 border-t border-dashed border-[#1A365D] text-xs font-mono">
+                {/* Direita: Compartilhar + Fechar */}
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={handlePrev}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all cursor-pointer font-semibold"
+                    onClick={handleShare}
+                    className="p-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] transition-colors cursor-pointer"
+                    title="Copiar link da reportagem"
                   >
-                    <ChevronLeft className="h-4 w-4" />
-                    <span>← ANTERIOR</span>
+                    {copiedLink ? <Check className="h-4 w-4 text-emerald-500" /> : <Share2 className="h-4 w-4" />}
                   </button>
 
-                  <span className="hidden sm:inline text-[11px] text-[#6482A6]">
-                    NAVEGUE PELO TECLADO [ ← ] [ → ]
-                  </span>
-
                   <button
-                    onClick={handleNext}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all cursor-pointer font-semibold"
+                    onClick={() => setSelectedIndex(null)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2.5 py-1.5 font-mono text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer font-bold"
                   >
-                    <span>PRÓXIMA →</span>
-                    <ChevronRight className="h-4 w-4" />
+                    <span>ESC</span>
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
               </div>
 
-              {/* ================= COLUNA DA DIREITA: FICHA EDITORIAL E CONTEÚDO (36%) ================= */}
-              <div className="lg:w-[36%] bg-[#0C1E38] p-5 sm:p-6 lg:p-7 flex flex-col justify-between overflow-y-auto max-h-[45vh] lg:max-h-[92vh]">
+              {/* 3. CONTEÚDO ROLÁVEL DA REPORTAGEM COMPLETA */}
+              <div
+                ref={articleScrollRef}
+                onScroll={handleArticleScroll}
+                className="overflow-y-auto p-6 sm:p-8 md:p-10 space-y-8 flex-1"
+              >
                 
-                <div className="space-y-4">
-                  {/* Cabeçalho da Ficha */}
-                  <div className="border-b border-dashed border-[#1A365D] pb-3">
-                    <p className="font-mono text-xs uppercase tracking-[0.2em] text-[#00D8FF] font-semibold">
-                      {'//'} COBERTURA OFICIAL • MEDTEC-RO
-                    </p>
-                    <p className="mt-1 font-mono text-[11px] text-[#6482A6]">
-                      REGISTRO: {activeMeta.regCode}
-                    </p>
+                {/* Cabeçalho do Artigo */}
+                <div className="space-y-4 max-w-3xl">
+                  {/* Polo & Data */}
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-mono font-bold text-[#004A99] dark:text-[#00D8FF] uppercase tracking-wider">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5" />
+                      <span>{activeEditorial.polo}</span>
+                    </span>
+                    <span>•</span>
+                    <span>{activeNews.publishedAt}</span>
                   </div>
 
-                  {/* Título e Lead */}
-                  <div>
-                    <h2 className="font-display text-xl sm:text-2xl uppercase font-medium leading-[1.1] text-[#E6F4FF]">
-                      {activeNews.title}
-                    </h2>
-                    {activeNews.excerpt && (
-                      <p className="mt-3 text-sm leading-relaxed text-cyan-200/90 font-mono italic bg-[#061224]/70 p-3 rounded-lg border-l-2 border-[#00D8FF]">
-                        &ldquo;{activeNews.excerpt}&rdquo;
-                      </p>
-                    )}
-                  </div>
+                  {/* Título Display Escultural */}
+                  <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                    {activeNews.title}
+                  </h1>
 
-                  {/* TABELA TÉCNICA 1PX DASHED */}
-                  <div className="rounded-xl border border-[#1A365D] bg-[#061224]/80 p-3.5 space-y-2.5 font-mono text-xs">
-                    
-                    <div className="flex items-start justify-between gap-2 border-b border-dashed border-[#1A365D] pb-2">
-                      <span className="text-[#6482A6] uppercase text-[10px] font-bold">CATEGORIA:</span>
-                      <span className="text-[#00D8FF] font-semibold uppercase text-right">
-                        {activeNews.category || 'Geral'}
-                      </span>
+                  {/* Autor e Órgão Oficial */}
+                  <div className="pt-2 flex items-center gap-3 text-xs font-mono text-slate-500 dark:text-slate-400 border-t border-dashed border-slate-200 dark:border-[#1A365D]">
+                    <div className="h-8 w-8 rounded-full bg-[#004A99] text-white flex items-center justify-center font-bold text-xs">
+                      RO
                     </div>
-
-                    <div className="flex items-start justify-between gap-2 border-b border-dashed border-[#1A365D] pb-2">
-                      <span className="text-[#6482A6] uppercase text-[10px] font-bold">DATA DE VEICULAÇÃO:</span>
-                      <span className="text-[#E6F4FF] font-semibold text-right">
-                        {activeNews.publishedAt}
-                      </span>
-                    </div>
-
-                    <div className="flex items-start justify-between gap-2 border-b border-dashed border-[#1A365D] pb-2">
-                      <span className="text-[#6482A6] uppercase text-[10px] font-bold">POLO / COBERTURA:</span>
-                      <span className="text-[#E6F4FF] text-right">
-                        {activeMeta.polo}
-                      </span>
-                    </div>
-
-                    <div className="flex items-start justify-between gap-2 border-b border-dashed border-[#1A365D] pb-2">
-                      <span className="text-[#6482A6] uppercase text-[10px] font-bold">AUTOR / REDAÇÃO:</span>
-                      <span className="text-slate-300 text-right">
+                    <div>
+                      <p className="font-bold text-slate-800 dark:text-white">
                         {activeNews.author || 'Assessoria de Comunicação SEDUC-RO'}
-                      </span>
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Governo do Estado de Rondônia • Mediação Tecnológica
+                      </p>
                     </div>
+                  </div>
+                </div>
 
-                    {activeNews.tags && activeNews.tags.length > 0 && (
-                      <div className="flex items-start justify-between gap-2 pt-0.5">
-                        <span className="text-[#6482A6] uppercase text-[10px] font-bold">TAGS:</span>
-                        <div className="flex flex-wrap gap-1 justify-end max-w-[200px]">
-                          {activeNews.tags.map((t, i) => (
-                            <span
-                              key={i}
-                              className="text-[10px] text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-1.5 py-0.5 rounded"
-                            >
-                              #{t}
-                            </span>
-                          ))}
+                {/* Imagem de Capa Panorâmica com Legenda */}
+                <div className="space-y-2">
+                  <div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-slate-950">
+                    <img
+                      src={activeNews.coverImage || FALLBACK_NEWS_COVER}
+                      alt={activeNews.title}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <p className="text-[11px] font-mono text-slate-500 dark:text-slate-400 text-right">
+                    Registro oficial: Coordenadoria de Mídias Educacionais / SEDUC Rondônia
+                  </p>
+                </div>
+
+                {/* Bloco "⚡ RESUMO EM 3 PONTOS (TL;DR)" */}
+                <div className="rounded-2xl border-l-4 border-[#004A99] dark:border-[#00D8FF] bg-sky-50/80 dark:bg-[#061224] p-5 sm:p-6 space-y-3">
+                  <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    <span>⚡ RESUMO EM 3 PONTOS (TL;DR)</span>
+                  </h4>
+                  <ul className="space-y-2 font-sans text-sm text-slate-700 dark:text-slate-200">
+                    {activeEditorial.tldrPoints.map((point, pIdx) => (
+                      <li key={pIdx} className="flex items-start gap-2.5">
+                        <CheckCircle2 className="h-4 w-4 text-[#004A99] dark:text-[#00D8FF] shrink-0 mt-0.5" />
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Corpo do Texto Completo e Rico (com ajuste de tamanho de fonte) */}
+                <div
+                  className={`space-y-6 text-slate-700 dark:text-slate-200 font-sans leading-relaxed ${
+                    fontSize === 'sm'
+                      ? 'text-sm'
+                      : fontSize === 'lg'
+                      ? 'text-lg'
+                      : fontSize === 'xl'
+                      ? 'text-xl leading-loose'
+                      : 'text-base'
+                  }`}
+                >
+                  {/* Lead Inicial em Destaque */}
+                  <p className="text-lg sm:text-xl font-medium text-slate-900 dark:text-white leading-relaxed">
+                    {activeNews.excerpt}
+                  </p>
+
+                  <div className="h-px bg-slate-200 dark:bg-[#1A365D] my-4" />
+
+                  {/* Parágrafos da Matéria */}
+                  {activeNews.content ? (
+                    activeNews.content.split('\n\n').map((paragraph, pIndex) => (
+                      <p key={pIndex}>
+                        {paragraph}
+                      </p>
+                    ))
+                  ) : (
+                    <>
+                      <p>
+                        A iniciativa consolida a política de universalização da educação em Rondônia sob as diretrizes da Lei Estadual nº 3.846/2016. Por meio de estúdios equipados com tecnologia 4K em Porto Velho, professores especialistas transmitem diariamente aulas dinâmicas síncronas que chegam simultaneamente às salas conectadas por satélite.
+                      </p>
+                      <p>
+                        Em cada localidade, a atuação do professor mediador presencial é a âncora pedagógica que assegura o esclarecimento imediato de dúvidas, a condução de dinâmicas práticas e a conexão direta com as realidades culturais, agrícolas e sociais da comunidade.
+                      </p>
+                    </>
+                  )}
+
+                  {/* Citação em Destaque (Blockquote) */}
+                  <blockquote className="my-8 rounded-r-2xl border-l-4 border-cyan-500 bg-sky-50/60 dark:bg-[#0C1E38]/80 p-5 sm:p-6 italic text-slate-800 dark:text-cyan-100">
+                    <p className="text-base sm:text-lg leading-relaxed font-serif">
+                      &ldquo;{activeEditorial.quote.text}&rdquo;
+                    </p>
+                    <footer className="mt-3 font-mono text-xs not-italic text-[#004A99] dark:text-cyan-300 font-bold">
+                      — {activeEditorial.quote.author}, <span className="font-normal opacity-80">{activeEditorial.quote.role}</span>
+                    </footer>
+                  </blockquote>
+
+                  {/* Subtítulo Interno */}
+                  <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white pt-2">
+                    Impacto Direto na Juventude e no Território Rondoniense
+                  </h3>
+
+                  <p>
+                    Com o sinal ativo de alta disponibilidade e material pedagógico distribuído antecipadamente, os índices de permanência escolar e aprovação em vestibulares crescem ano a ano, demonstrando a potência transformadora da tecnologia quando colocada a serviço da educação pública e cidadã.
+                  </p>
+
+                  {/* Ficha de Impacto Territorial (Infobox com 4 Métricas) */}
+                  <div className="my-8 rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] p-5 sm:p-6">
+                    <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] mb-4">
+                      📊 FICHA DE IMPACTO TERRITORIAL // SEDUC-RO
+                    </p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center font-mono">
+                      {activeEditorial.impactStats.map((stat, sIdx) => (
+                        <div key={sIdx} className="p-3 rounded-xl bg-white dark:bg-[#0C1E38] border border-slate-200/80 dark:border-[#1A365D]">
+                          <p className="text-base sm:text-lg font-bold text-[#004A99] dark:text-[#00D8FF]">
+                            {stat.value}
+                          </p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 uppercase">
+                            {stat.label}
+                          </p>
                         </div>
-                      </div>
-                    )}
-
-                  </div>
-
-                  {/* CONTEÚDO INTEGRAL DA NOTÍCIA */}
-                  <div className="space-y-3 pt-2">
-                    <h4 className="font-mono text-xs uppercase tracking-wider text-[#6482A6] font-semibold">
-                      [ TEXTO DA REPORTAGEM ]
-                    </h4>
-                    <div className="text-sm leading-relaxed text-slate-300 font-normal whitespace-pre-line space-y-3">
-                      {activeNews.content || activeNews.excerpt}
+                      ))}
                     </div>
                   </div>
 
+                  {/* Tags do Artigo */}
+                  {activeNews.tags && activeNews.tags.length > 0 && (
+                    <div className="pt-6 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-mono text-slate-500 dark:text-slate-400 font-bold">Tags:</span>
+                      {activeNews.tags.map((tag, tIdx) => (
+                        <span
+                          key={tIdx}
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-[#061224] border border-slate-200 dark:border-[#1A365D] font-mono text-xs text-slate-700 dark:text-slate-300 font-semibold"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                 </div>
 
-                {/* BOTÕES DE AÇÃO NO RODAPÉ */}
-                <div className="mt-6 pt-4 border-t border-dashed border-[#1A365D] space-y-2">
-                  <Link
-                    href={`/noticias/${activeNews.id}`}
-                    className="w-full rounded-xl border border-[#00D8FF] bg-[#0C1E38] hover:bg-[#00D8FF] text-[#00D8FF] hover:text-slate-950 py-2.5 text-xs font-mono font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(0,216,255,0.15)]"
-                  >
-                    <span>ABRIR PÁGINA PERMANENTE</span>
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Link>
+                {/* 4. SEÇÃO "LEIA TAMBÉM" NO RODAPÉ DO ARTIGO */}
+                {relatedNews.length > 0 && (
+                  <div className="pt-8 border-t border-slate-200 dark:border-[#1A365D] space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                        <BookOpen className="h-4 w-4 text-[#004A99] dark:text-[#00D8FF]" />
+                        <span>📰 LEIA TAMBÉM NO PORTAL MEDTEC</span>
+                      </h4>
+                      <span className="text-[11px] font-mono text-slate-500">Sugestões de leitura</span>
+                    </div>
 
-                  <button
-                    onClick={() => setSelectedIndex(null)}
-                    className="w-full rounded-xl border border-[#1A365D] bg-[#040B16] py-2.5 text-xs font-mono font-semibold text-[#6482A6] hover:border-slate-500 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                    <span>[ ESC // FECHAR LEITOR ]</span>
-                  </button>
-                </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {relatedNews.map((relItem) => {
+                        const relIndex = publishedNews.findIndex((n) => n.id === relItem.id);
+                        return (
+                          <div
+                            key={relItem.id}
+                            onClick={() => {
+                              if (relIndex !== -1) {
+                                setSelectedIndex(relIndex);
+                              }
+                            }}
+                            className="group/rel rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] p-3.5 flex gap-3.5 items-center hover:border-[#004A99] dark:hover:border-[#00D8FF] transition-all cursor-pointer"
+                          >
+                            <img
+                              src={relItem.coverImage || FALLBACK_NEWS_COVER}
+                              alt={relItem.title}
+                              className="h-16 w-20 rounded-lg object-cover shrink-0 bg-slate-900"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <span className="font-mono text-[9px] uppercase font-bold text-[#004A99] dark:text-[#00D8FF]">
+                                {relItem.category || 'Geral'}
+                              </span>
+                              <p className="text-xs font-bold text-slate-900 dark:text-white group-hover/rel:text-[#004A99] dark:group-hover/rel:text-[#00D8FF] transition-colors line-clamp-2 leading-snug mt-0.5">
+                                {relItem.title}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
               </div>
 

@@ -460,7 +460,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
               className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 dark:border-cyan-400/30 bg-slate-100 dark:bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-cyan-200 hover:bg-slate-200 dark:hover:bg-cyan-400/20 hover:border-slate-400 dark:hover:border-cyan-400/50 transition-all cursor-pointer backdrop-blur-sm whitespace-nowrap"
             >
               <ShieldCheck className="h-3.5 w-3.5 text-sky-600 dark:text-cyan-300" />
-              <span>🛡️ Dossiê</span>
+              <span>Dossiê</span>
             </button>
 
             {/* 3. CTA PAINEL GESTOR */}
@@ -570,7 +570,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3.5 py-2.5 text-xs font-semibold text-cyan-200 cursor-pointer"
               >
                 <ShieldCheck className="h-4 w-4 text-cyan-300" />
-                <span>🛡️ Dossiê Institucional</span>
+                <span>Dossiê Institucional</span>
               </button>
 
               <Link
