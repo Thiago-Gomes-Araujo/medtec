@@ -2,10 +2,12 @@ import React from 'react';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { getDatabase } from '@/lib/db';
+import initialData from '@/data/initialData.json';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ChevronRight, Calendar, User, ArrowLeft, Tag } from 'lucide-react';
+import { ChevronRight, Calendar, User, ArrowLeft, Tag, Radio } from 'lucide-react';
 import NewsViewTracker from '@/components/NewsViewTracker';
+import { NewsItem } from '@/types';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -13,10 +15,17 @@ interface Props {
 
 export const instant = false;
 
+const FALLBACK_COVER =
+  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80';
+
 export default async function NoticiaDetalhePage({ params }: Props) {
   const { id } = await params;
   const data = getDatabase();
-  const newsItem = (data.news || []).find((n) => n.id === id || n.slug === id);
+  const allNews: NewsItem[] = (data.news && data.news.length > 0)
+    ? data.news
+    : (initialData.news as NewsItem[]);
+
+  const newsItem = allNews.find((n) => n.id === id || n.slug === id);
 
   // Se não encontrar ou se a notícia estiver despublicada, retorna 404
   if (!newsItem || newsItem.published === false) {
@@ -24,88 +33,102 @@ export default async function NoticiaDetalhePage({ params }: Props) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f8fafc]">
+    <div className="flex flex-col min-h-screen bg-[#040B16] text-[#E6F4FF]">
       <SiteHeader />
 
-      {/* Breadcrumb */}
-      <div className="bg-slate-100 py-4 border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 flex items-center gap-2 text-xs text-slate-500 font-medium">
-          <Link href="/" className="hover:text-emerald-700">Início</Link>
-          <ChevronRight size={14} />
-          <Link href="/noticias" className="hover:text-emerald-700">Notícias</Link>
-          <ChevronRight size={14} />
-          <span className="text-slate-800 font-bold truncate max-w-xs">{newsItem.title}</span>
+      {/* Breadcrumb Técnico */}
+      <div className="bg-[#061224] py-3.5 border-b border-[#1A365D]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-2 text-xs font-mono text-[#6482A6]">
+          <Link href="/" className="hover:text-[#00D8FF] transition-colors">
+            Início
+          </Link>
+          <ChevronRight size={14} className="text-[#1A365D]" />
+          <Link href="/noticias" className="hover:text-[#00D8FF] transition-colors">
+            Notícias
+          </Link>
+          <ChevronRight size={14} className="text-[#1A365D]" />
+          <span className="text-[#00D8FF] font-semibold truncate max-w-sm">
+            {newsItem.title}
+          </span>
         </div>
       </div>
 
       <NewsViewTracker id={newsItem.id} />
-      <main className="flex-1 py-10 bg-white">
+
+      <main className="flex-1 py-12">
         <article className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
           
-          {/* Voltar */}
+          {/* Voltar para todas as notícias */}
           <div>
             <Link
               href="/noticias"
-              className="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 hover:text-emerald-900 group"
+              className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-[#00D8FF] hover:underline group"
             >
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-              <span>Voltar para todas as notícias</span>
+              <span>[ ← VOLTAR PARA TODAS AS NOTÍCIAS ]</span>
             </Link>
           </div>
 
           {/* Categoria e Título */}
           <div className="space-y-4">
-            <span className="inline-block px-3 py-1 rounded-md bg-emerald-100 text-emerald-800 text-xs font-bold">
-              {newsItem.category || 'Geral'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-cyan-400/30 bg-[#0C1E38] text-[#00D8FF] text-xs font-mono font-semibold uppercase tracking-wider">
+                <Radio className="h-3 w-3 text-emerald-400 animate-pulse" />
+                {newsItem.category || 'Geral'}
+              </span>
+              <span className="text-xs font-mono text-[#6482A6]">
+                {'//'} COBERTURA OFICIAL
+              </span>
+            </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-tight">
+            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl uppercase font-medium text-[#E6F4FF] leading-[1.05] tracking-tight">
               {newsItem.title}
             </h1>
 
-            {/* Metadados */}
-            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 py-3 border-y border-slate-100">
-              <span className="flex items-center gap-1.5 font-medium">
-                <Calendar size={14} className="text-emerald-600" />
+            {/* Metadados Técnicos */}
+            <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-[#6482A6] py-3 border-y border-dashed border-[#1A365D]">
+              <span className="flex items-center gap-1.5 font-medium text-slate-300">
+                <Calendar size={14} className="text-[#00D8FF]" />
                 {newsItem.publishedAt || 'Recente'}
               </span>
-              <span>•</span>
-              <span className="flex items-center gap-1.5 font-medium">
-                <User size={14} className="text-emerald-600" />
-                {newsItem.author || 'Equipe SEDUC-RO'}
+              <span className="text-[#1A365D]">•</span>
+              <span className="flex items-center gap-1.5 font-medium text-slate-300">
+                <User size={14} className="text-[#00D8FF]" />
+                {newsItem.author || 'Assessoria de Comunicação SEDUC-RO'}
               </span>
             </div>
           </div>
 
-          {/* Imagem de Capa */}
-          <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-200 h-72 sm:h-96 w-full bg-slate-900">
+          {/* Imagem de Capa com moldura técnica */}
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-[#1A365D] h-72 sm:h-96 md:h-[440px] w-full bg-[#020710]">
             <img
-              src={newsItem.coverImage || '/hero.jpg'}
+              src={newsItem.coverImage || FALLBACK_COVER}
               alt={newsItem.title}
               className="w-full h-full object-cover"
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#040B16]/60 via-transparent to-transparent pointer-events-none" />
           </div>
 
-          {/* Resumo destacado */}
+          {/* Resumo destacado (Lead) */}
           {newsItem.excerpt && (
-            <div className="p-5 rounded-2xl bg-emerald-50/80 border-l-4 border-emerald-600 text-emerald-950 font-medium text-base sm:text-lg italic leading-relaxed">
-              {newsItem.excerpt}
+            <div className="p-6 rounded-2xl bg-[#0C1E38] border-l-4 border-[#00D8FF] border-y border-r border-[#1A365D] text-[#E6F4FF] font-mono text-sm sm:text-base leading-relaxed">
+              &ldquo;{newsItem.excerpt}&rdquo;
             </div>
           )}
 
           {/* Conteúdo completo */}
-          <div className="prose prose-slate max-w-none text-slate-800 text-base sm:text-lg leading-relaxed whitespace-pre-line space-y-6">
+          <div className="text-slate-200 text-base sm:text-lg leading-relaxed whitespace-pre-line space-y-6 font-normal">
             {newsItem.content || newsItem.excerpt || 'Conteúdo em elaboração pela equipe pedagógica da SEDUC.'}
           </div>
 
-          {/* Tags */}
+          {/* Tags temáticas */}
           {newsItem.tags && newsItem.tags.length > 0 && (
-            <div className="pt-8 border-t border-slate-200 flex flex-wrap items-center gap-2">
-              <Tag size={15} className="text-slate-400" />
+            <div className="pt-8 border-t border-dashed border-[#1A365D] flex flex-wrap items-center gap-2">
+              <Tag size={15} className="text-[#00D8FF]" />
               {newsItem.tags.map((tag, idx) => (
                 <span
                   key={idx}
-                  className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg"
+                  className="px-3 py-1 bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-semibold rounded-lg"
                 >
                   #{tag}
                 </span>
