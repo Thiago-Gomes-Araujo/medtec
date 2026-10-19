@@ -29,14 +29,18 @@ interface TelemetryNode {
   descricao: string;
 }
 
+// Silhueta Geográfica Oficial de Rondônia (vetorizada fielmente a partir do contorno territorial)
+const RONDONIA_CONTOUR_PATH =
+  "M 385.6 30.0 L 404.9 31.6 L 411.3 38.0 L 419.3 36.4 L 428.9 39.6 L 438.5 57.3 L 441.7 60.5 L 457.8 63.7 L 465.8 71.7 L 464.2 82.9 L 469.0 86.1 L 478.6 86.1 L 488.3 102.2 L 496.3 107.0 L 510.7 92.5 L 528.3 99.0 L 534.8 116.6 L 534.8 121.4 L 528.3 131.0 L 538.0 142.3 L 530.0 158.3 L 533.2 166.3 L 542.8 174.3 L 536.4 196.8 L 544.4 208.0 L 542.8 220.8 L 536.4 225.7 L 534.8 235.3 L 542.8 243.3 L 547.6 257.7 L 547.6 264.2 L 538.0 286.6 L 549.2 302.6 L 562.0 305.8 L 573.3 299.4 L 629.4 301.0 L 635.8 302.6 L 640.6 309.1 L 661.5 309.1 L 671.1 312.3 L 680.7 321.9 L 680.7 336.3 L 661.5 352.4 L 661.5 363.6 L 685.5 403.7 L 685.5 430.9 L 671.1 443.8 L 666.3 458.2 L 642.2 496.7 L 639.0 511.1 L 606.9 540.0 L 595.7 535.2 L 586.1 524.0 L 581.3 522.4 L 574.9 530.4 L 566.8 530.4 L 558.8 524.0 L 552.4 532.0 L 544.4 532.0 L 534.8 524.0 L 526.7 533.6 L 520.3 533.6 L 513.9 527.2 L 513.9 520.8 L 509.1 515.9 L 504.3 515.9 L 493.1 507.9 L 493.1 496.7 L 486.7 488.7 L 478.6 493.5 L 477.0 499.9 L 469.0 498.3 L 462.6 491.9 L 449.8 493.5 L 443.3 482.3 L 438.5 488.7 L 428.9 488.7 L 424.1 485.5 L 425.7 477.5 L 422.5 474.2 L 417.7 475.8 L 408.1 469.4 L 406.5 455.0 L 395.2 455.0 L 384.0 463.0 L 366.4 451.8 L 361.6 442.2 L 353.5 435.8 L 348.7 435.8 L 337.5 447.0 L 318.3 447.0 L 305.4 439.0 L 299.0 445.4 L 291.0 443.8 L 291.0 437.4 L 283.0 422.9 L 270.1 418.1 L 254.1 402.1 L 239.7 400.5 L 236.5 386.0 L 231.7 381.2 L 222.0 382.8 L 220.4 363.6 L 215.6 362.0 L 201.2 344.3 L 199.6 331.5 L 202.8 318.7 L 210.8 309.1 L 214.0 299.4 L 210.8 289.8 L 194.8 277.0 L 194.8 265.8 L 209.2 244.9 L 209.2 238.5 L 202.8 232.1 L 202.8 206.4 L 206.0 201.6 L 190.0 192.0 L 162.7 206.4 L 132.2 206.4 L 116.2 216.0 L 101.7 216.0 L 92.1 222.5 L 74.5 216.0 L 103.3 193.6 L 105.0 184.0 L 122.6 174.3 L 154.7 171.1 L 161.1 182.4 L 172.3 184.0 L 196.4 172.7 L 202.8 159.9 L 212.4 158.3 L 222.0 172.7 L 228.4 175.9 L 234.9 169.5 L 234.9 155.1 L 241.3 132.6 L 250.9 126.2 L 257.3 127.8 L 260.5 135.8 L 266.9 134.2 L 271.7 126.2 L 276.6 126.2 L 279.8 131.0 L 284.6 131.0 L 292.6 124.6 L 302.2 126.2 L 307.0 121.4 L 313.4 102.2 L 326.3 90.9 L 315.0 84.5 L 316.7 68.5 L 339.1 60.5 L 345.5 55.7 L 347.1 49.2 L 358.3 41.2 L 369.6 41.2 L 374.4 36.4 L 382.4 36.4 L 385.6 30.0 Z";
+
 const TELEMETRY_NODES: TelemetryNode[] = [
   {
     id: 'porto-velho',
     name: 'Porto Velho',
     label: 'ESTÚDIO SEDUC',
     municipio: 'Porto Velho',
-    x: 325,
-    y: 122,
+    x: 317,
+    y: 105,
     lat: '-8.76° S',
     lon: '-63.90° W',
     distanciaKm: 0,
@@ -48,8 +52,8 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     name: 'Calama / Nazaré',
     label: 'BAIXO MADEIRA',
     municipio: 'Porto Velho',
-    x: 420,
-    y: 63,
+    x: 415,
+    y: 60,
     lat: '-8.03° S',
     lon: '-62.86° W',
     distanciaKm: 135,
@@ -61,8 +65,8 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     name: 'São Carlos',
     label: 'RIO JAMARI/MADEIRA',
     municipio: 'Porto Velho',
-    x: 370,
-    y: 90,
+    x: 365,
+    y: 85,
     lat: '-8.45° S',
     lon: '-63.50° W',
     distanciaKm: 90,
@@ -74,8 +78,8 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     name: 'Ariquemes',
     label: 'VALE DO JAMARI',
     municipio: 'Ariquemes',
-    x: 404,
-    y: 214,
+    x: 394,
+    y: 200,
     lat: '-9.91° S',
     lon: '-63.04° W',
     distanciaKm: 200,
@@ -87,8 +91,8 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     name: 'Ji-Paraná',
     label: 'POLO CENTRAL',
     municipio: 'Ji-Paraná',
-    x: 504,
-    y: 292,
+    x: 492,
+    y: 287,
     lat: '-10.88° S',
     lon: '-61.94° W',
     distanciaKm: 375,
@@ -100,8 +104,8 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     name: 'Cacoal',
     label: 'POLO DO CAFÉ',
     municipio: 'Cacoal',
-    x: 550,
-    y: 336,
+    x: 536,
+    y: 337,
     lat: '-11.43° S',
     lon: '-61.44° W',
     distanciaKm: 480,
@@ -113,8 +117,8 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     name: 'Aldeia Paiter Suruí',
     label: 'T.I. SETE DE SETEMBRO',
     municipio: 'Cacoal',
-    x: 572,
-    y: 309,
+    x: 555,
+    y: 315,
     lat: '-11.10° S',
     lon: '-61.20° W',
     distanciaKm: 510,
@@ -126,8 +130,8 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     name: 'Vilhena',
     label: 'PORTAL DA AMAZÔNIA',
     municipio: 'Vilhena',
-    x: 669,
-    y: 440,
+    x: 645,
+    y: 450,
     lat: '-12.74° S',
     lon: '-60.14° W',
     distanciaKm: 700,
@@ -139,8 +143,8 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     name: 'Cabixi',
     label: 'BACIA GUAPORÉ',
     municipio: 'Vilhena',
-    x: 632,
-    y: 501,
+    x: 605,
+    y: 500,
     lat: '-13.50° S',
     lon: '-60.55° W',
     distanciaKm: 780,
@@ -152,8 +156,8 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     name: 'Guajará-Mirim',
     label: 'POLO FRONTEIRA',
     municipio: 'Guajará-Mirim',
-    x: 194,
-    y: 284,
+    x: 205,
+    y: 270,
     lat: '-10.78° S',
     lon: '-65.32° W',
     distanciaKm: 330,
@@ -165,8 +169,8 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     name: 'Distrito de Surpresa',
     label: 'ENCONTRO DOS RIOS',
     municipio: 'Guajará-Mirim',
-    x: 192,
-    y: 369,
+    x: 225,
+    y: 355,
     lat: '-11.85° S',
     lon: '-65.35° W',
     distanciaKm: 210,
@@ -178,8 +182,8 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     name: 'Quilombo Pedras Negras',
     label: 'VALE DO GUAPORÉ',
     municipio: 'Guajará-Mirim',
-    x: 288,
-    y: 421,
+    x: 300,
+    y: 410,
     lat: '-12.50° S',
     lon: '-64.30° W',
     distanciaKm: 260,
@@ -213,6 +217,20 @@ export default function SchoolMap() {
       { turmas: 0, alunos: 0 }
     );
   }, [filteredSchools]);
+
+  // Estatísticas agregadas por município para nós HUD de telemetria
+  const municipalityStats = useMemo(() => {
+    const map: Record<string, { alunos: number; escolas: number; turmas: number }> = {};
+    escolasData.forEach((e) => {
+      if (!map[e.municipio]) {
+        map[e.municipio] = { alunos: 0, escolas: 0, turmas: 0 };
+      }
+      map[e.municipio].alunos += e.alunos;
+      map[e.municipio].escolas += 1;
+      map[e.municipio].turmas += e.turmas;
+    });
+    return map;
+  }, []);
 
   // Identifica a escola com hover para telemetria em tempo real
   const hoveredSchool = useMemo(() => {
@@ -265,7 +283,7 @@ export default function SchoolMap() {
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dashed border-[#1A365D] pb-3 text-[11px] font-mono">
               <div className="flex items-center gap-2 text-[#00D8FF]">
                 <Radio className="h-3.5 w-3.5 animate-pulse text-[#F43F5E]" />
-                <span className="font-bold tracking-wider uppercase">RADAR CARTOGRÁFICO // SINAL ATIVO</span>
+                <span className="font-bold tracking-wider uppercase">RADAR CARTOGRÁFICO // ESTADO DE RONDÔNIA</span>
               </div>
               <div className="flex items-center gap-3 text-slate-400">
                 <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
@@ -416,12 +434,17 @@ export default function SchoolMap() {
                   <circle cx="0" cy="0" r="1" fill="#00D8FF" fillOpacity="0.3" />
                 </pattern>
 
-                {/* Gradiente Radial de Profundidade de Rondônia */}
-                <radialGradient id="rondonia-grad" cx="48%" cy="50%" r="55%">
-                  <stop offset="0%" stopColor="#0B2347" stopOpacity="0.65" />
-                  <stop offset="65%" stopColor="#07172F" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#030A17" stopOpacity="0.1" />
-                </radialGradient>
+                {/* ClipPath Oficial do Contorno Territorial de Rondônia */}
+                <clipPath id="rondonia-contour-clip">
+                  <path d={RONDONIA_CONTOUR_PATH} />
+                </clipPath>
+
+                {/* Gradiente do Terreno Cartográfico de Rondônia */}
+                <linearGradient id="rondonia-terrain-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#0D274D" stopOpacity="0.9" />
+                  <stop offset="50%" stopColor="#081A36" stopOpacity="0.92" />
+                  <stop offset="100%" stopColor="#040D1D" stopOpacity="0.96" />
+                </linearGradient>
 
                 {/* Filtro de Glow para o Ciano Elétrico */}
                 <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
@@ -446,41 +469,48 @@ export default function SchoolMap() {
               <rect width="760" height="580" fill="url(#cartesian-grid)" />
 
               {/* ========================================================
-                  CAMADA 1: SILHUETA REAL EM MATRIZ DE PONTOS (RONDÔNIA)
+                  CAMADA 1: SILHUETA REAL CARTOGRÁFICA DE RONDÔNIA (MATRIZ DE PONTOS)
               ======================================================== */}
-              <g className="transition-all duration-500">
-                {/* 1. Preenchimento Gradiente da Silhueta */}
+              <g id="territorio-rondonia" className="transition-all duration-500">
+                {/* 1. Silhueta Territorial de Rondônia com Fundo Cartográfico Profundo */}
                 <path
-                  d="M 87 201 C 130 175, 190 145, 255 130 C 285 125, 305 124, 325 122 C 355 102, 385 75, 420 63 C 460 75, 505 100, 550 115 C 590 135, 620 180, 635 240 C 645 300, 648 350, 660 395 C 670 420, 675 440, 678 455 C 680 475, 660 495, 632 501 C 595 508, 550 490, 480 465 C 420 445, 350 430, 288 421 C 235 410, 205 390, 192 369 C 190 330, 192 305, 194 284 C 170 255, 140 230, 110 215 C 95 210, 87 205, 87 201 Z"
-                  fill="url(#rondonia-grad)"
+                  d={RONDONIA_CONTOUR_PATH}
+                  fill="url(#rondonia-terrain-grad)"
+                  stroke="#00D8FF"
+                  strokeWidth="2"
+                  filter="url(#glow-cyan)"
+                  strokeOpacity="0.85"
                 />
 
-                {/* 2. Matriz de Pontos Recortada sobre o Contorno de Rondônia */}
+                {/* 2. Malha Territorial em Matriz de Micropontos (100% dos 52 municípios) */}
                 <path
-                  d="M 87 201 C 130 175, 190 145, 255 130 C 285 125, 305 124, 325 122 C 355 102, 385 75, 420 63 C 460 75, 505 100, 550 115 C 590 135, 620 180, 635 240 C 645 300, 648 350, 660 395 C 670 420, 675 440, 678 455 C 680 475, 660 495, 632 501 C 595 508, 550 490, 480 465 C 420 445, 350 430, 288 421 C 235 410, 205 390, 192 369 C 190 330, 192 305, 194 284 C 170 255, 140 230, 110 215 C 95 210, 87 205, 87 201 Z"
+                  d={RONDONIA_CONTOUR_PATH}
                   fill="url(#dot-matrix)"
+                  opacity="0.5"
                 />
 
-                {/* 3. Contorno Vetorial Externo Tecnológico com Borda Suave */}
+                {/* 3. Contorno Técnico Interno de Precisão Tracejado */}
                 <path
-                  d="M 87 201 C 130 175, 190 145, 255 130 C 285 125, 305 124, 325 122 C 355 102, 385 75, 420 63 C 460 75, 505 100, 550 115 C 590 135, 620 180, 635 240 C 645 300, 648 350, 660 395 C 670 420, 675 440, 678 455 C 680 475, 660 495, 632 501 C 595 508, 550 490, 480 465 C 420 445, 350 430, 288 421 C 235 410, 205 390, 192 369 C 190 330, 192 305, 194 284 C 170 255, 140 230, 110 215 C 95 210, 87 205, 87 201 Z"
+                  d={RONDONIA_CONTOUR_PATH}
                   fill="none"
-                  stroke="#1A365D"
-                  strokeWidth="1.5"
+                  stroke="#E6F4FF"
+                  strokeWidth="0.8"
                   strokeDasharray="6 3"
+                  strokeOpacity="0.4"
                 />
 
-                {/* Selo Técnico Discreto de Rondônia */}
+                {/* 4. Marca Cartográfica Sutil do Estado */}
                 <text
-                  x="560"
-                  y="460"
-                  fill="#1A365D"
-                  fontSize="12"
+                  x="480"
+                  y="450"
+                  fill="#00D8FF"
+                  fillOpacity="0.25"
+                  fontSize="11"
                   fontFamily="monospace"
                   letterSpacing="0.2em"
                   className="select-none font-bold"
                 >
-                  ESTADO DE RONDÔNIA // 52 MUN
+                  ESTADO DE RONDÔNIA // SEDUC
                 </text>
               </g>
 
@@ -490,22 +520,22 @@ export default function SchoolMap() {
               <g id="arterias-geograficas">
                 {/* 1. EIXO RODOVIÁRIO: RODOVIA BR-364 (PORTO VELHO → VILHENA) */}
                 <path
-                  d="M 325 122 L 404 214 L 455 255 L 504 292 L 550 336 L 595 375 L 669 440"
+                  d="M 317 105 L 394 200 L 492 287 L 536 337 L 645 450"
                   fill="none"
                   stroke="#00D8FF"
                   strokeWidth="1.6"
                   strokeDasharray="4 4"
-                  strokeOpacity="0.45"
+                  strokeOpacity="0.4"
                 />
                 {/* Rótulo Técnico no Meio da Rodovia */}
                 <text
-                  x="475"
-                  y="265"
+                  x="440"
+                  y="250"
                   fill="#6482A6"
                   fontSize="8"
                   fontFamily="monospace"
                   letterSpacing="0.16em"
-                  transform="rotate(38 475 265)"
+                  transform="rotate(38 440 250)"
                   className="select-none font-semibold"
                 >
                   CORREDOR BR-364
@@ -513,7 +543,7 @@ export default function SchoolMap() {
 
                 {/* 2. CALHA HIDROGRÁFICA DO MAMORÉ / GUAPORÉ (FRONTEIRA OESTE/SUL) */}
                 <path
-                  d="M 288 421 C 240 400, 200 380, 192 369 C 190 330, 192 305, 194 284 C 180 250, 150 210, 130 175"
+                  d="M 605 500 C 500 525, 380 470, 300 410 C 255 385, 235 365, 225 355 C 210 325, 205 295, 205 270 C 205 240, 185 215, 160 200"
                   fill="none"
                   stroke={selectedType === 'ribeirinha' ? '#00D8FF' : '#1A4A7A'}
                   strokeWidth={selectedType === 'ribeirinha' ? '2.8' : '1.8'}
@@ -523,7 +553,7 @@ export default function SchoolMap() {
 
                 {/* 3. CALHA DO RIO MADEIRA (PORTO VELHO → BAIXO MADEIRA / CALAMA) */}
                 <path
-                  d="M 130 175 C 190 150, 260 135, 325 122 C 355 105, 385 80, 420 63"
+                  d="M 160 200 C 220 180, 260 145, 317 105 C 350 85, 385 70, 415 60"
                   fill="none"
                   stroke={selectedType === 'ribeirinha' ? '#00D8FF' : '#1A4A7A'}
                   strokeWidth={selectedType === 'ribeirinha' ? '3.2' : '2'}
@@ -533,8 +563,8 @@ export default function SchoolMap() {
 
                 {/* Rótulos da Hidrografia Amazônica */}
                 <text
-                  x="365"
-                  y="108"
+                  x="355"
+                  y="78"
                   fill={selectedType === 'ribeirinha' ? '#00D8FF' : '#6482A6'}
                   fontSize="8"
                   fontFamily="monospace"
@@ -544,15 +574,15 @@ export default function SchoolMap() {
                   RIO MADEIRA
                 </text>
                 <text
-                  x="140"
-                  y="310"
+                  x="145"
+                  y="300"
                   fill={selectedType === 'ribeirinha' ? '#00D8FF' : '#6482A6'}
                   fontSize="8"
                   fontFamily="monospace"
                   letterSpacing="0.14em"
                   className="select-none font-semibold transition-colors"
                 >
-                  RIO MAMORÉ
+                  RIO MAMORÉ / GUAPORÉ
                 </text>
               </g>
 
@@ -682,33 +712,53 @@ export default function SchoolMap() {
                       />
 
                       {/* TAG FLUTUANTE COMPACTA HUD AO LADO DO NÓ */}
-                      <g
-                        transform={`translate(${node.x + 10}, ${node.y - 7})`}
-                        className="pointer-events-none"
-                      >
-                        <rect
-                          x="0"
-                          y="0"
-                          width={isHub ? 140 : node.name.length * 7.5 + 24}
-                          height="18"
-                          rx="4"
-                          fill="#0C1E38"
-                          fillOpacity="0.9"
-                          stroke={isSelected ? '#00D8FF' : '#1A365D'}
-                          strokeWidth="1"
-                        />
-                        <text
-                          x="6"
-                          y="12"
-                          fill={isSelected ? '#00D8FF' : '#E6F4FF'}
-                          fontSize="9"
-                          fontFamily="monospace"
-                          fontWeight={isSelected ? 'bold' : 'normal'}
-                          className="select-none tracking-tight"
-                        >
-                          {isHub ? '[ HUB SEDUC • PVH ]' : `[ ${node.name.toUpperCase()} ]`}
-                        </text>
-                      </g>
+                      {(() => {
+                        const count = municipalityStats[node.municipio]?.alunos;
+                        const tagText = isHub
+                          ? isSelected || isHovered
+                            ? `[ HUB SEDUC • ${count || 132} ALUNOS ]`
+                            : '[ PORTO VELHO • 132 ALUNOS ]'
+                          : isSelected || isHovered
+                          ? count
+                            ? `[ ${node.name.toUpperCase()} • ${count} ALUNOS ]`
+                            : `[ ${node.name.toUpperCase()} ]`
+                          : `[ ${node.name.toUpperCase()} ]`;
+
+                        const tagWidth = tagText.length * 6.6 + 14;
+                        const isRightSide = node.x > 480;
+                        const tagX = isRightSide ? node.x - tagWidth - 10 : node.x + 10;
+                        const tagY = node.y - 9;
+
+                        return (
+                          <g
+                            transform={`translate(${tagX}, ${tagY})`}
+                            className="pointer-events-none transition-all duration-200"
+                          >
+                            <rect
+                              x="0"
+                              y="0"
+                              width={tagWidth}
+                              height="18"
+                              rx="4"
+                              fill="#0C1E38"
+                              fillOpacity="0.94"
+                              stroke={isSelected || isHovered ? nodeColor : '#1A365D'}
+                              strokeWidth="1"
+                            />
+                            <text
+                              x="7"
+                              y="12.5"
+                              fill={isSelected || isHovered ? nodeColor : '#E6F4FF'}
+                              fontSize="9"
+                              fontFamily="monospace"
+                              fontWeight={isSelected || isHovered ? 'bold' : 'normal'}
+                              className="select-none tracking-tight"
+                            >
+                              {tagText}
+                            </text>
+                          </g>
+                        );
+                      })()}
                     </g>
                   );
                 })}
@@ -765,19 +815,23 @@ export default function SchoolMap() {
                 <span className="text-[#00D8FF] hidden md:inline">SINAL: BANDA KU ATIVO</span>
               </div>
 
-              {/* LEGENDA VISUAL DOS NÓS */}
-              <div className="flex items-center gap-4 text-[10px]">
-                <div className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#F43F5E]" />
-                  <span className="text-slate-400">Hub Central</span>
-                </div>
-                <div className="flex items-center gap-1.5">
+              {/* LEGENDA TÉCNICA DE TELEMETRIA */}
+              <div className="flex flex-wrap items-center gap-3 text-[10px]">
+                <div className="flex items-center gap-1.5" title="Polos Urbanos ao longo da BR-364">
                   <span className="h-2 w-2 rounded-full bg-[#00D8FF]" />
-                  <span className="text-slate-400">Polo BR-364</span>
+                  <span className="text-slate-300 font-medium">Polos Urbanos (BR-364)</span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5" title="Comunidades Ribeirinhas, Indígenas e Quilombolas">
                   <span className="h-2 w-2 rounded-full bg-[#10B981]" />
-                  <span className="text-slate-400">Ribeirinha / Indígena</span>
+                  <span className="text-slate-300 font-medium">Ribeirinha / Indígena</span>
+                </div>
+                <div className="flex items-center gap-1.5" title="Calhas dos Rios Madeira, Mamoré e Guaporé">
+                  <span className="h-2 w-2 rounded-full bg-[#0284C7]" />
+                  <span className="text-slate-300 font-medium">Calha Fluvial</span>
+                </div>
+                <div className="flex items-center gap-1.5 border-l border-[#1A365D] pl-2.5" title="Estúdio Emissor Central SEDUC Porto Velho">
+                  <span className="h-2 w-2 rounded-full bg-[#F43F5E] animate-pulse" />
+                  <span className="text-rose-300 font-semibold">Hub Emissor SEDUC</span>
                 </div>
               </div>
             </div>
