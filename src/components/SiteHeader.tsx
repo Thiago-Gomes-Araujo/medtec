@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   GraduationCap, 
   Menu, 
@@ -59,6 +59,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
 
   // Aplica classe no documentElement conforme o tema atual
   useEffect(() => {
@@ -140,49 +141,67 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
     setDossieOpen(true);
   };
 
-  const handleNavClick = (to: string) => {
+  const handleNavClick = (to: string, e?: React.MouseEvent) => {
     setInicioDropdownOpen(false);
     setMobileMenuOpen(false);
 
-    if (to.startsWith('/#') && pathname === '/') {
+    if (to.startsWith('/#')) {
       const id = to.replace('/#', '');
-      const element = document.getElementById(id);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
+      if (pathname === '/') {
+        if (e) e.preventDefault();
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        } else if (id === 'inicio') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } else {
+        router.push(to);
       }
+    } else if (to === '/') {
+      if (pathname === '/') {
+        if (e) e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        router.push('/');
+      }
+    } else {
+      router.push(to);
     }
   };
 
-  // 4 Atalhos rápidos da coluna direita do Popover Início
+  // Atalhos rápidos do Popover Início direcionando para as respectivas páginas e seções
   const megaMenuShortcuts = [
     {
-      title: 'Console & Transmissão',
-      desc: 'Monitoramento ao vivo dos estúdios centrais.',
+      title: 'Página Inicial',
+      desc: 'Visão geral da plataforma e telemetria de Rondônia.',
       icon: Radio,
-      target: '/#inicio',
-      action: () => handleNavClick('/#inicio')
-    },
-    {
-      title: 'Pilares Pedagógicos',
-      desc: 'Por que o MEDTEC é referência nacional.',
-      icon: Building2,
-      target: '/#tecnologia',
-      action: () => handleNavClick('/#tecnologia')
+      target: '/',
     },
     {
       title: 'Professores & Mediadores',
-      desc: 'Quem faz a educação chegar na ponta.',
+      desc: 'Docentes ministrantes e mediadores presenciais nas salas.',
       icon: Users,
-      target: '/#como-funciona',
-      action: () => handleNavClick('/#como-funciona')
+      target: '/professores',
     },
     {
-      title: 'Diretrizes & Legislação',
-      desc: 'Lei Estadual 3.846/2016 e Portaria 928/2025.',
-      icon: ScrollText,
-      target: '#dossie-legal',
-      action: () => handleOpenDossie(3) // Abre diretamente na aba 04 (Amparo Legal)
-    }
+      title: 'Alunos que Inspiram',
+      desc: 'Histórias de sucesso, olimpíadas e futuro dos alunos.',
+      icon: GraduationCap,
+      target: '/alunos',
+    },
+    {
+      title: 'Pilares & Metodologia',
+      desc: 'Como funciona a dinâmica do MEDTEC e matriz curricular.',
+      icon: Building2,
+      target: '/#tecnologia',
+    },
+    {
+      title: 'Transmissões Ao Vivo',
+      desc: 'Aulas ao vivo, estúdios centrais e redes oficiais.',
+      icon: Satellite,
+      target: '/ao-vivo',
+    },
   ];
 
   // Links da Pílula Unificada Central (Zona 2)
@@ -239,34 +258,45 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
               {/* ITEM 1: INÍCIO COM MEGA-MENU POPOVER */}
               <div 
                 ref={dropdownRef} 
-                className="relative"
+                className="relative flex items-center"
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
               >
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (pathname === '/') {
-                      handleNavClick('/#inicio');
-                    } else {
-                      setInicioDropdownOpen(!inicioDropdownOpen);
-                    }
-                  }}
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide transition-all cursor-pointer whitespace-nowrap ${
+                <div
+                  className={`inline-flex items-center rounded-full text-xs font-semibold tracking-wide transition-all ${
                     pathname === '/' || inicioDropdownOpen
                       ? 'bg-sky-500/15 text-[#05549D] border border-sky-400/40 dark:bg-cyan-400/15 dark:text-cyan-300 dark:shadow-[inset_0_0_10px_rgba(0,216,255,0.2)] dark:border-cyan-400/30'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white border border-transparent'
                   }`}
-                  aria-expanded={inicioDropdownOpen}
-                  aria-haspopup="true"
                 >
-                  <span>Início</span>
-                  <ChevronDown 
-                    className={`h-3 w-3 transition-transform duration-200 ${
-                      inicioDropdownOpen ? 'rotate-180 text-sky-600 dark:text-cyan-300' : 'text-slate-400'
-                    }`} 
-                  />
-                </button>
+                  <Link
+                    href="/"
+                    onClick={(e) => {
+                      handleNavClick('/', e);
+                    }}
+                    className="pl-2.5 pr-1 py-1 inline-flex items-center cursor-pointer whitespace-nowrap"
+                  >
+                    <span>Início</span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setInicioDropdownOpen(!inicioDropdownOpen);
+                    }}
+                    className="pr-2 py-1 pl-0.5 cursor-pointer flex items-center text-slate-400 hover:text-sky-600 dark:hover:text-cyan-300 transition-colors"
+                    aria-expanded={inicioDropdownOpen}
+                    aria-label="Abrir menu de início"
+                  >
+                    <ChevronDown 
+                      className={`h-3 w-3 transition-transform duration-200 ${
+                        inicioDropdownOpen ? 'rotate-180 text-sky-600 dark:text-cyan-300' : 'text-slate-400'
+                      }`} 
+                    />
+                  </button>
+                </div>
 
                 {/* ================= MEGA-MENU FLUTUANTE (ESTILO STRIPE / VERCEL) ================= */}
                 <AnimatePresence>
@@ -306,13 +336,21 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                               </div>
                             </div>
 
-                            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-cyan-500/20">
-                              <button
-                                onClick={() => handleOpenDossie(1)}
-                                className="group flex items-center justify-between w-full text-[11px] font-semibold text-[#05549D] dark:text-cyan-300 hover:text-sky-700 dark:hover:text-white transition-colors cursor-pointer"
+                            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-cyan-500/20 flex items-center justify-between gap-2">
+                              <Link
+                                href="/ao-vivo"
+                                onClick={(e) => handleNavClick('/ao-vivo', e)}
+                                className="group flex items-center gap-1.5 text-[11px] font-semibold text-[#05549D] dark:text-cyan-300 hover:text-sky-700 dark:hover:text-white transition-colors cursor-pointer"
                               >
-                                <span>Verificar Telemetria</span>
-                                <span className="text-sky-600 dark:text-cyan-400 group-hover:translate-x-1 transition-transform">→</span>
+                                <span>Ver Transmissão Ao Vivo</span>
+                                <span className="text-sky-600 dark:text-cyan-400 group-hover:translate-x-0.5 transition-transform">→</span>
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDossie(1)}
+                                className="text-[10px] font-mono text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-cyan-200 cursor-pointer"
+                              >
+                                [Dossiê]
                               </button>
                             </div>
                           </div>
@@ -321,19 +359,19 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                           <div className="col-span-7 flex flex-col justify-between">
                             <div className="mb-2 flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
                               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#05549D] dark:text-cyan-300/80">
-                                {'// ATALHOS RÁPIDOS DA HOME'}
+                                {'// PÁGINAS & SEÇÕES DO MEDTEC'}
                               </span>
-                              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">4 seções</span>
+                              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">{megaMenuShortcuts.length} itens</span>
                             </div>
 
                             <div className="grid gap-1.5">
                               {megaMenuShortcuts.map((item) => {
                                 const Icon = item.icon;
                                 return (
-                                  <button
+                                  <Link
                                     key={item.title}
-                                    type="button"
-                                    onClick={item.action}
+                                    href={item.target}
+                                    onClick={(e) => handleNavClick(item.target, e)}
                                     className="group flex items-start gap-3 rounded-xl p-2 text-left transition-all hover:bg-slate-100 dark:hover:bg-white/5 hover:border-sky-300 dark:hover:border-cyan-400/30 border border-transparent cursor-pointer w-full"
                                   >
                                     <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-cyan-400/20 bg-slate-100 dark:bg-cyan-400/10 text-sky-600 dark:text-[#00D8FF] transition-transform group-hover:scale-105 group-hover:border-sky-400 dark:group-hover:border-cyan-400/50">
@@ -347,7 +385,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                                         {item.desc}
                                       </p>
                                     </div>
-                                  </button>
+                                  </Link>
                                 );
                               })}
                             </div>
@@ -381,8 +419,8 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
 
               {/* LINK AO VIVO (PULSANTE) */}
               <Link
-                href="/#ao-vivo"
-                onClick={() => handleNavClick('/#ao-vivo')}
+                href="/ao-vivo"
+                onClick={(e) => handleNavClick('/ao-vivo', e)}
                 className={`group inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap ml-0.5 ${
                   pathname === '/ao-vivo' || pathname === '/redes'
                     ? 'border border-rose-500/50 bg-rose-500/20 text-rose-600 dark:text-rose-200 shadow-[0_0_12px_rgba(244,63,94,0.35)]'
@@ -448,8 +486,8 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             </button>
 
             <Link
-              href="/#ao-vivo"
-              onClick={() => handleNavClick('/#ao-vivo')}
+              href="/ao-vivo"
+              onClick={(e) => handleNavClick('/ao-vivo', e)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] font-bold text-rose-300"
             >
               <span className="relative flex h-1.5 w-1.5">
@@ -477,16 +515,16 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             {/* Submenu da Página Inicial */}
             <div className="rounded-2xl border border-cyan-500/20 bg-cyan-950/20 p-3 space-y-1">
               <p className="px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-cyan-300 font-bold">
-                {'// Início & Seções Estruturantes'}
+                {'// Início & Páginas Estruturantes'}
               </p>
               {megaMenuShortcuts.map((sec) => {
                 const Icon = sec.icon;
                 return (
-                  <button
+                  <Link
                     key={sec.title}
-                    type="button"
-                    onClick={() => {
-                      sec.action();
+                    href={sec.target}
+                    onClick={(e) => {
+                      handleNavClick(sec.target, e);
                       setMobileMenuOpen(false);
                     }}
                     className="flex w-full items-center gap-3 rounded-xl p-2 text-xs font-medium text-slate-200 hover:bg-white/5 transition-colors text-left"
@@ -498,7 +536,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                       <p className="font-semibold text-white">{sec.title}</p>
                       <p className="text-[10px] text-slate-400 truncate">{sec.desc}</p>
                     </div>
-                  </button>
+                  </Link>
                 );
               })}
             </div>

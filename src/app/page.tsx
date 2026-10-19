@@ -31,7 +31,7 @@ export default function HomePage() {
 
       <main className="flex-1">
         {/* ================= HERO SECTION: AMAZÔNIA AEROESPACIAL / TELEMETRIA ================= */}
-        <section id="inicio" className="relative overflow-hidden bg-gradient-to-b from-[#040D1A] via-[#07162C] to-[#0b1e38] text-white pt-6 pb-24 lg:pt-12 lg:pb-32 scroll-mt-20">
+        <section id="inicio" className="relative overflow-hidden bg-gradient-to-r from-[#05549D] via-[#072F5E] to-[#0A3D73] dark:from-[#040D1A] dark:via-[#07162C] dark:to-[#040D1A] text-white pt-6 pb-24 lg:pt-12 lg:pb-32 scroll-mt-20">
           
           {/* Fundo Fotográfico com Overlay e Blend Mode */}
           <img

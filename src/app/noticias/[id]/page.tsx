@@ -37,17 +37,18 @@ export default async function NoticiaDetalhePage({ params }: Props) {
       <SiteHeader />
 
       {/* Breadcrumb Técnico */}
-      <div className="bg-slate-100 dark:bg-[#061224] py-3.5 border-b border-slate-200 dark:border-[#1A365D]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-[#6482A6]">
-          <Link href="/" className="hover:text-[#05549D] dark:hover:text-[#00D8FF] transition-colors">
+      <div className="relative overflow-hidden bg-gradient-to-r from-[#05549D] via-[#072F5E] to-[#0A3D73] dark:from-[#040D1A] dark:via-[#07162C] dark:to-[#040D1A] py-3.5 border-b border-sky-400/30 dark:border-[#1A365D] text-white">
+        <div className="hero-grid absolute inset-0 opacity-30 pointer-events-none" />
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-2 text-xs font-mono text-sky-100 dark:text-slate-300">
+          <Link href="/" className="hover:text-white hover:underline transition-colors">
             Início
           </Link>
-          <ChevronRight size={14} className="text-slate-400 dark:text-[#1A365D]" />
-          <Link href="/noticias" className="hover:text-[#05549D] dark:hover:text-[#00D8FF] transition-colors">
+          <ChevronRight size={14} className="text-cyan-300" />
+          <Link href="/noticias" className="hover:text-white hover:underline transition-colors">
             Notícias
           </Link>
-          <ChevronRight size={14} className="text-slate-400 dark:text-[#1A365D]" />
-          <span className="text-[#05549D] dark:text-[#00D8FF] font-semibold truncate max-w-sm">
+          <ChevronRight size={14} className="text-cyan-300" />
+          <span className="text-cyan-200 font-semibold truncate max-w-sm">
             {newsItem.title}
           </span>
         </div>

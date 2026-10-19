@@ -272,28 +272,10 @@ export default function FaqCentralSection() {
       {/* Glow Sutil de Horizonte Ciano */}
       <div className="pointer-events-none absolute -top-24 left-1/2 h-80 w-3/4 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[130px]" />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-24 space-y-12">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-10">
 
         {/* ========================================================
-            1. HEADER EDITORIAL UNIFICADO (ZERO FUNDO BRANCO)
-        ======================================================== */}
-        <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-sky-300 dark:border-cyan-400/25 bg-white/80 dark:bg-[#0C1E38]/80 px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.24em] text-[#05549D] dark:text-[#00D8FF] shadow-[0_0_16px_rgba(0,216,255,0.15)]">
-            <Radio className="h-3 w-3 text-emerald-500 dark:text-emerald-400 animate-pulse" />
-            <span>{'//'} BASE DE CONHECIMENTO & SUPORTE TÉCNICO • SEDUC-RO</span>
-          </div>
-
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-[51px] uppercase font-medium leading-[0.9] tracking-tight text-slate-900 dark:text-[#E6F4FF]">
-            Central de Dúvidas Frequentes.
-          </h1>
-
-          <p className="max-w-3xl text-base sm:text-[22px] font-normal leading-relaxed text-slate-600 dark:text-[#E6F4FF]/80">
-            Respostas rápidas sobre o funcionamento das aulas ao vivo via satélite, atuação dos professores mediadores, certificação do Ensino Médio e suporte técnico para as escolas conectadas nos 52 municípios de Rondônia.
-          </p>
-        </div>
-
-        {/* ========================================================
-            1.1 BARRA DE BUSCA "COMMAND PALETTE" ESTILO RAYCAST / ORYZO
+            BARRA DE BUSCA "COMMAND PALETTE" ESTILO RAYCAST / ORYZO
         ======================================================== */}
         <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#071326] p-2 sm:p-3 shadow-sm dark:shadow-2xl space-y-3">
           <div className="relative flex items-center rounded-lg border-b-2 border-slate-300 dark:border-[#E6F4FF]/30 bg-slate-50 dark:bg-[#0C1E38]/60 px-4 sm:px-6 py-3.5 transition-colors focus-within:border-[#05549D] dark:focus-within:border-[#00D8FF]">

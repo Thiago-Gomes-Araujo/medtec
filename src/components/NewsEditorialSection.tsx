@@ -204,33 +204,12 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
       {/* Glow Sutil de Horizonte Ciano */}
       <div className="pointer-events-none absolute -top-24 left-1/2 h-80 w-3/4 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[120px]" />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-24 space-y-8">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-8">
 
         {/* ========================================================
-            1. HEADER ÚNICO IMERSIVO (DARKROOM EDITORIAL)
+            BARRA DE FERRAMENTAS TÉCNICA (FILTROS + BUSCA + MODO DE EXIBIÇÃO)
         ======================================================== */}
-        <div className="space-y-4">
-          {/* Tag Técnica Monoespaçada */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-sky-300 dark:border-cyan-400/25 bg-white/80 dark:bg-[#0C1E38]/80 px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.24em] text-[#05549D] dark:text-[#00D8FF] shadow-[0_0_16px_rgba(0,216,255,0.15)]">
-            <Radio className="h-3 w-3 text-emerald-500 dark:text-emerald-400 animate-pulse" />
-            <span>{'//'} COBERTURA & JORNALISMO OFICIAL • SEDUC-RO</span>
-          </div>
-
-          {/* Título Display Escultural (Estilo Oryzo / Editorial) */}
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-[51px] uppercase font-medium leading-[0.9] tracking-tight text-slate-900 dark:text-[#E6F4FF]">
-            Notícias e Coberturas do MEDTEC.
-          </h1>
-
-          {/* Subtítulo Conversacional */}
-          <p className="max-w-3xl text-base sm:text-[21px] font-normal leading-relaxed text-slate-600 dark:text-[#E6F4FF]/80">
-            Acompanhe as ações pedagógicas síncronas, entregas de infraestrutura de satélite e conectividade nos 52 municípios de Rondônia e as histórias reais dos nossos estudantes e professores.
-          </p>
-        </div>
-
-        {/* ========================================================
-            2. BARRA DE FERRAMENTAS TÉCNICA (FILTROS + BUSCA + MODO DE EXIBIÇÃO)
-        ======================================================== */}
-        <div className="border-y border-dashed border-slate-200 dark:border-[#1A365D] py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
           {/* Esquerda: Filtros de Categoria com Contador */}
           <div className="flex flex-wrap items-center gap-2">
