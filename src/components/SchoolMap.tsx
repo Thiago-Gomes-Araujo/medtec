@@ -847,42 +847,42 @@ export default function SchoolMap() {
           {/* ================= 1. PAINEL DE KPIS DINÂMICOS (3 MÓDULOS) ================= */}
           <div className="grid grid-cols-3 gap-3">
             {/* KPI 1: Escolas */}
-            <div className="rounded-xl border border-[#1A365D] bg-[#0C1E38] p-3.5 sm:p-4 transition-all hover:border-[#00D8FF]/40">
-              <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-[#6482A6]">
+            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-3.5 sm:p-4 transition-all hover:border-slate-300 dark:hover:border-[#00D8FF]/40 shadow-sm dark:shadow-none">
+              <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-slate-500 dark:text-[#6482A6]">
                 Escolas Conectadas
               </span>
-              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-[0.9] text-[#E6F4FF]">
+              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-[0.9] text-slate-900 dark:text-[#E6F4FF]">
                 {filteredSchools.length}
               </p>
-              <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-emerald-400">
+              <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-3 w-3" />
                 <span>100% ativas</span>
               </div>
             </div>
 
             {/* KPI 2: Turmas */}
-            <div className="rounded-xl border border-[#1A365D] bg-[#0C1E38] p-3.5 sm:p-4 transition-all hover:border-[#00D8FF]/40">
-              <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-[#6482A6]">
+            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-3.5 sm:p-4 transition-all hover:border-slate-300 dark:hover:border-[#00D8FF]/40 shadow-sm dark:shadow-none">
+              <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-slate-500 dark:text-[#6482A6]">
                 Turmas no Ar
               </span>
-              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-[0.9] text-[#E6F4FF]">
+              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-[0.9] text-slate-900 dark:text-[#E6F4FF]">
                 {stats.turmas}
               </p>
-              <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-cyan-400">
+              <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-cyan-700 dark:text-cyan-400">
                 <Signal className="h-3 w-3" />
                 <span>Síncronas</span>
               </div>
             </div>
 
             {/* KPI 3: Estudantes */}
-            <div className="rounded-xl border border-[#1A365D] bg-[#0C1E38] p-3.5 sm:p-4 transition-all hover:border-[#00D8FF]/40">
-              <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-[#6482A6]">
+            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-3.5 sm:p-4 transition-all hover:border-slate-300 dark:hover:border-[#00D8FF]/40 shadow-sm dark:shadow-none">
+              <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-slate-500 dark:text-[#6482A6]">
                 Alunos Atendidos
               </span>
-              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-[0.9] text-[#E6F4FF]">
+              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-[0.9] text-slate-900 dark:text-[#E6F4FF]">
                 {stats.alunos}
               </p>
-              <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-sky-400">
+              <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-sky-700 dark:text-sky-400">
                 <Users className="h-3 w-3" />
                 <span>Matriculados</span>
               </div>
@@ -892,10 +892,10 @@ export default function SchoolMap() {
           {/* ================= 2. CARDS DE UNIDADES ESCOLARES (HOVER & CLICK SYNC) ================= */}
           <div className="flex-1">
             <div className="mb-2 flex items-center justify-between px-1">
-              <p className="text-xs font-mono uppercase tracking-wider text-[#6482A6]">
+              <p className="text-xs font-mono uppercase tracking-wider text-slate-600 dark:text-[#6482A6]">
                 UNIDADES ESCOLARES // {selectedCity.toUpperCase()} ({filteredSchools.length})
               </p>
-              <span className="text-[10px] font-mono text-slate-500">
+              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
                 Passe o mouse para ativar o feixe no mapa
               </span>
             </div>
@@ -903,12 +903,12 @@ export default function SchoolMap() {
             {/* Lista com Barra de Rolagem Personalizada */}
             <div className="max-h-[580px] space-y-3 overflow-y-auto pr-1">
               {filteredSchools.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-[#1A365D] bg-[#0C1E38]/50 p-10 text-center text-sm font-mono text-slate-400">
-                  <Satellite className="mx-auto h-8 w-8 text-[#1A365D] mb-2" />
+                <div className="rounded-xl border border-dashed border-slate-300 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38]/50 p-10 text-center text-sm font-mono text-slate-500 dark:text-slate-400 shadow-sm">
+                  <Satellite className="mx-auto h-8 w-8 text-slate-400 dark:text-[#1A365D] mb-2" />
                   Nenhuma unidade escolar encontrada para esta combinação de filtros.
                   <button
                     onClick={() => { setSelectedCity('Todos'); setSelectedType('todas'); }}
-                    className="mt-3 block mx-auto text-xs text-[#00D8FF] hover:underline"
+                    className="mt-3 block mx-auto text-xs text-[#05549D] dark:text-[#00D8FF] hover:underline cursor-pointer"
                   >
                     Restaurar visualização completa
                   </button>
@@ -918,10 +918,10 @@ export default function SchoolMap() {
                   const isHovered = hoveredSchoolId === escola.id;
 
                   // Indicador de cor da modalidade
-                  let modalidadeBadge = 'border-cyan-500/30 bg-cyan-950/40 text-cyan-300';
-                  if (escola.tipo === 'ribeirinha') modalidadeBadge = 'border-emerald-500/30 bg-emerald-950/40 text-emerald-300';
-                  if (escola.tipo === 'indígena') modalidadeBadge = 'border-teal-500/30 bg-teal-950/40 text-teal-300';
-                  if (escola.tipo === 'rural') modalidadeBadge = 'border-amber-500/30 bg-amber-950/40 text-amber-300';
+                  let modalidadeBadge = 'border-cyan-500/30 bg-cyan-50 text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-300';
+                  if (escola.tipo === 'ribeirinha') modalidadeBadge = 'border-emerald-500/30 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300';
+                  if (escola.tipo === 'indígena') modalidadeBadge = 'border-teal-500/30 bg-teal-50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300';
+                  if (escola.tipo === 'rural') modalidadeBadge = 'border-amber-500/30 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300';
 
                   return (
                     <motion.div
@@ -934,10 +934,10 @@ export default function SchoolMap() {
                       onMouseEnter={() => setHoveredSchoolId(escola.id)}
                       onMouseLeave={() => setHoveredSchoolId(null)}
                       onClick={() => setSelectedCity(escola.municipio)}
-                      className={`group relative rounded-[12px] border p-4 sm:p-5 transition-all cursor-pointer ${
+                      className={`group relative rounded-[12px] border p-4 sm:p-5 transition-all cursor-pointer shadow-sm dark:shadow-none ${
                         isHovered
-                          ? 'border-[#00D8FF] bg-[#0F2647] shadow-[0_0_20px_rgba(0,216,255,0.18)] translate-x-1'
-                          : 'border-[#1A365D] bg-[#0C1E38] hover:border-[#00D8FF]/70'
+                          ? 'border-[#00D8FF] bg-sky-50/50 dark:bg-[#0F2647] shadow-md dark:shadow-[0_0_20px_rgba(0,216,255,0.18)] translate-x-1'
+                          : 'border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] hover:border-sky-400 dark:hover:border-[#00D8FF]/70'
                       }`}
                     >
                       {/* Marcador Luminoso Lateral no Hover */}
@@ -950,16 +950,16 @@ export default function SchoolMap() {
                       {/* CABEÇALHO DO CARD DA ESCOLA */}
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
-                          <h3 className="font-mono text-sm uppercase font-semibold text-[#E6F4FF] leading-snug group-hover:text-[#00D8FF] transition-colors">
+                          <h3 className="font-mono text-sm uppercase font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug group-hover:text-sky-700 dark:group-hover:text-[#00D8FF] transition-colors">
                             {escola.nome}
                           </h3>
-                          <div className="mt-1 flex items-center gap-2 text-xs text-[#6482A6] font-mono">
-                            <MapPin className="h-3 w-3 text-cyan-400 shrink-0" />
+                          <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 dark:text-[#6482A6] font-mono">
+                            <MapPin className="h-3 w-3 text-cyan-600 dark:text-cyan-400 shrink-0" />
                             <span>{escola.municipio}</span>
                             {escola.comunidade && (
                               <>
-                                <span className="text-[#1A365D]">•</span>
-                                <span className="text-slate-400 truncate">{escola.comunidade}</span>
+                                <span className="text-slate-300 dark:text-[#1A365D]">•</span>
+                                <span className="text-slate-500 dark:text-slate-400 truncate">{escola.comunidade}</span>
                               </>
                             )}
                           </div>
@@ -970,41 +970,41 @@ export default function SchoolMap() {
                           <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}>
                             {escola.tipo}
                           </span>
-                          <span className="rounded-full border border-[#1A365D] bg-[#061224] px-2 py-0.5 text-[10px] font-mono text-cyan-200">
+                          <span className="rounded-full border border-slate-200 dark:border-[#1A365D] bg-slate-100 dark:bg-[#061224] px-2 py-0.5 text-[10px] font-mono text-slate-700 dark:text-cyan-200">
                             {escola.conexao}
                           </span>
                         </div>
                       </div>
 
                       {/* DIVISÓRIA INTERNA 1PX DASHED */}
-                      <div className="my-3 border-t border-dashed border-[#1A365D]" />
+                      <div className="my-3 border-t border-dashed border-slate-200 dark:border-[#1A365D]" />
 
                       {/* LINHA DE MÉTRICAS (TURMAS, ALUNOS, SINAL) */}
-                      <div className="grid grid-cols-3 gap-2 text-xs font-mono text-slate-300">
+                      <div className="grid grid-cols-3 gap-2 text-xs font-mono text-slate-600 dark:text-slate-300">
                         <div className="flex items-center gap-1.5">
-                          <BookOpen className="h-3.5 w-3.5 text-[#00D8FF]" />
+                          <BookOpen className="h-3.5 w-3.5 text-[#05549D] dark:text-[#00D8FF]" />
                           <span>{escola.turmas} turmas</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Users className="h-3.5 w-3.5 text-sky-400" />
+                          <Users className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
                           <span>{escola.alunos} alunos</span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-emerald-400">
+                        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                           <Signal className="h-3.5 w-3.5" />
                           <span>{escola.statusSinal || 'Sinal 99.8%'}</span>
                         </div>
                       </div>
 
                       {/* RODAPÉ DO CARD: PROFESSOR MEDIADOR RESPONSÁVEL */}
-                      <div className="mt-3 flex items-center justify-between rounded-lg bg-[#061224]/80 px-3 py-2 border border-[#1A365D]/60 text-xs font-mono">
+                      <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 dark:bg-[#061224]/80 px-3 py-2 border border-slate-200 dark:border-[#1A365D]/60 text-xs font-mono">
                         <div className="flex items-center gap-2 truncate">
-                          <GraduationCap className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                          <span className="text-slate-300 truncate">
-                            <span className="text-slate-500">Mediador:</span> {escola.mediador}
+                          <GraduationCap className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span className="text-slate-700 dark:text-slate-300 truncate">
+                            <span className="text-slate-400 dark:text-slate-500">Mediador:</span> {escola.mediador}
                           </span>
                         </div>
                         {escola.distanciaKm && (
-                          <span className="text-[10px] text-[#6482A6] shrink-0 font-semibold">
+                          <span className="text-[10px] text-slate-500 dark:text-[#6482A6] shrink-0 font-semibold">
                             {escola.distanciaKm} km da SEDUC
                           </span>
                         )}

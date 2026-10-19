@@ -123,7 +123,7 @@ export default function AdminLoginPage() {
       {/* =========================================
           LADO DIREITO: FORMULÁRIO DO PAINEL GESTOR
           ========================================= */}
-      <div className="flex-1 flex flex-col justify-center items-center bg-white p-6 sm:p-10 md:p-14 min-h-screen">
+      <div className="flex-1 flex flex-col justify-center items-center bg-white dark:bg-[#081528] p-6 sm:p-10 md:p-14 min-h-screen text-slate-900 dark:text-[#E6F4FF] transition-colors duration-200">
         
         <div className="w-full max-w-[390px] mx-auto">
           
@@ -143,25 +143,25 @@ export default function AdminLoginPage() {
             </div>
 
             {/* Badge Acesso Administrativo */}
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[0.14em] text-[#005ca9] uppercase mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#005ca9]" />
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[0.14em] text-[#005ca9] dark:text-[#00D8FF] uppercase mb-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#005ca9] dark:bg-[#00D8FF]" />
               <span>Acesso Administrativo</span>
             </div>
 
             {/* Título */}
-            <h2 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white tracking-tight">
               Painel Gestor MEDTEC
             </h2>
 
             {/* Subtítulo */}
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
               Notícias, fotos e avisos em um só lugar.
             </p>
           </div>
 
           {/* Alerta de Erro */}
           {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-medium">
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/40 rounded-lg text-xs font-medium">
               {error}
             </div>
           )}
@@ -171,7 +171,7 @@ export default function AdminLoginPage() {
             
             {/* Campo Usuário */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 Usuário
               </label>
               <div className="relative">
@@ -181,7 +181,7 @@ export default function AdminLoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Digite seu usuário"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#005ca9]/20 focus:border-[#005ca9] transition-all bg-white"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-sm text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#005ca9]/20 dark:focus:ring-cyan-500/20 focus:border-[#005ca9] dark:focus:border-cyan-400 transition-all bg-white dark:bg-[#0C1E38]"
                 />
                 <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               </div>
@@ -190,13 +190,13 @@ export default function AdminLoginPage() {
             {/* Campo Senha */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-xs font-semibold text-slate-700">
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Senha de acesso
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowForgotModal(true)}
-                  className="text-xs font-medium text-[#005ca9] hover:underline cursor-pointer"
+                  className="text-xs font-medium text-[#005ca9] dark:text-[#00D8FF] hover:underline cursor-pointer"
                 >
                   Esqueceu a senha?
                 </button>
@@ -208,13 +208,13 @@ export default function AdminLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Digite sua senha"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#005ca9]/20 focus:border-[#005ca9] transition-all bg-white"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-sm text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#005ca9]/20 dark:focus:ring-cyan-500/20 focus:border-[#005ca9] dark:focus:border-cyan-400 transition-all bg-white dark:bg-[#0C1E38]"
                 />
                 <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
                   tabIndex={-1}
                   aria-label={showPassword ? 'Ocultar senha' : 'Ver senha'}
                 >
@@ -225,12 +225,12 @@ export default function AdminLoginPage() {
 
             {/* Checkbox Manter conectado */}
             <div className="pt-1">
-              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-600">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-600 dark:text-slate-300">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-[#005ca9] focus:ring-[#005ca9] cursor-pointer"
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-[#005ca9] dark:text-[#00D8FF] focus:ring-[#005ca9] cursor-pointer"
                 />
                 <span>Manter conectado</span>
               </label>
@@ -249,19 +249,19 @@ export default function AdminLoginPage() {
           </form>
 
           {/* Aviso de acesso institucional */}
-          <div className="mt-4 p-2.5 bg-slate-50 border border-slate-100 rounded-md text-[11px] text-slate-500 flex items-center gap-2">
-            <Info size={14} className="text-[#005ca9] shrink-0" />
+          <div className="mt-4 p-2.5 bg-slate-50 dark:bg-[#0C1E38] border border-slate-100 dark:border-[#1A365D] rounded-md text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
+            <Info size={14} className="text-[#005ca9] dark:text-[#00D8FF] shrink-0" />
             <span>Acesso restrito a gestores e técnicos autorizados da SEDUC-RO.</span>
           </div>
 
           {/* Divisor */}
-          <div className="border-t border-slate-100 my-6" />
+          <div className="border-t border-slate-100 dark:border-[#1A365D] my-6" />
 
           {/* Links de Rodapé */}
           <div className="space-y-4 text-center">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 font-medium transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white font-medium transition-colors"
             >
               <ArrowLeft size={14} />
               <span>Voltar ao portal público</span>
@@ -279,21 +279,21 @@ export default function AdminLoginPage() {
 
       {/* Modal de Esqueceu a Senha */}
       {showForgotModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-blue-50 text-[#005ca9] flex items-center justify-center mx-auto">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#0C1E38] rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center border border-slate-200 dark:border-[#1A365D]">
+            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-cyan-950/60 text-[#005ca9] dark:text-[#00D8FF] flex items-center justify-center mx-auto">
               <ShieldCheck size={24} />
             </div>
-            <h3 className="text-lg font-bold text-slate-900">Recuperação de Acesso</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Recuperação de Acesso</h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               Para redefinir sua senha de gestor do MEDTEC, solicite suporte à coordenação de tecnologia educacional da SEDUC.
             </p>
-            <div className="p-3 bg-slate-50 rounded-lg text-xs font-mono text-slate-700">
+            <div className="p-3 bg-slate-50 dark:bg-[#061224] rounded-lg text-xs font-mono text-slate-700 dark:text-cyan-300 border border-slate-200/60 dark:border-[#1A365D]">
               suporte.medtec@seduc.ro.gov.br
             </div>
             <button
               onClick={() => setShowForgotModal(false)}
-              className="w-full py-2.5 px-4 bg-[#005ca9] text-white rounded-lg text-xs font-semibold hover:bg-[#004e8f] transition-all cursor-pointer"
+              className="w-full py-2.5 px-4 bg-[#005ca9] hover:bg-[#004e8f] text-white rounded-lg text-xs font-semibold transition-all cursor-pointer"
             >
               Fechar
             </button>

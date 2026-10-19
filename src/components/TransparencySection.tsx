@@ -28,13 +28,13 @@ export default function TransparencySection() {
       {/* Search and Filters Header */}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative sm:w-80">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-[#6482A6]" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Busca rápida em transparência..."
-            className="w-full rounded-lg border border-slate-200 bg-card py-2 pl-9 pr-3 text-sm text-slate-800 placeholder-slate-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary shadow-sm"
+            className="w-full rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] py-2 pl-9 pr-3 text-sm text-slate-800 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-primary dark:focus:border-[#00D8FF] focus:outline-none focus:ring-1 focus:ring-primary shadow-sm transition-colors"
           />
         </div>
 
@@ -44,10 +44,10 @@ export default function TransparencySection() {
             <button
               key={ano}
               onClick={() => setSelectedYear(ano)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
                 selectedYear === ano
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                  ? 'bg-primary dark:bg-[#00D8FF] text-primary-foreground dark:text-slate-950 shadow-sm'
+                  : 'border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#0F2647]'
               }`}
             >
               {ano === 'todos' ? 'Todos os anos' : ano}
@@ -57,23 +57,23 @@ export default function TransparencySection() {
       </div>
 
       {/* Tabs Switcher */}
-      <div className="flex border-b border-slate-200 mb-6 gap-2">
+      <div className="flex border-b border-slate-200 dark:border-[#1A365D] mb-6 gap-2">
         <button
           onClick={() => setActiveTab('indicadores')}
-          className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 ${
+          className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
             activeTab === 'indicadores'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'border-primary dark:border-[#00D8FF] text-primary dark:text-[#00D8FF]'
+              : 'border-transparent text-slate-500 dark:text-[#6482A6] hover:text-slate-800 dark:hover:text-[#E6F4FF]'
           }`}
         >
           Indicadores Educacionais ({filteredIndicadores.length})
         </button>
         <button
           onClick={() => setActiveTab('orcamento')}
-          className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 ${
+          className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
             activeTab === 'orcamento'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'border-primary dark:border-[#00D8FF] text-primary dark:text-[#00D8FF]'
+              : 'border-transparent text-slate-500 dark:text-[#6482A6] hover:text-slate-800 dark:hover:text-[#E6F4FF]'
           }`}
         >
           Execução Orçamentária e Contratos ({filteredContratos.length})
@@ -84,40 +84,40 @@ export default function TransparencySection() {
       {activeTab === 'indicadores' && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredIndicadores.length === 0 ? (
-            <div className="col-span-full rounded-2xl border border-slate-200 bg-card p-8 text-center text-sm text-slate-500">
+            <div className="col-span-full rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-8 text-center text-sm text-slate-500 dark:text-slate-400">
               Nenhum indicador encontrado para o termo pesquisado.
             </div>
           ) : (
             filteredIndicadores.map((ind: Indicador, idx: number) => (
               <div
                 key={idx}
-                className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-card p-5 shadow-card hover:border-slate-300 transition-all"
+                className="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 shadow-card hover:border-slate-300 dark:hover:border-[#00D8FF]/50 transition-all"
               >
                 <div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                    <span className="font-semibold text-slate-700">Ano de Referência: {ind.ano}</span>
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#6482A6] mb-2">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Ano de Referência: {ind.ano}</span>
                     <span>Atualizado: {ind.data}</span>
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-900 leading-snug">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug">
                     {ind.metrica}
                   </h3>
-                  <p className="mt-3 font-display text-3xl font-bold text-primary tracking-tight">
+                  <p className="mt-3 font-display text-3xl font-bold text-primary dark:text-[#00D8FF] tracking-tight">
                     {ind.valor}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#1A365D] flex items-center justify-between">
                   <a
                     href={ind.fonte.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-primary transition-colors"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-[#00D8FF] transition-colors"
                   >
                     Fonte: <span className="underline">{ind.fonte.nome}</span>
                     <ExternalLink className="h-3 w-3" />
                   </a>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-800">
-                    <CheckCircle2 className="h-3 w-3 text-sky-600" />
+                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/40 px-2 py-0.5 text-[11px] font-semibold text-sky-800 dark:text-sky-300">
+                    <CheckCircle2 className="h-3 w-3 text-sky-600 dark:text-[#00D8FF]" />
                     Auditado
                   </span>
                 </div>
@@ -131,47 +131,47 @@ export default function TransparencySection() {
       {activeTab === 'orcamento' && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredContratos.length === 0 ? (
-            <div className="col-span-full rounded-2xl border border-slate-200 bg-card p-8 text-center text-sm text-slate-500">
+            <div className="col-span-full rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-8 text-center text-sm text-slate-500 dark:text-slate-400">
               Nenhum contrato localizado com este filtro.
             </div>
           ) : (
             filteredContratos.map((cont: Contrato, idx: number) => (
               <div
                 key={idx}
-                className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-card p-5 shadow-card hover:border-slate-300 transition-all"
+                className="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 shadow-card hover:border-slate-300 dark:hover:border-[#00D8FF]/50 transition-all"
               >
                 <div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                    <span className="font-semibold text-slate-700">Exercício: {cont.ano}</span>
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#6482A6] mb-2">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Exercício: {cont.ano}</span>
                     <span
                       className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                         cont.status === 'Em execução'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'bg-sky-50 text-sky-800 border border-sky-200'
+                          ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40'
+                          : 'bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800/40'
                       }`}
                     >
                       {cont.status}
                     </span>
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-900 leading-snug">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug">
                     {cont.item}
                   </h3>
-                  <p className="mt-3 font-display text-2xl font-bold text-primary tracking-tight">
+                  <p className="mt-3 font-display text-2xl font-bold text-primary dark:text-[#00D8FF] tracking-tight">
                     {cont.valor}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#1A365D] flex items-center justify-between">
                   <a
                     href={cont.fonte.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-primary transition-colors"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-[#00D8FF] transition-colors"
                   >
                     Publicação: <span className="underline">{cont.fonte.nome}</span>
                     <ExternalLink className="h-3 w-3" />
                   </a>
-                  <span className="text-[11px] text-slate-500">
+                  <span className="text-[11px] text-slate-500 dark:text-[#6482A6]">
                     Ref: {cont.data}
                   </span>
                 </div>
@@ -182,10 +182,10 @@ export default function TransparencySection() {
       )}
 
       {/* Official Audit Notice */}
-      <div className="mt-8 rounded-xl border border-sky-200 bg-sky-50/80 p-4 flex items-center justify-between flex-wrap gap-3">
+      <div className="mt-8 rounded-xl border border-sky-200 dark:border-[#1A365D] bg-sky-50/80 dark:bg-[#0C1E38] p-4 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2.5">
-          <ShieldCheck className="h-5 w-5 text-sky-600 shrink-0" />
-          <p className="text-xs text-sky-950">
+          <ShieldCheck className="h-5 w-5 text-sky-600 dark:text-[#00D8FF] shrink-0" />
+          <p className="text-xs text-sky-950 dark:text-slate-300">
             <strong>Garantia de Transparência Pública:</strong> Todos os dados e contratos apresentados obedecem à Lei de Acesso à Informação (LAI nº 12.527/2011) e às normas do Tribunal de Contas do Estado de Rondônia (TCE-RO).
           </p>
         </div>
@@ -193,7 +193,7 @@ export default function TransparencySection() {
           href="https://transparencia.ro.gov.br/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs font-semibold text-sky-800 underline hover:text-sky-950"
+          className="text-xs font-semibold text-sky-800 dark:text-[#00D8FF] underline hover:text-sky-950 dark:hover:text-white"
         >
           Acessar Portal da Transparência RO ↗
         </a>

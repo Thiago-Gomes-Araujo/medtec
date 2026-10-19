@@ -206,8 +206,8 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-cyan-500/15 bg-[#040D1A]/90 backdrop-blur-xl transition-all">
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+      <header className="sticky top-0 z-50 border-b border-slate-200/80 dark:border-cyan-500/15 bg-white/85 dark:bg-[#040D1A]/90 backdrop-blur-xl transition-colors duration-200 shadow-xs dark:shadow-none">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-sky-400/30 dark:via-cyan-400/40 to-transparent" />
         
         {/* ================= 3-ZONE LAYOUT CONTAINER (ESQUERDA / CENTRO / DIREITA) ================= */}
         <div className="w-full flex items-center justify-between gap-4 px-4 sm:px-8 py-2.5">
@@ -222,10 +222,10 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                 </span>
               </span>
               <span className="min-w-0 leading-tight">
-                <span className="block truncate font-display text-sm sm:text-base font-bold tracking-tight text-white group-hover:text-cyan-200 transition-colors whitespace-nowrap">
+                <span className="block truncate font-display text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-cyan-200 transition-colors whitespace-nowrap">
                   MEDTEC Rondônia
                 </span>
-                <span className="block truncate font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-cyan-300/80 font-medium whitespace-nowrap">
+                <span className="block truncate font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-[#05549D] dark:text-cyan-300/80 font-semibold whitespace-nowrap">
                   SEDUC • SINAL ATIVO
                 </span>
               </span>
@@ -234,7 +234,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
 
           {/* ================= ZONA 2 (CENTRO — PÍLULA DE NAVEGAÇÃO CENTRALIZADA) ================= */}
           <nav className="hidden lg:flex items-center justify-center shrink-0">
-            <div className="flex items-center gap-0.5 rounded-full border border-[#1A365D] bg-[#0C1E38]/60 px-2 py-1 backdrop-blur-md shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
+            <div className="flex items-center gap-0.5 rounded-full border border-slate-200/90 dark:border-[#1A365D] bg-slate-100/80 dark:bg-[#0C1E38]/60 px-2 py-1 backdrop-blur-md shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] transition-colors">
               
               {/* ITEM 1: INÍCIO COM MEGA-MENU POPOVER */}
               <div 
@@ -254,8 +254,8 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                   }}
                   className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide transition-all cursor-pointer whitespace-nowrap ${
                     pathname === '/' || inicioDropdownOpen
-                      ? 'bg-cyan-400/15 text-cyan-300 shadow-[inset_0_0_10px_rgba(0,216,255,0.2)] border border-cyan-400/30'
-                      : 'text-slate-300 hover:bg-white/5 hover:text-white border border-transparent'
+                      ? 'bg-sky-500/15 text-[#05549D] border border-sky-400/40 dark:bg-cyan-400/15 dark:text-cyan-300 dark:shadow-[inset_0_0_10px_rgba(0,216,255,0.2)] dark:border-cyan-400/30'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white border border-transparent'
                   }`}
                   aria-expanded={inicioDropdownOpen}
                   aria-haspopup="true"
@@ -263,7 +263,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                   <span>Início</span>
                   <ChevronDown 
                     className={`h-3 w-3 transition-transform duration-200 ${
-                      inicioDropdownOpen ? 'rotate-180 text-cyan-300' : 'text-slate-400'
+                      inicioDropdownOpen ? 'rotate-180 text-sky-600 dark:text-cyan-300' : 'text-slate-400'
                     }`} 
                   />
                 </button>
@@ -280,50 +280,50 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                       onMouseEnter={handleMouseEnter}
                       onMouseLeave={handleMouseLeave}
                     >
-                      <div className="overflow-hidden rounded-2xl border border-[#1A365D] bg-[#061020]/95 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl">
+                      <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white/95 dark:bg-[#061020]/95 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl transition-colors">
                         
                         <div className="grid grid-cols-12 gap-4">
                           
                           {/* COLUNA ESQUERDA (CARD DESTAQUE — 40% / 5 colunas) */}
-                          <div className="col-span-5 flex flex-col justify-between rounded-xl border border-cyan-500/20 bg-gradient-to-br from-[#0C2444] via-[#08182E] to-[#040E1B] p-4 text-left">
+                          <div className="col-span-5 flex flex-col justify-between rounded-xl border border-sky-200 dark:border-cyan-500/20 bg-gradient-to-br from-sky-50 via-slate-50 to-blue-50 dark:from-[#0C2444] dark:via-[#08182E] dark:to-[#040E1B] p-4 text-left transition-colors">
                             <div>
                               {/* Badge de Sinal */}
-                              <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-0.5 font-mono text-[9px] font-bold text-cyan-300">
-                                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#00D8FF] animate-pulse" />
+                              <div className="inline-flex items-center gap-1.5 rounded-full border border-sky-400/40 dark:border-cyan-400/30 bg-sky-100/80 dark:bg-cyan-400/10 px-2 py-0.5 font-mono text-[9px] font-bold text-[#05549D] dark:text-cyan-300">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-cyan-400 shadow-[0_0_6px_#00D8FF] animate-pulse" />
                                 SINAL ATIVO • BANDA KU
                               </div>
 
                               <div className="mt-3">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/10 text-cyan-300 mb-2">
-                                  <Satellite className="h-4 w-4 text-[#00D8FF]" />
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-sky-300 dark:border-cyan-400/30 bg-sky-100 dark:bg-cyan-400/10 text-[#05549D] dark:text-cyan-300 mb-2">
+                                  <Satellite className="h-4 w-4 text-[#05549D] dark:text-[#00D8FF]" />
                                 </div>
-                                <h4 className="font-display text-sm font-bold text-white tracking-tight leading-snug">
+                                <h4 className="font-display text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
                                   Arquitetura MEDTEC RO
                                 </h4>
-                                <p className="mt-1.5 text-[11px] text-slate-300 leading-relaxed">
+                                <p className="mt-1.5 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
                                   Transmissão síncrona em 4K UHD gerada nos estúdios centrais em Porto Velho e distribuída via satélite para os 52 municípios rondonienses.
                                 </p>
                               </div>
                             </div>
 
-                            <div className="mt-4 pt-3 border-t border-cyan-500/20">
+                            <div className="mt-4 pt-3 border-t border-slate-200 dark:border-cyan-500/20">
                               <button
                                 onClick={() => handleOpenDossie(1)}
-                                className="group flex items-center justify-between w-full text-[11px] font-semibold text-cyan-300 hover:text-white transition-colors cursor-pointer"
+                                className="group flex items-center justify-between w-full text-[11px] font-semibold text-[#05549D] dark:text-cyan-300 hover:text-sky-700 dark:hover:text-white transition-colors cursor-pointer"
                               >
                                 <span>Verificar Telemetria</span>
-                                <span className="text-cyan-400 group-hover:translate-x-1 transition-transform">→</span>
+                                <span className="text-sky-600 dark:text-cyan-400 group-hover:translate-x-1 transition-transform">→</span>
                               </button>
                             </div>
                           </div>
 
                           {/* COLUNA DIREITA (ATALHOS RÁPIDOS — 60% / 7 colunas) */}
                           <div className="col-span-7 flex flex-col justify-between">
-                            <div className="mb-2 flex items-center justify-between border-b border-white/5 pb-2">
-                              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-cyan-300/80">
+                            <div className="mb-2 flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
+                              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#05549D] dark:text-cyan-300/80">
                                 {'// ATALHOS RÁPIDOS DA HOME'}
                               </span>
-                              <span className="font-mono text-[10px] text-slate-400">4 seções</span>
+                              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">4 seções</span>
                             </div>
 
                             <div className="grid gap-1.5">
@@ -334,16 +334,16 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                                     key={item.title}
                                     type="button"
                                     onClick={item.action}
-                                    className="group flex items-start gap-3 rounded-xl p-2 text-left transition-all hover:bg-white/5 hover:border-cyan-400/30 border border-transparent cursor-pointer w-full"
+                                    className="group flex items-start gap-3 rounded-xl p-2 text-left transition-all hover:bg-slate-100 dark:hover:bg-white/5 hover:border-sky-300 dark:hover:border-cyan-400/30 border border-transparent cursor-pointer w-full"
                                   >
-                                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-400/10 text-[#00D8FF] transition-transform group-hover:scale-105 group-hover:border-cyan-400/50">
+                                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-cyan-400/20 bg-slate-100 dark:bg-cyan-400/10 text-sky-600 dark:text-[#00D8FF] transition-transform group-hover:scale-105 group-hover:border-sky-400 dark:group-hover:border-cyan-400/50">
                                       <Icon className="h-3.5 w-3.5" />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                      <p className="text-xs font-semibold text-white group-hover:text-cyan-200 transition-colors leading-tight">
+                                      <p className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-cyan-200 transition-colors leading-tight">
                                         {item.title}
                                       </p>
-                                      <p className="text-[10px] text-slate-400 truncate mt-0.5 leading-tight">
+                                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 leading-tight">
                                         {item.desc}
                                       </p>
                                     </div>
@@ -370,8 +370,8 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                     href={item.to}
                     className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide transition-all whitespace-nowrap ${
                       active
-                        ? 'bg-cyan-400/15 text-cyan-300 shadow-[inset_0_0_10px_rgba(0,216,255,0.2)] border border-cyan-400/30'
-                        : 'text-slate-300 hover:bg-white/5 hover:text-white border border-transparent'
+                        ? 'bg-sky-500/15 text-[#05549D] border border-sky-400/40 dark:bg-cyan-400/15 dark:text-cyan-300 dark:shadow-[inset_0_0_10px_rgba(0,216,255,0.2)] dark:border-cyan-400/30'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white border border-transparent'
                     }`}
                   >
                     <span>{item.label}</span>
@@ -385,8 +385,8 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                 onClick={() => handleNavClick('/#ao-vivo')}
                 className={`group inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap ml-0.5 ${
                   pathname === '/ao-vivo' || pathname === '/redes'
-                    ? 'border border-rose-500/50 bg-rose-500/20 text-rose-200 shadow-[0_0_12px_rgba(244,63,94,0.35)]'
-                    : 'border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:border-rose-500/60 hover:bg-rose-500/20'
+                    ? 'border border-rose-500/50 bg-rose-500/20 text-rose-600 dark:text-rose-200 shadow-[0_0_12px_rgba(244,63,94,0.35)]'
+                    : 'border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-300 hover:border-rose-500/60 hover:bg-rose-500/20'
                 }`}
               >
                 <span className="relative flex h-2 w-2">
@@ -405,23 +405,23 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             {/* 1. BOTÃO DE TEMA COMPACTO (APENAS ÍCONE) */}
             <button
               onClick={toggleTheme}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-cyan-500/25 bg-[#0C1E38]/60 text-slate-200 hover:border-cyan-400/50 hover:bg-cyan-500/10 hover:text-white transition-all cursor-pointer backdrop-blur-sm shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 dark:border-cyan-500/25 bg-slate-100 dark:bg-[#0C1E38]/60 text-slate-700 dark:text-slate-200 hover:border-sky-400 dark:hover:border-cyan-400/50 hover:bg-slate-200 dark:hover:bg-cyan-500/10 transition-all cursor-pointer backdrop-blur-sm shadow-xs"
               title={isDarkMode ? 'Alternar para Modo Claro' : 'Alternar para Modo Escuro'}
               aria-label="Alternar tema de cores"
             >
               {isDarkMode ? (
                 <Moon className="h-4 w-4 text-cyan-300 transition-transform hover:rotate-12" />
               ) : (
-                <Sun className="h-4 w-4 text-amber-400 transition-transform hover:rotate-45" />
+                <Sun className="h-4 w-4 text-amber-500 transition-transform hover:rotate-45" />
               )}
             </button>
 
             {/* 2. BOTÃO DOSSIÊ EXECUTIVO */}
             <button
               onClick={() => handleOpenDossie(0)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200 hover:bg-cyan-400/20 hover:border-cyan-400/50 hover:shadow-[0_0_15px_rgba(0,216,255,0.25)] transition-all cursor-pointer backdrop-blur-sm whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 dark:border-cyan-400/30 bg-slate-100 dark:bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-cyan-200 hover:bg-slate-200 dark:hover:bg-cyan-400/20 hover:border-slate-400 dark:hover:border-cyan-400/50 transition-all cursor-pointer backdrop-blur-sm whitespace-nowrap"
             >
-              <ShieldCheck className="h-3.5 w-3.5 text-cyan-300" />
+              <ShieldCheck className="h-3.5 w-3.5 text-sky-600 dark:text-cyan-300" />
               <span>🛡️ Dossiê</span>
             </button>
 

@@ -3,9 +3,9 @@ import Link from 'next/link';
 
 export default function SiteFooter() {
   return (
-    <footer className="relative mt-20 overflow-hidden border-t border-cyan-400/20 bg-[#050b16] text-slate-300">
+    <footer className="relative mt-20 overflow-hidden border-t border-slate-300/60 dark:border-cyan-400/20 bg-[#071527] dark:bg-[#050b16] text-slate-300 transition-colors duration-200">
       <div className="hero-grid pointer-events-none absolute inset-0 opacity-40" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
       <div className="relative mx-auto max-w-7xl px-4 py-12 text-sm">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-3 lg:col-span-2">

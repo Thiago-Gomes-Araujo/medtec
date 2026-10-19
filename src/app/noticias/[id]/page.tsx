@@ -33,21 +33,21 @@ export default async function NoticiaDetalhePage({ params }: Props) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#040B16] text-[#E6F4FF]">
+    <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF]">
       <SiteHeader />
 
       {/* Breadcrumb Técnico */}
-      <div className="bg-[#061224] py-3.5 border-b border-[#1A365D]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-2 text-xs font-mono text-[#6482A6]">
-          <Link href="/" className="hover:text-[#00D8FF] transition-colors">
+      <div className="bg-slate-100 dark:bg-[#061224] py-3.5 border-b border-slate-200 dark:border-[#1A365D]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-[#6482A6]">
+          <Link href="/" className="hover:text-[#05549D] dark:hover:text-[#00D8FF] transition-colors">
             Início
           </Link>
-          <ChevronRight size={14} className="text-[#1A365D]" />
-          <Link href="/noticias" className="hover:text-[#00D8FF] transition-colors">
+          <ChevronRight size={14} className="text-slate-400 dark:text-[#1A365D]" />
+          <Link href="/noticias" className="hover:text-[#05549D] dark:hover:text-[#00D8FF] transition-colors">
             Notícias
           </Link>
-          <ChevronRight size={14} className="text-[#1A365D]" />
-          <span className="text-[#00D8FF] font-semibold truncate max-w-sm">
+          <ChevronRight size={14} className="text-slate-400 dark:text-[#1A365D]" />
+          <span className="text-[#05549D] dark:text-[#00D8FF] font-semibold truncate max-w-sm">
             {newsItem.title}
           </span>
         </div>
@@ -62,7 +62,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
           <div>
             <Link
               href="/noticias"
-              className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-[#00D8FF] hover:underline group"
+              className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-[#05549D] dark:text-[#00D8FF] hover:underline group cursor-pointer"
             >
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
               <span>[ ← VOLTAR PARA TODAS AS NOTÍCIAS ]</span>
@@ -72,63 +72,63 @@ export default async function NoticiaDetalhePage({ params }: Props) {
           {/* Categoria e Título */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-cyan-400/30 bg-[#0C1E38] text-[#00D8FF] text-xs font-mono font-semibold uppercase tracking-wider">
-                <Radio className="h-3 w-3 text-emerald-400 animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-sky-300 dark:border-cyan-400/30 bg-sky-50 dark:bg-[#0C1E38] text-[#05549D] dark:text-[#00D8FF] text-xs font-mono font-semibold uppercase tracking-wider">
+                <Radio className="h-3 w-3 text-emerald-500 dark:text-emerald-400 animate-pulse" />
                 {newsItem.category || 'Geral'}
               </span>
-              <span className="text-xs font-mono text-[#6482A6]">
+              <span className="text-xs font-mono text-slate-400 dark:text-[#6482A6]">
                 {'//'} COBERTURA OFICIAL
               </span>
             </div>
 
-            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl uppercase font-medium text-[#E6F4FF] leading-[1.05] tracking-tight">
+            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl uppercase font-medium text-slate-900 dark:text-[#E6F4FF] leading-[1.05] tracking-tight">
               {newsItem.title}
             </h1>
 
             {/* Metadados Técnicos */}
-            <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-[#6482A6] py-3 border-y border-dashed border-[#1A365D]">
-              <span className="flex items-center gap-1.5 font-medium text-slate-300">
-                <Calendar size={14} className="text-[#00D8FF]" />
+            <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-500 dark:text-[#6482A6] py-3 border-y border-dashed border-slate-200 dark:border-[#1A365D]">
+              <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                <Calendar size={14} className="text-[#05549D] dark:text-[#00D8FF]" />
                 {newsItem.publishedAt || 'Recente'}
               </span>
-              <span className="text-[#1A365D]">•</span>
-              <span className="flex items-center gap-1.5 font-medium text-slate-300">
-                <User size={14} className="text-[#00D8FF]" />
+              <span className="text-slate-300 dark:text-[#1A365D]">•</span>
+              <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+                <User size={14} className="text-[#05549D] dark:text-[#00D8FF]" />
                 {newsItem.author || 'Assessoria de Comunicação SEDUC-RO'}
               </span>
             </div>
           </div>
 
           {/* Imagem de Capa com moldura técnica */}
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-[#1A365D] h-72 sm:h-96 md:h-[440px] w-full bg-[#020710]">
+          <div className="relative rounded-2xl overflow-hidden shadow-xl border border-slate-200 dark:border-[#1A365D] h-72 sm:h-96 md:h-[440px] w-full bg-slate-900">
             <img
               src={newsItem.coverImage || FALLBACK_COVER}
               alt={newsItem.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#040B16]/60 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
           </div>
 
           {/* Resumo destacado (Lead) */}
           {newsItem.excerpt && (
-            <div className="p-6 rounded-2xl bg-[#0C1E38] border-l-4 border-[#00D8FF] border-y border-r border-[#1A365D] text-[#E6F4FF] font-mono text-sm sm:text-base leading-relaxed">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0C1E38] border-l-4 border-[#05549D] dark:border-[#00D8FF] border-y border-r border-slate-200 dark:border-[#1A365D] text-slate-800 dark:text-[#E6F4FF] font-mono text-sm sm:text-base leading-relaxed shadow-sm">
               &ldquo;{newsItem.excerpt}&rdquo;
             </div>
           )}
 
           {/* Conteúdo completo */}
-          <div className="text-slate-200 text-base sm:text-lg leading-relaxed whitespace-pre-line space-y-6 font-normal">
+          <div className="text-slate-700 dark:text-slate-200 text-base sm:text-lg leading-relaxed whitespace-pre-line space-y-6 font-normal">
             {newsItem.content || newsItem.excerpt || 'Conteúdo em elaboração pela equipe pedagógica da SEDUC.'}
           </div>
 
           {/* Tags temáticas */}
           {newsItem.tags && newsItem.tags.length > 0 && (
-            <div className="pt-8 border-t border-dashed border-[#1A365D] flex flex-wrap items-center gap-2">
-              <Tag size={15} className="text-[#00D8FF]" />
+            <div className="pt-8 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex flex-wrap items-center gap-2">
+              <Tag size={15} className="text-[#05549D] dark:text-[#00D8FF]" />
               {newsItem.tags.map((tag, idx) => (
                 <span
                   key={idx}
-                  className="px-3 py-1 bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-semibold rounded-lg"
+                  className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-400 text-xs font-mono font-semibold rounded-lg"
                 >
                   #{tag}
                 </span>
