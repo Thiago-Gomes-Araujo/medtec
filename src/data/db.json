@@ -83,24 +83,27 @@
   ],
   "news": [
     {
-      "id": "noticia-1792157451748",
-      "title": "Flamengo empata ontem ",
-      "slug": "flamengo-empata-ontem",
-      "excerpt": "Flamengo empata ontem ",
-      "content": "time fdpp preguiçoso ",
-      "coverImage": "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1200&q=80",
-      "author": "Equipe MEDTEC / SEDUC",
+      "id": "noticia-enem-2026",
+      "title": "Preparação ENEM 2026: Estúdios do MEDTEC em Porto Velho iniciam maratona de aulões interativos ao vivo para o 3º Ano",
+      "slug": "preparacao-enem-2026-estudios-medtec-auloes-interativos",
+      "excerpt": "Coordenadoria de Mídias Educacionais mobiliza professores ministrantes na capital e mediadores nas salas conectadas para maratona intensiva de resolução de itens do ENEM e redação nota 1000.",
+      "content": "A Secretaria de Estado da Educação de Rondônia (SEDUC), por meio da Coordenadoria de Mídias Educacionais, deu início nesta semana à maratona estadual de aulões preparatórios para o Exame Nacional do Ensino Médio (ENEM 2026). A transmissão parte diretamente dos estúdios centrais de TV em Porto Velho, alcançando simultaneamente turmas de 3º Ano em comunidades ribeirinhas, indígenas, quilombolas e assentamentos rurais de todos os 52 municípios de Rondônia.\n\nCom a mediação tecnológica assegurada pela Lei Estadual nº 3.846/2016, os aulões conectam os estudantes aos professores ministrantes de áreas estratégicas: Linguagens, Redação, Matemática, Ciências da Natureza e Ciências Humanas. Em tempo real, as turmas utilizam chat síncrono e canais diretos de telemetria para sanar dúvidas e resolver questões comentadas de edições anteriores do exame.\n\nNas salas conectadas, a figura do professor mediador é essencial para orientar a dinâmica em grupo, corrigir rascunhos de redação e incentivar a disciplina de estudos diários. O material pedagógico impresso e digital é distribuído antecipadamente para que os estudantes de áreas mais remotas tenham a mesma oportunidade de preparação que os alunos dos grandes centros urbanos.\n\n'A mediação tecnológica rompe o isolamento geográfico e oferece aos nossos jovens do campo e da floresta as ferramentas reais para conquistar vagas nas universidades públicas e institutos federais', ressaltou a equipe pedagógica da SEDUC. As aulas de revisão acontecem de segunda a sábado e ficam gravadas no acervo do portal para consulta contínua dos estudantes.",
+      "coverImage": "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?auto=format&fit=crop&w=1200&q=80",
+      "author": "Coordenação Pedagógica MEDTEC",
       "category": "Pedagógico",
-      "publishedAt": "16/10/2026",
-      "featured": false,
-      "urgent": true,
-      "folder": "Geral",
+      "publishedAt": "18/10/2026",
+      "featured": true,
+      "urgent": false,
+      "folder": "Pedagógico",
       "published": true,
       "tags": [
-        "MEDTEC",
+        "ENEM 2026",
+        "Aulões ao Vivo",
+        "Pedagógico",
+        "Porto Velho",
         "SEDUC-RO"
       ],
-      "views": 1
+      "views": 124
     },
     {
       "id": "noticia-1",

@@ -25,13 +25,13 @@ export default function HomePage() {
   const [pitchModalOpen, setPitchModalOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#040D1A]">
+    <div className="flex min-h-screen flex-col bg-[#F0F4F8] dark:bg-[#040D1A] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors duration-200">
       {/* CABEÇALHO FLUTUANTE EM GLASSMORPHISM */}
       <SiteHeader onOpenPitchModal={() => setPitchModalOpen(true)} />
 
       <main className="flex-1">
         {/* ================= HERO SECTION: AMAZÔNIA AEROESPACIAL / TELEMETRIA ================= */}
-        <section id="inicio" className="relative overflow-hidden bg-gradient-to-b from-[#040D1A] via-[#07162C] to-[#0b1e38] text-white pt-6 pb-24 lg:pt-12 lg:pb-32 scroll-mt-20">
+        <section id="inicio" className="relative overflow-hidden bg-gradient-to-r from-[#05549D] via-[#072F5E] to-[#0A3D73] dark:from-[#040D1A] dark:via-[#07162C] dark:to-[#040D1A] text-white pt-6 pb-24 lg:pt-12 lg:pb-32 scroll-mt-20">
           
           {/* Fundo Fotográfico com Overlay e Blend Mode */}
           <img
@@ -319,7 +319,7 @@ export default function HomePage() {
           </div>
 
           {/* Gradiente de Transição Suave na Base do Hero */}
-          <div className="pointer-events-none absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-[#F8FAFC] to-transparent" />
+          <div className="pointer-events-none absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-[#F0F4F8] dark:from-[#040B16] to-transparent" />
         </section>
 
         {/* ================= SEGUNDA SEÇÃO: BENTO GRID DE PILARES ================= */}

@@ -1,48 +1,100 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     --font-sans: var(--font-sans, "Manrope", ui-sans-serif, system-ui, sans-serif);
     --font-display: var(--font-display, "Space Grotesk", ui-sans-serif, system-ui, sans-serif);
     --font-mono: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
 
-    --background: #e7eef6;
-    --foreground: #0b1220;
+    /* ==========================================================
+       MODO CLARO (Editorial Executivo SEDUC - Ice Slate & Navy)
+    ========================================================== */
+    --background: #F0F4F9;
+    --foreground: #0B1B30;
     
-    --card: #ffffff;
-    --card-foreground: #0f172a;
+    --card: #FFFFFF;
+    --card-foreground: #0B1B30;
+    --card-soft: #E8F0F8;
 
-    /* Primary brand: Figma / SEDUC Rondônia Official Blue */
-    --primary: #05549d;           /* Azul Oficial SEDUC / Rondônia */
-    --primary-light: #0284c7;     /* Azul Celeste */
-    --primary-deep: #071e3d;      /* Azul Marinho Executivo / Figma */
-    --primary-foreground: #ffffff;
+    /* Primary brand: Azul Oficial SEDUC / Rondônia */
+    --primary: #05549D;
+    --primary-light: #0284C7;
+    --primary-deep: #071E3D;
+    --primary-foreground: #FFFFFF;
 
     /* Secondary */
-    --secondary: #f0f7ff;         /* Azul Gelo Suave */
-    --secondary-foreground: #05549d;
+    --secondary: #EBF2F7;
+    --secondary-foreground: #05549D;
 
     /* Muted */
-    --muted: #f1f5f9;
-    --muted-foreground: #475569;
+    --muted: #E2E8F0;
+    --muted-foreground: #556E8A;
 
-    /* Eyebrow & Brand Accent: Vibrant Sky Blue */
-    --success: #0284c7;           /* Azul Celeste Vibrante */
-    --success-foreground: #ffffff;
-    --success-soft: #e0f2fe;
+    /* Eyebrow & Brand Accent */
+    --success: #059669;
+    --success-foreground: #FFFFFF;
+    --success-soft: #ECFDF5;
 
     /* Accent & Warning */
-    --accent: #e0f2fe;
-    --accent-foreground: #0369a1;
-    --warning: #f59e0b;
-    --warning-soft: #fef3c7;
+    --accent: #E0F2FE;
+    --accent-foreground: #0369A1;
+    --warning: #D97706;
+    --warning-soft: #FEF3C7;
 
     /* Borders */
-    --border: #e2e8f0;
+    --border: #D2DFEB;
+    --border-dashed: #CBDCEB;
 
-    /* Hero Gradient: deep space navy with a cyan horizon */
+    /* Hero Gradient */
+    --gradient-hero: linear-gradient(118deg, rgba(5, 84, 157, 0.95) 0%, rgba(7, 30, 61, 0.9) 60%, rgba(2, 132, 199, 0.75) 100%);
+    --glow: #0284C7;
+  }
+
+  .dark {
+    /* ==========================================================
+       MODO ESCURO (Oficial MEDTEC - Cyber Telemetria Amazônica)
+    ========================================================== */
+    --background: #040B16;
+    --foreground: #E6F4FF;
+
+    --card: #0C1E38;
+    --card-foreground: #E6F4FF;
+    --card-soft: #061224;
+
+    /* Primary brand: Ciano Elétrico MEDTEC */
+    --primary: #00D8FF;
+    --primary-light: #38BDF8;
+    --primary-deep: #040D1A;
+    --primary-foreground: #040B16;
+
+    /* Secondary */
+    --secondary: #0F2647;
+    --secondary-foreground: #00D8FF;
+
+    /* Muted */
+    --muted: #1A365D;
+    --muted-foreground: #6482A6;
+
+    /* Eyebrow & Brand Accent */
+    --success: #10B981;
+    --success-foreground: #040B16;
+    --success-soft: #064E3B;
+
+    /* Accent & Warning */
+    --accent: #0C284D;
+    --accent-foreground: #00D8FF;
+    --warning: #F59E0B;
+    --warning-soft: #78350F;
+
+    /* Borders */
+    --border: #1A365D;
+    --border-dashed: #1A365D;
+
+    /* Hero Gradient */
     --gradient-hero: linear-gradient(118deg, rgba(2, 6, 18, 0.94) 0%, rgba(6, 28, 58, 0.82) 46%, rgba(8, 80, 110, 0.55) 100%);
-    --glow: #22d3ee;
+    --glow: #00D8FF;
   }
 
   html {
@@ -53,6 +105,7 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -148,12 +201,23 @@
 }
 
 .site-mesh {
-  background-color: #e7eef6;
+  background-color: var(--background);
   background-image:
-    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(34, 211, 238, 0.16), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(5, 84, 157, 0.12), transparent 46%),
+    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(2, 132, 199, 0.08), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(5, 84, 157, 0.06), transparent 46%),
     linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+  background-size: auto, auto, 48px 48px, 48px 48px;
+  transition: background-color 0.25s ease;
+}
+
+.dark .site-mesh {
+  background-color: #040B16;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(0, 216, 255, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(5, 84, 157, 0.16), transparent 46%),
+    linear-gradient(rgba(0, 216, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 216, 255, 0.035) 1px, transparent 1px);
   background-size: auto, auto, 48px 48px, 48px 48px;
 }
 
@@ -167,6 +231,12 @@
 }
 
 .hud-frame {
+  box-shadow:
+    0 0 0 1px rgba(5, 84, 157, 0.12),
+    0 20px 50px -20px rgba(5, 84, 157, 0.14);
+}
+
+.dark .hud-frame {
   background:
     linear-gradient(160deg, rgba(8, 18, 36, 0.72), rgba(4, 10, 22, 0.55));
   box-shadow:

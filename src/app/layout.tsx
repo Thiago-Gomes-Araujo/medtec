@@ -52,12 +52,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className={`${manrope.variable} ${spaceGrotesk.variable} ${jetbrains.variable} scroll-smooth`}>
+    <html lang="pt-BR" suppressHydrationWarning className={`${manrope.variable} ${spaceGrotesk.variable} ${jetbrains.variable} scroll-smooth`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" href="/favicon.ico" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('medtec-theme');
+                  var isDark = theme ? theme !== 'light' : true;
+                  if (isDark) {
+                    document.documentElement.classList.add('dark');
+                    document.documentElement.classList.remove('light');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                    document.documentElement.classList.add('light');
+                  }
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
       </head>
-      <body className="site-mesh min-h-screen text-slate-800 font-sans antialiased selection:bg-cyan-400 selection:text-slate-950 flex flex-col">
+      <body className="site-mesh min-h-screen text-[#0B1B30] dark:text-[#E6F4FF] font-sans antialiased selection:bg-cyan-400 selection:text-slate-950 flex flex-col transition-colors duration-200">
         {children}
       </body>
     </html>

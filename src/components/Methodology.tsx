@@ -46,25 +46,25 @@ export default function Methodology() {
   ];
 
   return (
-    <section id="como-funciona" className="relative overflow-hidden py-24">
+    <section id="como-funciona" className="relative overflow-hidden py-24 bg-white dark:bg-[#061224] transition-colors duration-200">
       
       {/* Luzes decorativas de fundo */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-blue-100/60 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-sky-100/60 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 -left-20 w-80 h-80 bg-blue-100/60 dark:bg-cyan-900/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-sky-100/60 dark:bg-sky-900/10 rounded-full blur-3xl" />
       </div>
 
       <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Cabeçalho */}
         <div className="text-center max-w-3xl mx-auto mb-20">
-          <span className="inline-block px-4 py-1.5 bg-blue-50 text-primary border border-blue-100 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-4">
+          <span className="inline-block px-4 py-1.5 bg-sky-50 dark:bg-cyan-950/60 text-[#05549D] dark:text-cyan-300 border border-sky-200 dark:border-cyan-500/20 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider mb-4">
             Passo a Passo Tecnológico
           </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight mb-6">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-6">
             Como funciona a dinâmica do <span className="gradient-text">MEDTEC Rondônia?</span>
           </h2>
-          <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
+          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
             Uma ponte viva entre a produção televisiva de alta tecnologia e o acolhimento humano na sala de aula das comunidades tradicionais e rurais.
           </p>
         </div>
@@ -73,29 +73,29 @@ export default function Methodology() {
         <div className="relative">
           
           {/* Linha de Conexão Horizontal Desktop */}
-          <div className="pointer-events-none absolute left-6 right-6 top-[52%] z-0 hidden h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent lg:block" />
+          <div className="pointer-events-none absolute left-6 right-6 top-[52%] z-0 hidden h-px bg-gradient-to-r from-transparent via-[#0284C7] dark:via-cyan-400 to-transparent lg:block" />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 md:gap-6 items-stretch relative z-10">
             {steps.map((item, idx) => (
               <div key={item.step} className="relative group h-full">
-                <div className="glow-card relative flex min-h-[340px] w-full flex-col justify-start rounded-3xl border border-white/80 bg-white/80 p-6 backdrop-blur-sm transition-all duration-500 hover:-translate-y-1 hover:border-cyan-300">
+                <div className="glow-card relative flex min-h-[340px] w-full flex-col justify-start rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 backdrop-blur-sm transition-all duration-500 hover:-translate-y-1 hover:border-[#0284C7] dark:hover:border-cyan-400 shadow-sm dark:shadow-md">
                   
                   {/* Badge Numérico Flutuante */}
-                  <div className="absolute -top-5 left-8 w-11 h-11 bg-gradient-to-br from-primary to-primary-light rounded-2xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
+                  <div className="absolute -top-5 left-8 w-11 h-11 bg-gradient-to-br from-[#05549D] to-[#0284C7] dark:from-[#00D8FF] dark:to-[#0284C7] rounded-2xl flex items-center justify-center text-white dark:text-[#040B16] font-black shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
                     {item.step}
                   </div>
 
                   {/* Ícone Circular Centralizado */}
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-sky-100 flex items-center justify-center mx-auto mb-4 mt-6 group-hover:scale-105 transition-transform">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-sky-100 dark:from-[#061224] dark:to-[#0C1E38] border border-slate-200/60 dark:border-[#1A365D] flex items-center justify-center mx-auto mb-4 mt-6 group-hover:scale-105 transition-transform">
                     {item.icon}
                   </div>
 
                   {/* Textos */}
                   <div className="flex flex-col items-center text-center mt-2">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-primary transition-colors">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 group-hover:text-[#0284C7] dark:group-hover:text-cyan-400 transition-colors">
                       {item.title}
                     </h3>
-                    <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
+                    <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed">
                       {item.desc}
                     </p>
                   </div>
@@ -114,49 +114,49 @@ export default function Methodology() {
         </div>
 
         {/* Quadro das Matrizes Curriculares (Portaria nº 928/2025) */}
-        <div className="mt-20 bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-xl relative overflow-hidden">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-8 border-b border-slate-100">
+        <div className="mt-20 bg-white dark:bg-[#0C1E38] rounded-3xl p-8 sm:p-12 border border-slate-200 dark:border-[#1A365D] shadow-sm dark:shadow-xl relative overflow-hidden">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-8 border-b border-slate-100 dark:border-[#1A365D]">
             <div>
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider mb-2">
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-[#05549D] dark:text-cyan-400 uppercase tracking-wider mb-2">
                 <BookMarked size={16} />
                 <span>Base Legal: Portaria SEDUC nº 928/2025 & Lei nº 3.846/2016</span>
               </div>
-              <h3 className="text-2xl sm:text-3xl font-black text-slate-900">
+              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                 Formação Geral Básica + Itinerários Formativos
               </h3>
-              <p className="text-sm text-slate-600 mt-1 max-w-2xl">
+              <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-2xl">
                 O programa conta com duas matrizes curriculares adaptadas, alinhadas à BNCC e às necessidades socioambientais da juventude rondoniense.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 text-primary text-xs font-bold border border-blue-200">
-                <CheckCircle size={14} className="text-primary" />
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-cyan-950/60 text-[#05549D] dark:text-cyan-300 text-xs font-bold border border-blue-200 dark:border-cyan-500/30">
+                <CheckCircle size={14} className="text-[#0284C7] dark:text-cyan-400" />
                 Matriz Regular
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-50 text-sky-800 text-xs font-bold border border-sky-200">
-                <Sparkles size={14} className="text-sky-600" />
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-sky-500/30">
+                <Sparkles size={14} className="text-sky-600 dark:text-sky-400" />
                 Matriz Diferenciada
               </span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-sky-300 transition-all">
-              <span className="text-[10px] font-bold text-slate-500 uppercase">BNCC</span>
-              <h4 className="font-bold text-sm text-slate-900 mt-1">Linguagens & Tecnologias</h4>
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-sky-400 dark:hover:border-cyan-400 transition-all">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">BNCC</span>
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">Linguagens & Tecnologias</h4>
             </div>
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-sky-300 transition-all">
-              <span className="text-[10px] font-bold text-slate-500 uppercase">BNCC</span>
-              <h4 className="font-bold text-sm text-slate-900 mt-1">Matemática & Aplicações</h4>
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-sky-400 dark:hover:border-cyan-400 transition-all">
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">BNCC</span>
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">Matemática & Aplicações</h4>
             </div>
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-sky-300 transition-all">
-              <span className="text-[10px] font-bold text-sky-600 uppercase">Inovação</span>
-              <h4 className="font-bold text-sm text-slate-900 mt-1">Agroecologia (NBAZ)</h4>
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-sky-400 dark:hover:border-cyan-400 transition-all">
+              <span className="text-[10px] font-bold text-[#0284C7] dark:text-cyan-400 uppercase">Inovação</span>
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">Agroecologia (NBAZ)</h4>
             </div>
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-sky-300 transition-all">
-              <span className="text-[10px] font-bold text-primary uppercase">Protagonismo</span>
-              <h4 className="font-bold text-sm text-slate-900 mt-1">Projeto de Vida</h4>
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-sky-400 dark:hover:border-cyan-400 transition-all">
+              <span className="text-[10px] font-bold text-[#05549D] dark:text-cyan-400 uppercase">Protagonismo</span>
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">Projeto de Vida</h4>
             </div>
           </div>
         </div>

@@ -12,7 +12,7 @@ export default async function AoVivoPage() {
   const socials = db.socials || (initialData.socials as SocialLinks);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#040D1A]">
+    <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040D1A] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors duration-200">
       <SiteHeader />
 
       <main className="flex-1 pb-16">
