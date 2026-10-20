@@ -36,6 +36,7 @@ export default function SiteFooter() {
               <li><Link href="/avisos" className="hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline transition-colors">Mural de Avisos</Link></li>
               <li><Link href="/comunidades" className="hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline transition-colors">O MEDTEC nas Comunidades</Link></li>
               <li><Link href="/noticias" className="hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline transition-colors">Notícias e Comunicados</Link></li>
+              <li><Link href="/projetos" className="hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline transition-colors">Projetos & Práticas Pedagógicas</Link></li>
               <li><Link href="/acervo" className="hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline transition-colors">Acervo Fotográfico</Link></li>
               <li><Link href="/duvidas" className="hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline transition-colors">Dúvidas Frequentes (FAQ)</Link></li>
               <li><Link href="/ao-vivo" className="hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline transition-colors">Ao Vivo & Redes Oficiais</Link></li>

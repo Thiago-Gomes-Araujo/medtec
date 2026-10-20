@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useSyncExternalStore } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -16,7 +16,8 @@ import {
   Building2,
   Users,
   ScrollText,
-  Satellite
+  Satellite,
+  Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ExecutiveDossierModal from './ExecutiveDossierModal';
@@ -25,46 +26,31 @@ interface SiteHeaderProps {
   onOpenPitchModal?: () => void;
 }
 
-// Helpers para sincronização segura do tema via useSyncExternalStore
-function subscribeTheme(callback: () => void) {
-  window.addEventListener('storage', callback);
-  return () => window.removeEventListener('storage', callback);
-}
-
-function getThemeSnapshot(): boolean {
-  try {
-    return localStorage.getItem('medtec-theme') !== 'light';
-  } catch {
-    return true;
-  }
-}
-
-function getServerThemeSnapshot(): boolean {
-  return true;
-}
-
 export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inicioDropdownOpen, setInicioDropdownOpen] = useState(false);
   const [dossieOpen, setDossieOpen] = useState(false);
   const [dossieInitialTab, setDossieInitialTab] = useState(0);
 
-  // Sincronização limpa do tema com localStorage sem acionar cascading render
-  const isDarkMode = useSyncExternalStore(
-    subscribeTheme,
-    getThemeSnapshot,
-    getServerThemeSnapshot
-  );
+  // Estado local reativo sincronizado com o DOM e localStorage
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
   const router = useRouter();
 
-  // Aplica classe no documentElement conforme o tema atual
+  // Sincronização inicial e contínua com documentElement e localStorage
   useEffect(() => {
     try {
-      if (isDarkMode) {
+      const savedTheme = localStorage.getItem('medtec-theme');
+      const isDark = savedTheme 
+        ? savedTheme !== 'light' 
+        : document.documentElement.classList.contains('dark');
+
+      setIsDarkMode(isDark);
+
+      if (isDark) {
         document.documentElement.classList.add('dark');
         document.documentElement.classList.remove('light');
       } else {
@@ -74,22 +60,57 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
     } catch {
       // Ignora erro em ambientes restritos
     }
-  }, [isDarkMode]);
+
+    // Sincroniza entre abas e janelas
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'medtec-theme') {
+        const isDark = e.newValue !== 'light';
+        setIsDarkMode(isDark);
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+        } else {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+        }
+      }
+    };
+
+    const handleCustomTheme = () => {
+      try {
+        const isDark = document.documentElement.classList.contains('dark');
+        setIsDarkMode(isDark);
+      } catch {}
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('medtec-theme-toggle', handleCustomTheme);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('medtec-theme-toggle', handleCustomTheme);
+    };
+  }, []);
 
   const toggleTheme = () => {
     try {
-      const nextTheme = isDarkMode ? 'light' : 'dark';
+      const currentIsDark = document.documentElement.classList.contains('dark');
+      const nextIsDark = !currentIsDark;
+      const nextTheme = nextIsDark ? 'dark' : 'light';
+
+      setIsDarkMode(nextIsDark);
       localStorage.setItem('medtec-theme', nextTheme);
-      if (nextTheme === 'dark') {
+
+      if (nextIsDark) {
         document.documentElement.classList.add('dark');
         document.documentElement.classList.remove('light');
       } else {
         document.documentElement.classList.remove('dark');
         document.documentElement.classList.add('light');
       }
-      window.dispatchEvent(new Event('storage'));
-    } catch {
-      // Ignora erro
+
+      window.dispatchEvent(new CustomEvent('medtec-theme-toggle', { detail: nextTheme }));
+    } catch (err) {
+      console.error('Erro ao alternar tema:', err);
     }
   };
 
@@ -207,6 +228,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
   // Links da Pílula Unificada Central (Zona 2)
   const dockLinks = [
     { to: '/noticias', label: 'Notícias' },
+    { to: '/projetos', label: 'Projetos' },
     { to: '/avisos', label: 'Avisos' },
     { to: '/galeria', label: 'Galeria' },
     { to: '/mapa', label: 'Mapa' },
