@@ -4,11 +4,8 @@ import {
   Satellite, 
   Users2, 
   GraduationCap, 
-  CheckCircle, 
   ChevronDown,
-  Layers,
-  Sparkles,
-  BookMarked
+  Layers
 } from 'lucide-react';
 
 export default function Methodology() {
@@ -46,7 +43,7 @@ export default function Methodology() {
   ];
 
   return (
-    <section id="como-funciona" className="relative overflow-hidden py-24 bg-white dark:bg-[#061224] transition-colors duration-200">
+    <section id="como-funciona" className="relative scroll-mt-20 overflow-hidden py-24 bg-white dark:bg-[#061224] transition-colors duration-200">
       
       {/* Luzes decorativas de fundo */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
@@ -111,54 +108,6 @@ export default function Methodology() {
             ))}
           </div>
 
-        </div>
-
-        {/* Quadro das Matrizes Curriculares (Portaria nº 928/2025) */}
-        <div className="mt-20 bg-white dark:bg-[#0C1E38] rounded-3xl p-8 sm:p-12 border border-slate-200 dark:border-[#1A365D] shadow-sm dark:shadow-xl relative overflow-hidden">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-8 border-b border-slate-100 dark:border-[#1A365D]">
-            <div>
-              <div className="inline-flex items-center gap-2 text-xs font-bold text-[#05549D] dark:text-cyan-400 uppercase tracking-wider mb-2">
-                <BookMarked size={16} />
-                <span>Base Legal: Portaria SEDUC nº 928/2025 & Lei nº 3.846/2016</span>
-              </div>
-              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-                Formação Geral Básica + Itinerários Formativos
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 max-w-2xl">
-                O programa conta com duas matrizes curriculares adaptadas, alinhadas à BNCC e às necessidades socioambientais da juventude rondoniense.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-cyan-950/60 text-[#05549D] dark:text-cyan-300 text-xs font-bold border border-blue-200 dark:border-cyan-500/30">
-                <CheckCircle size={14} className="text-[#0284C7] dark:text-cyan-400" />
-                Matriz Regular
-              </span>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-sky-500/30">
-                <Sparkles size={14} className="text-sky-600 dark:text-sky-400" />
-                Matriz Diferenciada
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8">
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-sky-400 dark:hover:border-cyan-400 transition-all">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">BNCC</span>
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">Linguagens & Tecnologias</h4>
-            </div>
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-sky-400 dark:hover:border-cyan-400 transition-all">
-              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">BNCC</span>
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">Matemática & Aplicações</h4>
-            </div>
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-sky-400 dark:hover:border-cyan-400 transition-all">
-              <span className="text-[10px] font-bold text-[#0284C7] dark:text-cyan-400 uppercase">Inovação</span>
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">Agroecologia (NBAZ)</h4>
-            </div>
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-sky-400 dark:hover:border-cyan-400 transition-all">
-              <span className="text-[10px] font-bold text-[#05549D] dark:text-cyan-400 uppercase">Protagonismo</span>
-              <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">Projeto de Vida</h4>
-            </div>
-          </div>
         </div>
 
       </div>

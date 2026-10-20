@@ -20,6 +20,9 @@ import TechAdvantages from '@/components/TechAdvantages';
 import HomeProjectsAccordionSection from '@/components/HomeProjectsAccordionSection';
 import Methodology from '@/components/Methodology';
 import LiveBroadcastSection from '@/components/LiveBroadcastSection';
+import HomeNewsHighlightsSection from '@/components/HomeNewsHighlightsSection';
+import HomeTerritoryRadarSection from '@/components/HomeTerritoryRadarSection';
+import HomeQuickAccessCTA from '@/components/HomeQuickAccessCTA';
 import PresentationPitchModal from '@/components/PresentationPitchModal';
 
 export default function HomePage() {
@@ -320,20 +323,29 @@ export default function HomePage() {
           </div>
 
           {/* Gradiente de Transição Suave na Base do Hero */}
-          <div className="pointer-events-none absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-[#F0F4F8] dark:from-[#040B16] to-transparent" />
+          <div className="pointer-events-none absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-white dark:from-[#061224] to-transparent" />
         </section>
 
-        {/* ================= SEGUNDA SEÇÃO: BENTO GRID DE PILARES ================= */}
-        <TechAdvantages />
-
-        {/* ================= SEÇÃO EXPANSÍVEL: PANORAMA DOS ECOSSISTEMAS PEDAGÓGICOS ================= */}
-        <HomeProjectsAccordionSection />
-
-        {/* ================= TERCEIRA SEÇÃO: METODOLOGIA EM 5 PASSOS ================= */}
+        {/* ================= SEGUNDA SEÇÃO: METODOLOGIA EM 5 PASSOS ================= */}
         <Methodology />
 
-        {/* ================= QUARTA SEÇÃO: TRANSMISSÕES AO VIVO E REDES OFICIAIS ================= */}
+        {/* ================= TERCEIRA SEÇÃO: BENTO GRID DE PILARES & INOVAÇÃO ================= */}
+        <TechAdvantages />
+
+        {/* ================= QUARTA SEÇÃO: PANORAMA DOS 6 ECOSSISTEMAS PEDAGÓGICOS ================= */}
+        <HomeProjectsAccordionSection />
+
+        {/* ================= QUINTA SEÇÃO: TRANSMISSÕES AO VIVO E REDES OFICIAIS ================= */}
         <LiveBroadcastSection />
+
+        {/* ================= SEXTA SEÇÃO: ÚLTIMAS NOTÍCIAS & COBERTURAS ================= */}
+        <HomeNewsHighlightsSection />
+
+        {/* ================= SÉTIMA SEÇÃO: RADAR TERRITORIAL // 52 MUNICÍPIOS ================= */}
+        <HomeTerritoryRadarSection />
+
+        {/* ================= OITAVA SEÇÃO: ACESSO RÁPIDO & DOSSIÊ INSTITUCIONAL ================= */}
+        <HomeQuickAccessCTA onOpenPitchModal={() => setPitchModalOpen(true)} />
       </main>
 
       {/* RODAPÉ DO SISTEMA */}

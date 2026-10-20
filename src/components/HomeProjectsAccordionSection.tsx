@@ -12,7 +12,7 @@ export default function HomeProjectsAccordionSection() {
   );
 
   return (
-    <section className="relative py-14 sm:py-20 bg-[#F0F4F8] dark:bg-[#040B16] transition-colors duration-200 border-t border-slate-200/80 dark:border-white/5">
+    <section id="projetos-ecossistemas" className="relative scroll-mt-20 py-16 sm:py-24 bg-white dark:bg-[#061224] transition-colors duration-200 border-t border-slate-200/80 dark:border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {/* Cabeçalho Editorial da Seção */}

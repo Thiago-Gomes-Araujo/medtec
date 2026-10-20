@@ -5,7 +5,6 @@ import {
   GraduationCap, 
   ShieldCheck, 
   Leaf, 
-  ArrowDown,
   HeartHandshake,
   Radio,
   Sparkles,
@@ -14,28 +13,8 @@ import {
 
 export default function TechAdvantages() {
   return (
-    <section id="tecnologia" className="relative pt-6 pb-28 bg-[#F0F4F8] dark:bg-[#040B16] transition-colors duration-200">
+    <section id="tecnologia" className="relative scroll-mt-20 py-20 sm:py-28 bg-[#F0F4F8] dark:bg-[#040B16] transition-colors duration-200">
       
-      {/* ================= INDICADOR DE ROLAGEM FLUTUANTE NA TRANSIÇÃO ================= */}
-      <div className="-mt-14 mb-16 flex justify-center relative z-20">
-        <a 
-          href="#tecnologia" 
-          className="group flex items-center justify-center relative cursor-pointer"
-          aria-label="Rolar para os pilares tecnológicos"
-        >
-          <span className="relative h-20 w-20 flex items-center justify-center">
-            {/* Anéis luminosos de pulso */}
-            <span className="absolute inset-0 rounded-full bg-cyan-400/30 blur-md animate-ping" />
-            <span className="absolute inset-1 rounded-full bg-sky-500/20 blur-sm" />
-            
-            {/* Botão circular central */}
-            <div className="relative w-12 h-12 rounded-full bg-[#05549D] dark:bg-[#040D1A] border-2 border-cyan-400/80 shadow-[0_0_25px_rgba(0,216,255,0.4)] flex items-center justify-center group-hover:scale-115 group-hover:border-cyan-300 transition-all duration-300">
-              <ArrowDown className="h-5 w-5 text-white dark:text-cyan-300 animate-bounce" />
-            </div>
-          </span>
-        </a>
-      </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* ================= CABEÇALHO DA SEÇÃO ================= */}
@@ -76,11 +55,11 @@ export default function TechAdvantages() {
               </div>
 
               <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-[#0284C7] dark:group-hover:text-cyan-300 transition-colors">
-                Transmissão Ao Vivo em Tempo Real via Satélite
+                Conectividade Satelital de Alta Disponibilidade
               </h3>
 
               <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed max-w-2xl">
-                Aulas dinâmicas e interativas geradas diretamente dos estúdios centrais de TV da Coordenadoria de Mídias Educacionais (SEDUC) em Porto Velho, com link satelital dedicado de alta disponibilidade para comunidades onde a internet convencional não chega.
+                Infraestrutura de telecomunicação dedicada que rompe as distâncias geográficas de Rondônia: sinal síncrono e internet de alta estabilidade levando aulas ao vivo para aldeias indígenas, quilombos e comunidades ribeirinhas isoladas.
               </p>
             </div>
 
