@@ -269,7 +269,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
     mediatorInitials: 'CS',
     studentCohort: '2º e 3º Ano EM • 32 Alunos Conectados',
     seal: '⚡ INOVAÇÃO ENERGÉTICA SUSTENTÁVEL',
-    image: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1200&q=80',
     initialApplause: 230,
     desafioLocal: {
       title: 'Interrupções severas de energia a diesel paralisando viveiros',

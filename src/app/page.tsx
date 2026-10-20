@@ -17,6 +17,7 @@ import {
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import TechAdvantages from '@/components/TechAdvantages';
+import HomeProjectsAccordionSection from '@/components/HomeProjectsAccordionSection';
 import Methodology from '@/components/Methodology';
 import LiveBroadcastSection from '@/components/LiveBroadcastSection';
 import PresentationPitchModal from '@/components/PresentationPitchModal';
@@ -324,6 +325,9 @@ export default function HomePage() {
 
         {/* ================= SEGUNDA SEÇÃO: BENTO GRID DE PILARES ================= */}
         <TechAdvantages />
+
+        {/* ================= SEÇÃO EXPANSÍVEL: PANORAMA DOS ECOSSISTEMAS PEDAGÓGICOS ================= */}
+        <HomeProjectsAccordionSection />
 
         {/* ================= TERCEIRA SEÇÃO: METODOLOGIA EM 5 PASSOS ================= */}
         <Methodology />

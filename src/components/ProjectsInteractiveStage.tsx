@@ -11,7 +11,6 @@ import ReplicationPassportModal from './ReplicationPassportModal';
 import { 
   Sparkles, 
   ArrowRight, 
-  ArrowUpRight, 
   Package, 
   MapPin, 
   School, 
@@ -26,7 +25,6 @@ import {
 export default function ProjectsInteractiveStage() {
   const [selectedTrack, setSelectedTrack] = useState<string>('⚡ Todas as Missões (06)');
   const [selectedProjectId, setSelectedProjectId] = useState<string>(PROJECTS_DATA[0].id);
-  const [hoveredAccordionId, setHoveredAccordionId] = useState<string>(PROJECTS_DATA[0].id);
   const [applauseCounts, setApplauseCounts] = useState<{ [id: string]: number }>(() => {
     const initial: { [id: string]: number } = {};
     PROJECTS_DATA.forEach((p) => {
@@ -54,7 +52,6 @@ export default function ProjectsInteractiveStage() {
   // Alterna o projeto e ajusta a trilha se necessário
   const handleSelectProject = (project: ProjectMission) => {
     setSelectedProjectId(project.id);
-    setHoveredAccordionId(project.id);
   };
 
   // Avança para a próxima missão circularmente
@@ -63,7 +60,6 @@ export default function ProjectsInteractiveStage() {
     const nextIndex = (currentIndex + 1) % PROJECTS_DATA.length;
     const nextProject = PROJECTS_DATA[nextIndex];
     setSelectedProjectId(nextProject.id);
-    setHoveredAccordionId(nextProject.id);
   };
 
   // Incrementa aplausos com micro-feedback
@@ -78,14 +74,6 @@ export default function ProjectsInteractiveStage() {
     }, 900);
   };
 
-  // Inspecionar a partir da lâmina sanfona e rolar suavemente ao console
-  const handleInspectFromAccordion = (project: ProjectMission) => {
-    setSelectedProjectId(project.id);
-    const stageEl = document.getElementById('palco-inspecao');
-    if (stageEl) {
-      stageEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
 
   // Cores dinâmicas para os nós de trilha
   const getTrackColorClasses = (track: ProjectMission['track']) => {
@@ -184,7 +172,6 @@ export default function ProjectsInteractiveStage() {
                     });
                     if (firstMatch) {
                       setSelectedProjectId(firstMatch.id);
-                      setHoveredAccordionId(firstMatch.id);
                     }
                   }
                 }}
@@ -470,140 +457,7 @@ export default function ProjectsInteractiveStage() {
 
       </section>
 
-      {/* ========================================================================= */}
-      {/* 🪗 3. SEGUNDA SEÇÃO: GALERIA SANFONA EXPANSÍVEL (ACCORDION DECK)          */}
-      {/* ========================================================================= */}
-      <section className="space-y-4 pt-6">
-        
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-          <div>
-            <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF]">
-              {'// EXPLORAÇÃO PANORÂMICA POR TERRITÓRIO'}
-            </p>
-            <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-              Panorama dos 6 Ecossistemas Pedagógicos
-            </h3>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Passe o mouse ou toque nas lâminas para expandir o panorama de cada território.
-          </p>
-        </div>
 
-        {/* LÂMINAS EXPANSÍVEIS HORIZONTAIS */}
-        <div className="flex flex-col lg:flex-row gap-3 min-h-[460px] lg:h-[440px] w-full">
-          {PROJECTS_DATA.map((proj) => {
-            const isHovered = hoveredAccordionId === proj.id;
-            const isSelected = selectedProjectId === proj.id;
-
-            return (
-              <div
-                key={proj.id}
-                onMouseEnter={() => setHoveredAccordionId(proj.id)}
-                onClick={() => setHoveredAccordionId(proj.id)}
-                className={`relative rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 ease-out flex flex-col justify-between p-6 ${
-                  isHovered
-                    ? 'lg:flex-[3.5] min-h-[300px] lg:min-h-0 ring-2 ring-[#004A99] dark:ring-[#00D8FF] shadow-xl'
-                    : 'lg:flex-[0.8] min-h-[90px] lg:min-h-0 bg-slate-900/90 hover:brightness-110'
-                }`}
-              >
-                {/* Imagem de Fundo em Alta Definição */}
-                <img
-                  src={proj.image}
-                  alt={proj.title}
-                  loading="lazy"
-                  className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 pointer-events-none ${
-                    isHovered ? 'scale-105 filter-none' : 'scale-100 brightness-60'
-                  }`}
-                />
-
-                {/* Gradiente de Contraste Fixo para Garantir Texto 100% Branco */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-slate-950/20 pointer-events-none" />
-
-                {/* Conteúdo da Lâmina Expandida */}
-                {isHovered ? (
-                  <div className="relative z-10 flex flex-col justify-between h-full space-y-4">
-                    
-                    {/* Topo da Lâmina */}
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-[#00D8FF] border border-[#00D8FF]/40">
-                        {proj.missionCode} • {proj.typology}
-                      </span>
-                      {isSelected && (
-                        <span className="font-mono text-[10px] px-2 py-0.5 rounded-full bg-cyan-400 text-slate-950 font-black">
-                          EM INSPEÇÃO NO PALCO
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Meio / Rodapé da Lâmina */}
-                    <div className="space-y-3">
-                      <div className="space-y-1">
-                        <span className="text-xs font-mono text-slate-300 flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-[#00D8FF]" />
-                          {proj.territory}
-                        </span>
-                        <h4 className="font-display text-xl sm:text-2xl font-bold text-white leading-tight">
-                          {proj.title}
-                        </h4>
-                      </div>
-
-                      {/* Citação do Professor Mediador */}
-                      <p className="text-xs italic text-slate-200 line-clamp-2 leading-relaxed bg-black/40 backdrop-blur-sm p-3 rounded-xl border border-white/10">
-                        &ldquo;{proj.quote}&rdquo;
-                      </p>
-
-                      {/* Botão de Ação: Inspecionar no Palco */}
-                      <div className="pt-1 flex items-center justify-between gap-3">
-                        <span className="text-[11px] font-mono text-slate-300">
-                          {proj.school} • {proj.mediatorName}
-                        </span>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleInspectFromAccordion(proj);
-                          }}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white text-slate-950 hover:bg-[#00D8FF] transition-colors text-xs font-bold cursor-pointer shadow-md shrink-0"
-                        >
-                          <span>Inspecionar no Palco</span>
-                          <ArrowUpRight className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
-                ) : (
-                  /* Conteúdo da Lâmina Recolhida */
-                  <div className="relative z-10 flex lg:flex-col justify-between items-center h-full w-full">
-                    
-                    {/* Número Gigante Vertical */}
-                    <span className="font-mono text-2xl lg:text-3xl font-black text-white/50">
-                      {proj.number}
-                    </span>
-
-                    {/* Título Vertical Compacto (Desktop) / Linha Horizontal (Mobile) */}
-                    <div className="lg:[writing-mode:vertical-lr] lg:rotate-180 flex items-center gap-2">
-                      <span className="font-mono text-[10px] tracking-widest text-[#00D8FF] font-bold">
-                        {proj.municipality.toUpperCase()}
-                      </span>
-                      <span className="text-xs font-semibold text-white truncate max-w-[140px] lg:max-w-[200px]">
-                        {proj.shortTitle}
-                      </span>
-                    </div>
-
-                    <span className="text-[10px] font-mono text-white/40 hidden lg:block">
-                      EXPANDIR +
-                    </span>
-                  </div>
-                )}
-
-              </div>
-            );
-          })}
-        </div>
-
-      </section>
 
       {/* ========================================================================= */}
       {/* 📦 4. MODAL PASSAPORTE DE REPLICAÇÃO PEDAGÓGICA                            */}
