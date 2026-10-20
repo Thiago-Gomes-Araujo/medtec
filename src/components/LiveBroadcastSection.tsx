@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import initialData from '@/data/initialData.json';
 import { SocialLinks } from '@/types';
 import { 
@@ -10,9 +11,13 @@ import {
   Tv, 
   Clock, 
   ExternalLink,
-  Share2,
   Globe,
-  CheckCircle2
+  CheckCircle2,
+  Bell,
+  Newspaper,
+  ArrowRight,
+  AlertCircle,
+  Calendar
 } from 'lucide-react';
 import { 
   InstagramIcon, 
@@ -42,14 +47,26 @@ export default function LiveBroadcastSection({ socials = initialData.socials as 
     {
       shift: 'Plantão Pedagógico',
       hours: 'Em tempo real',
-      desc: 'Canal de retorno e interação síncrona entre professores ministrantes e mediadores presenciais.',
+      desc: 'Canal síncrono de retorno e interação direta entre professores ministrantes e mediadores presenciais.',
       badge: 'Interação Ao Vivo'
     },
   ];
 
+  // Dados reais para o feed ao vivo da coluna direita
+  const urgentAnnouncement = initialData.announcements?.[0] || {
+    id: 'aviso-1',
+    title: 'Início do Calendário Letivo 2026 e Transmissões ao Vivo',
+    content: 'Grade de aulas síncronas via satélite ativa a partir das 07h30 para o turno matutino.',
+    date: '10/10/2026',
+    type: 'urgente'
+  };
+
+  const recentNews = (initialData.news || []).slice(0, 2);
+
   return (
-    <section id="ao-vivo" className="relative scroll-mt-20 bg-[#F0F4F8] dark:bg-gradient-to-b dark:from-[#040D1A] dark:via-[#07162C] dark:to-[#040D1A] text-slate-800 dark:text-white py-24 overflow-hidden transition-colors duration-200">
-      {/* Âncora alternativa para compatibilidade */}
+    <section id="ao-vivo" className="relative scroll-mt-20 bg-white dark:bg-[#061224] text-slate-800 dark:text-white py-20 sm:py-28 overflow-hidden transition-colors duration-200">
+      
+      {/* Âncoras alternativas para links de navegação */}
       <div id="transmissoes" className="absolute -top-20" />
       <div id="redes" className="absolute -top-20" />
 
@@ -60,285 +77,294 @@ export default function LiveBroadcastSection({ socials = initialData.socials as 
       <div className="pointer-events-none absolute -left-40 top-1/4 h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-[140px]" />
       <div className="pointer-events-none absolute -right-40 bottom-1/4 h-[500px] w-[500px] rounded-full bg-rose-500/10 blur-[140px]" />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
         
-        {/* ================= CABEÇALHO DA SEÇÃO ================= */}
-        <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white dark:bg-cyan-950/60 border border-sky-300 dark:border-cyan-400/30 text-[#05549D] dark:text-cyan-300 font-mono text-[11px] font-bold uppercase tracking-[0.2em] shadow-xs dark:shadow-[0_0_15px_rgba(0,216,255,0.15)]">
+        {/* ================= 1. CABEÇALHO DA SEÇÃO ================= */}
+        <div className="text-center max-w-3xl mx-auto space-y-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white dark:bg-cyan-950/60 border border-sky-300 dark:border-cyan-400/30 text-[#004A99] dark:text-cyan-300 font-mono text-[11px] font-bold uppercase tracking-[0.2em] shadow-xs dark:shadow-[0_0_15px_rgba(0,216,255,0.15)]">
             <Radio className="h-3.5 w-3.5 text-rose-500 dark:text-rose-400 animate-pulse" />
-            <span>SINAL SÍNCRONO &amp; REDES OFICIAIS // SEDUC-RO</span>
+            <span>SINAL SÍNCRONO &amp; COMUNICAÇÃO // SEDUC RONDÔNIA</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-tight font-display">
-            Transmissões Ao Vivo &amp; <span className="text-[#05549D] dark:text-transparent dark:bg-gradient-to-r dark:from-cyan-300 dark:via-sky-300 dark:to-white dark:bg-clip-text">Redes Oficiais</span>
+            Pulso do MEDTEC em <span className="gradient-text">Tempo Real</span>
           </h2>
 
           <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto">
-            Aulas diárias transmitidas via satélite diretamente dos estúdios televisivos em Porto Velho para centenas de salas conectadas em todo o estado de Rondônia.
+            Acompanhe o sinal das aulas nos 52 municípios, consulte os turnos de transmissão e acesse comunicados oficiais e reportagens do programa.
           </p>
         </div>
 
-        {/* ================= CONSOLE HUD DE TRANSMISSÃO ================= */}
-        <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-cyan-500/25 bg-white dark:bg-slate-900/80 p-6 sm:p-10 backdrop-blur-xl shadow-xl dark:shadow-2xl mb-14">
+        {/* ================= 2. GRID ASSIMÉTRICO DE 2 COLUNAS (7 cols + 5 cols) ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           
-          {/* Cantoneiras Técnicas (Viewfinder Brackets) */}
-          <div className="pointer-events-none absolute left-4 top-4 h-5 w-5 border-l-2 border-t-2 border-[#05549D] dark:border-cyan-400" />
-          <div className="pointer-events-none absolute right-4 top-4 h-5 w-5 border-r-2 border-t-2 border-[#05549D] dark:border-cyan-400" />
-          <div className="pointer-events-none absolute bottom-4 left-4 h-5 w-5 border-b-2 border-l-2 border-[#05549D] dark:border-cyan-400" />
-          <div className="pointer-events-none absolute bottom-4 right-4 h-5 w-5 border-b-2 border-r-2 border-[#05549D] dark:border-cyan-400" />
-
-          <div className="relative z-10 grid gap-8 lg:grid-cols-12 items-center">
+          {/* COLUNA ESQUERDA (7 cols): GRADE DIÁRIA & ESTÚDIO AO VIVO */}
+          <div className="lg:col-span-7 flex flex-col justify-between rounded-3xl border border-slate-200/90 dark:border-cyan-500/25 bg-white dark:bg-slate-900/80 p-6 sm:p-8 backdrop-blur-xl shadow-xl relative overflow-hidden">
             
-            {/* Coluna da Esquerda: Estúdio Central e Controles */}
-            <div className="lg:col-span-7 space-y-5">
-              
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3.5 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-white shadow-sm">
-                  <Radio className="h-3.5 w-3.5 animate-pulse" />
-                  ((•)) Sinal no Ar · Estúdio Central
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300 dark:border-cyan-400/30 bg-sky-50 dark:bg-cyan-400/10 px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-[#05549D] dark:text-cyan-200 font-semibold">
-                  <Satellite className="h-3 w-3 text-[#05549D] dark:text-cyan-300" />
-                  Satélite Banda Ku &amp; IP
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-3 py-1 font-mono text-[10px] uppercase tracking-wider text-slate-700 dark:text-slate-300 font-semibold">
-                  <Signal className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                  4K Ultra HD
+            {/* Cantoneiras Técnicas (Viewfinder Brackets) */}
+            <div className="pointer-events-none absolute left-3 top-3 h-4 w-4 border-l-2 border-t-2 border-[#004A99] dark:border-cyan-400" />
+            <div className="pointer-events-none absolute right-3 top-3 h-4 w-4 border-r-2 border-t-2 border-[#004A99] dark:border-cyan-400" />
+            <div className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 border-b-2 border-l-2 border-[#004A99] dark:border-cyan-400" />
+            <div className="pointer-events-none absolute bottom-3 right-3 h-4 w-4 border-b-2 border-r-2 border-[#004A99] dark:border-cyan-400" />
+
+            <div className="space-y-6">
+              {/* Header do Estúdio */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-white/10">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1 font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white shadow-xs">
+                    <Radio className="h-3 w-3 animate-pulse" />
+                    ((•)) Sinal no Ar • Estúdio PVH
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-sky-300 dark:border-cyan-400/30 bg-sky-50 dark:bg-cyan-400/10 px-2.5 py-1 font-mono text-[10px] text-[#004A99] dark:text-cyan-200 font-semibold">
+                    <Satellite className="h-3 w-3" />
+                    Banda Ku &amp; IP
+                  </span>
+                </div>
+
+                <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Uplink 99.8%
                 </span>
               </div>
 
-              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight font-display">
-                Estúdio de Gravação e Transmissão Televisiva SEDUC
-              </h3>
+              {/* Título & Ações Rápidas */}
+              <div className="space-y-3">
+                <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                  Estúdio Central de Gravação &amp; Transmissão SEDUC
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Aulas ao vivo simultâneas geradas diretamente da capital para 129 unidades escolares em aldeias, assentamentos e comunidades ribeirinhas.
+                </p>
 
-              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
-                A Coordenadoria de Mídias Educacionais opera estúdios televisivos profissionais em Porto Velho, gerando sinal educacional de alta disponibilidade para jovens das comunidades ribeirinhas, indígenas, quilombolas e agrícolas dos 52 municípios.
-              </p>
+                {/* Botões de Ação do Estúdio */}
+                <div className="pt-1 flex flex-wrap items-center gap-3">
+                  <a
+                    href={socials.youtube || 'https://www.youtube.com/@SeducRondonia'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 px-4 py-2.5 text-xs font-bold text-white shadow-md transition-all cursor-pointer"
+                  >
+                    <Tv className="h-3.5 w-3.5" />
+                    <span>Assistir Aulas no YouTube</span>
+                    <ExternalLink className="h-3 w-3 opacity-80" />
+                  </a>
 
-              {/* Botões de Ação Rápida */}
-              <div className="pt-2 flex flex-wrap items-center gap-3.5">
-                <a
-                  href={socials.youtube || 'https://www.youtube.com/@SeducRondonia'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 px-5 py-3 text-xs sm:text-sm font-bold text-white shadow-md shadow-red-950/20 dark:shadow-red-950/60 transition-all hover:scale-[1.02] cursor-pointer"
-                >
-                  <Tv className="h-4 w-4" />
-                  <span>Assistir Aulas no YouTube</span>
-                  <ExternalLink className="h-3.5 w-3.5 opacity-80" />
-                </a>
-
-                <a
-                  href={socials.whatsapp || 'https://wa.me/5569999999999'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 px-5 py-3 text-xs sm:text-sm font-semibold text-emerald-800 dark:text-emerald-300 transition-colors cursor-pointer"
-                >
-                  <WhatsAppIcon size={16} />
-                  <span>Suporte Técnico da Sala</span>
-                  <ExternalLink className="h-3.5 w-3.5 opacity-80" />
-                </a>
+                  <a
+                    href={socials.whatsapp || 'https://wa.me/5569999999999'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 px-4 py-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 transition-colors cursor-pointer"
+                  >
+                    <WhatsAppIcon size={14} />
+                    <span>Suporte Técnico da Sala</span>
+                    <ExternalLink className="h-3 w-3 opacity-80" />
+                  </a>
+                </div>
               </div>
 
-              {/* Indicadores de Telemetria */}
-              <div className="pt-3 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-[11px] text-slate-600 dark:text-cyan-200/80 border-t border-slate-200 dark:border-white/10">
-                <span className="flex items-center gap-1.5 font-medium text-slate-800 dark:text-white">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  Transmissão Síncrona Ativa
-                </span>
-                <span className="text-slate-300 dark:text-slate-600">•</span>
-                <span className="text-slate-500 dark:text-slate-400">LAT -8.7619° S • LON -63.9039° W</span>
-                <span className="text-slate-300 dark:text-slate-600">•</span>
-                <span className="text-emerald-700 dark:text-emerald-400 font-bold">Uplink 99.8%</span>
+              {/* Grade Diária de Transmissão (3 turnos) */}
+              <div className="space-y-2.5 pt-2">
+                <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-white/5">
+                  <span className="font-mono text-xs uppercase tracking-wider text-slate-900 dark:text-cyan-300 flex items-center gap-1.5 font-bold">
+                    <Clock className="h-3.5 w-3.5 text-[#004A99] dark:text-cyan-400" />
+                    Grade Diária de Transmissão Síncrona
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Segunda a Sexta</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {schedules.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="rounded-2xl border border-slate-200/90 dark:border-white/10 bg-slate-50/80 dark:bg-white/5 p-3.5 flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                            {item.shift}
+                          </span>
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0" />
+                        </div>
+                        <p className="font-mono text-[11px] font-bold text-[#004A99] dark:text-cyan-300">
+                          {item.hours}
+                        </p>
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug mt-2 line-clamp-2">
+                        {item.desc}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
             </div>
 
-            {/* Coluna da Direita: Grade Diária de Transmissão */}
-            <div className="lg:col-span-5 space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/10">
-                <span className="font-mono text-xs uppercase tracking-wider text-slate-900 dark:text-cyan-300 flex items-center gap-2 font-bold">
-                  <Clock className="h-4 w-4 text-[#05549D] dark:text-cyan-400" />
-                  Grade Diária de Transmissão
-                </span>
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Segunda a Sexta</span>
-              </div>
-
-              {schedules.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-2xl border border-slate-200/90 dark:border-white/10 bg-slate-50/90 dark:bg-white/5 p-4 backdrop-blur-sm transition-all hover:border-[#05549D] dark:hover:border-cyan-400/40 hover:bg-white dark:hover:bg-white/10 shadow-xs"
-                >
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <span className="font-bold text-sm text-slate-900 dark:text-white">{item.shift}</span>
-                    <span className="font-mono text-xs font-semibold text-[#05549D] dark:text-cyan-300 bg-sky-100 dark:bg-cyan-400/10 px-2.5 py-0.5 rounded-md border border-sky-300/60 dark:border-cyan-400/20">
-                      {item.hours}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-snug">{item.desc}</p>
-                  <div className="mt-2 flex items-center gap-1.5 text-[10px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-                    <span>{item.badge}</span>
-                  </div>
-                </div>
-              ))}
+            {/* Telemetria de Coordenadas */}
+            <div className="mt-6 pt-3 flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] text-slate-500 dark:text-cyan-200/70 border-t border-slate-100 dark:border-white/10">
+              <span>LAT -8.7619° S • LON -63.9039° W</span>
+              <span className="text-[#004A99] dark:text-[#00D8FF] font-semibold">Hub Emissor Porto Velho</span>
             </div>
 
           </div>
+
+          {/* COLUNA DIREITA (5 cols): ÚLTIMOS AVISOS & NOTÍCIAS OFICIAIS */}
+          <div className="lg:col-span-5 flex flex-col justify-between rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 sm:p-8 shadow-xl">
+            
+            <div className="space-y-5">
+              
+              {/* Header do Feed */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#1A365D]">
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-[#004A99] dark:text-[#00D8FF]" />
+                  <h3 className="font-display text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                    Mural &amp; Publicações Recentes
+                  </h3>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-50 dark:bg-cyan-950/60 text-[#004A99] dark:text-cyan-300 border border-sky-200 dark:border-cyan-500/30">
+                  Feed Oficial
+                </span>
+              </div>
+
+              {/* 1. Card de Aviso Urgente do Mural */}
+              <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/90 dark:border-amber-500/30 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500 text-slate-950 uppercase tracking-wider">
+                    <AlertCircle className="h-3 w-3" />
+                    Aviso Mural
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                    {urgentAnnouncement.date}
+                  </span>
+                </div>
+                <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-snug">
+                  {urgentAnnouncement.title}
+                </h4>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                  {urgentAnnouncement.content}
+                </p>
+              </div>
+
+              {/* 2. Duas Notícias Recentes */}
+              <div className="space-y-3">
+                {recentNews.map((news) => (
+                  <Link
+                    key={news.id}
+                    href={`/noticias`}
+                    className="group block p-3.5 rounded-2xl bg-slate-50 dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-[#004A99]/50 dark:hover:border-cyan-400/50 transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#004A99] dark:text-[#00D8FF]">
+                        <Newspaper className="h-3 w-3" />
+                        {news.category}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {news.publishedAt}
+                      </span>
+                    </div>
+                    <h5 className="font-bold text-xs sm:text-[13px] text-slate-900 dark:text-white group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2">
+                      {news.title}
+                    </h5>
+                  </Link>
+                ))}
+              </div>
+
+            </div>
+
+            {/* Links Rápidos do Rodapé */}
+            <div className="pt-4 mt-4 border-t border-slate-100 dark:border-[#1A365D] flex items-center justify-between text-xs font-bold">
+              <Link
+                href="/avisos"
+                className="text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] flex items-center gap-1 transition-colors"
+              >
+                <span>Mural de Avisos</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+
+              <Link
+                href="/noticias"
+                className="text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1 transition-colors"
+              >
+                <span>Portal de Notícias</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+
+          </div>
+
         </div>
 
-        {/* ================= REDES SOCIAIS OFICIAIS ================= */}
-        <div className="space-y-6">
+        {/* ================= 3. BARRA HORIZONTAL EXECUTIVA DE REDES & PORTAL SEDUC ================= */}
+        <div className="rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm dark:shadow-md">
           
-          <div className="flex items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
-            <div className="flex items-center gap-2">
-              <Share2 className="h-4 w-4 text-[#0284C7] dark:text-cyan-400" />
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white font-display">
-                Canais Oficiais nas Redes Sociais
-              </h3>
+          {/* Lado Esquerdo: Selo e Link do Portal Oficial SEDUC */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-cyan-950/80 border border-sky-300 dark:border-cyan-400/30 text-[#004A99] dark:text-cyan-300 flex items-center justify-center shrink-0">
+              <Globe className="h-5 w-5" />
             </div>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-mono hidden sm:inline">
-              Comunidade &amp; Bastidores SEDUC
-            </span>
+            <div>
+              <p className="font-display font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-tight">
+                Portal Oficial da Secretaria de Estado da Educação
+              </p>
+              <a
+                href="https://rondonia.ro.gov.br/seduc/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-[11px] text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1"
+              >
+                <span>rondonia.ro.gov.br/seduc</span>
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Lado Direito: 4 Pílulas Horizontais Executivas e Discretas */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
             
-            {/* Card YouTube */}
-            <div className="rounded-2xl border border-slate-200 dark:border-red-500/20 bg-white dark:bg-slate-900/90 p-5 shadow-sm dark:shadow-xl transition-all hover:border-red-400 dark:hover:border-red-500/40 hover:-translate-y-1 flex flex-col justify-between group">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-11 h-11 rounded-xl bg-red-100 dark:bg-red-600/20 text-red-600 dark:text-red-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <YoutubeIcon size={22} />
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-[10px] font-mono font-bold">
-                    Ao Vivo
-                  </span>
-                </div>
-                <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1.5">Canal no YouTube</h4>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-                  Aulas ao vivo, revisões do ENEM e conteúdos produzidos nos estúdios da SEDUC.
-                </p>
-              </div>
-              <a
-                href={socials.youtube || 'https://www.youtube.com/@SeducRondonia'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <span>Inscrever-se no Canal</span>
-                <ExternalLink size={13} />
-              </a>
-            </div>
-
-            {/* Card Instagram */}
-            <div className="rounded-2xl border border-slate-200 dark:border-pink-500/20 bg-white dark:bg-slate-900/90 p-5 shadow-sm dark:shadow-xl transition-all hover:border-pink-400 dark:hover:border-pink-500/40 hover:-translate-y-1 flex flex-col justify-between group">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-11 h-11 rounded-xl bg-pink-100 dark:bg-gradient-to-tr dark:from-amber-500/20 dark:via-rose-500/20 dark:to-purple-500/20 text-pink-600 dark:text-pink-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <InstagramIcon size={22} />
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/20 text-pink-600 dark:text-pink-400 text-[10px] font-mono font-bold">
-                    @governoro
-                  </span>
-                </div>
-                <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1.5">Instagram Oficial</h4>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-                  Bastidores dos estúdios, fotos do cotidiano dos alunos e avisos pedagógicos rápidos.
-                </p>
-              </div>
-              <a
-                href={socials.instagram || 'https://www.instagram.com/governoro/'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                <span>Seguir no Instagram</span>
-                <ExternalLink size={13} />
-              </a>
-            </div>
-
-            {/* Card Facebook */}
-            <div className="rounded-2xl border border-slate-200 dark:border-blue-500/20 bg-white dark:bg-slate-900/90 p-5 shadow-sm dark:shadow-xl transition-all hover:border-blue-400 dark:hover:border-blue-500/40 hover:-translate-y-1 flex flex-col justify-between group">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-11 h-11 rounded-xl bg-blue-100 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <FacebookIcon size={22} />
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 text-[10px] font-mono font-bold">
-                    Comunidade
-                  </span>
-                </div>
-                <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1.5">Página no Facebook</h4>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-                  Notícias institucionais, eventos estaduais e conexão com famílias de Rondônia.
-                </p>
-              </div>
-              <a
-                href={socials.facebook || 'https://www.facebook.com/governoderondonia'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <span>Acompanhar no Facebook</span>
-                <ExternalLink size={13} />
-              </a>
-            </div>
-
-            {/* Card WhatsApp */}
-            <div className="rounded-2xl border border-slate-200 dark:border-emerald-500/20 bg-white dark:bg-slate-900/90 p-5 shadow-sm dark:shadow-xl transition-all hover:border-emerald-400 dark:hover:border-emerald-500/40 hover:-translate-y-1 flex flex-col justify-between group">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <WhatsAppIcon size={22} />
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-mono font-bold">
-                    Suporte
-                  </span>
-                </div>
-                <h4 className="text-base font-bold text-slate-900 dark:text-white mb-1.5">Canal do WhatsApp</h4>
-                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-                  Suporte pedagógico e técnico direto aos professores mediadores e polos escolares.
-                </p>
-              </div>
-              <a
-                href={socials.whatsapp || 'https://wa.me/5569999999999'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <span>Falar no WhatsApp</span>
-                <ExternalLink size={13} />
-              </a>
-            </div>
-
-          </div>
-
-          {/* Banner do Portal Oficial do Governo de Rondônia */}
-          <div className="rounded-2xl border border-slate-200 dark:border-cyan-500/30 bg-white dark:bg-gradient-to-r dark:from-cyan-950/40 dark:via-slate-900 dark:to-slate-950 p-5 sm:p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm dark:shadow-xl">
-            <div className="flex items-center gap-3.5">
-              <div className="p-2.5 bg-sky-100 dark:bg-cyan-500/20 border border-sky-300 dark:border-cyan-400/30 rounded-xl text-[#05549D] dark:text-cyan-300 shrink-0">
-                <Globe size={24} />
-              </div>
-              <div>
-                <h4 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                  Portal Oficial da Secretaria de Estado da Educação de Rondônia
-                </h4>
-                <p className="text-xs text-slate-600 dark:text-cyan-200/80 mt-0.5">
-                  Acesse informações institucionais detalhadas em rondonia.ro.gov.br/seduc
-                </p>
-              </div>
-            </div>
-
+            {/* Pílula YouTube */}
             <a
-              href="https://rondonia.ro.gov.br/seduc/programas-e-projetos/projetos/conheca-o-projeto/"
+              href={socials.youtube || 'https://www.youtube.com/@SeducRondonia'}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2.5 rounded-xl bg-[#05549D] dark:bg-white hover:bg-[#0284C7] dark:hover:bg-slate-100 text-white dark:text-slate-950 font-bold text-xs flex items-center gap-2 shrink-0 transition-all shadow-md cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#061224] hover:bg-slate-100 dark:hover:bg-[#091E3A] border border-slate-200 dark:border-[#1A365D] hover:border-red-400 dark:hover:border-red-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
             >
-              <span>Ver no Portal SEDUC</span>
-              <ExternalLink size={14} />
+              <YoutubeIcon size={16} className="text-red-600" />
+              <span>YouTube Ao Vivo</span>
             </a>
+
+            {/* Pílula Instagram */}
+            <a
+              href={socials.instagram || 'https://www.instagram.com/governoro/'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#061224] hover:bg-slate-100 dark:hover:bg-[#091E3A] border border-slate-200 dark:border-[#1A365D] hover:border-pink-400 dark:hover:border-pink-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
+            >
+              <InstagramIcon size={16} className="text-pink-600" />
+              <span>@governoro</span>
+            </a>
+
+            {/* Pílula Facebook */}
+            <a
+              href={socials.facebook || 'https://www.facebook.com/governoderondonia'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#061224] hover:bg-slate-100 dark:hover:bg-[#091E3A] border border-slate-200 dark:border-[#1A365D] hover:border-blue-400 dark:hover:border-blue-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
+            >
+              <FacebookIcon size={16} className="text-blue-600" />
+              <span>Comunidade FB</span>
+            </a>
+
+            {/* Pílula WhatsApp */}
+            <a
+              href={socials.whatsapp || 'https://wa.me/5569999999999'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#061224] hover:bg-slate-100 dark:hover:bg-[#091E3A] border border-slate-200 dark:border-[#1A365D] hover:border-emerald-400 dark:hover:border-emerald-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
+            >
+              <WhatsAppIcon size={16} className="text-emerald-600" />
+              <span>Suporte WhatsApp</span>
+            </a>
+
           </div>
 
         </div>

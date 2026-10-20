@@ -12,7 +12,7 @@ export default function HomeProjectsAccordionSection() {
   );
 
   return (
-    <section id="projetos-ecossistemas" className="relative scroll-mt-20 py-16 sm:py-24 bg-white dark:bg-[#061224] transition-colors duration-200 border-t border-slate-200/80 dark:border-white/5">
+    <section id="projetos-ecossistemas" className="relative scroll-mt-20 py-20 sm:py-28 bg-[#F0F4F8] dark:bg-[#040B16] transition-colors duration-200 border-t border-slate-200/80 dark:border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
         {/* Cabeçalho Editorial da Seção */}
@@ -96,7 +96,7 @@ export default function HomeProjectsAccordionSection() {
                       </div>
 
                       {/* Citação do Professor Mediador */}
-                      <p className="text-xs italic text-slate-200 line-clamp-2 leading-relaxed bg-black/40 backdrop-blur-sm p-3 rounded-xl border border-white/10">
+                      <p className="text-xs sm:text-[13px] italic text-slate-100 leading-relaxed bg-black/50 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
                         &ldquo;{proj.quote}&rdquo;
                       </p>
 
