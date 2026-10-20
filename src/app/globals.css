@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
@@ -304,5 +305,12 @@
 
 .animate-river-glow {
   animation: riverGlow 3s ease-in-out infinite;
+}
+
+@keyframes pulseLine {
+  0% { left: 0%; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { left: calc(100% - 96px); opacity: 0; }
 }
 

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { 
   ArrowRight, 
+  ArrowDown,
   Radio, 
   Satellite,
   Signal,
@@ -18,6 +19,7 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import TechAdvantages from '@/components/TechAdvantages';
 import Methodology from '@/components/Methodology';
+import HomeProjectsAccordionSection from '@/components/HomeProjectsAccordionSection';
 import LiveBroadcastSection from '@/components/LiveBroadcastSection';
 import PresentationPitchModal from '@/components/PresentationPitchModal';
 
@@ -318,17 +320,36 @@ export default function HomePage() {
 
           </div>
 
+          {/* Botão de Rolagem Suave na Base do Hero */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex justify-center">
+            <a 
+              href="#tecnologia" 
+              className="group flex items-center justify-center cursor-pointer"
+              aria-label="Rolar para os pilares e matriz curricular"
+            >
+              <span className="relative h-14 w-14 flex items-center justify-center">
+                <span className="absolute inset-0 rounded-full bg-cyan-400/20 blur-sm animate-ping" />
+                <div className="relative w-10 h-10 rounded-full bg-[#07162C]/80 border border-cyan-400/60 shadow-[0_0_20px_rgba(0,216,255,0.35)] flex items-center justify-center backdrop-blur-md group-hover:scale-110 group-hover:border-cyan-300 transition-all duration-300">
+                  <ArrowDown className="h-4 w-4 text-cyan-300 animate-bounce" />
+                </div>
+              </span>
+            </a>
+          </div>
+
           {/* Gradiente de Transição Suave na Base do Hero */}
           <div className="pointer-events-none absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-[#F0F4F8] dark:from-[#040B16] to-transparent" />
         </section>
 
-        {/* ================= SEGUNDA SEÇÃO: BENTO GRID DE PILARES ================= */}
+        {/* ================= SEÇÃO 2: ARQUITETURA & MATRIZ CURRICULAR UNIFICADAS ================= */}
         <TechAdvantages />
 
-        {/* ================= TERCEIRA SEÇÃO: METODOLOGIA EM 5 PASSOS ================= */}
+        {/* ================= SEÇÃO 3: A JORNADA DA AULA & QUEM FAZ ACONTECER ================= */}
         <Methodology />
 
-        {/* ================= QUARTA SEÇÃO: TRANSMISSÕES AO VIVO E REDES OFICIAIS ================= */}
+        {/* ================= SEÇÃO 4: PANORAMA DOS 6 ECOSSISTEMAS PEDAGÓGICOS ================= */}
+        <HomeProjectsAccordionSection />
+
+        {/* ================= SEÇÃO 5: PULSO EM TEMPO REAL, GRADE DO DIA & CONEXÃO OFICIAL ================= */}
         <LiveBroadcastSection />
       </main>
 
