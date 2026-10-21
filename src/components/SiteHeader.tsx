@@ -32,8 +32,8 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
   const [dossieOpen, setDossieOpen] = useState(false);
   const [dossieInitialTab, setDossieInitialTab] = useState(0);
 
-  // Estado local reativo sincronizado com o DOM e localStorage
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  // Estado local reativo sincronizado com o DOM e localStorage (padrão Claro / SEDUC)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -45,7 +45,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
     try {
       const savedTheme = localStorage.getItem('medtec-theme');
       const isDark = savedTheme 
-        ? savedTheme !== 'light' 
+        ? savedTheme === 'dark' 
         : document.documentElement.classList.contains('dark');
 
       setIsDarkMode(isDark);
@@ -64,7 +64,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
     // Sincroniza entre abas e janelas
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'medtec-theme') {
-        const isDark = e.newValue !== 'light';
+        const isDark = e.newValue === 'dark';
         setIsDarkMode(isDark);
         if (isDark) {
           document.documentElement.classList.add('dark');
@@ -470,9 +470,9 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
               aria-label="Alternar tema de cores"
             >
               {isDarkMode ? (
-                <Moon className="h-4 w-4 text-cyan-300 transition-transform hover:rotate-12" />
+                <Sun className="h-4 w-4 text-amber-400 transition-transform hover:rotate-45" />
               ) : (
-                <Sun className="h-4 w-4 text-amber-500 transition-transform hover:rotate-45" />
+                <Moon className="h-4 w-4 text-[#004A99] transition-transform hover:rotate-12" />
               )}
             </button>
 
@@ -502,15 +502,15 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             <button
               onClick={toggleTheme}
               aria-label="Alternar tema"
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-500/20 bg-[#0C1E38]/60 text-cyan-300"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 dark:border-cyan-500/20 bg-slate-100 dark:bg-[#0C1E38]/60 text-slate-700 dark:text-cyan-300"
             >
-              {isDarkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4 text-amber-400" />}
+              {isDarkMode ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-[#004A99]" />}
             </button>
 
             <Link
               href="/ao-vivo"
               onClick={(e) => handleNavClick('/ao-vivo', e)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] font-bold text-rose-300"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-300"
             >
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-500 opacity-75" />
@@ -522,7 +522,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Abrir menu de navegação"
-              className="rounded-xl border border-cyan-500/20 bg-slate-900/60 p-2 text-cyan-200 hover:bg-white/5 transition-colors"
+              className="rounded-xl border border-slate-300 dark:border-cyan-500/20 bg-slate-100 dark:bg-slate-900/60 p-2 text-slate-700 dark:text-cyan-200 hover:bg-slate-200 dark:hover:bg-white/5 transition-colors"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -532,11 +532,11 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
 
         {/* ================= MENU MOBILE EXPANSÍVEL ================= */}
         {mobileMenuOpen && (
-          <nav className="border-t border-cyan-500/15 bg-[#040D1A]/95 backdrop-blur-2xl px-4 py-4 lg:hidden max-h-[85vh] overflow-y-auto space-y-3">
+          <nav className="border-t border-slate-200 dark:border-cyan-500/15 bg-white/95 dark:bg-[#040D1A]/95 backdrop-blur-2xl px-4 py-4 lg:hidden max-h-[85vh] overflow-y-auto space-y-3">
             
             {/* Submenu da Página Inicial */}
-            <div className="rounded-2xl border border-cyan-500/20 bg-cyan-950/20 p-3 space-y-1">
-              <p className="px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-cyan-300 font-bold">
+            <div className="rounded-2xl border border-slate-200 dark:border-cyan-500/20 bg-slate-50 dark:bg-cyan-950/20 p-3 space-y-1">
+              <p className="px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-[#004A99] dark:text-cyan-300 font-bold">
                 {'// Início & Páginas Estruturantes'}
               </p>
               {megaMenuShortcuts.map((sec) => {
@@ -549,14 +549,14 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                       handleNavClick(sec.target, e);
                       setMobileMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl p-2 text-xs font-medium text-slate-200 hover:bg-white/5 transition-colors text-left"
+                    className="flex w-full items-center gap-3 rounded-xl p-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-left"
                   >
-                    <div className="rounded-lg border border-white/10 bg-white/5 p-1.5 shrink-0 text-cyan-300">
+                    <div className="rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-1.5 shrink-0 text-[#004A99] dark:text-cyan-300">
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-white">{sec.title}</p>
-                      <p className="text-[10px] text-slate-400 truncate">{sec.desc}</p>
+                      <p className="font-semibold text-slate-900 dark:text-white">{sec.title}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{sec.desc}</p>
                     </div>
                   </Link>
                 );
@@ -565,7 +565,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
 
             {/* Links Centrais Mobile */}
             <div className="grid gap-1 pt-1">
-              <p className="px-3 pt-1 font-mono text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+              <p className="px-3 pt-1 font-mono text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
                 {'// Navegação Geral'}
               </p>
               {dockLinks.map((item) => {
@@ -576,7 +576,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                     href={item.to}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-colors ${
-                      active ? 'bg-cyan-400/15 text-cyan-200' : 'text-slate-200 hover:bg-white/5'
+                      active ? 'bg-sky-100 dark:bg-cyan-400/15 text-[#004A99] dark:text-cyan-200 font-bold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5'
                     }`}
                   >
                     <span>{item.label}</span>
@@ -586,12 +586,12 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             </div>
 
             {/* Ações Mobile */}
-            <div className="pt-2 flex flex-col gap-2 border-t border-white/10">
+            <div className="pt-2 flex flex-col gap-2 border-t border-slate-200 dark:border-white/10">
               <button
                 onClick={() => handleOpenDossie(0)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-3.5 py-2.5 text-xs font-semibold text-cyan-200 cursor-pointer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-cyan-400/30 bg-slate-100 dark:bg-cyan-400/10 px-3.5 py-2.5 text-xs font-semibold text-slate-800 dark:text-cyan-200 cursor-pointer"
               >
-                <ShieldCheck className="h-4 w-4 text-cyan-300" />
+                <ShieldCheck className="h-4 w-4 text-[#004A99] dark:text-cyan-300" />
                 <span>Dossiê Institucional</span>
               </button>
 
