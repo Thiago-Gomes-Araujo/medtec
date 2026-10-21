@@ -262,11 +262,11 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                   <span className="absolute inset-0 animate-ping rounded-full bg-cyan-300 opacity-75" />
                 </span>
               </span>
-              <span className="min-w-0 leading-tight">
+              <span className="min-w-0 leading-tight select-none">
                 <span className="block truncate font-display text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-cyan-200 transition-colors whitespace-nowrap">
                   MEDTEC Rondônia
                 </span>
-                <span className="block truncate font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.2em] text-[#05549D] dark:text-cyan-300/80 font-semibold whitespace-nowrap">
+                <span className="block truncate font-mono text-[9px] sm:text-[10px] uppercase tracking-wider text-[#05549D] dark:text-cyan-300 font-bold whitespace-nowrap">
                   SEDUC • SINAL ATIVO
                 </span>
               </span>
@@ -285,7 +285,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                 onMouseLeave={handleMouseLeave}
               >
                 <div
-                  className={`inline-flex items-center rounded-full text-xs font-semibold tracking-wide transition-all ${
+                  className={`inline-flex items-center rounded-full text-xs font-semibold tracking-wide transition-all duration-150 ease-out ${
                     pathname === '/' || inicioDropdownOpen
                       ? 'bg-sky-500/15 text-[#05549D] border border-sky-400/40 dark:bg-cyan-400/15 dark:text-cyan-300 dark:shadow-[inset_0_0_10px_rgba(0,216,255,0.2)] dark:border-cyan-400/30'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white border border-transparent'
@@ -296,7 +296,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                     onClick={(e) => {
                       handleNavClick('/', e);
                     }}
-                    className="pl-2.5 pr-1 py-1 inline-flex items-center cursor-pointer whitespace-nowrap"
+                    className="pl-2.5 pr-1 py-1 inline-flex items-center cursor-pointer whitespace-nowrap touch-manipulation select-none active:scale-[0.97] transition-transform duration-150 ease-out"
                   >
                     <span>Início</span>
                   </Link>
@@ -308,12 +308,12 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                       e.stopPropagation();
                       setInicioDropdownOpen(!inicioDropdownOpen);
                     }}
-                    className="pr-2 py-1 pl-0.5 cursor-pointer flex items-center text-slate-400 hover:text-sky-600 dark:hover:text-cyan-300 transition-colors"
+                    className="pr-2 py-1 pl-0.5 cursor-pointer flex items-center text-slate-400 hover:text-sky-600 dark:hover:text-cyan-300 transition-colors touch-manipulation"
                     aria-expanded={inicioDropdownOpen}
                     aria-label="Abrir menu de início"
                   >
                     <ChevronDown 
-                      className={`h-3 w-3 transition-transform duration-200 ${
+                      className={`h-3 w-3 transition-transform duration-150 ease-out ${
                         inicioDropdownOpen ? 'rotate-180 text-sky-600 dark:text-cyan-300' : 'text-slate-400'
                       }`} 
                     />
@@ -324,10 +324,11 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                 <AnimatePresence>
                   {inicioDropdownOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 6, scale: 0.98 }}
-                      transition={{ duration: 0.18, ease: 'easeOut' }}
+                      exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                      transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
+                      style={{ transformOrigin: 'top left' }}
                       className="absolute left-0 top-full pt-2 z-50 w-[640px]"
                       onMouseEnter={handleMouseEnter}
                       onMouseLeave={handleMouseLeave}
@@ -349,10 +350,10 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                                 <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-sky-300 dark:border-cyan-400/30 bg-sky-100 dark:bg-cyan-400/10 text-[#05549D] dark:text-cyan-300 mb-2">
                                   <Satellite className="h-4 w-4 text-[#05549D] dark:text-[#00D8FF]" />
                                 </div>
-                                <h4 className="font-display text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+                                <h4 className="font-display text-sm font-bold text-slate-900 dark:text-white tracking-tight leading-snug text-balance">
                                   Arquitetura MEDTEC RO
                                 </h4>
-                                <p className="mt-1.5 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                                <p className="mt-1.5 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed text-pretty">
                                   Transmissão síncrona em 4K UHD gerada nos estúdios centrais em Porto Velho e distribuída via satélite para os 52 municípios rondonienses.
                                 </p>
                               </div>
@@ -362,15 +363,15 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                               <Link
                                 href="/ao-vivo"
                                 onClick={(e) => handleNavClick('/ao-vivo', e)}
-                                className="group flex items-center gap-1.5 text-[11px] font-semibold text-[#05549D] dark:text-cyan-300 hover:text-sky-700 dark:hover:text-white transition-colors cursor-pointer"
+                                className="group flex items-center gap-1.5 text-[11px] font-semibold text-[#05549D] dark:text-cyan-300 hover:text-sky-700 dark:hover:text-white transition-colors cursor-pointer active:scale-[0.98] duration-150 ease-out"
                               >
                                 <span>Ver Transmissão Ao Vivo</span>
-                                <span className="text-sky-600 dark:text-cyan-400 group-hover:translate-x-0.5 transition-transform">→</span>
+                                <span className="text-sky-600 dark:text-cyan-400 group-hover:translate-x-0.5 transition-transform duration-150 ease-out">→</span>
                               </Link>
                               <button
                                 type="button"
                                 onClick={() => handleOpenDossie(1)}
-                                className="text-[10px] font-mono text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-cyan-200 cursor-pointer"
+                                className="text-[10px] font-mono text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-cyan-200 cursor-pointer active:scale-[0.96] transition-transform duration-150 ease-out"
                               >
                                 [Dossiê]
                               </button>
@@ -383,7 +384,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                               <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#05549D] dark:text-cyan-300/80">
                                 {'// PÁGINAS & SEÇÕES DO MEDTEC'}
                               </span>
-                              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">{megaMenuShortcuts.length} itens</span>
+                              <span className="font-mono text-[10px] tabular-nums text-slate-500 dark:text-slate-400">{megaMenuShortcuts.length} itens</span>
                             </div>
 
                             <div className="grid gap-1.5">
@@ -394,16 +395,16 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                                     key={item.title}
                                     href={item.target}
                                     onClick={(e) => handleNavClick(item.target, e)}
-                                    className="group flex items-start gap-3 rounded-xl p-2 text-left transition-all hover:bg-slate-100 dark:hover:bg-white/5 hover:border-sky-300 dark:hover:border-cyan-400/30 border border-transparent cursor-pointer w-full"
+                                    className="group flex items-start gap-3 rounded-xl p-2 text-left transition-all duration-150 ease-out hover:bg-slate-100 dark:hover:bg-white/5 hover:border-sky-300 dark:hover:border-cyan-400/30 border border-transparent cursor-pointer w-full active:scale-[0.98] touch-manipulation select-none"
                                   >
-                                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-cyan-400/20 bg-slate-100 dark:bg-cyan-400/10 text-sky-600 dark:text-[#00D8FF] transition-transform group-hover:scale-105 group-hover:border-sky-400 dark:group-hover:border-cyan-400/50">
+                                    <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-200 dark:border-cyan-400/20 bg-slate-100 dark:bg-cyan-400/10 text-sky-600 dark:text-[#00D8FF] transition-transform duration-150 ease-out group-hover:scale-105 group-hover:border-sky-400 dark:group-hover:border-cyan-400/50">
                                       <Icon className="h-3.5 w-3.5" />
                                     </div>
                                     <div className="min-w-0 flex-1">
                                       <p className="text-xs font-semibold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-cyan-200 transition-colors leading-tight">
                                         {item.title}
                                       </p>
-                                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 leading-tight">
+                                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 leading-tight [overflow-wrap:anywhere]">
                                         {item.desc}
                                       </p>
                                     </div>
@@ -428,7 +429,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                   <Link
                     key={item.label}
                     href={item.to}
-                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide transition-all whitespace-nowrap ${
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold tracking-wide transition-all duration-150 ease-out whitespace-nowrap touch-manipulation select-none active:scale-[0.96] ${
                       active
                         ? 'bg-sky-500/15 text-[#05549D] border border-sky-400/40 dark:bg-cyan-400/15 dark:text-cyan-300 dark:shadow-[inset_0_0_10px_rgba(0,216,255,0.2)] dark:border-cyan-400/30'
                         : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white border border-transparent'
@@ -443,7 +444,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
               <Link
                 href="/ao-vivo"
                 onClick={(e) => handleNavClick('/ao-vivo', e)}
-                className={`group inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition-all whitespace-nowrap ml-0.5 ${
+                className={`group inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition-all duration-150 ease-out whitespace-nowrap ml-0.5 touch-manipulation select-none active:scale-[0.96] ${
                   pathname === '/ao-vivo' || pathname === '/redes'
                     ? 'border border-rose-500/50 bg-rose-500/20 text-rose-600 dark:text-rose-200 shadow-[0_0_12px_rgba(244,63,94,0.35)]'
                     : 'border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-300 hover:border-rose-500/60 hover:bg-rose-500/20'
@@ -465,21 +466,21 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             {/* 1. BOTÃO DE TEMA COMPACTO (APENAS ÍCONE) */}
             <button
               onClick={toggleTheme}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 dark:border-cyan-500/25 bg-slate-100 dark:bg-[#0C1E38]/60 text-slate-700 dark:text-slate-200 hover:border-sky-400 dark:hover:border-cyan-400/50 hover:bg-slate-200 dark:hover:bg-cyan-500/10 transition-all cursor-pointer backdrop-blur-sm shadow-xs"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 dark:border-cyan-500/25 bg-slate-100 dark:bg-[#0C1E38]/60 text-slate-700 dark:text-slate-200 hover:border-sky-400 dark:hover:border-cyan-400/50 hover:bg-slate-200 dark:hover:bg-cyan-500/10 active:scale-[0.92] transition-all duration-150 ease-out cursor-pointer backdrop-blur-sm shadow-xs touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-cyan-400"
               title={isDarkMode ? 'Alternar para Modo Claro' : 'Alternar para Modo Escuro'}
               aria-label="Alternar tema de cores"
             >
               {isDarkMode ? (
-                <Sun className="h-4 w-4 text-amber-400 transition-transform hover:rotate-45" />
+                <Sun className="h-4 w-4 text-amber-400 transition-transform duration-200 hover:rotate-45" />
               ) : (
-                <Moon className="h-4 w-4 text-[#004A99] transition-transform hover:rotate-12" />
+                <Moon className="h-4 w-4 text-[#004A99] transition-transform duration-200 hover:rotate-12" />
               )}
             </button>
 
             {/* 2. BOTÃO DOSSIÊ EXECUTIVO */}
             <button
               onClick={() => handleOpenDossie(0)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 dark:border-cyan-400/30 bg-slate-100 dark:bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-cyan-200 hover:bg-slate-200 dark:hover:bg-cyan-400/20 hover:border-slate-400 dark:hover:border-cyan-400/50 transition-all cursor-pointer backdrop-blur-sm whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-300 dark:border-cyan-400/30 bg-slate-100 dark:bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-cyan-200 hover:bg-slate-200 dark:hover:bg-cyan-400/20 hover:border-slate-400 dark:hover:border-cyan-400/50 active:scale-[0.96] transition-all duration-150 ease-out cursor-pointer backdrop-blur-sm whitespace-nowrap touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-cyan-400"
             >
               <ShieldCheck className="h-3.5 w-3.5 text-sky-600 dark:text-cyan-300" />
               <span>Dossiê</span>
@@ -488,10 +489,10 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             {/* 3. CTA PAINEL GESTOR */}
             <Link
               href="/admin"
-              className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-300 px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-wider text-slate-950 shadow-[0_0_20px_rgba(0,216,255,0.35)] transition-all hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,216,255,0.6)] whitespace-nowrap"
+              className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-300 px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-wider text-slate-950 shadow-[0_0_20px_rgba(0,216,255,0.35)] active:scale-[0.96] transition-all duration-150 ease-out hover:brightness-110 hover:shadow-[0_0_28px_rgba(0,216,255,0.6)] whitespace-nowrap touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               <span>Painel Gestor</span>
-              <ExternalLink className="h-3 w-3 opacity-75 group-hover:translate-x-0.5 transition-transform" />
+              <ExternalLink className="h-3 w-3 opacity-75 group-hover:translate-x-0.5 transition-transform duration-150 ease-out" />
             </Link>
 
           </div>
@@ -502,7 +503,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             <button
               onClick={toggleTheme}
               aria-label="Alternar tema"
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-300 dark:border-cyan-500/20 bg-slate-100 dark:bg-[#0C1E38]/60 text-slate-700 dark:text-cyan-300"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 dark:border-cyan-500/20 bg-slate-100 dark:bg-[#0C1E38]/60 text-slate-700 dark:text-cyan-300 active:scale-[0.92] transition-transform duration-150 ease-out touch-manipulation"
             >
               {isDarkMode ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-[#004A99]" />}
             </button>
@@ -510,7 +511,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             <Link
               href="/ao-vivo"
               onClick={(e) => handleNavClick('/ao-vivo', e)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-300"
+              className="inline-flex items-center gap-1.5 min-h-[36px] rounded-lg border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 text-xs font-bold text-rose-600 dark:text-rose-300 active:scale-[0.96] transition-all duration-150 ease-out touch-manipulation select-none"
             >
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-500 opacity-75" />
@@ -522,7 +523,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label="Abrir menu de navegação"
-              className="rounded-xl border border-slate-300 dark:border-cyan-500/20 bg-slate-100 dark:bg-slate-900/60 p-2 text-slate-700 dark:text-cyan-200 hover:bg-slate-200 dark:hover:bg-white/5 transition-colors"
+              className="rounded-xl border border-slate-300 dark:border-cyan-500/20 bg-slate-100 dark:bg-slate-900/60 p-2 text-slate-700 dark:text-cyan-200 hover:bg-slate-200 dark:hover:bg-white/5 active:scale-[0.94] transition-all duration-150 ease-out touch-manipulation"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -549,14 +550,14 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                       handleNavClick(sec.target, e);
                       setMobileMenuOpen(false);
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl p-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-left"
+                    className="flex w-full items-center gap-3 rounded-xl p-2.5 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 active:scale-[0.98] transition-all duration-150 ease-out text-left touch-manipulation select-none"
                   >
                     <div className="rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-1.5 shrink-0 text-[#004A99] dark:text-cyan-300">
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-semibold text-slate-900 dark:text-white">{sec.title}</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{sec.desc}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate [overflow-wrap:anywhere]">{sec.desc}</p>
                     </div>
                   </Link>
                 );
@@ -575,7 +576,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                     key={item.to}
                     href={item.to}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-colors ${
+                    className={`flex items-center min-h-[44px] gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all duration-150 ease-out active:scale-[0.98] touch-manipulation select-none ${
                       active ? 'bg-sky-100 dark:bg-cyan-400/15 text-[#004A99] dark:text-cyan-200 font-bold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5'
                     }`}
                   >
@@ -589,7 +590,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             <div className="pt-2 flex flex-col gap-2 border-t border-slate-200 dark:border-white/10">
               <button
                 onClick={() => handleOpenDossie(0)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-cyan-400/30 bg-slate-100 dark:bg-cyan-400/10 px-3.5 py-2.5 text-xs font-semibold text-slate-800 dark:text-cyan-200 cursor-pointer"
+                className="flex w-full items-center justify-center min-h-[44px] gap-2 rounded-xl border border-slate-300 dark:border-cyan-400/30 bg-slate-100 dark:bg-cyan-400/10 px-3.5 py-2.5 text-xs font-semibold text-slate-800 dark:text-cyan-200 cursor-pointer active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation select-none"
               >
                 <ShieldCheck className="h-4 w-4 text-[#004A99] dark:text-cyan-300" />
                 <span>Dossiê Institucional</span>
@@ -598,7 +599,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
               <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-300 px-3.5 py-2.5 text-xs font-extrabold uppercase tracking-wide text-slate-950 shadow-md"
+                className="flex w-full items-center justify-center min-h-[44px] gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-300 px-3.5 py-2.5 text-xs font-extrabold uppercase tracking-wide text-slate-950 shadow-md active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation select-none"
               >
                 <span>Acessar Painel Gestor</span>
                 <ExternalLink className="h-3.5 w-3.5" />
