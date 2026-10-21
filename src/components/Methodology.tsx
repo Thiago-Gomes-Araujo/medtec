@@ -94,11 +94,11 @@ export default function Methodology() {
             <span>PASSO A PASSO TECNOLÓGICO // FLUXO INTEGRADO</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight font-display">
-            Como funciona a dinâmica do <span className="gradient-text">MEDTEC Rondônia?</span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight font-display text-balance">
+            Como funciona a dinâmica do <span className="text-[#004A99] dark:text-[#00D8FF]">MEDTEC Rondônia?</span>
           </h2>
 
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto text-pretty">
             Uma ponte viva entre a produção televisiva de alta tecnologia e o acolhimento humano na sala de aula das comunidades tradicionais e rurais.
           </p>
         </div>
@@ -118,26 +118,26 @@ export default function Methodology() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 items-stretch relative z-10">
             {steps.map((item, idx) => (
               <div key={item.step} className="relative group h-full">
-                <div className="glow-card relative flex min-h-[320px] w-full flex-col justify-between rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1.5 hover:border-[#004A99] dark:hover:border-[#00D8FF] shadow-sm hover:shadow-xl dark:shadow-md">
+                <div className="glow-card relative flex min-h-[320px] w-full flex-col justify-between rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-1.5 hover:border-[#004A99] dark:hover:border-[#00D8FF] shadow-sm hover:shadow-xl dark:shadow-md">
                   
                   <div>
                     {/* Topo: Número e Ícone */}
                     <div className="flex items-center justify-between mb-5">
-                      <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#004A99] to-[#0284C7] dark:from-[#00D8FF] dark:to-[#0284C7] flex items-center justify-center text-white dark:text-[#040B16] font-black font-mono text-sm shadow-md group-hover:scale-110 transition-transform">
+                      <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#004A99] to-[#0284C7] dark:from-[#00D8FF] dark:to-[#0284C7] flex items-center justify-center text-white dark:text-[#040B16] font-black font-mono text-sm shadow-md group-hover:scale-110 transition-transform duration-200 ease-out tabular-nums">
                         {item.step}
                       </span>
 
-                      <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-[#061224] border border-slate-200/60 dark:border-[#1A365D] flex items-center justify-center group-hover:bg-[#004A99]/10 dark:group-hover:bg-[#00D8FF]/10 transition-colors">
+                      <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-[#061224] border border-slate-200/60 dark:border-[#1A365D] flex items-center justify-center group-hover:bg-[#004A99]/10 dark:group-hover:bg-[#00D8FF]/10 transition-colors duration-150">
                         {item.icon}
                       </div>
                     </div>
 
                     {/* Textos */}
                     <div className="space-y-2">
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors font-display">
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors duration-150 font-display text-balance">
                         {item.title}
                       </h3>
-                      <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-[13px] leading-relaxed">
+                      <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-[13px] leading-relaxed text-pretty">
                         {item.desc}
                       </p>
                     </div>
@@ -175,10 +175,10 @@ export default function Methodology() {
                   <Users2 className="h-4 w-4" />
                   <span>QUEM FAZ ACONTECER NA PONTA // DA CAPITAL ÀS COMUNIDADES</span>
                 </div>
-                <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white text-balance">
                   Corpo Docente Especialista &amp; Professores Mediadores
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 text-pretty">
                   A força do MEDTEC une os ministrantes do estúdio central de TV ao educador presencial em sala, garantindo vínculo humano e dinamização pedagógica diária.
                 </p>
               </div>
@@ -188,7 +188,7 @@ export default function Methodology() {
                 {educators.map((edu) => (
                   <div
                     key={edu.name}
-                    className="flex flex-col justify-between p-4 rounded-2xl bg-white dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-[#004A99]/50 dark:hover:border-cyan-400/50 transition-all shadow-xs"
+                    className="flex flex-col justify-between p-4 rounded-2xl bg-white dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-[#004A99]/50 dark:hover:border-cyan-400/50 transition-all duration-150 ease-out shadow-xs"
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
@@ -196,7 +196,7 @@ export default function Methodology() {
                         <div className="w-9 h-9 rounded-xl bg-sky-100 dark:bg-cyan-950/80 border border-sky-300 dark:border-cyan-400/40 text-[#004A99] dark:text-[#00D8FF] flex items-center justify-center font-mono font-bold text-xs shadow-xs">
                           {edu.initials}
                         </div>
-                        <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#0C1E38] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5">
+                        <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#0C1E38] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 truncate max-w-[120px]">
                           {edu.tag}
                         </span>
                       </div>
@@ -228,16 +228,16 @@ export default function Methodology() {
                       <Compass className="h-3.5 w-3.5" />
                       REDE ESTADUAL CONECTADA
                     </span>
-                    <span className="text-[11px] font-mono text-emerald-400 font-bold">
+                    <span className="text-[11px] font-mono text-emerald-400 font-bold tabular-nums">
                       100% Cobertura
                     </span>
                   </div>
 
-                  <h4 className="font-display text-lg sm:text-xl font-bold leading-tight">
+                  <h4 className="font-display text-lg sm:text-xl font-bold leading-tight text-balance">
                     Presente nos 52 Municípios de Rondônia
                   </h4>
 
-                  <p className="text-xs text-slate-200 leading-relaxed">
+                  <p className="text-xs text-slate-200 leading-relaxed text-pretty">
                     129 unidades escolares garantindo ensino regular gratuito para comunidades ribeirinhas, indígenas, quilombolas e rurais isoladas.
                   </p>
                 </div>
@@ -246,11 +246,11 @@ export default function Methodology() {
                   {/* Indicadores rápidos */}
                   <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 font-mono text-xs">
                     <div>
-                      <p className="text-cyan-300 font-black text-lg">6.000+</p>
+                      <p className="text-cyan-300 font-black text-lg tabular-nums">6.000+</p>
                       <p className="text-[10px] text-slate-300">Jovens Atendidos</p>
                     </div>
                     <div>
-                      <p className="text-cyan-300 font-black text-lg">129 Polos</p>
+                      <p className="text-cyan-300 font-black text-lg tabular-nums">129 Polos</p>
                       <p className="text-[10px] text-slate-300">Salas Conectadas</p>
                     </div>
                   </div>
@@ -258,13 +258,13 @@ export default function Methodology() {
                   {/* Botão de Ação Direto */}
                   <Link
                     href="/mapa"
-                    className="group flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white text-slate-950 font-bold text-xs hover:bg-[#00D8FF] transition-colors shadow-sm cursor-pointer"
+                    className="group flex items-center justify-between w-full px-4 py-3 rounded-xl bg-white text-slate-950 font-bold text-xs hover:bg-[#00D8FF] transition-all duration-150 ease-out shadow-sm cursor-pointer min-h-[44px] touch-manipulation select-none active:scale-[0.98] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300"
                   >
                     <span className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-[#004A99]" />
                       <span>Explorar Radar de Escolas Conectadas</span>
                     </span>
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    <ArrowRight className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-1" />
                   </Link>
                 </div>
 
