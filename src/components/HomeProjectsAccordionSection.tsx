@@ -19,7 +19,7 @@ export default function HomeProjectsAccordionSection() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1">
             <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF]">
-              {'// EXPLORAÇÃO PANORÂMICA POR TERRITÓRIO'}
+              Exploração Panorâmica por Território
             </p>
             <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight text-balance">
               Panorama dos 6 Ecossistemas Pedagógicos

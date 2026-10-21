@@ -102,58 +102,58 @@ export default function HomePage() {
             {/* ================= COLUNA DA ESQUERDA: TEXTO & CTAs ================= */}
             <div className="lg:col-span-7 space-y-6">
               
-              {/* 1. LINHA DE STATUS TERMINAL TÉCNICO */}
-              <div className="inline-flex flex-wrap items-center gap-2 sm:gap-3 rounded-full border border-cyan-400/25 bg-[#07162C]/80 px-4 py-1.5 font-mono text-xs uppercase tracking-wider text-cyan-200/90 backdrop-blur-md shadow-[0_0_20px_rgba(0,216,255,0.15)] select-none">
-                <span className="flex items-center gap-2 text-emerald-400 font-bold">
+              {/* 1. LINHA DE STATUS INSTITUCIONAL */}
+              <div className="inline-flex flex-wrap items-center gap-2 sm:gap-3 rounded-full border border-white/15 bg-white/10 dark:bg-slate-900/60 px-4 py-1.5 text-xs font-medium text-slate-200 backdrop-blur-md select-none">
+                <span className="flex items-center gap-2 text-emerald-400 font-semibold">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
                   </span>
-                  [ BEACON ATIVO • 52 MUNICÍPIOS ]
+                  Sinal Satelital Ativo • 52 Municípios
                 </span>
-                <span className="text-cyan-500/40 hidden sm:inline">{'//'}</span>
-                <span className="text-slate-300 hidden sm:inline">LEI ESTADUAL 3.846/2016</span>
-                <span className="text-cyan-500/40 hidden md:inline">{'//'}</span>
-                <span className="text-slate-400 hidden md:inline">PORTARIA SEDUC 928/2025</span>
+                <span className="text-white/20 hidden sm:inline">•</span>
+                <span className="text-slate-300 hidden sm:inline">Lei Estadual nº 3.846/2016</span>
+                <span className="text-white/20 hidden md:inline">•</span>
+                <span className="text-slate-300/80 hidden md:inline">Portaria SEDUC nº 928/2025</span>
               </div>
 
               {/* 2. TÍTULO PRINCIPAL (H1) COM CONTRASTE SÓLIDO & ACENTO CYAN */}
               <h1 className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.75rem] text-balance">
                 A educação do futuro chega a{' '}
-                <span className="text-[#00D8FF] drop-shadow-[0_0_35px_rgba(34,211,238,0.35)]">
+                <span className="text-[#00D8FF]">
                   todo canto de Rondônia
                 </span>
               </h1>
 
               {/* 3. SUBTÍTULO DESCRITIVO */}
-              <p className="max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg text-pretty">
+              <p className="max-w-2xl text-base leading-relaxed text-slate-200 sm:text-lg text-pretty">
                 Aulas ao vivo diretamente dos estúdios televisivos da Coordenadoria de Mídias Educacionais em Porto Velho para centenas de salas conectadas em todo o estado, acompanhadas diariamente por professores mediadores presenciais.
               </p>
 
-              {/* 4. FAIXA INTEGRADA DE INDICADORES DE PÚBLICO */}
-              <div className="flex flex-wrap items-center gap-y-2 gap-x-4 border-y border-white/10 py-3.5 text-xs font-semibold text-slate-300">
-                <span className="inline-flex items-center gap-1.5 text-cyan-200">
-                  <CheckCircle2 className="h-4 w-4 text-cyan-400" />
+              {/* 4. LINHA EDITORIAL DE PÚBLICO INTEGRADA */}
+              <div className="flex flex-wrap items-center gap-y-2 gap-x-4 border-y border-white/10 py-3 text-xs text-slate-300">
+                <span className="inline-flex items-center gap-1.5 text-slate-200">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                   Ribeirinhos &amp; Indígenas
                 </span>
                 <span className="text-white/20 hidden sm:inline">•</span>
-                <span className="inline-flex items-center gap-1.5 text-cyan-200">
-                  <CheckCircle2 className="h-4 w-4 text-cyan-400" />
-                  Quilombolas &amp; Rurais
+                <span className="inline-flex items-center gap-1.5 text-slate-200">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                  Quilombolas &amp; Comunidades Rurais
                 </span>
                 <span className="text-white/20 hidden sm:inline">•</span>
-                <span className="inline-flex items-center gap-1.5 text-emerald-300">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                <span className="inline-flex items-center gap-1.5 text-emerald-300 font-semibold">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
                   100% de Cobertura Estadual
                 </span>
               </div>
 
               {/* 5. GRUPO DE CTAs COM FEEDBACK ATIVO E TOUCH MANIPULATION */}
               <div className="pt-2 flex flex-wrap items-center gap-3.5">
-                {/* Botão Primário */}
+                {/* Botão Primário Sólido Institucional */}
                 <a
                   href="#como-funciona"
-                  className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-300 via-sky-400 to-cyan-400 px-6 py-3.5 text-sm font-extrabold text-slate-950 shadow-[0_0_28px_rgba(0,216,255,0.45)] hover:brightness-110 hover:shadow-[0_0_36px_rgba(0,216,255,0.65)] active:scale-[0.97] transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none"
+                  className="group inline-flex items-center gap-2 rounded-full bg-white text-slate-950 hover:bg-slate-100 dark:bg-[#00D8FF] dark:text-slate-950 dark:hover:bg-[#38BDF8] px-6 py-3.5 text-sm font-extrabold shadow-md active:scale-[0.97] transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none"
                 >
                   <span>Como funciona o MEDTEC</span>
                   <ArrowRight className="h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" />
@@ -162,7 +162,7 @@ export default function HomePage() {
                 {/* Botão Secundário */}
                 <a
                   href="#ao-vivo"
-                  className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-[#07162C]/70 px-5 py-3.5 text-sm font-semibold text-cyan-100 backdrop-blur-md hover:border-cyan-400/60 hover:bg-cyan-500/10 hover:text-white active:scale-[0.97] transition-all duration-150 ease-out cursor-pointer shadow-sm touch-manipulation select-none"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 hover:bg-white/15 text-white px-5 py-3.5 text-sm font-semibold backdrop-blur-md active:scale-[0.97] transition-all duration-150 ease-out cursor-pointer shadow-xs touch-manipulation select-none"
                 >
                   <Play className="h-4 w-4 text-rose-400 fill-rose-400/40" />
                   <span>Canal ao vivo</span>
@@ -171,140 +171,93 @@ export default function HomePage() {
                 {/* Link Terciário Discreto */}
                 <Link
                   href="/avisos"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-cyan-300 active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer group touch-manipulation select-none"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer group touch-manipulation select-none"
                 >
                   <span>Avisos e notícias</span>
-                  <span className="transition-transform duration-150 ease-out group-hover:translate-x-1 text-cyan-400">→</span>
+                  <span className="transition-transform duration-150 ease-out group-hover:translate-x-1 text-cyan-300">→</span>
                 </Link>
               </div>
 
             </div>
 
-            {/* ================= COLUNA DA DIREITA: CONSOLE DE SINAL HUD ================= */}
+            {/* ================= COLUNA DA DIREITA: PAINEL DE TRANSMISSÃO E MÉTRICAS ================= */}
             <div className="lg:col-span-5">
-              <div className="hud-frame relative overflow-hidden rounded-3xl border border-cyan-500/25 bg-slate-900/85 p-4 sm:p-5 backdrop-blur-xl shadow-2xl">
+              <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-900/90 text-white backdrop-blur-xl shadow-2xl">
                 
-                {/* Header Técnico do Card HUD */}
-                <div className="mb-3.5 flex items-center justify-between gap-3 px-2 pt-1">
+                {/* Cabeçalho Institucional do Painel */}
+                <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10">
                   <div>
-                    <p className="font-mono text-xs uppercase tracking-wider text-cyan-300 font-semibold">
-                      CONSOLE DE SINAL // ESTÚDIO PORTO VELHO
+                    <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300 font-mono">
+                      Estúdio Central SEDUC • Porto Velho/RO
                     </p>
-                    <p className="mt-0.5 text-xs font-semibold text-white">Transmissão Síncrona SEDUC</p>
+                    <p className="mt-0.5 text-xs text-slate-300 font-medium">Transmissão Síncrona Estadual</p>
                   </div>
 
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/90 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white shadow-[0_0_12px_rgba(244,63,94,0.6)]">
-                    <Radio className="h-3 w-3 animate-pulse" />
-                    ((•)) AO VIVO
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/20 border border-rose-500/40 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-rose-300">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
+                    </span>
+                    Ao Vivo
                   </span>
                 </div>
 
-                {/* Área de Imagem do Estúdio / Sala Conectada */}
-                <div className="relative mb-3 h-48 sm:h-52 overflow-hidden rounded-2xl border border-white/10 bg-slate-950">
+                {/* Área de Imagem do Estúdio */}
+                <div className="relative h-48 sm:h-52 overflow-hidden bg-slate-950">
                   <img
                     src="/hero.jpg"
                     alt="Transmissão das aulas ao vivo no estúdio MEDTEC Porto Velho"
                     className="h-full w-full object-cover"
                   />
                   
-                  {/* Gradiente sutil para garantir legibilidade dos dados do HUD */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#040D1A] via-transparent to-black/20" />
+                  {/* Gradiente sutil */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20" />
 
-                  {/* Barra de HUD Sobreposta na Base da Imagem */}
-                  <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between rounded-xl bg-slate-950/70 border border-white/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-cyan-100 backdrop-blur-md">
-                    <span className="inline-flex items-center gap-1.5 text-cyan-200">
-                      <Satellite className="h-3.5 w-3.5 text-cyan-300" />
-                      SAT - TP 04
+                  {/* Informações discretas sobrepostas */}
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-slate-200">
+                    <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 font-mono text-[11px]">
+                      <Satellite className="h-3.5 w-3.5 text-cyan-400" />
+                      Sinal Satelital Banda Ku
                     </span>
 
-                    <span className="inline-flex items-center gap-1.5 font-bold text-white">
-                      <Signal className="h-3.5 w-3.5 text-cyan-300" />
-                      4K UHD
+                    <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 font-mono text-[11px] font-bold text-white">
+                      <Signal className="h-3.5 w-3.5 text-emerald-400" />
+                      4K Ultra HD
                     </span>
-
-                    {/* Mini Gráfico de Barras de Sinal em Verde */}
-                    <div className="flex items-end gap-1 h-3.5" title="Qualidade de Sinal: Excelente">
-                      <span className="w-1 h-1.5 bg-emerald-400 rounded-xs animate-signal-1" />
-                      <span className="w-1 h-2.5 bg-emerald-400 rounded-xs animate-signal-2" />
-                      <span className="w-1 h-3 bg-emerald-400 rounded-xs animate-signal-3" />
-                      <span className="w-1 h-3.5 bg-emerald-400 rounded-xs animate-signal-4" />
-                    </div>
                   </div>
                 </div>
 
-                {/* BARRA DE TELEMETRIA: DADOS REAIS DE PORTO VELHO & ONDA DE SINAL */}
-                <div className="mb-3.5 flex items-center justify-between rounded-xl border border-cyan-500/20 bg-cyan-950/30 px-3 py-2 font-mono text-[10px] text-cyan-200 tabular-nums">
-                  <div className="flex items-center gap-2 truncate">
-                    <MapPin className="h-3 w-3 text-cyan-400 shrink-0" />
-                    <span className="truncate">LAT -8.7619° S • LON -63.9039° W</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-emerald-400 font-semibold tabular-nums">UPLINK: 99.8%</span>
-                    {/* Animação simulando onda de áudio/sinal */}
-                    <div className="flex items-center gap-0.5 h-3" title="Sinal síncrono">
-                      <span className="w-0.5 bg-cyan-400 rounded-full animate-wave-1" />
-                      <span className="w-0.5 bg-cyan-400 rounded-full animate-wave-2" />
-                      <span className="w-0.5 bg-cyan-400 rounded-full animate-wave-3" />
-                      <span className="w-0.5 bg-cyan-400 rounded-full animate-wave-4" />
-                      <span className="w-0.5 bg-cyan-400 rounded-full animate-wave-5" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* GRID DE MÉTRICAS (2x2 REMODELADO COM ÍCONES E INDICADORES CONTEXTUAIS) */}
-                <div className="grid grid-cols-2 gap-2.5">
+                {/* GRADE ARQUITETÔNICA CONTÍNUA (ESTILO VERCEL/LINEAR COM DIVISORES FINOS) */}
+                <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10">
                   
                   {/* Métrica 1: Estudantes */}
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 hover:bg-white/[0.08] transition-all duration-150 ease-out">
-                    <div className="flex items-center justify-between text-slate-400 mb-1">
-                      <Users className="h-4 w-4 text-cyan-400" />
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        +Ativo
-                      </span>
-                    </div>
-                    <p className="font-display text-2xl font-black text-white tabular-nums">6.000+</p>
-                    <p className="text-[11px] leading-snug text-slate-300 mt-0.5">Estudantes atendidos</p>
+                  <div className="p-4 sm:p-5">
+                    <p className="font-display text-2xl sm:text-3xl font-black text-white tabular-nums tracking-tight">6.000+</p>
+                    <p className="text-xs text-slate-300 mt-1">Estudantes atendidos</p>
                   </div>
 
                   {/* Métrica 2: Unidades Escolares */}
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 hover:bg-white/[0.08] transition-all duration-150 ease-out">
-                    <div className="flex items-center justify-between text-slate-400 mb-1">
-                      <Building2 className="h-4 w-4 text-sky-400" />
-                      <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                        Pólos
-                      </span>
-                    </div>
-                    <p className="font-display text-2xl font-black text-white tabular-nums">129</p>
-                    <p className="text-[11px] leading-snug text-slate-300 mt-0.5">Unidades escolares</p>
+                  <div className="p-4 sm:p-5">
+                    <p className="font-display text-2xl sm:text-3xl font-black text-white tabular-nums tracking-tight">129</p>
+                    <p className="text-xs text-slate-300 mt-1">Unidades escolares</p>
                   </div>
 
                   {/* Métrica 3: Turmas Ativas */}
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 hover:bg-white/[0.08] transition-all duration-150 ease-out">
-                    <div className="flex items-center justify-between text-slate-400 mb-1">
-                      <Activity className="h-4 w-4 text-emerald-400" />
-                      <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                      </span>
+                  <div className="p-4 sm:p-5">
+                    <div className="flex items-baseline gap-2">
+                      <p className="font-display text-2xl sm:text-3xl font-black text-white tabular-nums tracking-tight">330</p>
+                      <span className="text-[10px] text-emerald-400 font-semibold font-mono">Síncronas</span>
                     </div>
-                    <p className="font-display text-2xl font-black text-white tabular-nums">330</p>
-                    <p className="text-[11px] leading-snug text-slate-300 mt-0.5">Turmas ativas no ar</p>
+                    <p className="text-xs text-slate-300 mt-1">Turmas ativas no ar</p>
                   </div>
 
                   {/* Métrica 4: Cobertura Municipal (100%) */}
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 hover:bg-white/[0.08] transition-all duration-150 ease-out">
-                    <div className="flex items-center justify-between text-slate-400 mb-1">
-                      <MapPin className="h-4 w-4 text-cyan-400" />
-                      <span className="text-[10px] font-mono font-bold text-cyan-300 tabular-nums">100%</span>
+                  <div className="p-4 sm:p-5">
+                    <div className="flex items-baseline gap-2">
+                      <p className="font-display text-2xl sm:text-3xl font-black text-white tabular-nums tracking-tight">52</p>
+                      <span className="text-[10px] text-cyan-300 font-semibold font-mono">100% Cobertura</span>
                     </div>
-                    <p className="font-display text-2xl font-black text-white tabular-nums">52</p>
-                    <p className="text-[11px] leading-snug text-slate-300 mt-0.5 mb-1.5">Municípios cobertos</p>
-                    
-                    {/* Mini Barra de Progresso 100% preenchida */}
-                    <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                      <div className="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 w-full rounded-full shadow-[0_0_8px_rgba(0,216,255,0.6)]" />
-                    </div>
+                    <p className="text-xs text-slate-300 mt-1">Municípios de Rondônia</p>
                   </div>
 
                 </div>

@@ -417,7 +417,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                     <div className="absolute top-4 left-4 z-10">
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/85 px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-sm">
                         <Sparkles className="h-3 w-3 text-cyan-300" />
-                        <span>★ REPORTAGEM DE CAPA // {featuredArticle.category?.toUpperCase() || 'INFRAESTRUTURA'}</span>
+                        <span>★ Reportagem de Capa • {featuredArticle.category?.toUpperCase() || 'INFRAESTRUTURA'}</span>
                       </span>
                     </div>
 
@@ -497,7 +497,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 <div className="flex items-center justify-between border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-3">
                   <h3 className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-slate-900 dark:text-[#E6F4FF] flex items-center gap-2">
                     <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
-                    <span>{'//'} REPORTAGENS &amp; COBERTURAS NOS POLOS</span>
+                    <span>Reportagens &amp; Coberturas nos Polos</span>
                   </h3>
                   <span className="text-[11px] font-mono text-slate-500 dark:text-[#6482A6]">
                     {secondaryArticles.length} {secondaryArticles.length === 1 ? 'matéria disponível' : 'matérias disponíveis'}
@@ -890,7 +890,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                   {/* Ficha de Impacto Territorial (Infobox com 4 Métricas) */}
                   <div className="my-8 rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] p-5 sm:p-6">
                     <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] mb-4">
-                      📊 FICHA DE IMPACTO TERRITORIAL // SEDUC-RO
+                      📊 Ficha de Impacto Territorial • SEDUC-RO
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center font-mono">
                       {activeEditorial.impactStats.map((stat, sIdx) => (

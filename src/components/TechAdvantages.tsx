@@ -23,25 +23,25 @@ export default function TechAdvantages() {
 
   const regularComponents = [
     {
-      tag: 'BNCC // LINGUAGENS',
+      tag: 'BNCC • Linguagens',
       title: 'Linguagens & Tecnologias',
       desc: 'Língua Portuguesa, Literatura, Produção Textual, Arte e Inglês aplicados à comunicação crítica e preparação intensiva para o ENEM.',
       badge: 'Obrigatório'
     },
     {
-      tag: 'BNCC // EXATAS',
+      tag: 'BNCC • Matemática',
       title: 'Matemática & Aplicações',
       desc: 'Álgebra, geometria espacial, estatística, raciocínio lógico e matemática financeira integrados à tomada de decisão cotidiana.',
       badge: 'Obrigatório'
     },
     {
-      tag: 'BNCC // NATUREZA',
+      tag: 'BNCC • Ciências da Natureza',
       title: 'Ciências da Natureza',
       desc: 'Física, Química e Biologia investigando ecossistemas, biomas amazônicos, equilíbrio ambiental e processos biotecnológicos.',
       badge: 'Obrigatório'
     },
     {
-      tag: 'BNCC // HUMANAS',
+      tag: 'BNCC • Ciências Humanas',
       title: 'Ciências Humanas & Sociais',
       desc: 'História, Geografia, Sociologia e Filosofia com ênfase na identidade, formação territorial de Rondônia e cidadania participativa.',
       badge: 'Obrigatório'
@@ -50,25 +50,25 @@ export default function TechAdvantages() {
 
   const differentiatedComponents = [
     {
-      tag: 'INOVAÇÃO // PORTARIA 928/2025',
+      tag: 'Inovação • Portaria SEDUC 928/2025',
       title: 'Agroecologia (NBAZ)',
       desc: 'Noções Básicas de Agroecologia e Zootecnia, manejo sustentável do solo, preservação de sementes crioulas e agricultura familiar.',
       badge: 'Exclusivo MEDTEC'
     },
     {
-      tag: 'PROTAGONISMO // CIDADANIA',
+      tag: 'Protagonismo • Projeto de Vida',
       title: 'Projeto de Vida',
       desc: 'Orientação vocacional contínua, planejamento de carreira, ética, competências socioemocionais e visão de futuro no território.',
       badge: 'Empreendedorismo'
     },
     {
-      tag: 'TECNOLOGIA // PRÁTICA',
+      tag: 'Tecnologia • Laboratório Vivo',
       title: 'Iniciação Científica & Robótica',
       desc: 'Desenvolvimento de sensores de irrigação, automação solar com microcontroladores e biometria comunitária aplicada a rios e matas.',
       badge: 'Laboratório Vivo'
     },
     {
-      tag: 'TERRITÓRIO // IDENTIDADE',
+      tag: 'Território • Saberes Regionais',
       title: 'Saberes Amazônicos & Povos',
       desc: 'Cartografia digital de territórios tradicionais, valorização das memórias orais e salvaguarda cultural de comunidades originárias.',
       badge: 'Patrimônio Regional'
@@ -84,9 +84,9 @@ export default function TechAdvantages() {
         
         {/* ================= 1. CABEÇALHO DA SEÇÃO ================= */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-100 dark:bg-cyan-950/60 border border-sky-300 dark:border-cyan-500/20 text-[#05549D] dark:text-cyan-300 font-mono text-[11px] font-bold uppercase tracking-[0.2em]">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-100 dark:bg-cyan-950/60 border border-sky-300 dark:border-cyan-500/20 text-[#05549D] dark:text-cyan-300 font-mono text-[11px] font-bold uppercase tracking-wider">
             <Sparkles className="h-3.5 w-3.5 text-[#0284C7] dark:text-cyan-400" />
-            <span>PILARES DA MEDIAÇÃO TECNOLÓGICA // LEI Nº 3.846/2016</span>
+            <span>Pilares da Mediação Tecnológica • Lei Estadual nº 3.846/2016</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight font-display text-balance">

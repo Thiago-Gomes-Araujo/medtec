@@ -33,7 +33,7 @@ export default function ImageModal({ photo, onClose }: ImageModalProps) {
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-slate-950/70 hover:bg-slate-950 text-white backdrop-blur-md transition-colors"
+          className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-slate-950/70 hover:bg-slate-950 text-white backdrop-blur-md transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300"
           aria-label="Fechar foto"
         >
           <X size={20} />
@@ -43,22 +43,22 @@ export default function ImageModal({ photo, onClose }: ImageModalProps) {
           <img 
             src={photo.imageUrl} 
             alt={photo.title}
-            className="max-h-full max-w-full object-contain"
+            className="max-h-full max-w-full object-contain select-none"
           />
         </div>
 
         <div className="p-6 bg-slate-900 text-white space-y-2 border-t border-slate-800">
           <div className="flex items-center justify-between gap-4">
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary text-white">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950">
               {photo.category}
             </span>
-            <span className="text-xs text-slate-400 flex items-center gap-1 font-medium">
+            <span className="text-xs text-slate-400 flex items-center gap-1 font-medium font-mono tabular-nums">
               <Calendar size={13} />
               {photo.date}
             </span>
           </div>
-          <h3 className="text-lg font-bold text-white">{photo.title}</h3>
-          <p className="text-sm text-slate-300">{photo.description}</p>
+          <h3 className="text-lg font-bold text-white text-balance">{photo.title}</h3>
+          <p className="text-sm text-slate-300 text-pretty leading-relaxed">{photo.description}</p>
         </div>
       </div>
     </div>

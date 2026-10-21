@@ -91,7 +91,7 @@ export default function Methodology() {
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-50 dark:bg-cyan-950/60 text-[#004A99] dark:text-cyan-300 border border-sky-200 dark:border-cyan-500/20 text-xs sm:text-sm font-bold uppercase tracking-wider">
             <Sparkles className="h-3.5 w-3.5 text-[#004A99] dark:text-[#00D8FF]" />
-            <span>PASSO A PASSO TECNOLÓGICO // FLUXO INTEGRADO</span>
+            <span>Passo a Passo da Aula • Fluxo Integrado</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight font-display text-balance">
@@ -173,7 +173,7 @@ export default function Methodology() {
               <div>
                 <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#004A99] dark:text-[#00D8FF] uppercase tracking-wider mb-1">
                   <Users2 className="h-4 w-4" />
-                  <span>QUEM FAZ ACONTECER NA PONTA // DA CAPITAL ÀS COMUNIDADES</span>
+                  <span>Quem Faz Acontecer na Ponta • Da Capital às Comunidades</span>
                 </div>
                 <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white text-balance">
                   Corpo Docente Especialista &amp; Professores Mediadores
