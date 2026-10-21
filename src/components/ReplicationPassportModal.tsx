@@ -94,7 +94,7 @@ export default function ReplicationPassportModal({
                       {mission.missionCode} • {mission.track}
                     </span>
                   </div>
-                  <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#E6F4FF] leading-snug">
+                  <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#E6F4FF] leading-snug text-balance">
                     {mission.title}
                   </h3>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
@@ -112,7 +112,7 @@ export default function ReplicationPassportModal({
                 {/* Close Button */}
                 <button
                   onClick={onClose}
-                  className="rounded-full p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer shrink-0"
+                  className="rounded-full p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all duration-150 ease-out cursor-pointer shrink-0 touch-manipulation select-none active:scale-[0.92] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300"
                   aria-label="Fechar roteiro"
                 >
                   <X className="h-5 w-5" />
@@ -129,10 +129,10 @@ export default function ReplicationPassportModal({
                   <span className="block font-mono text-[10px] uppercase font-bold text-[#004A99] dark:text-cyan-300">
                     DURAÇÃO ESTIMADA
                   </span>
-                  <span className="mt-1 block font-display text-2xl font-black text-slate-900 dark:text-white">
+                  <span className="mt-1 block font-display text-2xl font-black text-slate-900 dark:text-white tabular-nums">
                     4 Semanas
                   </span>
-                  <span className="text-[11px] text-slate-600 dark:text-slate-400">
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400 tabular-nums">
                     16 horas de atividades práticas
                   </span>
                 </div>
@@ -153,7 +153,7 @@ export default function ReplicationPassportModal({
                   <span className="block font-mono text-[10px] uppercase font-bold text-[#004A99] dark:text-cyan-300">
                     COMPATIBILIDADE BNCC
                   </span>
-                  <span className="mt-1 block font-display text-2xl font-black text-slate-900 dark:text-white">
+                  <span className="mt-1 block font-display text-2xl font-black text-slate-900 dark:text-white tabular-nums">
                     100% Alinhado
                   </span>
                   <span className="text-[11px] text-slate-600 dark:text-slate-400">
@@ -177,7 +177,7 @@ export default function ReplicationPassportModal({
                       className="flex items-start gap-2.5 rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-slate-50/80 dark:bg-[#08182E] p-3 text-xs text-slate-700 dark:text-slate-300"
                     >
                       <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-[#00D8FF] shrink-0 mt-0.5" />
-                      <span className="leading-snug">{mat}</span>
+                      <span className="leading-snug text-pretty">{mat}</span>
                     </div>
                   ))}
                 </div>
@@ -202,7 +202,7 @@ export default function ReplicationPassportModal({
                         <span className="font-mono text-xs font-bold text-[#004A99] dark:text-[#00D8FF]">
                           {step.title}
                         </span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 tabular-nums">
                           Fase {step.week} de 4
                         </span>
                       </div>
@@ -213,7 +213,7 @@ export default function ReplicationPassportModal({
                             <Radio className="h-3 w-3" />
                             Transmissão do Estúdio (Porto Velho)
                           </p>
-                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-pretty">
                             {step.studioAction}
                           </p>
                         </div>
@@ -223,7 +223,7 @@ export default function ReplicationPassportModal({
                             <Sparkles className="h-3 w-3" />
                             Prática Presencial Mediada (Comunidade)
                           </p>
-                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                          <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-pretty">
                             {step.fieldAction}
                           </p>
                         </div>
@@ -241,7 +241,7 @@ export default function ReplicationPassportModal({
                     DICA DE BANCADA • {mission.mediatorName} ({mission.mediatorRole})
                   </span>
                 </div>
-                <p className="text-xs sm:text-sm italic text-amber-950 dark:text-amber-100/90 leading-relaxed">
+                <p className="text-xs sm:text-sm italic text-amber-950 dark:text-amber-100/90 leading-relaxed text-pretty">
                   &ldquo;{mission.replicationGuide.pedagogicalTip}&rdquo;
                 </p>
               </div>
@@ -259,7 +259,7 @@ export default function ReplicationPassportModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full sm:w-auto px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl border border-slate-300 dark:border-white/10 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97]"
                 >
                   Fechar
                 </button>
@@ -268,7 +268,7 @@ export default function ReplicationPassportModal({
                   type="button"
                   onClick={handleDownload}
                   disabled={downloading}
-                  className={`w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
+                  className={`w-full sm:w-auto px-5 py-2 rounded-xl text-xs font-bold transition-all duration-150 ease-out flex items-center justify-center gap-2 cursor-pointer shadow-sm touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300 ${
                     downloadSuccess
                       ? 'bg-emerald-600 text-white'
                       : 'bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950 hover:bg-[#05549D] dark:hover:bg-cyan-300'

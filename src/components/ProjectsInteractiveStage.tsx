@@ -139,13 +139,13 @@ export default function ProjectsInteractiveStage() {
 
           {/* Placar Técnico Horizontal Compacto */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3.5 py-2 font-mono text-xs shadow-xs">
+            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3.5 py-2 font-mono text-xs shadow-xs tabular-nums">
               <span className="font-bold text-[#004A99] dark:text-[#00D8FF]">[ 84+ PROJETOS ]</span>
             </div>
-            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3.5 py-2 font-mono text-xs shadow-xs">
+            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3.5 py-2 font-mono text-xs shadow-xs tabular-nums">
               <span className="font-bold text-[#004A99] dark:text-[#00D8FF]">[ 30+ MUNICÍPIOS ]</span>
             </div>
-            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3.5 py-2 font-mono text-xs shadow-xs">
+            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3.5 py-2 font-mono text-xs shadow-xs tabular-nums">
               <span className="font-bold text-emerald-600 dark:text-emerald-400">[ 100% PRÁTICA COMUNITÁRIA ]</span>
             </div>
           </div>
@@ -161,7 +161,6 @@ export default function ProjectsInteractiveStage() {
                 key={track}
                 onClick={() => {
                   setSelectedTrack(track);
-                  // se filtrar, seleciona o primeiro item filtrado
                   if (track !== '⚡ Todas as Missões (06)') {
                     const firstMatch = PROJECTS_DATA.find((p) => {
                       if (track.includes('Agroecologia')) return p.track === 'Agroecologia & NBAZ';
@@ -175,7 +174,7 @@ export default function ProjectsInteractiveStage() {
                     }
                   }
                 }}
-                className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-150 ease-out cursor-pointer border touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                   isSelected
                     ? 'bg-[#004A99] text-white border-[#004A99] shadow-sm dark:bg-[#00D8FF] dark:text-slate-950 dark:border-[#00D8FF]'
                     : 'bg-white dark:bg-[#0C1E38] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-[#1A365D] hover:border-slate-300 dark:hover:border-cyan-400/40 hover:bg-slate-50 dark:hover:bg-[#0F2647]'
@@ -199,7 +198,7 @@ export default function ProjectsInteractiveStage() {
             <Layers className="h-4 w-4 text-[#004A99] dark:text-[#00D8FF]" />
             <span>CONSOLE INTERATIVO DE RAIO-X • MASTER-DETAIL MISSION STAGE</span>
           </div>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-slate-400 tabular-nums">
             {PROJECTS_DATA.findIndex((p) => p.id === currentProject.id) + 1} de {PROJECTS_DATA.length}
           </span>
         </div>
@@ -223,7 +222,7 @@ export default function ProjectsInteractiveStage() {
                   <button
                     key={project.id}
                     onClick={() => handleSelectProject(project)}
-                    className={`w-full text-left rounded-2xl p-3.5 transition-all cursor-pointer border flex items-center justify-between gap-3 relative ${
+                    className={`w-full text-left rounded-2xl p-3.5 transition-all duration-150 ease-out cursor-pointer border flex items-center justify-between gap-3 relative touch-manipulation select-none active:scale-[0.98] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                       isCurrent
                         ? 'bg-[#004A99] text-white border-[#003B7A] shadow-md dark:bg-[#0C1E38] dark:border-[#00D8FF] dark:text-[#E6F4FF] dark:shadow-[0_0_20px_rgba(0,216,255,0.15)]'
                         : 'bg-white dark:bg-[#0A1A30] text-slate-800 dark:text-slate-300 border-slate-200 dark:border-[#1A365D] hover:border-slate-300 dark:hover:border-cyan-400/40 hover:bg-slate-50 dark:hover:bg-[#0C2242]'
@@ -232,7 +231,7 @@ export default function ProjectsInteractiveStage() {
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-2">
                         <span className={`h-2 w-2 rounded-full shrink-0 ${colors.dot}`} />
-                        <span className={`font-mono text-[10px] font-bold tracking-wider uppercase ${
+                        <span className={`font-mono text-[10px] font-bold tracking-wider uppercase tabular-nums ${
                           isCurrent ? 'text-cyan-200 dark:text-[#00D8FF]' : 'text-[#004A99] dark:text-cyan-300'
                         }`}>
                           {project.missionCode}
@@ -300,12 +299,12 @@ export default function ProjectsInteractiveStage() {
                     <div className="relative">
                       <button
                         onClick={() => handleApplause(currentProject.id)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-pink-200 dark:border-pink-500/30 bg-pink-50/80 dark:bg-pink-950/20 px-3 py-1 text-xs font-bold text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-950/40 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-2xs"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-pink-200 dark:border-pink-500/30 bg-pink-50/80 dark:bg-pink-950/20 px-3 py-1 text-xs font-bold text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-950/40 active:scale-[0.93] transition-all duration-150 ease-out cursor-pointer shadow-2xs touch-manipulation select-none"
                         title="Enviar aplauso oficial para a turma"
                       >
                         <span className="text-sm">👏</span>
                         <span>Aplaudir Turma</span>
-                        <span className="font-mono font-black text-pink-600 dark:text-pink-200">
+                        <span className="font-mono font-black text-pink-600 dark:text-pink-200 tabular-nums">
                           {applauseCounts[currentProject.id]}
                         </span>
                       </button>
@@ -324,7 +323,7 @@ export default function ProjectsInteractiveStage() {
                   </div>
 
                   {/* Título Grande */}
-                  <h2 className="font-display text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-[#E6F4FF] leading-snug">
+                  <h2 className="font-display text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-[#E6F4FF] leading-snug text-balance">
                     {currentProject.title}
                   </h2>
 
@@ -356,7 +355,7 @@ export default function ProjectsInteractiveStage() {
                       src={currentProject.image}
                       alt={currentProject.title}
                       loading="lazy"
-                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
                     
@@ -377,7 +376,7 @@ export default function ProjectsInteractiveStage() {
                         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                         <span>01. DESAFIO LOCAL (PROBLEMA REAL)</span>
                       </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium text-pretty">
                         {currentProject.desafioLocal.description}
                       </p>
                     </div>
@@ -388,7 +387,7 @@ export default function ProjectsInteractiveStage() {
                         <Radio className="h-3.5 w-3.5 shrink-0" />
                         <span>02. PRÁTICA MEDTEC (AULA SÍNCRONA + MEDIAÇÃO)</span>
                       </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed text-pretty">
                         {currentProject.praticaMedtec.description}
                       </p>
                     </div>
@@ -400,11 +399,11 @@ export default function ProjectsInteractiveStage() {
                           <TrendingUp className="h-3.5 w-3.5 shrink-0" />
                           <span>03. IMPACTO GERADO (RESULTADO CONCRETO)</span>
                         </div>
-                        <span className="font-mono text-xs font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-400/20 text-emerald-800 dark:text-emerald-200">
+                        <span className="font-mono text-xs font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-400/20 text-emerald-800 dark:text-emerald-200 tabular-nums">
                           {currentProject.impactoGerado.metric}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed text-pretty">
                         {currentProject.impactoGerado.description}
                       </p>
                     </div>
@@ -432,7 +431,7 @@ export default function ProjectsInteractiveStage() {
                   <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
                     <button
                       onClick={() => setIsModalOpen(true)}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-[#1A365D] bg-slate-100 dark:bg-[#0A1A30] px-4 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#122A4E] transition-colors cursor-pointer"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-[#1A365D] bg-slate-100 dark:bg-[#0A1A30] px-4 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#122A4E] transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] min-h-[44px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF]"
                     >
                       <Package className="h-3.5 w-3.5 text-[#004A99] dark:text-[#00D8FF]" />
                       <span>Ver Roteiro de Replicação</span>
@@ -440,7 +439,7 @@ export default function ProjectsInteractiveStage() {
 
                     <button
                       onClick={handleNextMission}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-xl bg-[#004A99] dark:bg-[#00D8FF] px-4 py-2 text-xs font-bold text-white dark:text-slate-950 hover:bg-[#05549D] dark:hover:bg-cyan-300 transition-colors cursor-pointer shadow-xs"
+                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-xl bg-[#004A99] dark:bg-[#00D8FF] px-4 py-2 text-xs font-bold text-white dark:text-slate-950 hover:bg-[#05549D] dark:hover:bg-cyan-300 transition-all duration-150 ease-out cursor-pointer shadow-xs touch-manipulation select-none active:scale-[0.97] min-h-[44px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF]"
                     >
                       <span>Próxima Missão</span>
                       <ArrowRight className="h-3.5 w-3.5" />
