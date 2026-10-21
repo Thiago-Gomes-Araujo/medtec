@@ -120,7 +120,7 @@ export default function ExecutiveDossierModal({
 
                 <button
                   onClick={onClose}
-                  className="group inline-flex items-center gap-1.5 rounded-lg border border-[#1A365D] bg-[#0C1E38]/80 px-2.5 py-1 font-mono text-xs text-slate-300 hover:border-cyan-400/50 hover:bg-cyan-500/10 hover:text-white transition-all cursor-pointer"
+                  className="group inline-flex items-center gap-1.5 rounded-lg border border-[#1A365D] bg-[#0C1E38]/80 px-2.5 py-1 font-mono text-xs text-slate-300 hover:border-cyan-400/50 hover:bg-cyan-500/10 hover:text-white transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-400 cursor-pointer"
                   title="Fechar (ESC)"
                   aria-label="Fechar modal"
                 >
@@ -145,7 +145,7 @@ export default function ExecutiveDossierModal({
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all cursor-pointer whitespace-nowrap md:whitespace-normal w-full ${
+                      className={`group relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all duration-150 ease-out cursor-pointer whitespace-nowrap md:whitespace-normal w-full touch-manipulation select-none active:scale-[0.98] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF] ${
                         isActive
                           ? 'border border-cyan-400/40 bg-gradient-to-r from-cyan-500/20 via-sky-500/10 to-transparent text-white shadow-[inset_0_0_15px_rgba(0,216,255,0.12)]'
                           : 'border border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200'
@@ -154,7 +154,7 @@ export default function ExecutiveDossierModal({
                       {isActive && (
                         <div className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-[#00D8FF] shadow-[0_0_8px_#00D8FF]" />
                       )}
-                      <span className={`font-mono text-[11px] font-bold ${isActive ? 'text-[#00D8FF]' : 'text-slate-500 group-hover:text-slate-300'}`}>
+                      <span className={`font-mono text-[11px] font-bold tabular-nums ${isActive ? 'text-[#00D8FF]' : 'text-slate-500 group-hover:text-slate-300'}`}>
                         {tab.code}
                       </span>
                       <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-cyan-300' : 'text-slate-400 group-hover:text-slate-200'}`} />
@@ -209,7 +209,7 @@ export default function ExecutiveDossierModal({
                               +15k FORMADOS
                             </span>
                           </div>
-                          <p className="font-display text-2xl font-black text-white">+15.000</p>
+                          <p className="font-display text-2xl font-black text-white tabular-nums">+15.000</p>
                           <p className="text-xs font-semibold text-cyan-200 mt-0.5">Estudantes Atendidos</p>
                           <p className="text-[10px] text-slate-400 mt-1">Impacto direto no ensino público estadual.</p>
                         </div>
@@ -222,7 +222,7 @@ export default function ExecutiveDossierModal({
                               PÓLOS
                             </span>
                           </div>
-                          <p className="font-display text-2xl font-black text-white">320+</p>
+                          <p className="font-display text-2xl font-black text-white tabular-nums">320+</p>
                           <p className="text-xs font-semibold text-cyan-200 mt-0.5">Unidades Escolares</p>
                           <p className="text-[10px] text-slate-400 mt-1">Salas conectadas na rede urbana e rural.</p>
                         </div>
@@ -236,7 +236,7 @@ export default function ExecutiveDossierModal({
                               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
                             </span>
                           </div>
-                          <p className="font-display text-2xl font-black text-white">330</p>
+                          <p className="font-display text-2xl font-black text-white tabular-nums">330</p>
                           <p className="text-xs font-semibold text-cyan-200 mt-0.5">Turmas Ativas</p>
                           <p className="text-[10px] text-slate-400 mt-1">Transmissão diária no horário letivo síncrono.</p>
                         </div>
@@ -245,9 +245,9 @@ export default function ExecutiveDossierModal({
                         <div className="rounded-xl border border-cyan-500/25 bg-gradient-to-br from-cyan-950/40 via-[#07162C]/70 to-[#040D1A] p-3.5 transition-all hover:border-cyan-400/40">
                           <div className="flex items-center justify-between text-slate-400 mb-1.5">
                             <MapPin className="h-4 w-4 text-[#00D8FF]" />
-                            <span className="font-mono text-[9px] font-bold text-cyan-300">100% COBERTURA</span>
+                            <span className="font-mono text-[9px] font-bold text-cyan-300 tabular-nums">100% COBERTURA</span>
                           </div>
-                          <p className="font-display text-2xl font-black text-white">52</p>
+                          <p className="font-display text-2xl font-black text-white tabular-nums">52</p>
                           <p className="text-xs font-semibold text-cyan-200 mt-0.5">Municípios Cobertos</p>
                           <p className="text-[10px] text-slate-400 mt-1">Universalização do acesso do Baixo Madeira ao Cone Sul.</p>
                         </div>
@@ -511,7 +511,7 @@ export default function ExecutiveDossierModal({
               <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
                 <button
                   onClick={handlePrint}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#1A365D] bg-[#0C1E38]/80 px-3.5 py-2 font-mono text-xs font-semibold text-slate-200 hover:border-cyan-400/50 hover:bg-cyan-500/10 hover:text-white transition-all cursor-pointer whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#1A365D] bg-[#0C1E38]/80 px-3.5 py-2 font-mono text-xs font-semibold text-slate-200 hover:border-cyan-400/50 hover:bg-cyan-500/10 hover:text-white transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300 cursor-pointer whitespace-nowrap"
                 >
                   <Printer className="h-3.5 w-3.5 text-cyan-300" />
                   <span>BAIXAR DOSSIÊ EM PDF ↓</span>
@@ -520,7 +520,7 @@ export default function ExecutiveDossierModal({
                 <Link
                   href="/transparencia"
                   onClick={onClose}
-                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-300 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-slate-950 shadow-[0_0_15px_rgba(0,216,255,0.3)] hover:brightness-110 transition-all cursor-pointer whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-300 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-slate-950 shadow-[0_0_15px_rgba(0,216,255,0.3)] hover:brightness-110 transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300 cursor-pointer whitespace-nowrap"
                 >
                   <span>ACESSAR TRANSPARÊNCIA →</span>
                 </Link>

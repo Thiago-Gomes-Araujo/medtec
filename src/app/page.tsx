@@ -102,8 +102,8 @@ export default function HomePage() {
             {/* ================= COLUNA DA ESQUERDA: TEXTO & CTAs ================= */}
             <div className="lg:col-span-7 space-y-6">
               
-              {/* 1. LINHA DE STATUS TERMINAL TÉCNICO (SUBSTITUI PILLS ANTIGAS) */}
-              <div className="inline-flex flex-wrap items-center gap-2 sm:gap-3 rounded-full border border-cyan-400/25 bg-[#07162C]/80 px-4 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-cyan-200/90 backdrop-blur-md shadow-[0_0_20px_rgba(0,216,255,0.15)]">
+              {/* 1. LINHA DE STATUS TERMINAL TÉCNICO */}
+              <div className="inline-flex flex-wrap items-center gap-2 sm:gap-3 rounded-full border border-cyan-400/25 bg-[#07162C]/80 px-4 py-1.5 font-mono text-xs uppercase tracking-wider text-cyan-200/90 backdrop-blur-md shadow-[0_0_20px_rgba(0,216,255,0.15)] select-none">
                 <span className="flex items-center gap-2 text-emerald-400 font-bold">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -117,16 +117,16 @@ export default function HomePage() {
                 <span className="text-slate-400 hidden md:inline">PORTARIA SEDUC 928/2025</span>
               </div>
 
-              {/* 2. TÍTULO PRINCIPAL (H1) COM CONTRASTE & GRADIENTE */}
-              <h1 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-[3.75rem]">
+              {/* 2. TÍTULO PRINCIPAL (H1) COM CONTRASTE SÓLIDO & ACENTO CYAN */}
+              <h1 className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.75rem] text-balance">
                 A educação do futuro chega a{' '}
-                <span className="bg-gradient-to-r from-cyan-300 via-sky-300 to-white bg-clip-text text-transparent drop-shadow-[0_0_35px_rgba(34,211,238,0.35)]">
+                <span className="text-[#00D8FF] drop-shadow-[0_0_35px_rgba(34,211,238,0.35)]">
                   todo canto de Rondônia
                 </span>
               </h1>
 
               {/* 3. SUBTÍTULO DESCRITIVO */}
-              <p className="max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
+              <p className="max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg text-pretty">
                 Aulas ao vivo diretamente dos estúdios televisivos da Coordenadoria de Mídias Educacionais em Porto Velho para centenas de salas conectadas em todo o estado, acompanhadas diariamente por professores mediadores presenciais.
               </p>
 
@@ -134,12 +134,12 @@ export default function HomePage() {
               <div className="flex flex-wrap items-center gap-y-2 gap-x-4 border-y border-white/10 py-3.5 text-xs font-semibold text-slate-300">
                 <span className="inline-flex items-center gap-1.5 text-cyan-200">
                   <CheckCircle2 className="h-4 w-4 text-cyan-400" />
-                  Ribeirinhos & Indígenas
+                  Ribeirinhos &amp; Indígenas
                 </span>
                 <span className="text-white/20 hidden sm:inline">•</span>
                 <span className="inline-flex items-center gap-1.5 text-cyan-200">
                   <CheckCircle2 className="h-4 w-4 text-cyan-400" />
-                  Quilombolas & Rurais
+                  Quilombolas &amp; Rurais
                 </span>
                 <span className="text-white/20 hidden sm:inline">•</span>
                 <span className="inline-flex items-center gap-1.5 text-emerald-300">
@@ -148,21 +148,21 @@ export default function HomePage() {
                 </span>
               </div>
 
-              {/* 5. GRUPO DE CTAs (APENAS BOTÕES COM FORMATO ARREDONDADO) */}
+              {/* 5. GRUPO DE CTAs COM FEEDBACK ATIVO E TOUCH MANIPULATION */}
               <div className="pt-2 flex flex-wrap items-center gap-3.5">
                 {/* Botão Primário */}
                 <a
                   href="#como-funciona"
-                  className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-300 via-sky-400 to-cyan-400 px-6 py-3.5 text-sm font-extrabold text-slate-950 shadow-[0_0_28px_rgba(0,216,255,0.45)] transition-all hover:brightness-110 hover:scale-[1.02] hover:shadow-[0_0_36px_rgba(0,216,255,0.65)] cursor-pointer"
+                  className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-300 via-sky-400 to-cyan-400 px-6 py-3.5 text-sm font-extrabold text-slate-950 shadow-[0_0_28px_rgba(0,216,255,0.45)] hover:brightness-110 hover:shadow-[0_0_36px_rgba(0,216,255,0.65)] active:scale-[0.97] transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none"
                 >
                   <span>Como funciona o MEDTEC</span>
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  <ArrowRight className="h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" />
                 </a>
 
                 {/* Botão Secundário */}
                 <a
                   href="#ao-vivo"
-                  className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-[#07162C]/70 px-5 py-3.5 text-sm font-semibold text-cyan-100 backdrop-blur-md transition-all hover:border-cyan-400/60 hover:bg-cyan-500/10 hover:text-white cursor-pointer shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-[#07162C]/70 px-5 py-3.5 text-sm font-semibold text-cyan-100 backdrop-blur-md hover:border-cyan-400/60 hover:bg-cyan-500/10 hover:text-white active:scale-[0.97] transition-all duration-150 ease-out cursor-pointer shadow-sm touch-manipulation select-none"
                 >
                   <Play className="h-4 w-4 text-rose-400 fill-rose-400/40" />
                   <span>Canal ao vivo</span>
@@ -171,10 +171,10 @@ export default function HomePage() {
                 {/* Link Terciário Discreto */}
                 <Link
                   href="/avisos"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer group"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-400 hover:text-cyan-300 active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer group touch-manipulation select-none"
                 >
                   <span>Avisos e notícias</span>
-                  <span className="transition-transform group-hover:translate-x-1 text-cyan-400">→</span>
+                  <span className="transition-transform duration-150 ease-out group-hover:translate-x-1 text-cyan-400">→</span>
                 </Link>
               </div>
 
@@ -182,18 +182,12 @@ export default function HomePage() {
 
             {/* ================= COLUNA DA DIREITA: CONSOLE DE SINAL HUD ================= */}
             <div className="lg:col-span-5">
-              <div className="hud-frame relative overflow-hidden rounded-3xl border border-cyan-500/20 bg-slate-900/80 p-4 sm:p-5 backdrop-blur-xl shadow-2xl">
+              <div className="hud-frame relative overflow-hidden rounded-3xl border border-cyan-500/25 bg-slate-900/85 p-4 sm:p-5 backdrop-blur-xl shadow-2xl">
                 
-                {/* Cantoneiras Técnicas (Viewfinder Brackets nos 4 cantos) */}
-                <div className="pointer-events-none absolute left-3 top-3 h-4 w-4 border-l-2 border-t-2 border-cyan-400" />
-                <div className="pointer-events-none absolute right-3 top-3 h-4 w-4 border-r-2 border-t-2 border-cyan-400" />
-                <div className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 border-b-2 border-l-2 border-cyan-400" />
-                <div className="pointer-events-none absolute bottom-3 right-3 h-4 w-4 border-b-2 border-r-2 border-cyan-400" />
-
                 {/* Header Técnico do Card HUD */}
                 <div className="mb-3.5 flex items-center justify-between gap-3 px-2 pt-1">
                   <div>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-cyan-300 font-semibold">
+                    <p className="font-mono text-xs uppercase tracking-wider text-cyan-300 font-semibold">
                       CONSOLE DE SINAL // ESTÚDIO PORTO VELHO
                     </p>
                     <p className="mt-0.5 text-xs font-semibold text-white">Transmissão Síncrona SEDUC</p>
@@ -239,14 +233,14 @@ export default function HomePage() {
                 </div>
 
                 {/* BARRA DE TELEMETRIA: DADOS REAIS DE PORTO VELHO & ONDA DE SINAL */}
-                <div className="mb-3.5 flex items-center justify-between rounded-xl border border-cyan-500/20 bg-cyan-950/30 px-3 py-2 font-mono text-[10px] text-cyan-200">
+                <div className="mb-3.5 flex items-center justify-between rounded-xl border border-cyan-500/20 bg-cyan-950/30 px-3 py-2 font-mono text-[10px] text-cyan-200 tabular-nums">
                   <div className="flex items-center gap-2 truncate">
                     <MapPin className="h-3 w-3 text-cyan-400 shrink-0" />
                     <span className="truncate">LAT -8.7619° S • LON -63.9039° W</span>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-emerald-400 font-semibold">UPLINK: 99.8%</span>
+                    <span className="text-emerald-400 font-semibold tabular-nums">UPLINK: 99.8%</span>
                     {/* Animação simulando onda de áudio/sinal */}
                     <div className="flex items-center gap-0.5 h-3" title="Sinal síncrono">
                       <span className="w-0.5 bg-cyan-400 rounded-full animate-wave-1" />
@@ -262,31 +256,31 @@ export default function HomePage() {
                 <div className="grid grid-cols-2 gap-2.5">
                   
                   {/* Métrica 1: Estudantes */}
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 transition-colors">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 hover:bg-white/[0.08] transition-all duration-150 ease-out">
                     <div className="flex items-center justify-between text-slate-400 mb-1">
                       <Users className="h-4 w-4 text-cyan-400" />
                       <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                         +Ativo
                       </span>
                     </div>
-                    <p className="font-display text-2xl font-black text-white">6.000+</p>
+                    <p className="font-display text-2xl font-black text-white tabular-nums">6.000+</p>
                     <p className="text-[11px] leading-snug text-slate-300 mt-0.5">Estudantes atendidos</p>
                   </div>
 
                   {/* Métrica 2: Unidades Escolares */}
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 transition-colors">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 hover:bg-white/[0.08] transition-all duration-150 ease-out">
                     <div className="flex items-center justify-between text-slate-400 mb-1">
                       <Building2 className="h-4 w-4 text-sky-400" />
                       <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
                         Pólos
                       </span>
                     </div>
-                    <p className="font-display text-2xl font-black text-white">129</p>
+                    <p className="font-display text-2xl font-black text-white tabular-nums">129</p>
                     <p className="text-[11px] leading-snug text-slate-300 mt-0.5">Unidades escolares</p>
                   </div>
 
                   {/* Métrica 3: Turmas Ativas */}
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 transition-colors">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 hover:bg-white/[0.08] transition-all duration-150 ease-out">
                     <div className="flex items-center justify-between text-slate-400 mb-1">
                       <Activity className="h-4 w-4 text-emerald-400" />
                       <span className="flex h-2 w-2 relative">
@@ -294,17 +288,17 @@ export default function HomePage() {
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                       </span>
                     </div>
-                    <p className="font-display text-2xl font-black text-white">330</p>
+                    <p className="font-display text-2xl font-black text-white tabular-nums">330</p>
                     <p className="text-[11px] leading-snug text-slate-300 mt-0.5">Turmas ativas no ar</p>
                   </div>
 
                   {/* Métrica 4: Cobertura Municipal (100%) */}
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 transition-colors">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3 hover:border-cyan-400/30 hover:bg-white/[0.08] transition-all duration-150 ease-out">
                     <div className="flex items-center justify-between text-slate-400 mb-1">
                       <MapPin className="h-4 w-4 text-cyan-400" />
-                      <span className="text-[10px] font-mono font-bold text-cyan-300">100%</span>
+                      <span className="text-[10px] font-mono font-bold text-cyan-300 tabular-nums">100%</span>
                     </div>
-                    <p className="font-display text-2xl font-black text-white">52</p>
+                    <p className="font-display text-2xl font-black text-white tabular-nums">52</p>
                     <p className="text-[11px] leading-snug text-slate-300 mt-0.5 mb-1.5">Municípios cobertos</p>
                     
                     {/* Mini Barra de Progresso 100% preenchida */}
@@ -324,12 +318,12 @@ export default function HomePage() {
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex justify-center">
             <a 
               href="#tecnologia" 
-              className="group flex items-center justify-center cursor-pointer"
+              className="group flex items-center justify-center cursor-pointer touch-manipulation select-none active:scale-[0.92] transition-transform duration-150 ease-out focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300 rounded-full"
               aria-label="Rolar para os pilares e matriz curricular"
             >
               <span className="relative h-14 w-14 flex items-center justify-center">
                 <span className="absolute inset-0 rounded-full bg-cyan-400/20 blur-sm animate-ping" />
-                <div className="relative w-10 h-10 rounded-full bg-[#07162C]/80 border border-cyan-400/60 shadow-[0_0_20px_rgba(0,216,255,0.35)] flex items-center justify-center backdrop-blur-md group-hover:scale-110 group-hover:border-cyan-300 transition-all duration-300">
+                <div className="relative w-10 h-10 rounded-full bg-[#07162C]/80 border border-cyan-400/60 shadow-[0_0_20px_rgba(0,216,255,0.35)] flex items-center justify-center backdrop-blur-md group-hover:scale-105 group-hover:border-cyan-300 transition-all duration-200">
                   <ArrowDown className="h-4 w-4 text-cyan-300 animate-bounce" />
                 </div>
               </span>
