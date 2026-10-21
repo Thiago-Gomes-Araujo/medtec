@@ -53,7 +53,7 @@ export default function LiveBroadcastSection({
     },
   ];
 
-  // Dados com tratamento defensivo (Harden)
+  // Dados com tratamento defensivo e resiliência (Harden & Break-UI)
   const urgentAnnouncement: AnnouncementItem | undefined = 
     (initialData.announcements as AnnouncementItem[] | undefined)?.find(
       (a) => a.active && a.type === 'urgente'
@@ -140,14 +140,14 @@ export default function LiveBroadcastSection({
                   Aulas ao vivo simultâneas geradas diretamente da capital para 129 unidades escolares em aldeias, assentamentos agrícolas e comunidades ribeirinhas.
                 </p>
 
-                {/* Ações de Transmissão (Touch target min 44px + Focus rings) */}
+                {/* Ações de Transmissão (Touch target min 44px + Feedback tátil active:scale-[0.97] + Focus rings) */}
                 <div className="pt-2 flex flex-wrap items-center gap-3">
                   <a
                     href={youtubeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Assistir transmissão ao vivo no canal da SEDUC no YouTube (abre em nova aba)"
-                    className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B30] cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 active:scale-[0.97] px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:shadow-md hover:shadow-red-600/20 active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B30] cursor-pointer"
                   >
                     <YoutubeIcon size={16} className="text-white shrink-0" />
                     <span>Assistir no YouTube</span>
@@ -159,7 +159,7 @@ export default function LiveBroadcastSection({
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Contatar suporte técnico das salas conectadas via WhatsApp (abre em nova aba)"
-                    className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-xl border border-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 px-4 py-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B30] cursor-pointer"
+                    className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-xl border border-emerald-500/40 bg-emerald-50/90 dark:bg-emerald-500/10 hover:bg-emerald-100/90 dark:hover:bg-emerald-500/20 hover:border-emerald-500/60 active:bg-emerald-200/80 dark:active:bg-emerald-500/30 active:scale-[0.97] px-4 py-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 shadow-2xs hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B30] cursor-pointer"
                   >
                     <WhatsAppIcon size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>Suporte Técnico da Sala</span>
@@ -168,7 +168,7 @@ export default function LiveBroadcastSection({
                 </div>
               </div>
 
-              {/* Grade Diária de Transmissão (Sem aninhamento de cards - Layout Distill) */}
+              {/* Grade Diária de Transmissão (Sem aninhamento de cards - Layout Distill & Break-UI Resiliente) */}
               <div className="pt-4 space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
                   <div className="flex items-center gap-2">
@@ -189,9 +189,12 @@ export default function LiveBroadcastSection({
                       key={idx}
                       className="p-4 flex flex-col justify-between space-y-2.5 min-w-0"
                     >
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1.5 min-w-0">
+                          <span 
+                            title={item.shift}
+                            className="font-bold text-xs text-slate-900 dark:text-white truncate"
+                          >
                             {item.shift}
                           </span>
                           <span 
@@ -200,12 +203,15 @@ export default function LiveBroadcastSection({
                             aria-hidden="true" 
                           />
                         </div>
-                        <p className="font-mono text-xs font-bold text-[#004A99] dark:text-cyan-300 truncate">
+                        <p 
+                          title={item.hours}
+                          className="font-mono tabular-nums text-xs font-bold text-[#004A99] dark:text-cyan-300 truncate"
+                        >
                           {item.hours}
                         </p>
                       </div>
 
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3 [overflow-wrap:anywhere] break-words">
                         {item.desc}
                       </p>
                     </div>
@@ -217,7 +223,7 @@ export default function LiveBroadcastSection({
 
             {/* Metadados & Telemetria do Hub */}
             <footer className="mt-6 pt-4 flex flex-wrap items-center justify-between gap-2 font-mono text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-white/10">
-              <span className="truncate">Coordenadas: LAT -8.7619° S • LON -63.9039° W</span>
+              <span className="truncate tabular-nums">Coordenadas: LAT -8.7619° S • LON -63.9039° W</span>
               <span className="text-[#004A99] dark:text-[#00D8FF] font-semibold shrink-0">
                 Hub Emissor Porto Velho
               </span>
@@ -251,16 +257,19 @@ export default function LiveBroadcastSection({
                       <AlertCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
                       Aviso Mural
                     </span>
-                    <time className="text-[11px] font-mono text-slate-600 dark:text-slate-400 shrink-0">
+                    <time className="text-[11px] font-mono tabular-nums text-slate-600 dark:text-slate-400 shrink-0">
                       {urgentAnnouncement.date}
                     </time>
                   </div>
                   
-                  <h4 className="font-bold text-sm text-slate-900 dark:text-white leading-snug line-clamp-2">
+                  <h4 
+                    title={urgentAnnouncement.title}
+                    className="font-bold text-sm text-slate-900 dark:text-white leading-snug line-clamp-2 [overflow-wrap:anywhere] break-words"
+                  >
                     {urgentAnnouncement.title}
                   </h4>
                   
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2 [overflow-wrap:anywhere] break-words">
                     {urgentAnnouncement.content}
                   </p>
                 </article>
@@ -294,20 +303,23 @@ export default function LiveBroadcastSection({
                       <li key={news.id}>
                         <Link
                           href={`/noticias`}
-                          className="group block p-3.5 hover:bg-white dark:hover:bg-white/10 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] focus-visible:ring-inset"
+                          className="group block p-3.5 hover:bg-white dark:hover:bg-white/10 active:bg-slate-100/80 dark:active:bg-white/15 active:scale-[0.99] transition-[transform,background-color] duration-150 ease-out touch-manipulation focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] focus-visible:ring-inset"
                         >
                           <div className="flex items-center justify-between gap-2 mb-1.5 min-w-0">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-[#004A99] dark:text-cyan-300 truncate">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-[#004A99] dark:text-cyan-300 min-w-0 max-w-[65%] truncate">
                               <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
-                              {news.category}
+                              <span className="truncate">{news.category || 'Geral'}</span>
                             </span>
-                            <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0">
+                            <span className="text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0">
                               <Calendar className="h-3 w-3 shrink-0" aria-hidden="true" />
-                              {news.publishedAt}
+                              <span>{news.publishedAt || 'Recente'}</span>
                             </span>
                           </div>
 
-                          <h5 className="font-semibold text-xs sm:text-[13px] text-slate-900 dark:text-white group-hover:text-[#004A99] dark:group-hover:text-cyan-300 transition-colors leading-snug line-clamp-2">
+                          <h5 
+                            title={news.title}
+                            className="font-semibold text-xs sm:text-[13px] text-slate-900 dark:text-white group-hover:text-[#004A99] dark:group-hover:text-cyan-300 transition-colors duration-150 ease-out leading-snug line-clamp-2 [overflow-wrap:anywhere] break-words"
+                          >
                             {news.title}
                           </h5>
                         </Link>
@@ -331,7 +343,7 @@ export default function LiveBroadcastSection({
             <footer className="pt-4 mt-4 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs font-semibold">
               <Link
                 href="/avisos"
-                className="text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] flex items-center gap-1.5 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] rounded-md px-1 py-0.5"
+                className="text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] active:scale-[0.98] flex items-center gap-1.5 transition-all duration-150 ease-out touch-manipulation focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] rounded-md px-1 py-0.5"
               >
                 <span>Mural Completo</span>
                 <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -339,7 +351,7 @@ export default function LiveBroadcastSection({
 
               <Link
                 href="/noticias"
-                className="text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1.5 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] rounded-md px-1 py-0.5"
+                className="text-[#004A99] dark:text-[#00D8FF] hover:underline active:scale-[0.98] flex items-center gap-1.5 transition-all duration-150 ease-out touch-manipulation focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] rounded-md px-1 py-0.5"
               >
                 <span>Portal de Notícias</span>
                 <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -359,7 +371,10 @@ export default function LiveBroadcastSection({
               <Globe className="h-5 w-5" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <p className="font-display font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+              <p 
+                title="Portal Oficial da Secretaria de Estado da Educação"
+                className="font-display font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate"
+              >
                 Portal Oficial da Secretaria de Estado da Educação
               </p>
               <a
@@ -367,15 +382,15 @@ export default function LiveBroadcastSection({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Acessar o portal oficial da SEDUC Rondônia (abre em nova aba)"
-                className="font-mono text-xs text-[#004A99] dark:text-[#00D8FF] hover:underline inline-flex items-center gap-1 truncate"
+                className="font-mono text-xs text-[#004A99] dark:text-[#00D8FF] hover:underline inline-flex items-center gap-1 truncate touch-manipulation"
               >
-                <span>rondonia.ro.gov.br/seduc</span>
+                <span className="truncate">rondonia.ro.gov.br/seduc</span>
                 <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
               </a>
             </div>
           </div>
 
-          {/* Lado Direito: Pílulas Executivas de Mídias com min-h 44px e acessibilidade */}
+          {/* Lado Direito: Pílulas Executivas de Mídias com min-h 44px, feedback ativo e acessibilidade */}
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full md:w-auto">
             
             {/* Pílula YouTube */}
@@ -384,7 +399,7 @@ export default function LiveBroadcastSection({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Canal YouTube da SEDUC Rondônia (abre em nova aba)"
-              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 hover:border-red-400 dark:hover:border-red-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100/90 dark:hover:bg-red-950/30 active:bg-slate-200/80 dark:active:bg-red-950/50 active:scale-[0.96] border border-slate-200 dark:border-white/10 hover:border-red-400/80 dark:hover:border-red-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 cursor-pointer shadow-2xs"
             >
               <YoutubeIcon size={16} className="text-red-600 shrink-0" />
               <span>YouTube</span>
@@ -396,7 +411,7 @@ export default function LiveBroadcastSection({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram Oficial do Governo de Rondônia (abre em nova aba)"
-              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 hover:border-pink-400 dark:hover:border-pink-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-pink-500 cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100/90 dark:hover:bg-pink-950/30 active:bg-slate-200/80 dark:active:bg-pink-950/50 active:scale-[0.96] border border-slate-200 dark:border-white/10 hover:border-pink-400/80 dark:hover:border-pink-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-pink-500 cursor-pointer shadow-2xs"
             >
               <InstagramIcon size={16} className="text-pink-600 shrink-0" />
               <span>Instagram</span>
@@ -408,7 +423,7 @@ export default function LiveBroadcastSection({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Página do Governo de Rondônia no Facebook (abre em nova aba)"
-              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 hover:border-blue-400 dark:hover:border-blue-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100/90 dark:hover:bg-blue-950/30 active:bg-slate-200/80 dark:active:bg-blue-950/50 active:scale-[0.96] border border-slate-200 dark:border-white/10 hover:border-blue-400/80 dark:hover:border-blue-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer shadow-2xs"
             >
               <FacebookIcon size={16} className="text-blue-600 shrink-0" />
               <span>Facebook</span>
@@ -420,7 +435,7 @@ export default function LiveBroadcastSection({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Canal de Suporte WhatsApp (abre em nova aba)"
-              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 hover:border-emerald-400 dark:hover:border-emerald-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100/90 dark:hover:bg-emerald-950/30 active:bg-slate-200/80 dark:active:bg-emerald-950/50 active:scale-[0.96] border border-slate-200 dark:border-white/10 hover:border-emerald-400/80 dark:hover:border-emerald-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer shadow-2xs"
             >
               <WhatsAppIcon size={16} className="text-emerald-600 shrink-0" />
               <span>WhatsApp</span>
@@ -434,4 +449,5 @@ export default function LiveBroadcastSection({
     </section>
   );
 }
+
 
