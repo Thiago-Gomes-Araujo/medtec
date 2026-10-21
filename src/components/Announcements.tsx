@@ -47,20 +47,20 @@ export default function Announcements({ announcements }: AnnouncementsProps) {
   };
 
   return (
-    <section id="avisos" className="border-y border-cyan-900/10 py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8">
+    <section id="avisos" className="border-y border-slate-200/80 dark:border-white/5 py-16 bg-[#F0F4F8] dark:bg-[#040B16] transition-colors">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 space-y-8">
         
         {/* Cabeçalho da Seção */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 uppercase tracking-wider">
-              <Megaphone size={14} className="text-amber-600" />
+            <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider font-mono">
+              <Megaphone size={14} className="text-amber-600 dark:text-amber-400" />
               <span>Mural Oficial de Recados</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight text-balance">
               Avisos e Comunicados Importantes
             </h2>
-            <p className="text-sm text-slate-500 max-w-xl">
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl text-pretty">
               Fique por dentro das datas de transmissões, orientações para professores mediadores e informes pedagógicos.
             </p>
           </div>
@@ -73,7 +73,7 @@ export default function Announcements({ announcements }: AnnouncementsProps) {
             return (
               <div 
                 key={item.id}
-                className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+                className="bg-white dark:bg-[#0C1E38] rounded-2xl p-6 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group active:scale-[0.99] touch-manipulation select-none"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
@@ -81,26 +81,26 @@ export default function Announcements({ announcements }: AnnouncementsProps) {
                       {style.icon}
                       {style.label}
                     </span>
-                    <span className="flex items-center gap-1 text-xs text-slate-400 font-medium">
+                    <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium tabular-nums font-mono">
                       <Calendar size={13} />
                       {item.date}
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 text-base group-hover:text-primary transition-colors mb-2">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors duration-150 mb-2 text-balance">
                     {item.title}
                   </h3>
 
-                  <p className="text-sm text-slate-600 leading-relaxed">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed text-pretty">
                     {item.content}
                   </p>
                 </div>
 
                 {item.linkText && item.linkUrl && (
-                  <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-end">
+                  <div className="mt-5 pt-4 border-t border-slate-100 dark:border-[#1A365D]/60 flex items-center justify-end">
                     <a
                       href={item.linkUrl}
-                      className="text-xs font-semibold text-primary hover:text-primary-deep flex items-center gap-1 group/link"
+                      className="text-xs font-semibold text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1 group/link transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] rounded-lg px-2 py-1"
                     >
                       <span>{item.linkText}</span>
                       <ArrowUpRight size={14} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />

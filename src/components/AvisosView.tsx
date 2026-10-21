@@ -104,17 +104,17 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
               <button
                 key={cat.key}
                 onClick={() => setSelectedType(cat.key)}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                   isSelected
-                    ? 'bg-slate-900 text-white dark:bg-[#00D8FF] dark:text-slate-950 shadow-xs'
+                    ? 'bg-[#004A99] text-white dark:bg-[#00D8FF] dark:text-slate-950 font-bold shadow-xs'
                     : 'bg-white dark:bg-[#0C1E38] border border-slate-200 dark:border-[#1A365D] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#0F2647]'
                 }`}
               >
                 <span>{cat.label}</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold tabular-nums ${
                     isSelected 
-                      ? 'bg-sky-400 text-slate-950 dark:bg-slate-950 dark:text-[#00D8FF]' 
+                      ? 'bg-sky-200 text-slate-950 dark:bg-slate-950 dark:text-[#00D8FF]' 
                       : 'bg-slate-100 dark:bg-[#061224] text-slate-600 dark:text-slate-400'
                   }`}
                 >
@@ -131,7 +131,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
             placeholder="Buscar por palavra-chave..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-sky-500/20 dark:focus:ring-cyan-500/20 focus:border-sky-500 dark:focus:border-[#00D8FF] transition-colors"
+            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-[#004A99]/20 dark:focus:ring-cyan-500/20 focus:border-[#004A99] dark:focus:border-[#00D8FF] transition-all duration-150"
           />
           <Search size={15} className="absolute left-3 top-2.5 text-slate-400 dark:text-slate-500" />
         </div>
@@ -143,8 +143,8 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
           <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-[#061224] flex items-center justify-center mx-auto mb-3 text-slate-400 dark:text-slate-500">
             <Megaphone size={22} />
           </div>
-          <h3 className="text-sm font-bold text-slate-800 dark:text-white">Nenhum aviso encontrado</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
+          <h3 className="text-sm font-bold text-slate-800 dark:text-white font-display">Nenhum aviso encontrado</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto text-pretty">
             Não há comunicados correspondentes ao filtro ou busca selecionada no momento.
           </p>
         </div>
@@ -155,7 +155,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
             return (
               <article
                 key={item.id}
-                className={`glow-card bg-white dark:bg-[#0C1E38] rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-lg dark:hover:border-cyan-400/50 transition-all duration-300 flex flex-col justify-between group ${style.cardBorder}`}
+                className={`glow-card bg-white dark:bg-[#0C1E38] rounded-3xl p-6 sm:p-7 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-lg dark:hover:border-cyan-400/50 transition-all duration-200 ease-out flex flex-col justify-between group active:scale-[0.99] touch-manipulation select-none ${style.cardBorder}`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-4">
@@ -163,17 +163,17 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
                       <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
                       {style.label}
                     </span>
-                    <span className="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-400 font-medium font-mono">
+                    <span className="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium font-mono tabular-nums">
                       <Calendar size={13} />
                       {item.date}
                     </span>
                   </div>
 
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base leading-snug group-hover:text-sky-600 dark:group-hover:text-[#00D8FF] transition-colors mb-3">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base leading-snug group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors duration-150 mb-3 text-balance">
                     {item.title}
                   </h3>
 
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line text-pretty">
                     {item.content}
                   </p>
                 </div>
@@ -182,7 +182,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
                   <div className="mt-6 pt-4 border-t border-slate-100 dark:border-[#1A365D]/60 flex items-center justify-end">
                     <a
                       href={item.linkUrl}
-                      className="text-xs font-bold text-sky-600 dark:text-[#00D8FF] hover:text-sky-800 dark:hover:underline flex items-center gap-1.5 group/link transition-colors"
+                      className="text-xs font-bold text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1.5 group/link transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] rounded-lg px-2 py-1"
                     >
                       <span>{item.linkText}</span>
                       <ArrowUpRight size={14} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
