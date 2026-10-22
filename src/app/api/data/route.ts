@@ -38,6 +38,10 @@ function isValidDatabaseSchema(body: unknown): body is DatabaseSchema {
     return false;
   }
 
+  if (candidate.users !== undefined && !Array.isArray(candidate.users)) {
+    return false;
+  }
+
   return true;
 }
 
@@ -57,7 +61,7 @@ export async function PUT(request: Request) {
     const auth = await verifyAdminSession();
     if (!auth.valid) {
       return NextResponse.json(
-        { error: 'Acesso não autorizado. Autentique-se como gestor para realizar alterações.' },
+        { error: 'Acesso não autorizado. Autentique-se para realizar alterações.' },
         { status: 401 }
       );
     }
@@ -77,6 +81,31 @@ export async function PUT(request: Request) {
       ...item,
       views: viewsById.get(item.id) ?? item.views ?? 0,
     }));
+
+    // Se o usuário autenticado não for Gestor Geral, preserva configurações críticas e restringe ao escopo do seu perfil
+    if (!auth.isGestor) {
+      body.users = current.users;
+      body.siteInfo = current.siteInfo;
+      body.stats = current.stats;
+      body.socials = current.socials;
+
+      const profile = auth.profileType;
+      if (profile === 'Editor de Notícias') {
+        // Operador de notícias só altera o array de notícias
+        body.gallery = current.gallery;
+        body.banners = current.banners;
+        body.announcements = current.announcements;
+      } else if (profile === 'Curador de Fotos') {
+        // Curador de fotos só altera fotos e galeria
+        body.news = current.news;
+        body.announcements = current.announcements;
+      } else if (profile === 'Publicador de Avisos') {
+        // Publicador de avisos só altera avisos
+        body.news = current.news;
+        body.gallery = current.gallery;
+        body.banners = current.banners;
+      }
+    }
 
     const success = saveDatabase(body);
     if (!success) {
