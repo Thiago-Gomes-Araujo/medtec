@@ -135,17 +135,17 @@ export default function ProjectsInteractiveStage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 space-y-8">
       
       {/* ========================================================================= */}
       {/* 1. TOPO COMPACTO COM SELETOR DE TRILHAS EM CÁPSULAS                      */}
       {/* ========================================================================= */}
-      <section className="space-y-6">
+      <section className="space-y-4">
         
         {/* Header Enxuto com Tag Técnica, Título Display e Placar Técnico */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-slate-200/80 dark:border-[#1A365D]">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-[#1A365D]">
           
-          <div className="space-y-2 max-w-3xl">
+          <div className="space-y-1.5 max-w-3xl">
             {/* Tag técnica */}
             <div className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] font-semibold">
               <span className="relative flex h-2 w-2">
@@ -156,24 +156,24 @@ export default function ProjectsInteractiveStage() {
             </div>
 
             {/* Título Display */}
-            <h1 className="font-display text-3xl sm:text-4xl lg:text-[46px] font-black tracking-tight text-slate-900 dark:text-[#E6F4FF] leading-tight text-balance">
+            <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-[#E6F4FF] leading-tight text-balance">
               Missões &amp; Projetos Pedagógicos
             </h1>
             
-            <p className="text-sm text-slate-600 dark:text-slate-300 text-pretty max-w-2xl">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 text-pretty max-w-2xl line-clamp-2">
               Práticas territoriais reais desenvolvidas por turmas de Ensino Médio com Mediação Tecnológica nas florestas, águas e campos de Rondônia.
             </p>
           </div>
 
           {/* Placar Técnico Horizontal Compacto */}
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3.5 py-2 font-mono text-xs shadow-xs tabular-nums">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3 py-1.5 font-mono text-xs shadow-xs tabular-nums">
               <span className="font-bold text-[#004A99] dark:text-[#00D8FF]">84+ Projetos</span>
             </div>
-            <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3.5 py-2 font-mono text-xs shadow-xs tabular-nums">
+            <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3 py-1.5 font-mono text-xs shadow-xs tabular-nums">
               <span className="font-bold text-[#004A99] dark:text-[#00D8FF]">30+ Municípios</span>
             </div>
-            <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3.5 py-2 font-mono text-xs shadow-xs tabular-nums">
+            <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3 py-1.5 font-mono text-xs shadow-xs tabular-nums">
               <span className="font-bold text-emerald-600 dark:text-emerald-400">100% Prática Comunitária</span>
             </div>
           </div>
@@ -237,9 +237,9 @@ export default function ProjectsInteractiveStage() {
           {/* ======================================================== */}
           {/* COLUNA ESQUERDA (lg:col-span-4 — ÍNDICE DE MISSÕES)     */}
           {/* ======================================================== */}
-          <div className="lg:col-span-4 flex flex-col gap-2.5">
-            <div className="rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-slate-50/70 dark:bg-[#08182E]/50 p-2.5 space-y-2">
-              <span className="block px-2 pt-1 font-mono text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="lg:col-span-4 flex flex-col gap-2">
+            <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-slate-50/70 dark:bg-[#08182E]/50 p-2 space-y-1.5">
+              <span className="block px-2 pt-0.5 font-mono text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
                 Selecione uma missão para inspecionar
               </span>
 
@@ -251,14 +251,14 @@ export default function ProjectsInteractiveStage() {
                   <button
                     key={project.id}
                     onClick={() => handleSelectProject(project)}
-                    className={`w-full text-left rounded-2xl p-3.5 transition-all duration-150 ease-out cursor-pointer border flex items-center justify-between gap-3 relative touch-manipulation select-none active:scale-[0.98] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
+                    className={`w-full text-left rounded-xl p-3 transition-all duration-150 ease-out cursor-pointer border flex items-center justify-between gap-2.5 relative touch-manipulation select-none active:scale-[0.98] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                       isCurrent
                         ? 'bg-[#004A99] text-white border-[#003B7A] shadow-md dark:bg-[#0C1E38] dark:border-[#00D8FF] dark:text-[#E6F4FF] dark:shadow-[0_0_20px_rgba(0,216,255,0.15)]'
                         : 'bg-white dark:bg-[#0A1A30] text-slate-800 dark:text-slate-300 border-slate-200/80 dark:border-[#1A365D] hover:border-slate-300 dark:hover:border-cyan-400/40 hover:bg-slate-50 dark:hover:bg-[#0C2242]'
                     }`}
                   >
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex items-center gap-2">
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-1.5">
                         <span className={`h-2 w-2 rounded-full shrink-0 ${colors.dot}`} />
                         <span className={`font-mono text-[10px] font-bold tracking-wider uppercase tabular-nums ${
                           isCurrent ? 'text-cyan-200 dark:text-[#00D8FF]' : 'text-[#004A99] dark:text-cyan-300'
@@ -272,7 +272,7 @@ export default function ProjectsInteractiveStage() {
                         </span>
                       </div>
 
-                      <h4 className="font-display text-sm font-bold truncate leading-snug">
+                      <h4 className="font-display text-sm font-semibold truncate leading-snug">
                         {project.shortTitle}
                       </h4>
 
@@ -304,12 +304,12 @@ export default function ProjectsInteractiveStage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="h-full rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 lg:p-8 shadow-xs dark:shadow-md flex flex-col justify-between transition-colors space-y-6"
+                className="h-full rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 shadow-xs dark:shadow-md flex flex-col justify-between transition-colors space-y-4"
               >
                 
                 {/* 1. CABEÇALHO DO PALCO */}
-                <div className="space-y-3 pb-5 border-b border-slate-100 dark:border-white/5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-2 pb-3 border-b border-slate-100 dark:border-white/5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
                       {/* Selo Oficial em Badge 3D Volumétrico */}
                       <Badge3D
@@ -329,7 +329,7 @@ export default function ProjectsInteractiveStage() {
                     <div className="relative">
                       <button
                         onClick={() => handleApplause(currentProject.id)}
-                        className="inline-flex items-center gap-2 rounded-full border border-sky-200 dark:border-cyan-500/30 bg-sky-50 dark:bg-[#07162C] px-3.5 py-1.5 text-xs font-bold text-[#004A99] dark:text-[#00D8FF] hover:bg-sky-100 dark:hover:bg-[#0A2242] active:scale-[0.93] transition-all duration-150 ease-out cursor-pointer shadow-xs touch-manipulation select-none"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 dark:border-cyan-500/30 bg-sky-50 dark:bg-[#07162C] px-3 py-1 text-xs font-bold text-[#004A99] dark:text-[#00D8FF] hover:bg-sky-100 dark:hover:bg-[#0A2242] active:scale-[0.93] transition-all duration-150 ease-out cursor-pointer shadow-xs touch-manipulation select-none"
                         title="Enviar aplauso oficial para a turma"
                       >
                         <Badge3D size="xs" variant="solid" icon={<ThumbsUp className="w-2.5 h-2.5" />} />
@@ -353,88 +353,88 @@ export default function ProjectsInteractiveStage() {
                     </div>
                   </div>
 
-                  {/* Título Grande */}
-                  <h2 className="font-display text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-[#E6F4FF] leading-snug text-balance">
+                  {/* Título */}
+                  <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-[#E6F4FF] leading-snug text-balance">
                     {currentProject.title}
                   </h2>
 
                   {/* Subtítulo com Escola, Município e Professor Mediador */}
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-300 pt-1">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-300 pt-0.5">
                     <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-full bg-gradient-to-br from-sky-400 to-[#004A99] dark:from-cyan-400 dark:to-blue-600 flex items-center justify-center font-bold text-[10px] text-white shrink-0 shadow-xs">
+                      <div className="h-5 w-5 rounded-full bg-gradient-to-br from-sky-400 to-[#004A99] dark:from-cyan-400 dark:to-blue-600 flex items-center justify-center font-bold text-[9px] text-white shrink-0 shadow-xs">
                         {currentProject.mediatorInitials}
                       </div>
                       <span className="font-semibold text-slate-900 dark:text-white">
                         {currentProject.mediatorName}
                       </span>
-                      <span className="text-slate-500 dark:text-slate-400">({currentProject.mediatorRole})</span>
+                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">({currentProject.mediatorRole})</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
-                      <School className="h-3.5 w-3.5 text-sky-600 dark:text-cyan-400 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
+                      <School className="h-3 w-3 text-sky-600 dark:text-cyan-400 shrink-0" />
                       <span>{currentProject.school} • {currentProject.municipality} ({currentProject.typology})</span>
                     </div>
                   </div>
                 </div>
 
-                {/* 2. VISUAL & PIPELINE DE EXECUÇÃO EM 3 NÓS */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                {/* 2. VISUAL & PIPELINE DE EXECUÇÃO EM 3 NÓS ENXUTOS ALINHADOS À FOTO */}
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
                   
                   {/* Fotografia Principal Emoldurada */}
-                  <div className="md:col-span-5 relative rounded-2xl overflow-hidden border border-slate-200/90 dark:border-[#1A365D] group aspect-[4/3] bg-slate-900 shadow-sm">
+                  <div className="md:col-span-5 relative rounded-xl overflow-hidden border border-slate-200/90 dark:border-[#1A365D] group min-h-[220px] bg-slate-900 shadow-sm flex flex-col justify-end">
                     <img
                       src={currentProject.image}
                       alt={currentProject.title}
                       loading="lazy"
-                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                      className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent pointer-events-none" />
                     
                     {/* Badge da Turma Participante */}
-                    <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-white">
+                    <div className="relative z-10 p-2.5 flex items-center justify-between text-xs text-white">
                       <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md border border-white/20">
                         {currentProject.studentCohort}
                       </span>
                     </div>
                   </div>
 
-                  {/* Linha de Transformação Conectada (3 Etapas Visuais) */}
-                  <div className="md:col-span-7 space-y-3">
+                  {/* Linha de Transformação Conectada (3 Etapas Visuais Enxutas) */}
+                  <div className="md:col-span-7 flex flex-col justify-between gap-2.5">
                     
                     {/* Nó 01: Desafio Local */}
-                    <div className="rounded-2xl border border-rose-200/80 dark:border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/15 p-3.5 space-y-1">
+                    <div className="rounded-xl border border-rose-200/80 dark:border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/15 p-3 space-y-0.5">
                       <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400">
                         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                        <span>01. Desafio Local (Problema Real)</span>
+                        <span>01. Desafio Local</span>
                       </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium text-pretty">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium line-clamp-2">
                         {currentProject.desafioLocal.description}
                       </p>
                     </div>
 
                     {/* Nó 02: Prática MEDTEC */}
-                    <div className="rounded-2xl border border-sky-200/80 dark:border-cyan-500/20 bg-sky-50/40 dark:bg-cyan-950/15 p-3.5 space-y-1">
+                    <div className="rounded-xl border border-sky-200/80 dark:border-cyan-500/20 bg-sky-50/40 dark:bg-cyan-950/15 p-3 space-y-0.5">
                       <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold text-[#004A99] dark:text-[#00D8FF]">
                         <Radio className="h-3.5 w-3.5 shrink-0" />
-                        <span>02. Prática MEDTEC (Aula Síncrona + Mediação)</span>
+                        <span>02. Prática MEDTEC</span>
                       </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed text-pretty">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-2">
                         {currentProject.praticaMedtec.description}
                       </p>
                     </div>
 
                     {/* Nó 03: Impacto Gerado com Métrica em Destaque */}
-                    <div className="rounded-2xl border border-emerald-200/80 dark:border-emerald-500/25 bg-emerald-50/50 dark:bg-emerald-950/20 p-3.5 space-y-1">
+                    <div className="rounded-xl border border-emerald-200/80 dark:border-emerald-500/25 bg-emerald-50/50 dark:bg-emerald-950/20 p-3 space-y-0.5">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">
                           <TrendingUp className="h-3.5 w-3.5 shrink-0" />
-                          <span>03. Impacto Gerado (Resultado Concreto)</span>
+                          <span>03. Impacto Gerado</span>
                         </div>
-                        <span className="font-mono text-xs font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-400/20 text-emerald-800 dark:text-emerald-200 tabular-nums">
+                        <span className="font-mono text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-400/20 text-emerald-800 dark:text-emerald-200 tabular-nums">
                           {currentProject.impactoGerado.metric}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed text-pretty">
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-2">
                         {currentProject.impactoGerado.description}
                       </p>
                     </div>

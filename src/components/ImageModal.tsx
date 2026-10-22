@@ -28,15 +28,15 @@ export default function ImageModal({ photo, onClose }: ImageModalProps) {
       onClick={onClose}
     >
       <div 
-        className="relative max-w-4xl max-h-[90vh] bg-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col"
+        className="relative max-w-4xl max-h-[90vh] bg-slate-900 rounded-xl overflow-hidden shadow-2xl flex flex-col border border-white/10"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-slate-950/70 hover:bg-slate-950 text-white backdrop-blur-md transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300"
+          className="absolute top-3.5 right-3.5 z-10 p-2 rounded-full bg-slate-950/70 hover:bg-slate-950 text-white backdrop-blur-md transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300"
           aria-label="Fechar foto"
         >
-          <X size={20} />
+          <X size={18} />
         </button>
 
         <div className="relative flex-1 bg-black flex items-center justify-center max-h-[70vh]">
@@ -47,9 +47,9 @@ export default function ImageModal({ photo, onClose }: ImageModalProps) {
           />
         </div>
 
-        <div className="p-6 bg-slate-900 text-white space-y-2 border-t border-slate-800">
+        <div className="p-4 sm:p-5 bg-slate-900 text-white space-y-2 border-t border-slate-800">
           <div className="flex items-center justify-between gap-4">
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950">
               {photo.category}
             </span>
             <span className="text-xs text-slate-400 flex items-center gap-1 font-medium font-mono tabular-nums">
@@ -57,8 +57,8 @@ export default function ImageModal({ photo, onClose }: ImageModalProps) {
               {photo.date}
             </span>
           </div>
-          <h3 className="text-lg font-bold text-white text-balance">{photo.title}</h3>
-          <p className="text-sm text-slate-300 text-pretty leading-relaxed">{photo.description}</p>
+          <h3 className="text-base sm:text-lg font-semibold text-white leading-snug">{photo.title}</h3>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed line-clamp-2">{photo.description}</p>
         </div>
       </div>
     </div>

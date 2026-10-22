@@ -107,54 +107,48 @@ export default function Methodology() {
         <div className="relative">
           
           {/* Linha tracejada horizontal com pulso luminoso no desktop */}
-          <div className="pointer-events-none absolute left-10 right-10 top-[60px] z-0 hidden lg:block h-[2px]">
+          <div className="pointer-events-none absolute left-8 right-8 top-[48px] z-0 hidden lg:block h-[2px]">
             {/* Linha tracejada base */}
             <div className="w-full h-full border-b border-dashed border-[#004A99]/30 dark:border-[#00D8FF]/30" />
             
             {/* Pulso luminoso animado percorrendo do Passo 01 ao Passo 05 */}
-            <div className="absolute top-[-3px] left-0 h-2 w-24 bg-gradient-to-r from-transparent via-[#004A99] dark:via-[#00D8FF] to-transparent rounded-full blur-[1px] animate-[pulseLine_4s_ease-in-out_infinite]" />
+            <div className="absolute top-[-3px] left-0 h-2 w-20 bg-gradient-to-r from-transparent via-[#004A99] dark:via-[#00D8FF] to-transparent rounded-full blur-[1px] animate-[pulseLine_4s_ease-in-out_infinite]" />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 items-stretch relative z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch relative z-10">
             {steps.map((item, idx) => (
               <div key={item.step} className="relative group h-full">
-                <div className="glow-card relative flex min-h-[320px] w-full flex-col justify-between rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-1.5 hover:border-[#004A99] dark:hover:border-[#00D8FF] shadow-sm hover:shadow-xl dark:shadow-md">
+                <div className="glow-card relative flex w-full flex-col justify-between rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-4.5 backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:border-[#004A99] dark:hover:border-[#00D8FF] shadow-xs hover:shadow-md dark:shadow-md">
                   
-                  <div>
-                    {/* Topo: Número e Ícone */}
-                    <div className="flex items-center justify-between mb-5">
-                      <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#004A99] to-[#0284C7] dark:from-[#00D8FF] dark:to-[#0284C7] flex items-center justify-center text-white dark:text-[#040B16] font-black font-mono text-sm shadow-md group-hover:scale-110 transition-transform duration-200 ease-out tabular-nums">
+                  <div className="space-y-3">
+                    {/* Topo: Número e Ícone Alinhados */}
+                    <div className="flex items-center justify-between">
+                      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#004A99] to-[#0284C7] dark:from-[#00D8FF] dark:to-[#0284C7] flex items-center justify-center text-white dark:text-[#040B16] font-bold font-mono text-xs shadow-xs group-hover:scale-105 transition-transform duration-200 ease-out tabular-nums">
                         {item.step}
                       </span>
 
-                      <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-[#061224] border border-slate-200/60 dark:border-[#1A365D] flex items-center justify-center group-hover:bg-[#004A99]/10 dark:group-hover:bg-[#00D8FF]/10 transition-colors duration-150">
-                        {item.icon}
+                      <div className="w-9 h-9 rounded-lg bg-sky-50 dark:bg-[#061224] border border-slate-200/60 dark:border-[#1A365D] flex items-center justify-center group-hover:bg-[#004A99]/10 dark:group-hover:bg-[#00D8FF]/10 transition-colors duration-150">
+                        {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, { className: 'w-5 h-5 text-[#004A99] dark:text-[#00D8FF]' })}
                       </div>
                     </div>
 
-                    {/* Textos */}
-                    <div className="space-y-2">
-                      <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors duration-150 font-display text-balance">
+                    {/* Textos com limite de 2 linhas */}
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors duration-150 font-display text-balance leading-snug">
                         {item.title}
                       </h3>
-                      <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-[13px] leading-relaxed text-pretty">
+                      <p className="text-slate-600 dark:text-slate-300 text-xs leading-relaxed line-clamp-2 text-pretty">
                         {item.desc}
                       </p>
                     </div>
-                  </div>
-
-                  {/* Micro rodapé */}
-                  <div className="pt-4 mt-4 border-t border-slate-100 dark:border-[#1A365D] flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                    <span>Etapa Síncrona</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">Ativa</span>
                   </div>
 
                 </div>
 
                 {/* Seta no Mobile entre os cards */}
                 {idx < steps.length - 1 && (
-                  <div className="lg:hidden flex justify-center my-2 text-sky-500">
-                    <ChevronDown size={20} />
+                  <div className="lg:hidden flex justify-center my-1.5 text-sky-500">
+                    <ChevronDown size={18} />
                   </div>
                 )}
               </div>
@@ -164,51 +158,51 @@ export default function Methodology() {
         </div>
 
         {/* ================= 3. BLOCO INTEGRADO: QUEM FAZ ACONTECER NA PONTA ================= */}
-        <div className="rounded-3xl bg-slate-50 dark:bg-[#0C1E38] border border-slate-200/90 dark:border-[#1A365D] p-6 sm:p-8 lg:p-10 shadow-sm dark:shadow-xl">
+        <div className="rounded-xl bg-slate-50 dark:bg-[#0C1E38] border border-slate-200/90 dark:border-[#1A365D] p-5 sm:p-6 lg:p-7 shadow-xs dark:shadow-md">
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             
             {/* Coluna da Esquerda (7 cols): Educadores em Destaque */}
-            <div className="lg:col-span-7 space-y-6">
+            <div className="lg:col-span-7 space-y-4">
               <div>
                 <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#004A99] dark:text-[#00D8FF] uppercase tracking-wider mb-1">
                   <Users2 className="h-4 w-4" />
                   <span>Quem Faz Acontecer na Ponta • Da Capital às Comunidades</span>
                 </div>
-                <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white text-balance">
+                <h3 className="font-display text-lg sm:text-xl font-bold text-slate-900 dark:text-white text-balance">
                   Corpo Docente Especialista &amp; Professores Mediadores
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1 text-pretty">
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 text-pretty line-clamp-2">
                   A força do MEDTEC une os ministrantes do estúdio central de TV ao educador presencial em sala, garantindo vínculo humano e dinamização pedagógica diária.
                 </p>
               </div>
 
-              {/* 3 Mini-Perfis de Educadores */}
+              {/* 3 Mini-Perfis de Educadores Compactos */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {educators.map((edu) => (
                   <div
                     key={edu.name}
-                    className="flex flex-col justify-between p-4 rounded-2xl bg-white dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-[#004A99]/50 dark:hover:border-cyan-400/50 transition-all duration-150 ease-out shadow-xs"
+                    className="flex flex-col justify-between p-3.5 rounded-xl bg-white dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-[#004A99]/50 dark:hover:border-cyan-400/50 transition-all duration-150 ease-out shadow-xs"
                   >
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         {/* Avatar suave em azul institucional */}
-                        <div className="w-9 h-9 rounded-xl bg-sky-100 dark:bg-cyan-950/80 border border-sky-300 dark:border-cyan-400/40 text-[#004A99] dark:text-[#00D8FF] flex items-center justify-center font-mono font-bold text-xs shadow-xs">
+                        <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-cyan-950/80 border border-sky-300 dark:border-cyan-400/40 text-[#004A99] dark:text-[#00D8FF] flex items-center justify-center font-mono font-bold text-xs shadow-xs">
                           {edu.initials}
                         </div>
-                        <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#0C1E38] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 truncate max-w-[120px]">
+                        <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#0C1E38] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 truncate max-w-[110px]">
                           {edu.tag}
                         </span>
                       </div>
 
                       <div>
-                        <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-tight">
+                        <h4 className="font-bold text-xs text-slate-900 dark:text-white leading-tight">
                           {edu.name}
                         </h4>
                         <p className="text-[11px] font-semibold text-[#004A99] dark:text-[#00D8FF] mt-0.5">
                           {edu.role}
                         </p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                           {edu.subject}
                         </p>
                       </div>
@@ -220,11 +214,11 @@ export default function Methodology() {
 
             {/* Coluna da Direita (5 cols): Atalho para o Radar Territorial */}
             <div className="lg:col-span-5 h-full">
-              <div className="h-full rounded-2xl bg-gradient-to-br from-[#004A99] via-[#053D7A] to-[#0A2540] dark:from-[#061224] dark:via-[#091E3A] dark:to-[#040D1A] text-white p-6 sm:p-7 flex flex-col justify-between space-y-6 shadow-md border border-cyan-400/20">
+              <div className="h-full rounded-xl bg-gradient-to-br from-[#004A99] via-[#053D7A] to-[#0A2540] dark:from-[#061224] dark:via-[#091E3A] dark:to-[#040D1A] text-white p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-sm border border-cyan-400/20">
                 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-cyan-400/20 text-cyan-200 border border-cyan-400/30">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-cyan-400/20 text-cyan-200 border border-cyan-400/30">
                       <Compass className="h-3.5 w-3.5" />
                       REDE ESTADUAL CONECTADA
                     </span>
@@ -233,11 +227,11 @@ export default function Methodology() {
                     </span>
                   </div>
 
-                  <h4 className="font-display text-lg sm:text-xl font-bold leading-tight text-balance">
+                  <h4 className="font-display text-base sm:text-lg font-bold leading-tight text-balance">
                     Presente nos 52 Municípios de Rondônia
                   </h4>
 
-                  <p className="text-xs text-slate-200 leading-relaxed text-pretty">
+                  <p className="text-xs text-slate-200 leading-relaxed text-pretty line-clamp-2">
                     129 unidades escolares garantindo ensino regular gratuito para comunidades ribeirinhas, indígenas, quilombolas e rurais isoladas.
                   </p>
                 </div>

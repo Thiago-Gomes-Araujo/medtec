@@ -430,15 +430,13 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
               MODO REVISTA (MANCHETE 50/50 + GRADE DE CARDS COM RESUMO)
           ======================================================== */
           <div className="space-y-10">
-            
-            {/* 1. CARROSSEL EDITORIAL DISCRETO (4 DESTAQUES • 5000ms AUTOPLAY) */}
-            {currentSlideArticle && currentSlideEditorial && (
+               {currentSlideArticle && currentSlideEditorial && (
               <div
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
                 onFocus={() => setIsPaused(true)}
                 onBlur={() => setIsPaused(false)}
-                className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-sm hover:shadow-xl transition-all duration-200 min-h-[360px] lg:h-[410px]"
+                className="group relative overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-xs hover:shadow-md transition-all duration-200 max-h-[320px] lg:h-[320px]"
               >
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -452,7 +450,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                     {/* Coluna da Imagem (5 colunas no desktop) */}
                     <div
                       onClick={() => setActiveArticleId(currentSlideArticle.id)}
-                      className="relative lg:col-span-5 h-64 sm:h-72 lg:h-full overflow-hidden bg-slate-950 cursor-pointer group/img"
+                      className="relative lg:col-span-5 h-44 sm:h-52 lg:h-full overflow-hidden bg-slate-950 cursor-pointer group/img"
                     >
                       <img
                         src={currentSlideArticle.coverImage || FALLBACK_NEWS_COVER}
@@ -468,8 +466,8 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 lg:bg-gradient-to-r lg:from-transparent lg:to-black/30 pointer-events-none" />
 
                       {/* Badge de Destaque no Topo da Imagem */}
-                      <div className="absolute top-4 left-4 z-10">
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/85 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-sm">
+                      <div className="absolute top-3 left-3 z-10">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/85 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-xs">
                           <Star className="h-2.5 w-2.5 text-cyan-300 fill-cyan-300" />
                           <span>Destaque Editorial</span>
                         </span>
@@ -477,14 +475,14 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                     </div>
 
                     {/* Coluna Editorial (7 colunas no desktop) */}
-                    <div className="lg:col-span-7 p-6 sm:p-8 lg:p-9 flex flex-col justify-between h-full bg-white dark:bg-[#0C1E38]">
-                      <div className="space-y-3.5">
+                    <div className="lg:col-span-7 p-4 sm:p-5 flex flex-col justify-between h-full bg-white dark:bg-[#0C1E38]">
+                      <div className="space-y-2">
                         {/* Kicker Discreto: Categoria • Região • Data + Indicador Numérico 01 / 04 */}
-                        <div className="flex items-center justify-between gap-3 text-xs font-mono">
-                          <div className="flex items-center gap-2 text-[#004A99] dark:text-[#00D8FF] font-bold tracking-wider uppercase text-[11px] truncate">
+                        <div className="flex items-center justify-between gap-2 text-xs font-mono">
+                          <div className="flex items-center gap-1.5 text-[#004A99] dark:text-[#00D8FF] font-bold tracking-wider uppercase text-[10px] sm:text-[11px] truncate">
                             <span className="inline-flex items-center gap-1 shrink-0">
                               <MapPin className="h-3 w-3 shrink-0" />
-                              <span className="truncate max-w-[140px] sm:max-w-[200px]">
+                              <span className="truncate max-w-[120px] sm:max-w-[180px]">
                                 {currentSlideEditorial.polo.split('•')[0].trim()}
                               </span>
                             </span>
@@ -497,7 +495,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           </div>
 
                           {/* Indicador Numérico 01 / 04 */}
-                          <div className="shrink-0 flex items-center gap-1 font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums bg-slate-100 dark:bg-[#061224] px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-[#1A365D]">
+                          <div className="shrink-0 flex items-center gap-1 font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 tabular-nums bg-slate-100 dark:bg-[#061224] px-2 py-0.5 rounded-full border border-slate-200 dark:border-[#1A365D]">
                             <span className="text-[#004A99] dark:text-[#00D8FF]">
                               {String(activeSlide + 1).padStart(2, '0')}
                             </span>
@@ -506,24 +504,24 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           </div>
                         </div>
 
-                        {/* Título: font-display font-bold text-balance line-clamp-2 */}
+                        {/* Título: font-display font-semibold text-balance line-clamp-2 */}
                         <h3
                           onClick={() => setActiveArticleId(currentSlideArticle.id)}
-                          className="font-display text-xl sm:text-2xl lg:text-[1.7rem] font-bold tracking-tight text-slate-900 dark:text-white hover:text-[#004A99] dark:hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2 text-balance cursor-pointer pt-0.5"
+                          className="font-display text-base sm:text-lg lg:text-xl font-bold tracking-tight text-slate-900 dark:text-white hover:text-[#004A99] dark:hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2 text-balance cursor-pointer pt-0.5"
                         >
                           {currentSlideArticle.title}
                         </h3>
 
-                        {/* Resumo: 1 parágrafo conciso line-clamp-3 text-pretty */}
-                        <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed line-clamp-3 font-sans text-pretty">
+                        {/* Resumo: line-clamp-2 text-pretty */}
+                        <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed line-clamp-2 font-sans text-pretty">
                           {currentSlideArticle.excerpt}
                         </p>
                       </div>
 
                       {/* Rodapé do Card: Autor à esquerda + Navegação Minimalista + Botão à direita */}
-                      <div className="pt-4 border-t border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="pt-3 border-t border-dashed border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                         {/* Esquerda: Autor/Coordenação + Tempo de Leitura */}
-                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-mono text-[11px] truncate">
+                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-mono text-[10px] sm:text-[11px] truncate">
                           <span className="truncate">
                             Por <strong className="text-slate-700 dark:text-slate-300 font-semibold">{currentSlideArticle.author || 'Coordenação SEDUC-RO'}</strong>
                           </span>
@@ -535,9 +533,9 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                         </div>
 
                         {/* Direita: Controles Sutis do Carrossel (Pílulas + Setas) e Ação */}
-                        <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                        <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
                           {/* 4 Indicadores Horizontais (Pílulas Finas) */}
-                          <div className="flex items-center gap-1.5" role="tablist" aria-label="Navegação dos 4 destaques">
+                          <div className="flex items-center gap-1" role="tablist" aria-label="Navegação dos 4 destaques">
                             {carouselArticles.map((_, idx) => {
                               const isActive = idx === activeSlide;
                               return (
@@ -552,7 +550,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                                   aria-label={`Ir para destaque ${idx + 1}`}
                                   className={`h-1.5 rounded-full transition-all duration-300 ease-out touch-manipulation select-none active:scale-[0.95] cursor-pointer ${
                                     isActive
-                                      ? 'w-6 bg-[#004A99] dark:bg-[#00D8FF]'
+                                      ? 'w-5 bg-[#004A99] dark:bg-[#00D8FF]'
                                       : 'w-2 bg-slate-200 dark:bg-[#1A365D] hover:bg-slate-300 dark:hover:bg-slate-600'
                                   }`}
                                 />
@@ -565,14 +563,14 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                             <button
                               onClick={handlePrevSlide}
                               aria-label="Destaque anterior"
-                              className="p-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] hover:border-slate-300 dark:hover:border-cyan-500/40 transition-all duration-150 ease-out active:scale-[0.95] touch-manipulation select-none cursor-pointer"
+                              className="p-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] hover:border-slate-300 dark:hover:border-cyan-500/40 transition-all duration-150 ease-out active:scale-[0.95] touch-manipulation select-none cursor-pointer"
                             >
                               <ChevronLeft className="h-3.5 w-3.5" />
                             </button>
                             <button
                               onClick={handleNextSlide}
                               aria-label="Próximo destaque"
-                              className="p-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] hover:border-slate-300 dark:hover:border-cyan-500/40 transition-all duration-150 ease-out active:scale-[0.95] touch-manipulation select-none cursor-pointer"
+                              className="p-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] hover:border-slate-300 dark:hover:border-cyan-500/40 transition-all duration-150 ease-out active:scale-[0.95] touch-manipulation select-none cursor-pointer"
                             >
                               <ChevronRight className="h-3.5 w-3.5" />
                             </button>
@@ -581,9 +579,9 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           {/* Botão Ler Matéria */}
                           <button
                             onClick={() => setActiveArticleId(currentSlideArticle.id)}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#004A99] hover:bg-[#003875] dark:bg-[#00D8FF] dark:hover:bg-cyan-300 text-white dark:text-slate-950 font-mono text-xs font-bold transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none cursor-pointer shadow-xs shrink-0"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#004A99] hover:bg-[#003875] dark:bg-[#00D8FF] dark:hover:bg-cyan-300 text-white dark:text-slate-950 font-mono text-xs font-bold transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none cursor-pointer shadow-xs shrink-0"
                           >
-                            <span>Ler matéria</span>
+                            <span>Ler Matéria</span>
                             <ArrowRight className="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -595,101 +593,106 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
             )}
 
             {/* 2. GRADE DE REPORTAGENS COM ESTRUTURA DE REVISTA (3 COLUNAS) */}
-            {filteredNews.length > 0 && (
-              <div className="space-y-6 pt-2">
-                <div className="flex items-center justify-between border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-3">
-                  <h3 className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-slate-900 dark:text-[#E6F4FF] flex items-center gap-2">
-                    <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
-                    <span>Reportagens &amp; Coberturas nos Polos</span>
-                  </h3>
-                  <span className="text-[11px] font-mono text-slate-500 dark:text-[#6482A6] tabular-nums">
-                    {filteredNews.length} {filteredNews.length === 1 ? 'matéria disponível' : 'matérias disponíveis'}
-                  </span>
-                </div>
+            {filteredNews.length > 0 && (() => {
+              const gridArticles = filteredNews.filter((item) => item.id !== currentSlideArticle?.id);
+              const articlesToRender = gridArticles.length > 0 ? gridArticles : filteredNews;
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredNews.map((item, idx) => {
-                    const editorial = getEditorialDetails(item, idx);
-                    const cover = item.coverImage || FALLBACK_NEWS_COVER;
+              return (
+                <div className="space-y-4 pt-1">
+                  <div className="flex items-center justify-between border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-2.5">
+                    <h3 className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-slate-900 dark:text-[#E6F4FF] flex items-center gap-2">
+                      <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
+                      <span>Reportagens &amp; Coberturas nos Polos</span>
+                    </h3>
+                    <span className="text-[11px] font-mono text-slate-500 dark:text-[#6482A6] tabular-nums">
+                      {articlesToRender.length} {articlesToRender.length === 1 ? 'matéria' : 'matérias'}
+                    </span>
+                  </div>
 
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => setActiveArticleId(item.id)}
-                        className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-sm hover:shadow-xl transition-all duration-200 ease-out cursor-pointer active:scale-[0.99] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF]"
-                      >
-                        {/* PARTE SUPERIOR: FOTO LIMPA 16:9 (SEM TÍTULO EM CIMA DA FOTO!) */}
-                        <div className="relative aspect-video w-full overflow-hidden bg-slate-950">
-                          <img
-                            src={cover}
-                            alt={item.title}
-                            onError={(e) => {
-                              (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
-                            }}
-                            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
-                            loading="lazy"
-                          />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {articlesToRender.map((item, idx) => {
+                      const editorial = getEditorialDetails(item, idx);
+                      const cover = item.coverImage || FALLBACK_NEWS_COVER;
 
-                          {/* Tag de Categoria no Topo Esquerdo */}
-                          <div className="absolute top-3 left-3 z-10">
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/80 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
-                              {item.category || 'Geral'}
-                            </span>
-                          </div>
+                      return (
+                        <div
+                          key={item.id}
+                          onClick={() => setActiveArticleId(item.id)}
+                          className="group flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-xs hover:shadow-md transition-all duration-200 ease-out cursor-pointer active:scale-[0.99] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF]"
+                        >
+                          {/* PARTE SUPERIOR: MINIATURA EXCLUSIVA h-40 (160px) */}
+                          <div className="relative h-40 w-full overflow-hidden bg-slate-950 shrink-0">
+                            <img
+                              src={cover}
+                              alt={item.title}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
+                              }}
+                              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                              loading="lazy"
+                            />
 
-                          {/* Tempo de Leitura no Canto Inferior Direito */}
-                          <div className="absolute bottom-2.5 right-2.5 z-10">
-                            <span className="inline-flex items-center gap-1 rounded bg-black/75 px-2 py-0.5 font-mono text-[10px] text-cyan-200 backdrop-blur-sm tabular-nums">
-                              <Clock className="h-2.5 w-2.5 text-cyan-300" />
-                              <span>{editorial.readingTime} min</span>
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* PARTE INFERIOR: CORPO DE LEITURA EDITORIAL */}
-                        <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between space-y-4">
-                          
-                          <div className="space-y-2">
-                            {/* Localidade e Data em Azul Institucional */}
-                            <div className="text-xs font-mono font-bold tracking-wider text-[#004A99] dark:text-[#00D8FF] flex items-center gap-1.5 tabular-nums">
-                              <span>{item.publishedAt}</span>
-                              <span>•</span>
-                              <span className="truncate inline-flex items-center gap-1">
-                                <MapPin className="h-3 w-3 shrink-0" />
-                                {editorial.polo}
+                            {/* Tag de Categoria no Topo Esquerdo */}
+                            <div className="absolute top-2.5 left-2.5 z-10">
+                              <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-slate-950/80 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+                                {item.category || 'Geral'}
                               </span>
                             </div>
 
-                            {/* Título da Notícia */}
-                            <h4 className="font-display text-lg font-bold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2 text-balance">
-                              {item.title}
-                            </h4>
-
-                            {/* Resumo (Lead de 3 linhas que convida à leitura) */}
-                            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed font-sans text-pretty">
-                              {item.excerpt}
-                            </p>
+                            {/* Tempo de Leitura no Canto Inferior Direito */}
+                            <div className="absolute bottom-2 right-2 z-10">
+                              <span className="inline-flex items-center gap-1 rounded bg-black/75 px-1.5 py-0.5 font-mono text-[10px] text-cyan-200 backdrop-blur-sm tabular-nums">
+                                <Clock className="h-2.5 w-2.5 text-cyan-300" />
+                                <span>{editorial.readingTime} min</span>
+                              </span>
+                            </div>
                           </div>
 
-                          {/* Rodapé do Card: Linha Tracejada + Autor + Link */}
-                          <div className="pt-3.5 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex items-center justify-between text-xs">
-                            <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[55%]">
-                              {item.author || 'Coord. de Mídias'}
-                            </span>
+                          {/* PARTE INFERIOR: CORPO EDITORIAL COMPACTO (p-4 sm:p-5) */}
+                          <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
+                            
+                            <div className="space-y-1.5">
+                              {/* Localidade e Data */}
+                              <div className="text-[11px] font-mono font-bold tracking-wider text-[#004A99] dark:text-[#00D8FF] flex items-center gap-1.5 tabular-nums">
+                                <span>{item.publishedAt}</span>
+                                <span>•</span>
+                                <span className="truncate inline-flex items-center gap-1">
+                                  <MapPin className="h-3 w-3 shrink-0" />
+                                  {editorial.polo.split('•')[0].trim()}
+                                </span>
+                              </div>
 
-                            <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-[#004A99] dark:text-[#00D8FF] group-hover:underline shrink-0">
-                              <span>Continuar lendo</span>
-                              <ArrowUpRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                            </span>
+                              {/* Título da Notícia: text-base font-semibold line-clamp-2 */}
+                              <h4 className="font-display text-base font-semibold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2 text-balance">
+                                {item.title}
+                              </h4>
+
+                              {/* Resumo: line-clamp-2 */}
+                              <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed font-sans text-pretty">
+                                {item.excerpt}
+                              </p>
+                            </div>
+
+                            {/* Rodapé do Card: Linha Tracejada + Autor + Link */}
+                            <div className="pt-2.5 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex items-center justify-between text-xs">
+                              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[55%]">
+                                {item.author || 'Coord. de Mídias'}
+                              </span>
+
+                              <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-[#004A99] dark:text-[#00D8FF] group-hover:underline shrink-0">
+                                <span>Continuar lendo</span>
+                                <ArrowUpRight className="h-3 w-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                              </span>
+                            </div>
+
                           </div>
-
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
           </div>
         ) : (
@@ -714,10 +717,10 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 <div
                   key={item.id}
                   onClick={() => setActiveArticleId(item.id)}
-                  className="group rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 flex flex-col sm:flex-row gap-5 items-stretch hover:shadow-lg transition-all duration-200 cursor-pointer"
+                  className="group rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-3.5 sm:p-4 flex flex-col sm:flex-row gap-4 items-stretch hover:shadow-md transition-all duration-200 cursor-pointer"
                 >
-                  {/* Miniatura 16:10 */}
-                  <div className="relative w-full sm:w-64 aspect-[16/10] sm:aspect-auto rounded-xl overflow-hidden shrink-0 bg-slate-950">
+                  {/* Miniatura Compacta */}
+                  <div className="relative w-full sm:w-52 h-36 sm:h-auto aspect-[16/10] sm:aspect-auto rounded-lg overflow-hidden shrink-0 bg-slate-950">
                     <img
                       src={cover}
                       alt={item.title}
@@ -727,17 +730,17 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                       className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                     />
-                    <div className="absolute top-2.5 left-2.5">
-                      <span className="rounded-full bg-slate-950/80 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase text-white backdrop-blur-sm">
+                    <div className="absolute top-2 left-2">
+                      <span className="rounded-full bg-slate-950/80 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white backdrop-blur-sm">
                         {item.category || 'Geral'}
                       </span>
                     </div>
                   </div>
 
                   {/* Conteúdo da Linha */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-between space-y-2">
+                  <div className="flex-1 min-w-0 flex flex-col justify-between space-y-1.5">
                     <div>
-                      <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[#004A99] dark:text-[#00D8FF] font-semibold mb-1">
+                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono text-[#004A99] dark:text-[#00D8FF] font-semibold mb-1">
                         <span>{item.publishedAt}</span>
                         <span>•</span>
                         <span className="inline-flex items-center gap-1">
@@ -751,11 +754,11 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                         </span>
                       </div>
 
-                      <h4 className="font-display text-lg sm:text-xl font-bold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug">
+                      <h4 className="font-display text-base font-semibold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2">
                         {item.title}
                       </h4>
 
-                      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-2 mt-1 leading-relaxed">
+                      <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 mt-1 leading-relaxed">
                         {item.excerpt}
                       </p>
                     </div>

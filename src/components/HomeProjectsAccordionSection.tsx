@@ -41,7 +41,7 @@ export default function HomeProjectsAccordionSection() {
         </div>
 
         {/* LÂMINAS EXPANSÍVEIS HORIZONTAIS (ACCORDION DECK) */}
-        <div className="flex flex-col lg:flex-row gap-3 min-h-[460px] lg:h-[440px] w-full">
+        <div className="flex flex-col lg:flex-row gap-2.5 min-h-[400px] lg:h-[390px] w-full">
           {PROJECTS_DATA.map((proj) => {
             const isHovered = hoveredId === proj.id;
 
@@ -50,10 +50,10 @@ export default function HomeProjectsAccordionSection() {
                 key={proj.id}
                 onMouseEnter={() => setHoveredId(proj.id)}
                 onClick={() => setHoveredId(proj.id)}
-                className={`relative rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 ease-out flex flex-col justify-between p-6 touch-manipulation select-none ${
+                className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ease-out flex flex-col justify-between p-4 sm:p-5 touch-manipulation select-none ${
                   isHovered
-                    ? 'lg:flex-[3.5] min-h-[340px] lg:min-h-0 ring-2 ring-[#004A99] dark:ring-[#00D8FF] shadow-2xl'
-                    : 'lg:flex-[0.8] min-h-[90px] lg:min-h-0 bg-slate-900/90 hover:brightness-110 active:scale-[0.99]'
+                    ? 'lg:flex-[3.5] min-h-[320px] lg:min-h-0 ring-2 ring-[#004A99] dark:ring-[#00D8FF] shadow-xl'
+                    : 'lg:flex-[0.8] min-h-[80px] lg:min-h-0 bg-slate-900/90 hover:brightness-110 active:scale-[0.99]'
                 }`}
               >
                 {/* Imagem de Fundo em Alta Resolução */}
@@ -71,47 +71,44 @@ export default function HomeProjectsAccordionSection() {
 
                 {/* Conteúdo da Lâmina Expandida */}
                 {isHovered ? (
-                  <div className="relative z-10 flex flex-col justify-between h-full space-y-4">
+                  <div className="relative z-10 flex flex-col justify-between h-full space-y-3">
                     
-                    {/* Topo da Lâmina */}
+                    {/* Topo da Lâmina (1 Tag despoluída) */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-[#00D8FF] border border-[#00D8FF]/40 tabular-nums">
+                      <span className="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[#00D8FF] border border-[#00D8FF]/40 tabular-nums">
                         {proj.missionCode} • {proj.typology}
-                      </span>
-                      <span className="font-mono text-[10px] px-2.5 py-0.5 rounded-full bg-cyan-400 text-slate-950 font-black">
-                        PROJETO ATIVO
                       </span>
                     </div>
 
                     {/* Meio / Rodapé da Lâmina */}
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                       <div className="space-y-1">
-                        <span className="text-xs font-mono text-slate-300 flex items-center gap-1">
+                        <span className="text-[11px] font-mono text-slate-300 flex items-center gap-1">
                           <MapPin className="h-3 w-3 text-[#00D8FF]" />
                           {proj.territory}
                         </span>
-                        <h3 className="font-display text-xl sm:text-2xl font-bold text-white leading-tight text-balance">
+                        <h3 className="font-display text-base sm:text-lg font-bold text-white leading-snug text-balance">
                           {proj.title}
                         </h3>
                       </div>
 
                       {/* Citação do Professor Mediador */}
-                      <p className="text-xs sm:text-[13px] italic text-slate-100 leading-relaxed bg-black/50 backdrop-blur-md p-3.5 rounded-xl border border-white/15 text-pretty">
+                      <p className="text-xs italic text-slate-100 leading-relaxed bg-black/50 backdrop-blur-md p-3 rounded-lg border border-white/10 line-clamp-2">
                         &ldquo;{proj.quote}&rdquo;
                       </p>
 
                       {/* Ações e Identificação */}
-                      <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <span className="text-[11px] font-mono text-slate-300">
+                      <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span className="text-[11px] font-mono text-slate-300 truncate">
                           {proj.school} • {proj.mediatorName}
                         </span>
 
                         <Link
                           href="/projetos"
-                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-white text-slate-950 hover:bg-[#00D8FF] transition-all duration-150 ease-out text-xs font-bold cursor-pointer shadow-md shrink-0 whitespace-nowrap touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300"
+                          className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-white text-slate-950 hover:bg-[#00D8FF] transition-all duration-150 ease-out text-xs font-bold cursor-pointer shadow-sm shrink-0 whitespace-nowrap touch-manipulation select-none active:scale-[0.97]"
                         >
-                          <span>Inspecionar no Palco</span>
-                          <ArrowUpRight className="h-4 w-4" />
+                          <span>Inspecionar</span>
+                          <ArrowUpRight className="h-3.5 w-3.5" />
                         </Link>
                       </div>
                     </div>
@@ -121,8 +118,8 @@ export default function HomeProjectsAccordionSection() {
                   /* Conteúdo da Lâmina Recolhida */
                   <div className="relative z-10 flex lg:flex-col justify-between items-center h-full w-full">
                     
-                    {/* Número Gigante Vertical */}
-                    <span className="font-mono text-2xl lg:text-3xl font-black text-white/50 tabular-nums">
+                    {/* Número Compacto Vertical */}
+                    <span className="font-mono text-xl lg:text-2xl font-black text-white/50 tabular-nums">
                       {proj.number}
                     </span>
 
@@ -131,13 +128,13 @@ export default function HomeProjectsAccordionSection() {
                       <span className="font-mono text-[10px] tracking-widest text-[#00D8FF] font-bold">
                         {proj.municipality.toUpperCase()}
                       </span>
-                      <span className="text-xs font-semibold text-white truncate max-w-[140px] lg:max-w-[200px]">
+                      <span className="text-xs font-semibold text-white truncate max-w-[140px] lg:max-w-[180px]">
                         {proj.shortTitle}
                       </span>
                     </div>
 
                     <span className="text-[10px] font-mono text-white/40 hidden lg:block">
-                      EXPANDIR +
+                      +
                     </span>
                   </div>
                 )}

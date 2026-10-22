@@ -577,40 +577,40 @@ export default function FaqCentralSection() {
                   <motion.div
                     key={item.id}
                     layout
-                    className={`rounded-[12px] border transition-all duration-300 overflow-hidden ${
+                    className={`rounded-xl border transition-all duration-300 overflow-hidden ${
                       isOpen
-                        ? 'border-[#0284C7] dark:border-[#00D8FF] bg-white dark:bg-[#0C1E38] shadow-md dark:shadow-[0_0_24px_rgba(0,216,255,0.15)]'
+                        ? 'border-[#0284C7] dark:border-[#00D8FF] bg-white dark:bg-[#0C1E38] shadow-md dark:shadow-[0_0_20px_rgba(0,216,255,0.12)]'
                         : 'border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] hover:border-[#0284C7]/60 dark:hover:border-[#00D8FF]/60'
                     }`}
                   >
                     {/* CABEÇALHO DA PERGUNTA */}
                     <button
                       onClick={() => setOpenFaqId(isOpen ? null : item.id)}
-                      className="w-full p-5 sm:p-6 text-left cursor-pointer flex items-start justify-between gap-4"
+                      className="w-full p-4 sm:p-5 text-left cursor-pointer flex items-start justify-between gap-3"
                       aria-expanded={isOpen}
                     >
-                      <div className="space-y-2 flex-1 pr-2">
+                      <div className="space-y-1.5 flex-1 pr-2">
                         {/* Linha técnica: Índice + Categoria */}
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-mono text-xs font-bold text-[#0284C7] dark:text-[#00D8FF]">
                             {item.index} {'//'}
                           </span>
-                          <span className="rounded-full border border-sky-300 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2.5 py-0.5 text-[10px] font-mono uppercase text-[#05549D] dark:text-[#00D8FF] font-semibold">
+                          <span className="rounded-full border border-sky-300 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2 py-0.5 text-[10px] font-mono uppercase text-[#05549D] dark:text-[#00D8FF] font-semibold">
                             {item.category}
                           </span>
                         </div>
 
                         {/* Título da Pergunta */}
-                        <h3 className="font-display text-lg sm:text-[21px] uppercase font-medium leading-[1.15] text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#0284C7] dark:group-hover:text-[#00D8FF] transition-colors">
+                        <h3 className="font-display text-sm sm:text-base font-semibold leading-snug text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#0284C7] dark:group-hover:text-[#00D8FF] transition-colors">
                           {item.question}
                         </h3>
                       </div>
 
                       {/* Botão [ + ] / [ − ] com rotação */}
                       <div
-                        className={`shrink-0 flex h-9 w-9 items-center justify-center rounded-lg border font-mono text-sm font-bold transition-all duration-300 ${
+                        className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-lg border font-mono text-sm font-bold transition-all duration-300 ${
                           isOpen
-                            ? 'border-[#0284C7] dark:border-[#00D8FF] bg-sky-50 dark:bg-[#061224] text-[#0284C7] dark:text-[#00D8FF] shadow-sm dark:shadow-[0_0_12px_rgba(0,216,255,0.3)]'
+                            ? 'border-[#0284C7] dark:border-[#00D8FF] bg-sky-50 dark:bg-[#061224] text-[#0284C7] dark:text-[#00D8FF] shadow-xs'
                             : 'border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                         }`}
                       >
@@ -625,17 +625,17 @@ export default function FaqCentralSection() {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.25, ease: 'easeInOut' }}
+                          transition={{ duration: 0.2, ease: 'easeInOut' }}
                           className="overflow-hidden border-t border-dashed border-slate-200 dark:border-[#1A365D] bg-slate-50/70 dark:bg-[#071326]/60"
                         >
-                          <div className="p-5 sm:p-6 space-y-5">
+                          <div className="p-4 sm:p-5 space-y-4">
                             {/* Texto Explicativo em Voz Conversacional e Fluida */}
-                            <p className="text-base sm:text-[18px] font-normal leading-relaxed text-slate-700 dark:text-[#E6F4FF]/85">
+                            <p className="text-xs sm:text-sm font-normal leading-relaxed text-slate-700 dark:text-[#E6F4FF]/85">
                               {item.answer}
                             </p>
 
                             {/* Tags de Contexto */}
-                            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                               {item.tags.map((tag, tIdx) => (
                                 <span
                                   key={tIdx}
@@ -646,12 +646,12 @@ export default function FaqCentralSection() {
                               ))}
                             </div>
 
-                            {/* BARRA DE AÇÃO CONTEXTUAL & FEEDBACK (DIFERENCIAL ÚNICO) */}
-                            <div className="pt-4 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            {/* BARRA DE AÇÃO CONTEXTUAL & FEEDBACK */}
+                            <div className="pt-3 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               {/* Atalho direto para a página do sistema */}
                               <Link
                                 href={item.actionLink.href}
-                                className="inline-flex items-center gap-2 font-mono text-xs font-semibold text-[#0284C7] dark:text-[#00D8FF] hover:underline transition-colors"
+                                className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-[#0284C7] dark:text-[#00D8FF] hover:underline transition-colors"
                               >
                                 <span>{item.actionLink.label}</span>
                                 <ArrowUpRight className="h-3.5 w-3.5" />
@@ -660,25 +660,25 @@ export default function FaqCentralSection() {
                               {/* Mini-botão de Feedback */}
                               <div className="flex items-center gap-2 font-mono text-xs">
                                 {feedback ? (
-                                  <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-[11px]">
+                                  <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-[11px]">
                                     <CheckCircle2 className="h-3.5 w-3.5" />
-                                    <span>Obrigado pelo seu feedback!</span>
+                                    <span>Feedback registrado!</span>
                                   </span>
                                 ) : (
                                   <>
                                     <span className="text-slate-500 dark:text-[#6482A6] text-[11px]">
-                                      Esta resposta foi útil?
+                                      Útil?
                                     </span>
                                     <button
                                       onClick={() => handleFeedback(item.id, 'sim')}
-                                      className="inline-flex items-center gap-1 rounded border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2.5 py-1 text-[11px] text-slate-700 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                                      className="inline-flex items-center gap-1 rounded border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2 py-0.5 text-[11px] text-slate-700 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
                                     >
                                       <ThumbsUp className="h-3 w-3" />
                                       <span>Sim</span>
                                     </button>
                                     <button
                                       onClick={() => handleFeedback(item.id, 'nao')}
-                                      className="inline-flex items-center gap-1 rounded border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2.5 py-1 text-[11px] text-slate-700 dark:text-slate-300 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                                      className="inline-flex items-center gap-1 rounded border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2 py-0.5 text-[11px] text-slate-700 dark:text-slate-300 hover:border-rose-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
                                     >
                                       <ThumbsDown className="h-3 w-3" />
                                       <span>Não</span>
@@ -704,11 +704,11 @@ export default function FaqCentralSection() {
         {/* ========================================================
             5. RODAPÉ DE SUPORTE DIRETO ("CONSOLE DE ATENDIMENTO SEDUC")
         ======================================================== */}
-        <div className="rounded-[12px] bg-white dark:bg-[#0C1E38] border border-slate-200 dark:border-[#00D8FF]/30 p-[31px] shadow-sm dark:shadow-2xl">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+        <div className="rounded-xl bg-white dark:bg-[#0C1E38] border border-slate-200 dark:border-[#00D8FF]/30 p-4 sm:p-5 shadow-xs dark:shadow-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             
             {/* Esquerda: Informações Técnicas */}
-            <div className="space-y-2 max-w-2xl">
+            <div className="space-y-1.5 max-w-2xl">
               <div className="flex items-center gap-2 font-mono text-xs text-[#0284C7] dark:text-[#00D8FF]">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
                 <span className="font-bold tracking-wider uppercase">
@@ -716,20 +716,20 @@ export default function FaqCentralSection() {
                 </span>
               </div>
 
-              <h3 className="font-display text-xl sm:text-2xl uppercase font-medium leading-snug text-slate-900 dark:text-[#E6F4FF]">
-                NÃO ENCONTROU SUA DÚVIDA? FALE COM A EQUIPE TÉCNICA OU PEDAGÓGICA.
+              <h3 className="font-display text-base sm:text-lg font-semibold leading-snug text-slate-900 dark:text-[#E6F4FF]">
+                Não encontrou sua dúvida? Fale com a equipe técnica ou pedagógica.
               </h3>
 
-              <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+              <p className="text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-300 line-clamp-2">
                 O Núcleo de Tecnologia e a Coordenadoria de Mídias Educacionais da SEDUC atendem diariamente os professores mediadores, escolas polos e famílias rondonienses.
               </p>
             </div>
 
             {/* Direita: Botões de Ação */}
-            <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <Link
                 href="/admin"
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#05549D] dark:bg-[#040B16] border border-[#0284C7] dark:border-[#00D8FF] px-6 py-3 text-xs font-mono font-semibold text-white dark:text-[#E6F4FF] hover:bg-[#0284C7] dark:hover:bg-[#00D8FF] dark:hover:text-[#040B16] transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none shadow-xs dark:shadow-[0_0_15px_rgba(0,216,255,0.2)]"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#05549D] dark:bg-[#040B16] border border-[#0284C7] dark:border-[#00D8FF] px-4 py-2 text-xs font-mono font-semibold text-white dark:text-[#E6F4FF] hover:bg-[#0284C7] dark:hover:bg-[#00D8FF] dark:hover:text-[#040B16] transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none"
               >
                 <span>Acessar Painel Gestor</span>
                 <ArrowUpRight className="h-3.5 w-3.5" />
@@ -737,9 +737,9 @@ export default function FaqCentralSection() {
 
               <Link
                 href="/avisos"
-                className="rounded-[22.5px] border border-slate-300 dark:border-[#E6F4FF] px-5 py-3 text-xs font-mono font-semibold text-slate-700 dark:text-[#E6F4FF] hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
+                className="rounded-lg border border-slate-300 dark:border-[#E6F4FF]/40 px-3.5 py-2 text-xs font-mono font-semibold text-slate-700 dark:text-[#E6F4FF] hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
               >
-                VER COMUNICADOS OFICIAIS
+                Ver Avisos Oficiais
               </Link>
             </div>
 
