@@ -45,7 +45,7 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     lon: '-63.90° W',
     distanciaKm: 0,
     tipo: 'hub',
-    descricao: 'HUB EMISSOR CENTRAL // ESTÚDIO SEDUC'
+    descricao: 'HUB Emissor Central • Estúdio SEDUC'
   },
   {
     id: 'calama-nazare',
@@ -58,7 +58,7 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     lon: '-62.86° W',
     distanciaKm: 135,
     tipo: 'ribeirinha',
-    descricao: 'CALHA DO BAIXO MADEIRA // DISTRITO FLUVIAL'
+    descricao: 'Calha do Baixo Madeira • Distrito Fluvial'
   },
   {
     id: 'sao-carlos',
@@ -71,7 +71,7 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     lon: '-63.50° W',
     distanciaKm: 90,
     tipo: 'ribeirinha',
-    descricao: 'EXTENSÃO FLUVIAL SÃO CARLOS'
+    descricao: 'Extensão Fluvial São Carlos'
   },
   {
     id: 'ariquemes',
@@ -84,7 +84,7 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     lon: '-63.04° W',
     distanciaKm: 200,
     tipo: 'urbana',
-    descricao: 'POLO VALE DO JAMARI // EIXO BR-364'
+    descricao: 'Polo Vale do Jamari • Eixo BR-364'
   },
   {
     id: 'ji-parana',
@@ -97,7 +97,7 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     lon: '-61.94° W',
     distanciaKm: 375,
     tipo: 'urbana',
-    descricao: 'CORAÇÃO DE RONDÔNIA // EIXO BR-364'
+    descricao: 'Coração de Rondônia • Eixo BR-364'
   },
   {
     id: 'cacoal',
@@ -110,7 +110,7 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     lon: '-61.44° W',
     distanciaKm: 480,
     tipo: 'urbana',
-    descricao: 'POLO REGIONAL DO CAFÉ // EIXO BR-364'
+    descricao: 'Polo Regional do Café • Eixo BR-364'
   },
   {
     id: 'paiter-surui',
@@ -123,7 +123,7 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     lon: '-61.20° W',
     distanciaKm: 510,
     tipo: 'indígena',
-    descricao: 'ALDEIA INDÍGENA PAITER SURUÍ'
+    descricao: 'Aldeia Indígena Paiter Suruí'
   },
   {
     id: 'vilhena',
@@ -136,7 +136,7 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     lon: '-60.14° W',
     distanciaKm: 700,
     tipo: 'urbana',
-    descricao: 'POLO CONE SUL // CHAPADA DOS PARECIS'
+    descricao: 'Polo Cone Sul • Chapada dos Parecis'
   },
   {
     id: 'cabixi',
@@ -149,7 +149,7 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     lon: '-60.55° W',
     distanciaKm: 780,
     tipo: 'ribeirinha',
-    descricao: 'EXTREMO SUDESTE // BACIA DO GUAPORÉ'
+    descricao: 'Extremo Sudeste • Bacia do Guaporé'
   },
   {
     id: 'guajara-mirim',
@@ -162,7 +162,7 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     lon: '-65.32° W',
     distanciaKm: 330,
     tipo: 'urbana',
-    descricao: 'POLO FRONTEIRA // CALHA DO MAMORÉ'
+    descricao: 'Polo Fronteira • Calha do Mamoré'
   },
   {
     id: 'surpresa',
@@ -175,7 +175,7 @@ const TELEMETRY_NODES: TelemetryNode[] = [
     lon: '-65.35° W',
     distanciaKm: 210,
     tipo: 'ribeirinha',
-    descricao: 'DISTRITO ISOLADO // FOZ DO MAMORÉ/GUAPORÉ'
+    descricao: 'Distrito Isolado • Foz do Mamoré/Guaporé'
   },
   {
     id: 'pedras-negras',
@@ -283,7 +283,7 @@ export default function SchoolMap() {
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dashed border-[#1A365D] pb-3 text-[11px] font-mono">
               <div className="flex items-center gap-2 text-[#00D8FF]">
                 <Radio className="h-3.5 w-3.5 animate-pulse text-[#F43F5E]" />
-                <span className="font-bold tracking-wider uppercase">RADAR CARTOGRÁFICO // ESTADO DE RONDÔNIA</span>
+                <span className="font-bold tracking-wider uppercase">Radar Cartográfico • Estado de Rondônia</span>
               </div>
               <div className="flex items-center gap-3 text-slate-400">
                 <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
@@ -393,7 +393,7 @@ export default function SchoolMap() {
               LON -66.80° W a -59.77° W
             </div>
             <div className="pointer-events-none absolute left-2.5 bottom-2 z-20 font-mono text-[9px] text-[#6482A6]/60">
-              DATUM: SIRGAS 2000 // RONDÔNIA
+              DATUM: SIRGAS 2000 • RONDÔNIA
             </div>
 
             {/* SVG CARTOGRÁFICO DE 4 CAMADAS */}
@@ -510,7 +510,7 @@ export default function SchoolMap() {
                   letterSpacing="0.2em"
                   className="select-none font-bold"
                 >
-                  ESTADO DE RONDÔNIA // SEDUC
+                  ESTADO DE RONDÔNIA • SEDUC
                 </text>
               </g>
 
@@ -785,7 +785,7 @@ export default function SchoolMap() {
                     filter="url(#glow-cyan)"
                   />
                   <text x="12" y="18" fill="#00D8FF" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    📡 UPLINK ATIVO // BANDA KU
+                    📡 TRANSMISSÃO SATELITAL • BANDA KU
                   </text>
                   <text x="12" y="34" fill="#E6F4FF" fontSize="11" fontFamily="monospace" fontWeight="bold">
                     {hoveredSchool ? hoveredSchool.nome.slice(0, 24) : activeTargetNode.name}
@@ -811,7 +811,7 @@ export default function SchoolMap() {
                 <span className="text-white font-medium">
                   TERRITÓRIO DE RONDÔNIA • COBERTURA: 100% (52 MUNICÍPIOS)
                 </span>
-                <span className="text-[#1A365D] hidden md:inline">{'//'}</span>
+                <span className="text-white/20 hidden md:inline">•</span>
                 <span className="text-[#00D8FF] hidden md:inline">SINAL: BANDA KU ATIVO</span>
               </div>
 
@@ -893,7 +893,7 @@ export default function SchoolMap() {
           <div className="flex-1">
             <div className="mb-2 flex items-center justify-between px-1">
               <p className="text-xs font-mono uppercase tracking-wider text-slate-600 dark:text-[#6482A6]">
-                UNIDADES ESCOLARES // {selectedCity.toUpperCase()} ({filteredSchools.length})
+                UNIDADES ESCOLARES • {selectedCity.toUpperCase()} ({filteredSchools.length})
               </p>
               <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
                 Passe o mouse para ativar o feixe no mapa

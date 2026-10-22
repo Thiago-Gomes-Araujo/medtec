@@ -222,14 +222,14 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-mono transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-mono transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#05549D] dark:focus-visible:ring-[#00D8FF] ${
                     isSelected
                       ? 'border border-[#05549D] dark:border-[#00D8FF] bg-[#05549D] dark:bg-[#0C1E38] text-white dark:text-[#E6F4FF] font-semibold shadow-sm dark:shadow-[0_0_14px_rgba(0,216,255,0.22)]'
                       : 'border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224]/50 text-slate-600 dark:text-[#6482A6] hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <span>{cat}</span>
-                  <span className={`text-[10px] font-bold ${isSelected ? 'text-sky-200 dark:text-[#00D8FF]' : 'text-slate-400 dark:text-slate-500'}`}>
+                  <span className={`text-[10px] font-bold tabular-nums ${isSelected ? 'text-sky-200 dark:text-[#00D8FF]' : 'text-slate-400 dark:text-slate-500'}`}>
                     [{formattedCount}]
                   </span>
                 </button>
@@ -241,7 +241,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
           <div className="flex items-center gap-1.5 self-start md:self-auto shrink-0 bg-slate-100 dark:bg-[#061224] p-1 rounded-xl border border-slate-200 dark:border-[#1A365D]">
             <button
               onClick={() => setViewMode('bento')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#05549D] dark:focus-visible:ring-[#00D8FF] ${
                 viewMode === 'bento'
                   ? 'bg-white dark:bg-[#0C1E38] text-[#05549D] dark:text-[#00D8FF] border border-slate-200 dark:border-[#00D8FF]/70 shadow-sm font-semibold'
                   : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
@@ -254,7 +254,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
 
             <button
               onClick={() => setViewMode('list')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#05549D] dark:focus-visible:ring-[#00D8FF] ${
                 viewMode === 'list'
                   ? 'bg-white dark:bg-[#0C1E38] text-[#05549D] dark:text-[#00D8FF] border border-slate-200 dark:border-[#00D8FF]/70 shadow-sm font-semibold'
                   : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
@@ -321,24 +321,18 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     key={photo.id}
                     layout
                     onClick={() => setSelectedIndex(index)}
-                    className={`group relative overflow-hidden rounded-[12px] border border-slate-200 dark:border-[#1A365D] bg-slate-900 hover:border-[#00D8FF] transition-all duration-300 cursor-pointer shadow-lg flex flex-col justify-between ${gridSpanClass} ${meta.aspectRatio}`}
+                    className={`group relative overflow-hidden rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-slate-900 hover:border-[#00D8FF] transition-all duration-200 ease-out cursor-pointer shadow-lg flex flex-col justify-between active:scale-[0.99] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF] ${gridSpanClass} ${meta.aspectRatio}`}
                   >
                     {/* Imagem de Fundo com Zoom Suave no Hover */}
                     <img
                       src={photo.imageUrl}
                       alt={photo.title}
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                       loading="lazy"
                     />
 
                     {/* Gradiente Escuro de Proteção e Contraste Tipográfico */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/35 group-hover:from-black/95 group-hover:via-black/55 transition-all duration-300" />
-
-                    {/* ================= CANTONEIRAS DE VIEWFINDER (CÂMERA HUD) ================= */}
-                    <div className="pointer-events-none absolute left-3 top-3 h-4 w-4 border-l-2 border-t-2 border-[#00D8FF] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="pointer-events-none absolute right-3 top-3 h-4 w-4 border-r-2 border-t-2 border-[#00D8FF] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 border-b-2 border-l-2 border-[#00D8FF] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="pointer-events-none absolute bottom-3 right-3 h-4 w-4 border-b-2 border-r-2 border-[#00D8FF] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/35 group-hover:from-black/95 group-hover:via-black/55 transition-all duration-200" />
 
                     {/* TOPO DO CARD: BADGE TÉCNICA E CÓDIGO CATALOGRÁFICO */}
                     <div className="relative z-10 flex items-center justify-between p-4 sm:p-5">
@@ -346,7 +340,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                         {photo.category}
                       </span>
 
-                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-slate-300 group-hover:text-white text-[11px] font-mono px-2.5 py-1 rounded-full transition-colors">
+                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-slate-300 group-hover:text-white text-[11px] font-mono px-2.5 py-1 rounded-full transition-colors tabular-nums">
                         {meta.regCode}
                       </span>
                     </div>
@@ -354,18 +348,18 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     {/* BASE DO CARD: DATA, LOCALIZAÇÃO, TÍTULO E DESLIZAMENTO DO HOVER */}
                     <div className="relative z-10 p-5 sm:p-6 space-y-2">
                       {/* Linha de Data e Localização */}
-                      <p className="text-[11px] font-mono uppercase tracking-wider text-cyan-200">
+                      <p className="text-[11px] font-mono uppercase tracking-wider text-cyan-200 tabular-nums">
                         {photo.date} • 📍 {meta.location}
                       </p>
 
                       {/* Título em Destaque */}
-                      <h3 className="font-display text-lg sm:text-xl font-medium uppercase leading-snug text-white group-hover:text-[#00D8FF] transition-colors">
+                      <h3 className="font-display text-lg sm:text-xl font-bold uppercase leading-snug text-white group-hover:text-[#00D8FF] transition-colors text-balance">
                         {photo.title}
                       </h3>
 
                       {/* Descrição Completa e Botão de Inspeção (Desliza e Revela no Hover) */}
-                      <div className="max-h-0 opacity-0 group-hover:max-h-48 group-hover:opacity-100 transition-all duration-400 ease-out overflow-hidden">
-                        <p className="text-xs text-slate-200 leading-relaxed font-normal pt-1.5">
+                      <div className="max-h-0 opacity-0 group-hover:max-h-48 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden">
+                        <p className="text-xs text-slate-200 leading-relaxed font-normal pt-1.5 text-pretty">
                           {photo.description}
                         </p>
 
@@ -374,7 +368,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                             <Maximize2 className="h-3.5 w-3.5" />
                             <span>[ ⊕ INSPECIONAR REGISTRO ]</span>
                           </span>
-                          <span className="text-[10px] text-slate-300 hidden sm:inline">
+                          <span className="text-[10px] text-slate-300 hidden sm:inline tabular-nums">
                             {meta.coords}
                           </span>
                         </div>
@@ -392,7 +386,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.2 }}
               className="rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] divide-y divide-dashed divide-slate-200 dark:divide-[#1A365D] overflow-hidden shadow-sm dark:shadow-xl"
             >
               {filteredGallery.map((photo, index) => {
@@ -411,19 +405,19 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                   <div
                     key={photo.id}
                     onClick={() => setSelectedIndex(index)}
-                    className="group flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 sm:p-5 hover:bg-slate-50 dark:hover:bg-[#0F2647] transition-all cursor-pointer"
+                    className="group flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 sm:p-5 hover:bg-slate-50 dark:hover:bg-[#0F2647] transition-all duration-150 ease-out cursor-pointer active:scale-[0.99] touch-manipulation select-none"
                   >
                     {/* Código e Miniatura */}
                     <div className="flex items-center gap-4 shrink-0">
-                      <span className="w-20 font-mono text-xs text-slate-500 dark:text-[#6482A6] font-semibold">
+                      <span className="w-20 font-mono text-xs text-slate-500 dark:text-[#6482A6] font-semibold tabular-nums">
                         {meta.regCode}
                       </span>
 
-                      <div className="relative h-16 w-24 sm:h-18 sm:w-28 overflow-hidden rounded-lg border border-slate-200 dark:border-[#1A365D] bg-black">
+                      <div className="relative h-16 w-24 sm:h-18 sm:w-28 overflow-hidden rounded-xl border border-slate-200 dark:border-[#1A365D] bg-black">
                         <img
                           src={photo.imageUrl}
                           alt={photo.title}
-                          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
                           loading="lazy"
                         />
                       </div>
@@ -435,14 +429,14 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                         <span className="rounded-full border border-sky-300 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2 py-0.5 text-[10px] font-mono uppercase text-[#05549D] dark:text-[#00D8FF] font-semibold">
                           {photo.category}
                         </span>
-                        <span className="text-xs font-mono text-slate-500 dark:text-[#6482A6]">
+                        <span className="text-xs font-mono text-slate-500 dark:text-[#6482A6] tabular-nums">
                           {photo.date} • {meta.location}
                         </span>
                       </div>
                       <h3 className="font-mono text-sm sm:text-base uppercase font-semibold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#05549D] dark:group-hover:text-[#00D8FF] transition-colors truncate">
                         {photo.title}
                       </h3>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-1 mt-0.5">
+                      <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-1 mt-0.5 text-pretty">
                         {photo.description}
                       </p>
                     </div>
@@ -506,20 +500,8 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                   </span>
                 </div>
 
-                {/* Área da Fotografia com Cantoneiras Viewfinder */}
+                {/* Área da Fotografia Limpa e Focada */}
                 <div className="relative flex-1 flex items-center justify-center my-auto min-h-[300px] max-h-[58vh] lg:max-h-[66vh] overflow-hidden rounded-xl bg-black/60 p-2 border border-white/5">
-                  {/* Cantoneiras Técnicas do Viewfinder */}
-                  <div className="pointer-events-none absolute left-4 top-4 h-5 w-5 border-l-2 border-t-2 border-[#00D8FF]" />
-                  <div className="pointer-events-none absolute right-4 top-4 h-5 w-5 border-r-2 border-t-2 border-[#00D8FF]" />
-                  <div className="pointer-events-none absolute bottom-4 left-4 h-5 w-5 border-b-2 border-l-2 border-[#00D8FF]" />
-                  <div className="pointer-events-none absolute bottom-4 right-4 h-5 w-5 border-b-2 border-r-2 border-[#00D8FF]" />
-
-                  {/* Mira Central */}
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-20">
-                    <div className="h-6 w-px bg-[#00D8FF]" />
-                    <div className="w-6 h-px bg-[#00D8FF]" />
-                  </div>
-
                   <img
                     src={activePhoto.imageUrl}
                     alt={activePhoto.title}
@@ -531,7 +513,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                 <div className="mt-3 flex items-center justify-between pt-3 border-t border-dashed border-[#1A365D] text-xs font-mono">
                   <button
                     onClick={handlePrev}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all cursor-pointer font-semibold"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all duration-150 ease-out cursor-pointer font-semibold touch-manipulation select-none active:scale-[0.95] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     <span>← ANTERIOR</span>
@@ -543,7 +525,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
 
                   <button
                     onClick={handleNext}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all cursor-pointer font-semibold"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all duration-150 ease-out cursor-pointer font-semibold touch-manipulation select-none active:scale-[0.95] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
                   >
                     <span>PRÓXIMA →</span>
                     <ChevronRight className="h-4 w-4" />
@@ -561,17 +543,17 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     <p className="font-mono text-xs uppercase tracking-[0.2em] text-[#00D8FF] font-semibold">
                       {'//'} FICHA CATALOGRÁFICA • MEDTEC-RO
                     </p>
-                    <p className="mt-1 font-mono text-[11px] text-[#6482A6]">
+                    <p className="mt-1 font-mono text-[11px] text-[#6482A6] tabular-nums">
                       CÓDIGO: {activeMeta.regCode}
                     </p>
                   </div>
 
                   {/* Título e Descrição */}
                   <div>
-                    <h2 className="font-display text-xl sm:text-2xl uppercase font-medium leading-[1.05] text-[#E6F4FF]">
+                    <h2 className="font-display text-xl sm:text-2xl uppercase font-bold leading-[1.1] text-[#E6F4FF] text-balance">
                       {activePhoto.title}
                     </h2>
-                    <p className="mt-3 text-sm leading-relaxed text-slate-300 font-normal">
+                    <p className="mt-3 text-sm leading-relaxed text-slate-300 font-normal text-pretty">
                       {activePhoto.description}
                     </p>
                   </div>
@@ -595,14 +577,14 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
 
                     <div className="flex items-start justify-between gap-2 border-b border-dashed border-[#1A365D] pb-2">
                       <span className="text-[#6482A6] uppercase text-[10px] font-bold">COORDENADAS:</span>
-                      <span className="text-slate-300 text-right text-[11px]">
+                      <span className="text-slate-300 text-right text-[11px] tabular-nums">
                         {activeMeta.coords}
                       </span>
                     </div>
 
                     <div className="flex items-start justify-between gap-2 border-b border-dashed border-[#1A365D] pb-2">
                       <span className="text-[#6482A6] uppercase text-[10px] font-bold">DATA REGISTRO:</span>
-                      <span className="text-[#E6F4FF] font-semibold text-right">
+                      <span className="text-[#E6F4FF] font-semibold text-right tabular-nums">
                         {activePhoto.date}
                       </span>
                     </div>
@@ -628,7 +610,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                 <div className="mt-6 pt-4 border-t border-dashed border-[#1A365D]">
                   <button
                     onClick={() => setSelectedIndex(null)}
-                    className="w-full rounded-xl border border-[#1A365D] bg-[#040B16] py-3 text-xs font-mono font-semibold text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] hover:bg-[#071326] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                    className="w-full rounded-xl border border-[#1A365D] bg-[#040B16] py-3 text-xs font-mono font-semibold text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] hover:bg-[#071326] transition-all duration-150 ease-out flex items-center justify-center gap-2 cursor-pointer shadow-sm touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
                   >
                     <X className="h-4 w-4" />
                     <span>[ ESC // FECHAR INSPETOR ]</span>

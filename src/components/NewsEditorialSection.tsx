@@ -293,14 +293,14 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-mono transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-mono transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                     isSelected
                       ? 'border border-[#004A99] dark:border-[#00D8FF] bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950 font-bold shadow-sm'
                       : 'border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224]/60 text-slate-600 dark:text-[#6482A6] hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <span>{cat}</span>
-                  <span className={`text-[10px] font-bold ${isSelected ? 'text-sky-200 dark:text-slate-950' : 'text-slate-400 dark:text-slate-500'}`}>
+                  <span className={`text-[10px] font-bold tabular-nums ${isSelected ? 'text-sky-200 dark:text-slate-950' : 'text-slate-400 dark:text-slate-500'}`}>
                     [{formattedCount}]
                   </span>
                 </button>
@@ -318,12 +318,12 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Pesquisar reportagem..."
-                className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] pl-9 pr-8 py-2 text-xs font-mono text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-[#004A99] dark:focus:border-[#00D8FF] focus:outline-none transition-colors"
+                className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] pl-9 pr-8 py-2 text-xs font-mono text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-[#004A99] dark:focus:border-[#00D8FF] focus:outline-hidden focus:ring-1 focus:ring-[#004A99] dark:focus:ring-[#00D8FF] transition-all duration-150"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer touch-manipulation select-none active:scale-[0.9] transition-transform duration-150"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -334,9 +334,9 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
             <div className="flex items-center gap-1 shrink-0 bg-slate-100 dark:bg-[#061224] p-1 rounded-xl border border-slate-200 dark:border-[#1A365D]">
               <button
                 onClick={() => setViewMode('magazine')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                   viewMode === 'magazine'
-                    ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs border border-slate-200 dark:border-cyan-400/30'
+                    ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs border border-slate-200 dark:border-cyan-400/30 font-bold'
                     : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
                 }`}
                 title="Modo Revista: Manchete de Capa + Cards Editoriais"
@@ -347,9 +347,9 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
 
               <button
                 onClick={() => setViewMode('list')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                   viewMode === 'list'
-                    ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs border border-slate-200 dark:border-cyan-400/30'
+                    ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs border border-slate-200 dark:border-cyan-400/30 font-bold'
                     : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
                 }`}
                 title="Lista de Leitura: Visualização compacta contínua"
@@ -394,7 +394,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
             {featuredArticle && featuredEditorial && (
               <div
                 onClick={() => setSelectedIndex(0)}
-                className="group relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-sm hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                className="group relative overflow-hidden rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-sm hover:shadow-2xl transition-all duration-200 ease-out cursor-pointer active:scale-[0.99] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF]"
               >
                 <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
                   
@@ -406,7 +406,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
                       }}
-                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                       loading="eager"
                     />
                     
@@ -417,13 +417,13 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                     <div className="absolute top-4 left-4 z-10">
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/85 px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-sm">
                         <Sparkles className="h-3 w-3 text-cyan-300" />
-                        <span>★ REPORTAGEM DE CAPA // {featuredArticle.category?.toUpperCase() || 'INFRAESTRUTURA'}</span>
+                        <span>★ Reportagem de Capa • {featuredArticle.category?.toUpperCase() || 'INFRAESTRUTURA'}</span>
                       </span>
                     </div>
 
                     {/* Indicador de Tempo no Rodapé da Imagem */}
                     <div className="absolute bottom-4 right-4 z-10">
-                      <span className="inline-flex items-center gap-1.5 rounded-md bg-black/75 px-2.5 py-1 font-mono text-[11px] text-cyan-200 backdrop-blur-sm">
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-black/75 px-2.5 py-1 font-mono text-[11px] text-cyan-200 backdrop-blur-sm tabular-nums">
                         <Clock className="h-3 w-3 text-cyan-300" />
                         <span>⏱ {featuredEditorial.readingTime} MIN DE LEITURA</span>
                       </span>
@@ -441,16 +441,16 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           <span>{featuredEditorial.polo}</span>
                         </span>
                         <span>•</span>
-                        <span>{featuredArticle.publishedAt}</span>
+                        <span className="tabular-nums">{featuredArticle.publishedAt}</span>
                       </div>
 
                       {/* Título Jornalístico Forte (Fora da foto!) */}
-                      <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-tight">
+                      <h2 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-tight text-balance">
                         {featuredArticle.title}
                       </h2>
 
                       {/* Lead / Resumo Atrativo */}
-                      <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed line-clamp-4 font-sans">
+                      <p className="text-slate-600 dark:text-slate-300 text-sm sm:text-base leading-relaxed line-clamp-4 font-sans text-pretty">
                         {featuredArticle.excerpt}
                       </p>
 
@@ -479,7 +479,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                         <span>Por <strong>{featuredArticle.author || 'Assessoria SEDUC-RO'}</strong></span>
                       </div>
 
-                      <span className="inline-flex items-center gap-2 rounded-xl bg-[#004A99] hover:bg-[#003875] dark:bg-[#00D8FF] dark:hover:bg-cyan-300 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white dark:text-slate-950 transition-colors shadow-sm shrink-0">
+                      <span className="inline-flex items-center gap-2 rounded-xl bg-[#004A99] hover:bg-[#003875] dark:bg-[#00D8FF] dark:hover:bg-cyan-300 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white dark:text-slate-950 transition-all duration-150 ease-out active:scale-[0.97] shadow-sm shrink-0">
                         <span>Ler reportagem completa</span>
                         <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
                       </span>
@@ -497,7 +497,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 <div className="flex items-center justify-between border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-3">
                   <h3 className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-slate-900 dark:text-[#E6F4FF] flex items-center gap-2">
                     <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
-                    <span>{'//'} REPORTAGENS &amp; COBERTURAS NOS POLOS</span>
+                    <span>Reportagens &amp; Coberturas nos Polos</span>
                   </h3>
                   <span className="text-[11px] font-mono text-slate-500 dark:text-[#6482A6]">
                     {secondaryArticles.length} {secondaryArticles.length === 1 ? 'matéria disponível' : 'matérias disponíveis'}
@@ -514,7 +514,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                       <div
                         key={item.id}
                         onClick={() => setSelectedIndex(actualIndex)}
-                        className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+                        className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-sm hover:shadow-xl transition-all duration-200 ease-out cursor-pointer active:scale-[0.99] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF]"
                       >
                         {/* PARTE SUPERIOR: FOTO LIMPA 16:9 (SEM TÍTULO EM CIMA DA FOTO!) */}
                         <div className="relative aspect-video w-full overflow-hidden bg-slate-950">
@@ -524,7 +524,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                             onError={(e) => {
                               (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
                             }}
-                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                             loading="lazy"
                           />
 
@@ -537,7 +537,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
 
                           {/* Tempo de Leitura no Canto Inferior Direito */}
                           <div className="absolute bottom-2.5 right-2.5 z-10">
-                            <span className="inline-flex items-center gap-1 rounded bg-black/75 px-2 py-0.5 font-mono text-[10px] text-cyan-200 backdrop-blur-sm">
+                            <span className="inline-flex items-center gap-1 rounded bg-black/75 px-2 py-0.5 font-mono text-[10px] text-cyan-200 backdrop-blur-sm tabular-nums">
                               <Clock className="h-2.5 w-2.5 text-cyan-300" />
                               <span>⏱ {editorial.readingTime} min</span>
                             </span>
@@ -549,19 +549,19 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           
                           <div className="space-y-2">
                             {/* Localidade e Data em Azul Institucional */}
-                            <div className="text-xs font-mono font-bold tracking-wider text-[#004A99] dark:text-[#00D8FF] flex items-center gap-1.5">
+                            <div className="text-xs font-mono font-bold tracking-wider text-[#004A99] dark:text-[#00D8FF] flex items-center gap-1.5 tabular-nums">
                               <span>{item.publishedAt}</span>
                               <span>•</span>
                               <span className="truncate">📍 {editorial.polo}</span>
                             </div>
 
                             {/* Título da Notícia */}
-                            <h4 className="font-display text-lg font-bold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2">
+                            <h4 className="font-display text-lg font-bold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2 text-balance">
                               {item.title}
                             </h4>
 
                             {/* Resumo (Lead de 3 linhas que convida à leitura) */}
-                            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed font-sans">
+                            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed font-sans text-pretty">
                               {item.excerpt}
                             </p>
                           </div>
@@ -713,28 +713,28 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                   <div className="flex items-center bg-white dark:bg-[#061224] border border-slate-200 dark:border-[#1A365D] rounded-lg p-0.5 text-xs font-mono">
                     <button
                       onClick={() => setFontSize('sm')}
-                      className={`px-2 py-1 rounded ${fontSize === 'sm' ? 'bg-[#004A99] text-white font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
+                      className={`px-2 py-1 rounded transition-all duration-150 ease-out touch-manipulation select-none active:scale-[0.92] ${fontSize === 'sm' ? 'bg-[#004A99] text-white font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
                       title="Fonte Menor"
                     >
                       A-
                     </button>
                     <button
                       onClick={() => setFontSize('base')}
-                      className={`px-2 py-1 rounded ${fontSize === 'base' ? 'bg-[#004A99] text-white font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
+                      className={`px-2 py-1 rounded transition-all duration-150 ease-out touch-manipulation select-none active:scale-[0.92] ${fontSize === 'base' ? 'bg-[#004A99] text-white font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
                       title="Fonte Padrão"
                     >
                       A
                     </button>
                     <button
                       onClick={() => setFontSize('lg')}
-                      className={`px-2 py-1 rounded ${fontSize === 'lg' ? 'bg-[#004A99] text-white font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
+                      className={`px-2 py-1 rounded transition-all duration-150 ease-out touch-manipulation select-none active:scale-[0.92] ${fontSize === 'lg' ? 'bg-[#004A99] text-white font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
                       title="Fonte Grande"
                     >
                       A+
                     </button>
                   </div>
 
-                  <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-[#061224] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1A365D]">
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-[#061224] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1A365D] tabular-nums">
                     <Clock className="h-3 w-3 text-[#004A99] dark:text-[#00D8FF]" />
                     <span>⏱ {activeEditorial.readingTime} min</span>
                   </span>
@@ -744,7 +744,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleShare}
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99]"
                     title="Copiar link da reportagem"
                   >
                     {copiedLink ? <Check className="h-4 w-4 text-emerald-500" /> : <Share2 className="h-4 w-4" />}
@@ -752,7 +752,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
 
                   <button
                     onClick={() => setSelectedIndex(null)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2.5 py-1.5 font-mono text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer font-bold"
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2.5 py-1.5 font-mono text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none cursor-pointer font-bold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300"
                   >
                     <span>ESC</span>
                     <X className="h-3.5 w-3.5" />
@@ -771,7 +771,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 {/* Cabeçalho do Artigo */}
                 <div className="space-y-4 max-w-3xl">
                   {/* Polo & Data */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-mono font-bold text-[#004A99] dark:text-[#00D8FF] uppercase tracking-wider">
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-mono font-bold text-[#004A99] dark:text-[#00D8FF] uppercase tracking-wider tabular-nums">
                     <span className="flex items-center gap-1">
                       <MapPin className="h-3.5 w-3.5" />
                       <span>{activeEditorial.polo}</span>
@@ -781,7 +781,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                   </div>
 
                   {/* Título Display Escultural */}
-                  <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                  <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight text-balance">
                     {activeNews.title}
                   </h1>
 
@@ -890,7 +890,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                   {/* Ficha de Impacto Territorial (Infobox com 4 Métricas) */}
                   <div className="my-8 rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] p-5 sm:p-6">
                     <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] mb-4">
-                      📊 FICHA DE IMPACTO TERRITORIAL // SEDUC-RO
+                      📊 Ficha de Impacto Territorial • SEDUC-RO
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center font-mono">
                       {activeEditorial.impactStats.map((stat, sIdx) => (

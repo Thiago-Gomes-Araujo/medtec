@@ -62,7 +62,7 @@ export default function RootLayout({
               (function() {
                 try {
                   var theme = localStorage.getItem('medtec-theme');
-                  var isDark = theme ? theme !== 'light' : true;
+                  var isDark = theme === 'dark';
                   if (isDark) {
                     document.documentElement.classList.add('dark');
                     document.documentElement.classList.remove('light');

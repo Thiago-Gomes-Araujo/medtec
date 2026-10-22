@@ -3,12 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import initialData from '@/data/initialData.json';
-import { SocialLinks } from '@/types';
+import { SocialLinks, AnnouncementItem, NewsItem } from '@/types';
 import { 
   Radio, 
   Satellite, 
-  Signal, 
-  Tv, 
   Clock, 
   ExternalLink,
   Globe,
@@ -17,7 +15,8 @@ import {
   Newspaper,
   ArrowRight,
   AlertCircle,
-  Calendar
+  Calendar,
+  Sparkles
 } from 'lucide-react';
 import { 
   InstagramIcon, 
@@ -30,166 +29,189 @@ interface LiveBroadcastSectionProps {
   socials?: SocialLinks;
 }
 
-export default function LiveBroadcastSection({ socials = initialData.socials as SocialLinks }: LiveBroadcastSectionProps) {
+export default function LiveBroadcastSection({ 
+  socials = initialData.socials as SocialLinks 
+}: LiveBroadcastSectionProps) {
   const schedules = [
     {
       shift: 'Turno Matutino',
       hours: '07h30 às 11h45',
       desc: 'Formação Geral Básica (BNCC) — Linguagens, Matemática, Ciências da Natureza e Humanas.',
-      badge: 'Sinal Regular'
+      status: 'Sinal Regular'
     },
     {
       shift: 'Turno Vespertino',
       hours: '13h30 às 17h45',
       desc: 'Itinerários Formativos, Projeto de Vida e Componente NBAZ (Agroecologia e Zootecnia).',
-      badge: 'Sinal Regular'
+      status: 'Sinal Regular'
     },
     {
       shift: 'Plantão Pedagógico',
       hours: 'Em tempo real',
-      desc: 'Canal síncrono de retorno e interação direta entre professores ministrantes e mediadores presenciais.',
-      badge: 'Interação Ao Vivo'
+      desc: 'Canal síncrono de retorno e interação contínua entre ministrantes e mediadores locais.',
+      status: 'Ao Vivo'
     },
   ];
 
-  // Dados reais para o feed ao vivo da coluna direita
-  const urgentAnnouncement = initialData.announcements?.[0] || {
-    id: 'aviso-1',
-    title: 'Início do Calendário Letivo 2026 e Transmissões ao Vivo',
-    content: 'Grade de aulas síncronas via satélite ativa a partir das 07h30 para o turno matutino.',
-    date: '10/10/2026',
-    type: 'urgente'
-  };
+  // Dados com tratamento defensivo e resiliência (Harden & Break-UI)
+  const urgentAnnouncement: AnnouncementItem | undefined = 
+    (initialData.announcements as AnnouncementItem[] | undefined)?.find(
+      (a) => a.active && a.type === 'urgente'
+    ) || (initialData.announcements as AnnouncementItem[] | undefined)?.[0];
 
-  const recentNews = (initialData.news || []).slice(0, 2);
+  const recentNews: NewsItem[] = (initialData.news as NewsItem[] | undefined)?.slice(0, 2) || [];
+
+  const youtubeUrl = socials?.youtube?.trim() || 'https://www.youtube.com/@SeducRondonia';
+  const whatsappUrl = socials?.whatsapp?.trim() || 'https://wa.me/5569999999999';
+  const instagramUrl = socials?.instagram?.trim() || 'https://www.instagram.com/governoro/';
+  const facebookUrl = socials?.facebook?.trim() || 'https://www.facebook.com/governoderondonia';
 
   return (
-    <section id="ao-vivo" className="relative scroll-mt-20 bg-white dark:bg-[#061224] text-slate-800 dark:text-white py-20 sm:py-28 overflow-hidden transition-colors duration-200">
-      
-      {/* Âncoras alternativas para links de navegação */}
-      <div id="transmissoes" className="absolute -top-20" />
-      <div id="redes" className="absolute -top-20" />
+    <section 
+      id="ao-vivo" 
+      aria-labelledby="live-section-heading"
+      className="relative scroll-mt-20 bg-slate-50/60 dark:bg-[#061224] text-slate-800 dark:text-slate-100 py-20 sm:py-28 overflow-hidden transition-colors duration-200"
+    >
+      {/* Âncoras para links de navegação profunda */}
+      <div id="transmissoes" className="absolute -top-20" aria-hidden="true" />
+      <div id="redes" className="absolute -top-20" aria-hidden="true" />
 
-      {/* Grid Tecnológico em Perspectiva de fundo */}
-      <div className="hero-grid absolute inset-0 opacity-20 dark:opacity-40 pointer-events-none" />
+      {/* Grid de Fundo Técnico */}
+      <div className="hero-grid absolute inset-0 opacity-15 dark:opacity-35 pointer-events-none" aria-hidden="true" />
 
-      {/* Focos de Luz Radial */}
-      <div className="pointer-events-none absolute -left-40 top-1/4 h-[500px] w-[500px] rounded-full bg-cyan-500/10 blur-[140px]" />
-      <div className="pointer-events-none absolute -right-40 bottom-1/4 h-[500px] w-[500px] rounded-full bg-rose-500/10 blur-[140px]" />
+      {/* Luz Radial Ambiência Discreta */}
+      <div className="pointer-events-none absolute -left-40 top-1/4 h-[420px] w-[420px] rounded-full bg-cyan-500/10 blur-[130px]" aria-hidden="true" />
+      <div className="pointer-events-none absolute -right-40 bottom-1/4 h-[420px] w-[420px] rounded-full bg-sky-500/10 blur-[130px]" aria-hidden="true" />
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-12">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10 sm:space-y-12">
         
-        {/* ================= 1. CABEÇALHO DA SEÇÃO ================= */}
-        <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white dark:bg-cyan-950/60 border border-sky-300 dark:border-cyan-400/30 text-[#004A99] dark:text-cyan-300 font-mono text-[11px] font-bold uppercase tracking-[0.2em] shadow-xs dark:shadow-[0_0_15px_rgba(0,216,255,0.15)]">
-            <Radio className="h-3.5 w-3.5 text-rose-500 dark:text-rose-400 animate-pulse" />
-            <span>SINAL SÍNCRONO &amp; COMUNICAÇÃO // SEDUC RONDÔNIA</span>
+        {/* ================= 1. CABEÇALHO DA SEÇÃO (TYPESET & DISTILL) ================= */}
+        <header className="text-center max-w-3xl mx-auto space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-cyan-950/60 border border-slate-200 dark:border-cyan-500/30 text-[#004A99] dark:text-cyan-300 font-mono text-xs font-semibold uppercase tracking-wide shadow-2xs">
+            <Radio className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400 animate-pulse shrink-0" aria-hidden="true" />
+            <span>Sinal Síncrono &amp; Comunicação • SEDUC Rondônia</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-tight font-display">
-            Pulso do MEDTEC em <span className="gradient-text">Tempo Real</span>
+          <h2 
+            id="live-section-heading"
+            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white font-display text-balance leading-tight"
+          >
+            Pulso do MEDTEC em <span className="text-[#004A99] dark:text-[#00D8FF]">Tempo Real</span>
           </h2>
 
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto">
-            Acompanhe o sinal das aulas nos 52 municípios, consulte os turnos de transmissão e acesse comunicados oficiais e reportagens do programa.
+          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed text-pretty max-w-2xl mx-auto">
+            Acompanhe o sinal das aulas nos 52 municípios de Rondônia, consulte os turnos de transmissão e acesse comunicados do programa.
           </p>
-        </div>
+        </header>
 
-        {/* ================= 2. GRID ASSIMÉTRICO DE 2 COLUNAS (7 cols + 5 cols) ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+        {/* ================= 2. GRID PRINCIPAL DE 2 COLUNAS (LAYOUT & DISTILL) ================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
           
-          {/* COLUNA ESQUERDA (7 cols): GRADE DIÁRIA & ESTÚDIO AO VIVO */}
-          <div className="lg:col-span-7 flex flex-col justify-between rounded-3xl border border-slate-200/90 dark:border-cyan-500/25 bg-white dark:bg-slate-900/80 p-6 sm:p-8 backdrop-blur-xl shadow-xl relative overflow-hidden">
+          {/* COLUNA ESQUERDA (7 cols): ESTÚDIO CENTRAL & GRADE HORÁRIA */}
+          <div className="lg:col-span-7 flex flex-col justify-between rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0B1B30] p-6 sm:p-8 shadow-sm dark:shadow-lg transition-colors">
             
-            {/* Cantoneiras Técnicas (Viewfinder Brackets) */}
-            <div className="pointer-events-none absolute left-3 top-3 h-4 w-4 border-l-2 border-t-2 border-[#004A99] dark:border-cyan-400" />
-            <div className="pointer-events-none absolute right-3 top-3 h-4 w-4 border-r-2 border-t-2 border-[#004A99] dark:border-cyan-400" />
-            <div className="pointer-events-none absolute bottom-3 left-3 h-4 w-4 border-b-2 border-l-2 border-[#004A99] dark:border-cyan-400" />
-            <div className="pointer-events-none absolute bottom-3 right-3 h-4 w-4 border-b-2 border-r-2 border-[#004A99] dark:border-cyan-400" />
-
             <div className="space-y-6">
-              {/* Header do Estúdio */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-white/10">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1 font-mono text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-white shadow-xs">
-                    <Radio className="h-3 w-3 animate-pulse" />
-                    ((•)) Sinal no Ar • Estúdio PVH
+              
+              {/* Barra de Status do Estúdio */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-slate-100 dark:border-white/10">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-white shadow-2xs">
+                    <Radio className="h-3 w-3 animate-pulse shrink-0" aria-hidden="true" />
+                    Sinal no Ar • PVH
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-sky-300 dark:border-cyan-400/30 bg-sky-50 dark:bg-cyan-400/10 px-2.5 py-1 font-mono text-[10px] text-[#004A99] dark:text-cyan-200 font-semibold">
-                    <Satellite className="h-3 w-3" />
+                  <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2.5 py-1 font-mono text-[11px] text-[#004A99] dark:text-cyan-200 font-semibold">
+                    <Satellite className="h-3 w-3 shrink-0" aria-hidden="true" />
                     Banda Ku &amp; IP
                   </span>
                 </div>
 
-                <span className="font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Uplink 99.8%
-                </span>
+                <div className="flex items-center gap-1.5 font-mono text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>Uplink 99.8% Ativo</span>
+                </div>
               </div>
 
-              {/* Título & Ações Rápidas */}
+              {/* Informações Centrais do Estúdio */}
               <div className="space-y-3">
-                <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white leading-tight">
+                <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white text-balance leading-snug">
                   Estúdio Central de Gravação &amp; Transmissão SEDUC
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Aulas ao vivo simultâneas geradas diretamente da capital para 129 unidades escolares em aldeias, assentamentos e comunidades ribeirinhas.
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed text-pretty">
+                  Aulas ao vivo simultâneas geradas diretamente da capital para 129 unidades escolares em aldeias, assentamentos agrícolas e comunidades ribeirinhas.
                 </p>
 
-                {/* Botões de Ação do Estúdio */}
-                <div className="pt-1 flex flex-wrap items-center gap-3">
+                {/* Ações de Transmissão (Touch target min 44px + Feedback tátil active:scale-[0.97] + Focus rings) */}
+                <div className="pt-2 flex flex-wrap items-center gap-3">
                   <a
-                    href={socials.youtube || 'https://www.youtube.com/@SeducRondonia'}
+                    href={youtubeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 px-4 py-2.5 text-xs font-bold text-white shadow-md transition-all cursor-pointer"
+                    aria-label="Assistir transmissão ao vivo no canal da SEDUC no YouTube (abre em nova aba)"
+                    className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 active:scale-[0.97] px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:shadow-md hover:shadow-red-600/20 active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B30] cursor-pointer"
                   >
-                    <Tv className="h-3.5 w-3.5" />
-                    <span>Assistir Aulas no YouTube</span>
-                    <ExternalLink className="h-3 w-3 opacity-80" />
+                    <YoutubeIcon size={16} className="text-white shrink-0" />
+                    <span>Assistir no YouTube</span>
+                    <ExternalLink className="h-3 w-3 opacity-80 shrink-0" aria-hidden="true" />
                   </a>
 
                   <a
-                    href={socials.whatsapp || 'https://wa.me/5569999999999'}
+                    href={whatsappUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 px-4 py-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 transition-colors cursor-pointer"
+                    aria-label="Contatar suporte técnico das salas conectadas via WhatsApp (abre em nova aba)"
+                    className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-xl border border-emerald-500/40 bg-emerald-50/90 dark:bg-emerald-500/10 hover:bg-emerald-100/90 dark:hover:bg-emerald-500/20 hover:border-emerald-500/60 active:bg-emerald-200/80 dark:active:bg-emerald-500/30 active:scale-[0.97] px-4 py-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 shadow-2xs hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B30] cursor-pointer"
                   >
-                    <WhatsAppIcon size={14} />
+                    <WhatsAppIcon size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>Suporte Técnico da Sala</span>
-                    <ExternalLink className="h-3 w-3 opacity-80" />
+                    <ExternalLink className="h-3 w-3 opacity-75 shrink-0" aria-hidden="true" />
                   </a>
                 </div>
               </div>
 
-              {/* Grade Diária de Transmissão (3 turnos) */}
-              <div className="space-y-2.5 pt-2">
-                <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-white/5">
-                  <span className="font-mono text-xs uppercase tracking-wider text-slate-900 dark:text-cyan-300 flex items-center gap-1.5 font-bold">
-                    <Clock className="h-3.5 w-3.5 text-[#004A99] dark:text-cyan-400" />
-                    Grade Diária de Transmissão Síncrona
+              {/* Grade Diária de Transmissão (Sem aninhamento de cards - Layout Distill & Break-UI Resiliente) */}
+              <div className="pt-4 space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/10">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-[#004A99] dark:text-[#00D8FF] shrink-0" aria-hidden="true" />
+                    <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                      Grade Diária de Transmissão Síncrona
+                    </h4>
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 shrink-0">
+                    Segunda a Sexta
                   </span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">Segunda a Sexta</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                {/* Grade em Linha Contínua com Divisores Elegantes (elimina box-in-a-box) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-white/10 rounded-xl bg-slate-50/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/5">
                   {schedules.map((item, idx) => (
-                    <div
+                    <div 
                       key={idx}
-                      className="rounded-2xl border border-slate-200/90 dark:border-white/10 bg-slate-50/80 dark:bg-white/5 p-3.5 flex flex-col justify-between"
+                      className="p-4 flex flex-col justify-between space-y-2.5 min-w-0"
                     >
-                      <div>
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1.5 min-w-0">
+                          <span 
+                            title={item.shift}
+                            className="font-bold text-xs text-slate-900 dark:text-white truncate"
+                          >
                             {item.shift}
                           </span>
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0" />
+                          <span 
+                            className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0" 
+                            title={item.status} 
+                            aria-hidden="true" 
+                          />
                         </div>
-                        <p className="font-mono text-[11px] font-bold text-[#004A99] dark:text-cyan-300">
+                        <p 
+                          title={item.hours}
+                          className="font-mono tabular-nums text-xs font-bold text-[#004A99] dark:text-cyan-300 truncate"
+                        >
                           {item.hours}
                         </p>
                       </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug mt-2 line-clamp-2">
+
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed line-clamp-3 [overflow-wrap:anywhere] break-words">
                         {item.desc}
                       </p>
                     </div>
@@ -199,170 +221,224 @@ export default function LiveBroadcastSection({ socials = initialData.socials as 
 
             </div>
 
-            {/* Telemetria de Coordenadas */}
-            <div className="mt-6 pt-3 flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] text-slate-500 dark:text-cyan-200/70 border-t border-slate-100 dark:border-white/10">
-              <span>LAT -8.7619° S • LON -63.9039° W</span>
-              <span className="text-[#004A99] dark:text-[#00D8FF] font-semibold">Hub Emissor Porto Velho</span>
-            </div>
+            {/* Metadados & Telemetria do Hub */}
+            <footer className="mt-6 pt-4 flex flex-wrap items-center justify-between gap-2 font-mono text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-white/10">
+              <span className="truncate tabular-nums">Coordenadas: LAT -8.7619° S • LON -63.9039° W</span>
+              <span className="text-[#004A99] dark:text-[#00D8FF] font-semibold shrink-0">
+                Hub Emissor Porto Velho
+              </span>
+            </footer>
 
           </div>
 
-          {/* COLUNA DIREITA (5 cols): ÚLTIMOS AVISOS & NOTÍCIAS OFICIAIS */}
-          <div className="lg:col-span-5 flex flex-col justify-between rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 sm:p-8 shadow-xl">
+          {/* COLUNA DIREITA (5 cols): MURAL DE AVISOS & NOTÍCIAS */}
+          <div className="lg:col-span-5 flex flex-col justify-between rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0B1B30] p-6 sm:p-8 shadow-sm dark:shadow-lg transition-colors">
             
             <div className="space-y-5">
               
-              {/* Header do Feed */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#1A365D]">
-                <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-[#004A99] dark:text-[#00D8FF]" />
-                  <h3 className="font-display text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+              {/* Header da Coluna */}
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-white/10">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Bell className="h-4 w-4 text-[#004A99] dark:text-[#00D8FF] shrink-0" aria-hidden="true" />
+                  <h3 className="font-display text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
                     Mural &amp; Publicações Recentes
                   </h3>
                 </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-sky-50 dark:bg-cyan-950/60 text-[#004A99] dark:text-cyan-300 border border-sky-200 dark:border-cyan-500/30">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-sky-50 dark:bg-cyan-950/60 text-[#004A99] dark:text-cyan-300 border border-sky-200 dark:border-cyan-500/30 shrink-0">
                   Feed Oficial
                 </span>
               </div>
 
-              {/* 1. Card de Aviso Urgente do Mural */}
-              <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/90 dark:border-amber-500/30 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500 text-slate-950 uppercase tracking-wider">
-                    <AlertCircle className="h-3 w-3" />
-                    Aviso Mural
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                    {urgentAnnouncement.date}
+              {/* 1. Aviso Urgente do Mural (Layout Distill: Banner integrado com acento de borda, sem caixa aninhada duplicada) */}
+              {urgentAnnouncement ? (
+                <article className="border-l-4 border-amber-500 bg-amber-500/10 dark:bg-amber-500/15 rounded-r-xl p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500 text-slate-950 uppercase tracking-wider shrink-0">
+                      <AlertCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      Aviso Mural
+                    </span>
+                    <time className="text-[11px] font-mono tabular-nums text-slate-600 dark:text-slate-400 shrink-0">
+                      {urgentAnnouncement.date}
+                    </time>
+                  </div>
+                  
+                  <h4 
+                    title={urgentAnnouncement.title}
+                    className="font-bold text-sm text-slate-900 dark:text-white leading-snug line-clamp-2 [overflow-wrap:anywhere] break-words"
+                  >
+                    {urgentAnnouncement.title}
+                  </h4>
+                  
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2 [overflow-wrap:anywhere] break-words">
+                    {urgentAnnouncement.content}
+                  </p>
+                </article>
+              ) : (
+                /* Estado Vazio Seguro para Avisos (Harden) */
+                <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-white/15 bg-slate-50/50 dark:bg-white/5 flex items-start gap-3">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" aria-hidden="true" />
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                      Nenhum comunicado urgente no momento
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      As transmissões e salas operam regularmente conforme a grade horária.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* 2. Feed de Notícias Recentes (Layout Distill: Lista dividida limpa, sem cards isolados dentro de card) */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 pb-1">
+                  <Newspaper className="h-3.5 w-3.5 text-[#004A99] dark:text-[#00D8FF] shrink-0" aria-hidden="true" />
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-200">
+                    Últimas Reportagens
                   </span>
                 </div>
-                <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-snug">
-                  {urgentAnnouncement.title}
-                </h4>
-                <p className="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
-                  {urgentAnnouncement.content}
-                </p>
-              </div>
 
-              {/* 2. Duas Notícias Recentes */}
-              <div className="space-y-3">
-                {recentNews.map((news) => (
-                  <Link
-                    key={news.id}
-                    href={`/noticias`}
-                    className="group block p-3.5 rounded-2xl bg-slate-50 dark:bg-[#061224] border border-slate-200/80 dark:border-[#1A365D] hover:border-[#004A99]/50 dark:hover:border-cyan-400/50 transition-all"
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-[#004A99] dark:text-[#00D8FF]">
-                        <Newspaper className="h-3 w-3" />
-                        {news.category}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {news.publishedAt}
-                      </span>
-                    </div>
-                    <h5 className="font-bold text-xs sm:text-[13px] text-slate-900 dark:text-white group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2">
-                      {news.title}
-                    </h5>
-                  </Link>
-                ))}
+                {recentNews.length > 0 ? (
+                  <ul className="divide-y divide-slate-100 dark:divide-white/10 rounded-xl border border-slate-200/80 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 overflow-hidden">
+                    {recentNews.map((news) => (
+                      <li key={news.id}>
+                        <Link
+                          href={`/noticias`}
+                          className="group block p-3.5 hover:bg-white dark:hover:bg-white/10 active:bg-slate-100/80 dark:active:bg-white/15 active:scale-[0.99] transition-[transform,background-color] duration-150 ease-out touch-manipulation focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] focus-visible:ring-inset"
+                        >
+                          <div className="flex items-center justify-between gap-2 mb-1.5 min-w-0">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-[#004A99] dark:text-cyan-300 min-w-0 max-w-[65%] truncate">
+                              <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
+                              <span className="truncate">{news.category || 'Geral'}</span>
+                            </span>
+                            <span className="text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0">
+                              <Calendar className="h-3 w-3 shrink-0" aria-hidden="true" />
+                              <span>{news.publishedAt || 'Recente'}</span>
+                            </span>
+                          </div>
+
+                          <h5 
+                            title={news.title}
+                            className="font-semibold text-xs sm:text-[13px] text-slate-900 dark:text-white group-hover:text-[#004A99] dark:group-hover:text-cyan-300 transition-colors duration-150 ease-out leading-snug line-clamp-2 [overflow-wrap:anywhere] break-words"
+                          >
+                            {news.title}
+                          </h5>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  /* Estado Vazio Seguro para Notícias (Harden) */
+                  <div className="py-6 text-center space-y-2 rounded-xl border border-dashed border-slate-200 dark:border-white/10 p-4">
+                    <Newspaper className="h-5 w-5 text-slate-400 mx-auto" aria-hidden="true" />
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Nenhuma matéria recente disponível no feed.
+                    </p>
+                  </div>
+                )}
               </div>
 
             </div>
 
-            {/* Links Rápidos do Rodapé */}
-            <div className="pt-4 mt-4 border-t border-slate-100 dark:border-[#1A365D] flex items-center justify-between text-xs font-bold">
+            {/* Rodapé com Links Rápidos de Navegação */}
+            <footer className="pt-4 mt-4 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs font-semibold">
               <Link
                 href="/avisos"
-                className="text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] flex items-center gap-1 transition-colors"
+                className="text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] active:scale-[0.98] flex items-center gap-1.5 transition-all duration-150 ease-out touch-manipulation focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] rounded-md px-1 py-0.5"
               >
-                <span>Mural de Avisos</span>
-                <ArrowRight className="h-3.5 w-3.5" />
+                <span>Mural Completo</span>
+                <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               </Link>
 
               <Link
                 href="/noticias"
-                className="text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1 transition-colors"
+                className="text-[#004A99] dark:text-[#00D8FF] hover:underline active:scale-[0.98] flex items-center gap-1.5 transition-all duration-150 ease-out touch-manipulation focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] rounded-md px-1 py-0.5"
               >
                 <span>Portal de Notícias</span>
-                <ArrowRight className="h-3.5 w-3.5" />
+                <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               </Link>
-            </div>
+            </footer>
 
           </div>
 
         </div>
 
-        {/* ================= 3. BARRA HORIZONTAL EXECUTIVA DE REDES & PORTAL SEDUC ================= */}
-        <div className="rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm dark:shadow-md">
+        {/* ================= 3. BARRA HORIZONTAL INSTITUCIONAL & REDES (LAYOUT & HARDEN) ================= */}
+        <div className="rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0B1B30] p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm dark:shadow-md transition-colors">
           
-          {/* Lado Esquerdo: Selo e Link do Portal Oficial SEDUC */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-100 dark:bg-cyan-950/80 border border-sky-300 dark:border-cyan-400/30 text-[#004A99] dark:text-cyan-300 flex items-center justify-center shrink-0">
-              <Globe className="h-5 w-5" />
+          {/* Lado Esquerdo: Selo Oficial SEDUC */}
+          <div className="flex items-center gap-3.5 min-w-0 w-full md:w-auto">
+            <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-cyan-950/80 border border-sky-200 dark:border-cyan-500/30 text-[#004A99] dark:text-cyan-300 flex items-center justify-center shrink-0">
+              <Globe className="h-5 w-5" aria-hidden="true" />
             </div>
-            <div>
-              <p className="font-display font-bold text-xs sm:text-sm text-slate-900 dark:text-white leading-tight">
+            <div className="min-w-0">
+              <p 
+                title="Portal Oficial da Secretaria de Estado da Educação"
+                className="font-display font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate"
+              >
                 Portal Oficial da Secretaria de Estado da Educação
               </p>
               <a
                 href="https://rondonia.ro.gov.br/seduc/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-mono text-[11px] text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1"
+                aria-label="Acessar o portal oficial da SEDUC Rondônia (abre em nova aba)"
+                className="font-mono text-xs text-[#004A99] dark:text-[#00D8FF] hover:underline inline-flex items-center gap-1 truncate touch-manipulation"
               >
-                <span>rondonia.ro.gov.br/seduc</span>
-                <ExternalLink className="h-3 w-3" />
+                <span className="truncate">rondonia.ro.gov.br/seduc</span>
+                <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
               </a>
             </div>
           </div>
 
-          {/* Lado Direito: 4 Pílulas Horizontais Executivas e Discretas */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
+          {/* Lado Direito: Pílulas Executivas de Mídias com min-h 44px, feedback ativo e acessibilidade */}
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2 w-full md:w-auto">
             
             {/* Pílula YouTube */}
             <a
-              href={socials.youtube || 'https://www.youtube.com/@SeducRondonia'}
+              href={youtubeUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#061224] hover:bg-slate-100 dark:hover:bg-[#091E3A] border border-slate-200 dark:border-[#1A365D] hover:border-red-400 dark:hover:border-red-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
+              aria-label="Canal YouTube da SEDUC Rondônia (abre em nova aba)"
+              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100/90 dark:hover:bg-red-950/30 active:bg-slate-200/80 dark:active:bg-red-950/50 active:scale-[0.96] border border-slate-200 dark:border-white/10 hover:border-red-400/80 dark:hover:border-red-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500 cursor-pointer shadow-2xs"
             >
-              <YoutubeIcon size={16} className="text-red-600" />
-              <span>YouTube Ao Vivo</span>
+              <YoutubeIcon size={16} className="text-red-600 shrink-0" />
+              <span>YouTube</span>
             </a>
 
             {/* Pílula Instagram */}
             <a
-              href={socials.instagram || 'https://www.instagram.com/governoro/'}
+              href={instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#061224] hover:bg-slate-100 dark:hover:bg-[#091E3A] border border-slate-200 dark:border-[#1A365D] hover:border-pink-400 dark:hover:border-pink-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
+              aria-label="Instagram Oficial do Governo de Rondônia (abre em nova aba)"
+              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100/90 dark:hover:bg-pink-950/30 active:bg-slate-200/80 dark:active:bg-pink-950/50 active:scale-[0.96] border border-slate-200 dark:border-white/10 hover:border-pink-400/80 dark:hover:border-pink-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-pink-500 cursor-pointer shadow-2xs"
             >
-              <InstagramIcon size={16} className="text-pink-600" />
-              <span>@governoro</span>
+              <InstagramIcon size={16} className="text-pink-600 shrink-0" />
+              <span>Instagram</span>
             </a>
 
             {/* Pílula Facebook */}
             <a
-              href={socials.facebook || 'https://www.facebook.com/governoderondonia'}
+              href={facebookUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#061224] hover:bg-slate-100 dark:hover:bg-[#091E3A] border border-slate-200 dark:border-[#1A365D] hover:border-blue-400 dark:hover:border-blue-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
+              aria-label="Página do Governo de Rondônia no Facebook (abre em nova aba)"
+              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100/90 dark:hover:bg-blue-950/30 active:bg-slate-200/80 dark:active:bg-blue-950/50 active:scale-[0.96] border border-slate-200 dark:border-white/10 hover:border-blue-400/80 dark:hover:border-blue-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 cursor-pointer shadow-2xs"
             >
-              <FacebookIcon size={16} className="text-blue-600" />
-              <span>Comunidade FB</span>
+              <FacebookIcon size={16} className="text-blue-600 shrink-0" />
+              <span>Facebook</span>
             </a>
 
             {/* Pílula WhatsApp */}
             <a
-              href={socials.whatsapp || 'https://wa.me/5569999999999'}
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#061224] hover:bg-slate-100 dark:hover:bg-[#091E3A] border border-slate-200 dark:border-[#1A365D] hover:border-emerald-400 dark:hover:border-emerald-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
+              aria-label="Canal de Suporte WhatsApp (abre em nova aba)"
+              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100/90 dark:hover:bg-emerald-950/30 active:bg-slate-200/80 dark:active:bg-emerald-950/50 active:scale-[0.96] border border-slate-200 dark:border-white/10 hover:border-emerald-400/80 dark:hover:border-emerald-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer shadow-2xs"
             >
-              <WhatsAppIcon size={16} className="text-emerald-600" />
-              <span>Suporte WhatsApp</span>
+              <WhatsAppIcon size={16} className="text-emerald-600 shrink-0" />
+              <span>WhatsApp</span>
             </a>
 
           </div>
@@ -373,3 +449,5 @@ export default function LiveBroadcastSection({ socials = initialData.socials as 
     </section>
   );
 }
+
+
