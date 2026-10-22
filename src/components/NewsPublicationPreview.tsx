@@ -38,11 +38,11 @@ export default function NewsPublicationPreview({
         Prévia no site
       </p>
       <article
-        className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${
-          urgent ? 'border-rose-300 ring-1 ring-rose-200' : featured ? 'border-amber-300' : 'border-slate-200'
+        className={`overflow-hidden rounded-2xl border bg-white dark:bg-[#0C1E38] shadow-sm ${
+          urgent ? 'border-rose-300 dark:border-rose-500/40 ring-1 ring-rose-200 dark:ring-rose-900/30' : featured ? 'border-amber-300 dark:border-amber-500/40' : 'border-slate-200 dark:border-[#1A365D]'
         }`}
       >
-        <div className="relative h-40 bg-slate-100">
+        <div className="relative h-40 bg-slate-100 dark:bg-slate-900">
           {coverImage ? (
             <img src={coverImage} alt="" className="h-full w-full object-cover" />
           ) : (
@@ -50,7 +50,7 @@ export default function NewsPublicationPreview({
               Sem foto de capa
             </div>
           )}
-          <span className="absolute left-3 top-3 rounded-md bg-[#05549d] px-2.5 py-1 text-[11px] font-bold text-white">
+          <span className="absolute left-3 top-3 rounded-md bg-[#004A99] dark:bg-[#00D8FF] px-2.5 py-1 text-[11px] font-bold text-white dark:text-slate-950">
             {category || 'Categoria'}
           </span>
           <span className="absolute right-3 top-3 flex gap-1.5">
@@ -68,7 +68,7 @@ export default function NewsPublicationPreview({
         </div>
         <div className="space-y-3 p-5">
           <div className="flex items-center gap-3 text-xs text-slate-400">
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 tabular-nums font-mono">
               <Calendar size={13} />
               {displayDate}
             </span>
@@ -77,19 +77,19 @@ export default function NewsPublicationPreview({
               {displayAuthor}
             </span>
           </div>
-          <h3 className="text-lg font-bold leading-snug text-slate-900">{displayTitle}</h3>
-          <p className="line-clamp-3 text-xs leading-relaxed text-slate-600">{displayExcerpt}</p>
-          <p className="border-t border-slate-100 pt-3 text-xs font-bold text-primary">Ler notícia completa</p>
+          <h3 className="text-lg font-bold leading-snug text-slate-900 dark:text-white font-display text-balance">{displayTitle}</h3>
+          <p className="line-clamp-3 text-xs leading-relaxed text-slate-600 dark:text-slate-300 text-pretty">{displayExcerpt}</p>
+          <p className="border-t border-slate-100 dark:border-[#1A365D] pt-3 text-xs font-bold text-[#004A99] dark:text-[#00D8FF]">Ler notícia completa</p>
         </div>
       </article>
 
-      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Ao abrir a notícia</p>
-        <h4 className="mt-2 text-base font-black leading-snug text-slate-900">{displayTitle}</h4>
-        <p className="mt-2 line-clamp-4 whitespace-pre-line text-xs leading-relaxed text-slate-600">
+      <div className="mt-4 rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] p-4">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Ao abrir a notícia</p>
+        <h4 className="mt-2 text-base font-black leading-snug text-slate-900 dark:text-white font-display text-balance">{displayTitle}</h4>
+        <p className="mt-2 line-clamp-4 whitespace-pre-line text-xs leading-relaxed text-slate-600 dark:text-slate-300 text-pretty">
           {displayContent}
         </p>
-        <p className={`mt-3 text-[11px] font-bold ${published ? 'text-emerald-700' : 'text-slate-500'}`}>
+        <p className={`mt-3 text-[11px] font-bold ${published ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
           {published ? 'Vai aparecer no site' : 'Rascunho: não aparece no site'}
         </p>
       </div>

@@ -174,7 +174,7 @@ export default function HomePage() {
                   className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer group touch-manipulation select-none"
                 >
                   <span>Avisos e notícias</span>
-                  <span className="transition-transform duration-150 ease-out group-hover:translate-x-1 text-cyan-300">→</span>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 ease-out group-hover:translate-x-1 text-cyan-300" />
                 </Link>
               </div>
 

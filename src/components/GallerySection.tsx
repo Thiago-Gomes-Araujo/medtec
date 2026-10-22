@@ -10,7 +10,8 @@ import {
   X, 
   ChevronLeft, 
   ChevronRight, 
-  Radio 
+  Radio,
+  MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -172,7 +173,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
     setSelectedIndex((prev) => (prev! < filteredGallery.length - 1 ? prev! + 1 : 0));
   }, [selectedIndex, filteredGallery.length]);
 
-  // Atalhos de Teclado (ESC, ←, →)
+  // Atalhos de Teclado (ESC, Setas Esquerda/Direita)
   useEffect(() => {
     if (selectedIndex === null) return;
 
@@ -262,7 +263,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
               title="Visualizar como catálogo e índice técnico"
             >
               <List className="h-3.5 w-3.5" />
-              <span>☰ ÍNDICE TÉCNICO</span>
+              <span>ÍNDICE TÉCNICO</span>
             </button>
           </div>
 
@@ -348,8 +349,13 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     {/* BASE DO CARD: DATA, LOCALIZAÇÃO, TÍTULO E DESLIZAMENTO DO HOVER */}
                     <div className="relative z-10 p-5 sm:p-6 space-y-2">
                       {/* Linha de Data e Localização */}
-                      <p className="text-[11px] font-mono uppercase tracking-wider text-cyan-200 tabular-nums">
-                        {photo.date} • 📍 {meta.location}
+                      <p className="text-[11px] font-mono uppercase tracking-wider text-cyan-200 tabular-nums flex items-center gap-1.5">
+                        <span>{photo.date}</span>
+                        <span>•</span>
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-3 w-3 text-cyan-300 shrink-0" />
+                          {meta.location}
+                        </span>
                       </p>
 
                       {/* Título em Destaque */}
@@ -516,18 +522,18 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     className="inline-flex items-center gap-1.5 rounded-xl border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all duration-150 ease-out cursor-pointer font-semibold touch-manipulation select-none active:scale-[0.95] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    <span>← ANTERIOR</span>
+                    <span>ANTERIOR</span>
                   </button>
 
                   <span className="hidden sm:inline text-[11px] text-[#6482A6]">
-                    USE AS SETAS DO TECLADO [ ← ] [ → ]
+                    Navegue pelas setas do teclado
                   </span>
 
                   <button
                     onClick={handleNext}
                     className="inline-flex items-center gap-1.5 rounded-xl border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all duration-150 ease-out cursor-pointer font-semibold touch-manipulation select-none active:scale-[0.95] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
                   >
-                    <span>PRÓXIMA →</span>
+                    <span>PRÓXIMA</span>
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -613,7 +619,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     className="w-full rounded-xl border border-[#1A365D] bg-[#040B16] py-3 text-xs font-mono font-semibold text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] hover:bg-[#071326] transition-all duration-150 ease-out flex items-center justify-center gap-2 cursor-pointer shadow-sm touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
                   >
                     <X className="h-4 w-4" />
-                    <span>[ ESC // FECHAR INSPETOR ]</span>
+                    <span>ESC • Fechar Inspetor</span>
                   </button>
                 </div>
 

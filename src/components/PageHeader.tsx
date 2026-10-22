@@ -14,7 +14,7 @@ export default function PageHeader({ eyebrow, title, text }: PageHeaderProps) {
       <div className="pointer-events-none absolute bottom-0 left-1/3 h-px w-1/2 bg-gradient-to-r from-transparent via-cyan-300/70 dark:via-cyan-400/40 to-transparent" aria-hidden="true" />
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <p className="font-mono text-xs font-semibold uppercase tracking-wider text-cyan-300 dark:text-cyan-300">
-          {`// ${eyebrow}`}
+          {eyebrow}
         </p>
         <h1 className="mt-3 max-w-4xl font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white dark:text-[#E6F4FF] leading-tight text-balance [overflow-wrap:anywhere]">
           {title}

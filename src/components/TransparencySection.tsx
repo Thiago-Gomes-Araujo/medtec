@@ -193,9 +193,10 @@ export default function TransparencySection() {
           href="https://transparencia.ro.gov.br/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs font-semibold text-sky-800 dark:text-[#00D8FF] underline hover:text-sky-950 dark:hover:text-white"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-800 dark:text-[#00D8FF] hover:underline hover:text-sky-950 dark:hover:text-white transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none"
         >
-          Acessar Portal da Transparência RO ↗
+          <span>Acessar Portal da Transparência RO</span>
+          <ExternalLink className="h-3.5 w-3.5" />
         </a>
       </div>
     </div>

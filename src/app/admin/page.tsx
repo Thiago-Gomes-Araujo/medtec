@@ -356,7 +356,7 @@ export default function AdminDashboardPage() {
       <PageHeader
         eyebrow="Acesso restrito (simulação)"
         title="Painel Editorial SEDUC-RO"
-        text="Todo conteúdo passa por Rascunho → Revisão Jurídica/LGPD → Aprovado → Publicado."
+        text="Fluxo editorial com triagem em Rascunho, Revisão Jurídica/LGPD, Aprovação e Publicação Oficial."
       />
 
       <div className="mx-auto max-w-7xl px-4 pt-6 w-full">

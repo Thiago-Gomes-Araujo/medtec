@@ -61,7 +61,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
     mediatorRole: 'Bióloga & Professora Mediadora',
     mediatorInitials: 'FR',
     studentCohort: '2º Ano EM • 38 Alunos Conectados',
-    seal: '🏆 DESTAQUE FEIRA CULTURAL MEDTEC',
+    seal: 'DESTAQUE FEIRA CULTURAL MEDTEC',
     image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?auto=format&fit=crop&w=1200&q=80',
     initialApplause: 142,
     desafioLocal: {
@@ -130,7 +130,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
     mediatorRole: 'Pedagogo Intercultural Indígena',
     mediatorInitials: 'US',
     studentCohort: '1º e 2º Ano EM • 29 Estudantes Indígenas',
-    seal: '★ PRÁTICA CERTIFICADA BNCC & SABERES ANCESTRAIS',
+    seal: 'PRÁTICA CERTIFICADA BNCC & SABERES ANCESTRAIS',
     image: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1200&q=80',
     initialApplause: 198,
     desafioLocal: {
@@ -199,7 +199,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
     mediatorRole: 'Químico & Professor Mediador',
     mediatorInitials: 'MB',
     studentCohort: '3º Ano EM • 44 Alunos Conectados',
-    seal: '🔬 MENÇÃO HONROSA OLIMPÍADA DE CIÊNCIAS RO',
+    seal: 'MENÇÃO HONROSA OLIMPÍADA DE CIÊNCIAS RO',
     image: 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?auto=format&fit=crop&w=1200&q=80',
     initialApplause: 115,
     desafioLocal: {
@@ -268,7 +268,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
     mediatorRole: 'Físico & Professor Mediador',
     mediatorInitials: 'CS',
     studentCohort: '2º e 3º Ano EM • 32 Alunos Conectados',
-    seal: '⚡ INOVAÇÃO ENERGÉTICA SUSTENTÁVEL',
+    seal: 'INOVAÇÃO ENERGÉTICA SUSTENTÁVEL',
     image: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1200&q=80',
     initialApplause: 230,
     desafioLocal: {
@@ -337,7 +337,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
     mediatorRole: 'Engenheira Agrônoma & Mediadora',
     mediatorInitials: 'MG',
     studentCohort: '1º Ano EM • 35 Alunos Conectados',
-    seal: '🌱 PRÁTICA AGROECOLÓGICA DE IMPACTO',
+    seal: 'PRÁTICA AGROECOLÓGICA DE IMPACTO',
     image: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=1200&q=80',
     initialApplause: 164,
     desafioLocal: {
@@ -406,7 +406,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
     mediatorRole: 'Historiador & Professor Mediador',
     mediatorInitials: 'TV',
     studentCohort: '3º Ano EM • 41 Alunos Conectados',
-    seal: '📻 PATRIMÔNIO IMATERIAL & HISTÓRIA ORAL',
+    seal: 'PATRIMÔNIO IMATERIAL & HISTÓRIA ORAL',
     image: 'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=1200&q=80',
     initialApplause: 178,
     desafioLocal: {
@@ -463,9 +463,9 @@ export const PROJECTS_DATA: ProjectMission[] = [
 ];
 
 export const TRACK_OPTIONS = [
-  '⚡ Todas as Missões (06)',
-  '🌱 Agroecologia & NBAZ',
-  '🔬 Ciência na Amazônia',
-  '🏺 Saberes Indígenas & História',
-  '🤖 Tecnologia Solar & Robótica'
+  'Todas as Missões (06)',
+  'Agroecologia & NBAZ',
+  'Ciência na Amazônia',
+  'Saberes Indígenas & História',
+  'Tecnologia Solar & Robótica'
 ] as const;

@@ -15,8 +15,11 @@ import {
   ThumbsDown,
   Sparkles,
   HelpCircle,
-  Users
+  Users,
+  Globe,
+  Building2
 } from 'lucide-react';
+import Badge3D from '@/components/Badge3D';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export type FaqCategory =
@@ -296,8 +299,9 @@ export default function FaqCentralSection() {
                 <X className="h-3 w-3" />
               </button>
             ) : (
-              <span className="hidden sm:inline-block rounded bg-slate-100 dark:bg-[#061224] px-2 py-1 font-mono text-[10px] text-slate-500 dark:text-[#6482A6] border border-slate-200 dark:border-[#1A365D]/80">
-                [ ESC PARA LIMPAR ]
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded bg-slate-100 dark:bg-[#061224] px-2 py-1 font-mono text-[10px] text-slate-500 dark:text-[#6482A6] border border-slate-200 dark:border-[#1A365D]/80">
+                <kbd className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[9px]">ESC</kbd>
+                <span>para limpar</span>
               </span>
             )}
           </div>
@@ -436,30 +440,33 @@ export default function FaqCentralSection() {
             {/* Bloco 1: Seletor de Perfil (Quem é você?) */}
             <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 shadow-sm dark:shadow-lg space-y-3">
               <div className="border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-2">
-                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-500 dark:text-[#6482A6] font-semibold">
-                  [ FILTRO DE PÚBLICO // QUEM É VOCÊ? ]
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-[#6482A6] font-semibold">
+                  Filtro de Público • Quem é você?
                 </span>
               </div>
 
               <div className="space-y-1.5">
                 {[
-                  { id: 'todos', label: 'Todos os Públicos', icon: '🌐' },
-                  { id: 'estudantes', label: '👨‍🎓 Estudantes & Famílias', icon: '👨‍🎓' },
-                  { id: 'mediadores', label: '👩‍🏫 Professores Mediadores', icon: '👩‍🏫' },
-                  { id: 'gestores', label: '🏛️ Gestores & Institucional', icon: '🏛️' },
+                  { id: 'todos', label: 'Todos os Públicos', icon: <Globe className="w-3.5 h-3.5" /> },
+                  { id: 'estudantes', label: 'Estudantes & Famílias', icon: <GraduationCap className="w-3.5 h-3.5" /> },
+                  { id: 'mediadores', label: 'Professores Mediadores', icon: <Users className="w-3.5 h-3.5" /> },
+                  { id: 'gestores', label: 'Gestores & Institucional', icon: <Building2 className="w-3.5 h-3.5" /> },
                 ].map((item) => {
                   const isSelected = selectedPersona === item.id;
                   return (
                     <button
                       key={item.id}
                       onClick={() => setSelectedPersona(item.id as FaqPersona)}
-                      className={`w-full text-left rounded-lg px-3.5 py-2 text-xs font-mono font-medium transition-all flex items-center justify-between cursor-pointer ${
+                      className={`w-full text-left rounded-xl px-3 py-2 text-xs font-mono font-medium transition-all duration-150 ease-out flex items-center justify-between cursor-pointer active:scale-[0.98] touch-manipulation select-none min-h-[44px] ${
                         isSelected
-                          ? 'border border-[#0284C7] dark:border-[#00D8FF] bg-sky-50 dark:bg-[#061224] text-[#05549D] dark:text-[#00D8FF] shadow-sm dark:shadow-[0_0_12px_rgba(0,216,255,0.2)] font-semibold'
+                          ? 'border border-[#0284C7] dark:border-[#00D8FF] bg-sky-50 dark:bg-[#061224] text-[#05549D] dark:text-[#00D8FF] shadow-xs dark:shadow-[0_0_12px_rgba(0,216,255,0.2)] font-semibold'
                           : 'border border-transparent bg-transparent text-slate-600 dark:text-[#6482A6] hover:bg-slate-100 dark:hover:bg-[#061224]/60 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
-                      <span className="truncate">{item.label}</span>
+                      <span className="inline-flex items-center gap-2 truncate">
+                        <Badge3D size="xs" variant={isSelected ? 'solid' : 'subtle'} icon={item.icon} />
+                        <span className="truncate">{item.label}</span>
+                      </span>
                       {isSelected && (
                         <span className="h-1.5 w-1.5 rounded-full bg-[#0284C7] dark:bg-[#00D8FF] animate-ping" />
                       )}
@@ -472,8 +479,8 @@ export default function FaqCentralSection() {
             {/* Bloco 2: Índice de Categorias Técnicas com Contador Dinâmico */}
             <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 shadow-sm dark:shadow-lg space-y-3">
               <div className="border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-2 flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-500 dark:text-[#6482A6] font-semibold">
-                  [ ÍNDICE DE CATEGORIAS ]
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-[#6482A6] font-semibold">
+                  Índice de Categorias
                 </span>
                 <span className="text-[10px] font-mono text-[#0284C7] dark:text-[#00D8FF] font-semibold">
                   {filteredFaqs.length} ITENS
@@ -722,9 +729,10 @@ export default function FaqCentralSection() {
             <div className="flex flex-wrap items-center gap-3 shrink-0">
               <Link
                 href="/admin"
-                className="rounded-[36px] bg-[#05549D] dark:bg-[#040B16] border border-[#0284C7] dark:border-[#00D8FF] px-6 py-3 text-xs font-mono font-semibold text-white dark:text-[#E6F4FF] hover:bg-[#0284C7] dark:hover:bg-[#00D8FF] dark:hover:text-[#040B16] transition-all shadow-sm dark:shadow-[0_0_15px_rgba(0,216,255,0.2)]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#05549D] dark:bg-[#040B16] border border-[#0284C7] dark:border-[#00D8FF] px-6 py-3 text-xs font-mono font-semibold text-white dark:text-[#E6F4FF] hover:bg-[#0284C7] dark:hover:bg-[#00D8FF] dark:hover:text-[#040B16] transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none shadow-xs dark:shadow-[0_0_15px_rgba(0,216,255,0.2)]"
               >
-                ACESSAR PAINEL GESTOR →
+                <span>Acessar Painel Gestor</span>
+                <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
 
               <Link

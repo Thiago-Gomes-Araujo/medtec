@@ -24,7 +24,10 @@ import {
   Sparkles,
   MapPin,
   ExternalLink,
-  BookOpen
+  BookOpen,
+  Star,
+  Zap,
+  BarChart3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -416,8 +419,8 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                     {/* Badge de Destaque no Topo da Imagem */}
                     <div className="absolute top-4 left-4 z-10">
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/85 px-3.5 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-sm">
-                        <Sparkles className="h-3 w-3 text-cyan-300" />
-                        <span>★ Reportagem de Capa • {featuredArticle.category?.toUpperCase() || 'INFRAESTRUTURA'}</span>
+                        <Star className="h-3 w-3 text-cyan-300 fill-cyan-300" />
+                        <span>Reportagem de Capa • {featuredArticle.category?.toUpperCase() || 'INFRAESTRUTURA'}</span>
                       </span>
                     </div>
 
@@ -425,7 +428,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                     <div className="absolute bottom-4 right-4 z-10">
                       <span className="inline-flex items-center gap-1.5 rounded-md bg-black/75 px-2.5 py-1 font-mono text-[11px] text-cyan-200 backdrop-blur-sm tabular-nums">
                         <Clock className="h-3 w-3 text-cyan-300" />
-                        <span>⏱ {featuredEditorial.readingTime} MIN DE LEITURA</span>
+                        <span>{featuredEditorial.readingTime} MIN DE LEITURA</span>
                       </span>
                     </div>
                   </div>
@@ -462,11 +465,11 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                         </p>
                         <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300 font-sans">
                           <li className="flex items-start gap-2">
-                            <span className="text-[#004A99] dark:text-[#00D8FF] font-bold">✓</span>
+                            <Check className="h-3.5 w-3.5 text-[#004A99] dark:text-[#00D8FF] shrink-0 mt-0.5" />
                             <span>{featuredEditorial.tldrPoints[0]}</span>
                           </li>
                           <li className="flex items-start gap-2">
-                            <span className="text-[#004A99] dark:text-[#00D8FF] font-bold">✓</span>
+                            <Check className="h-3.5 w-3.5 text-[#004A99] dark:text-[#00D8FF] shrink-0 mt-0.5" />
                             <span>{featuredEditorial.tldrPoints[1]}</span>
                           </li>
                         </ul>
@@ -539,7 +542,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           <div className="absolute bottom-2.5 right-2.5 z-10">
                             <span className="inline-flex items-center gap-1 rounded bg-black/75 px-2 py-0.5 font-mono text-[10px] text-cyan-200 backdrop-blur-sm tabular-nums">
                               <Clock className="h-2.5 w-2.5 text-cyan-300" />
-                              <span>⏱ {editorial.readingTime} min</span>
+                              <span>{editorial.readingTime} min</span>
                             </span>
                           </div>
                         </div>
@@ -552,7 +555,10 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                             <div className="text-xs font-mono font-bold tracking-wider text-[#004A99] dark:text-[#00D8FF] flex items-center gap-1.5 tabular-nums">
                               <span>{item.publishedAt}</span>
                               <span>•</span>
-                              <span className="truncate">📍 {editorial.polo}</span>
+                              <span className="truncate inline-flex items-center gap-1">
+                                <MapPin className="h-3 w-3 shrink-0" />
+                                {editorial.polo}
+                              </span>
                             </div>
 
                             {/* Título da Notícia */}
@@ -635,9 +641,15 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                       <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[#004A99] dark:text-[#00D8FF] font-semibold mb-1">
                         <span>{item.publishedAt}</span>
                         <span>•</span>
-                        <span>📍 {editorial.polo}</span>
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          {editorial.polo}
+                        </span>
                         <span>•</span>
-                        <span className="text-slate-500 dark:text-slate-400">⏱ {editorial.readingTime} min</span>
+                        <span className="text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
+                          <Clock className="h-3 w-3 shrink-0" />
+                          {editorial.readingTime} min
+                        </span>
                       </div>
 
                       <h4 className="font-display text-lg sm:text-xl font-bold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug">
@@ -736,7 +748,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
 
                   <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-[#061224] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1A365D] tabular-nums">
                     <Clock className="h-3 w-3 text-[#004A99] dark:text-[#00D8FF]" />
-                    <span>⏱ {activeEditorial.readingTime} min</span>
+                    <span>{activeEditorial.readingTime} min</span>
                   </span>
                 </div>
 
@@ -815,11 +827,11 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                   </p>
                 </div>
 
-                {/* Bloco "⚡ RESUMO EM 3 PONTOS (TL;DR)" */}
+                {/* Bloco Resumo em 3 Pontos */}
                 <div className="rounded-2xl border-l-4 border-[#004A99] dark:border-[#00D8FF] bg-sky-50/80 dark:bg-[#061224] p-5 sm:p-6 space-y-3">
                   <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    <span>⚡ RESUMO EM 3 PONTOS (TL;DR)</span>
+                    <Zap className="h-4 w-4" />
+                    <span>Resumo Executivo (3 Pontos)</span>
                   </h4>
                   <ul className="space-y-2 font-sans text-sm text-slate-700 dark:text-slate-200">
                     {activeEditorial.tldrPoints.map((point, pIdx) => (
@@ -889,8 +901,9 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
 
                   {/* Ficha de Impacto Territorial (Infobox com 4 Métricas) */}
                   <div className="my-8 rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] p-5 sm:p-6">
-                    <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] mb-4">
-                      📊 Ficha de Impacto Territorial • SEDUC-RO
+                    <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] mb-4 flex items-center gap-1.5">
+                      <BarChart3 className="h-3.5 w-3.5" />
+                      <span>Ficha de Impacto Territorial • SEDUC-RO</span>
                     </p>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center font-mono">
                       {activeEditorial.impactStats.map((stat, sIdx) => (
@@ -929,7 +942,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                     <div className="flex items-center justify-between">
                       <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
                         <BookOpen className="h-4 w-4 text-[#004A99] dark:text-[#00D8FF]" />
-                        <span>📰 LEIA TAMBÉM NO PORTAL MEDTEC</span>
+                        <span>Leia Também no Portal MEDTEC</span>
                       </h4>
                       <span className="text-[11px] font-mono text-slate-500">Sugestões de leitura</span>
                     </div>

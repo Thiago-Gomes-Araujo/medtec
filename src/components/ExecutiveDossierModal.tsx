@@ -14,9 +14,11 @@ import {
   FileText,
   Sparkles,
   ArrowRight,
+  ArrowDown,
   Tv,
   CheckCircle2,
-  GraduationCap
+  GraduationCap,
+  Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -103,7 +105,7 @@ export default function ExecutiveDossierModal({
                 </div>
                 <div className="min-w-0">
                   <p className="truncate font-mono text-[11px] sm:text-xs font-semibold tracking-wider text-cyan-200">
-                    DOSSIÊ INSTITUCIONAL // SEDUC-RO • PORTARIA 928/2025
+                    DOSSIÊ INSTITUCIONAL • SEDUC-RO (PORTARIA 928/2025)
                   </p>
                   <p className="text-[10px] text-slate-400 font-mono">
                     GOVERNO DO ESTADO DE RONDÔNIA • GESTÃO PÚBLICA
@@ -111,7 +113,7 @@ export default function ExecutiveDossierModal({
                 </div>
               </div>
 
-              {/* Direita: Badge Documento Oficial + Botão ESC ✕ */}
+              {/* Direita: Badge Documento Oficial + Botão ESC */}
               <div className="flex items-center gap-2.5 shrink-0">
                 <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider text-emerald-400">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10B981] animate-pulse" />
@@ -135,7 +137,7 @@ export default function ExecutiveDossierModal({
               {/* SIDEBAR ESQUERDA (Menu de Abas - 30% / 4 colunas em md) */}
               <div className="md:col-span-4 border-b md:border-b-0 md:border-r border-[#1A365D] bg-[#0C1E38]/50 p-3 sm:p-4 flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible shrink-0">
                 <p className="hidden md:block px-2.5 pb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-cyan-300/80">
-                  {'// NAVEGAÇÃO ESTRATÉGICA'}
+                  Navegação Estratégica
                 </p>
 
                 {tabs.map((tab) => {
@@ -169,7 +171,7 @@ export default function ExecutiveDossierModal({
                 <div className="hidden md:block mt-auto pt-4 border-t border-[#1A365D]/60 px-2 font-mono text-[10px] text-slate-400">
                   <div className="flex items-center gap-1.5 text-cyan-300 mb-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                    <span>SEDUC-RO // CME</span>
+                    <span>SEDUC-RO • CME</span>
                   </div>
                   <p className="text-[9px] text-slate-500 leading-relaxed">
                     Transmissões síncronas via satélite com acompanhamento pedagógico contínuo.
@@ -198,7 +200,7 @@ export default function ExecutiveDossierModal({
                     {/* Bento Grid 2x2 com os 4 KPIs Oficiais */}
                     <div>
                       <p className="font-mono text-[10px] uppercase tracking-wider text-cyan-300/80 font-bold mb-2.5">
-                        {'// INDICADORES CONSOLIDADOS (KPIS OFICIAIS)'}
+                        Indicadores Consolidados (KPIs Oficiais)
                       </p>
                       <div className="grid grid-cols-2 gap-3">
                         {/* KPI 1 */}
@@ -281,7 +283,7 @@ export default function ExecutiveDossierModal({
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="font-mono text-[10px] font-bold text-cyan-300 uppercase tracking-wider">
-                              ETAPA 01 // ORIGEM DO CONTEÚDO
+                              ETAPA 01 • ORIGEM DO CONTEÚDO
                             </span>
                             <h4 className="text-sm font-bold text-white mt-0.5">
                               1. Estúdio Central PVH (Produção 4K)
@@ -295,8 +297,8 @@ export default function ExecutiveDossierModal({
 
                       {/* Conector Seta */}
                       <div className="flex justify-center -my-1">
-                        <span className="flex items-center gap-1 font-mono text-[10px] text-cyan-400/70 bg-[#0C1E38] px-3 py-0.5 rounded-full border border-cyan-500/20">
-                          ↓ Uplink de Telemetria Criptografado
+                        <span className="flex items-center gap-1.5 font-mono text-[10px] text-cyan-400/80 bg-[#0C1E38] px-3 py-0.5 rounded-full border border-cyan-500/20">
+                          <ArrowDown className="h-2.5 w-2.5 text-cyan-400" /> Uplink de Telemetria Criptografado
                         </span>
                       </div>
 
@@ -308,7 +310,7 @@ export default function ExecutiveDossierModal({
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="font-mono text-[10px] font-bold text-sky-300 uppercase tracking-wider">
-                              ETAPA 02 // DISTRIBUIÇÃO AEROESPACIAL
+                              ETAPA 02 • DISTRIBUIÇÃO AEROESPACIAL
                             </span>
                             <h4 className="text-sm font-bold text-white mt-0.5">
                               2. Uplink Satélite Banda Ku
@@ -322,8 +324,8 @@ export default function ExecutiveDossierModal({
 
                       {/* Conector Seta */}
                       <div className="flex justify-center -my-1">
-                        <span className="flex items-center gap-1 font-mono text-[10px] text-emerald-400/70 bg-[#0C1E38] px-3 py-0.5 rounded-full border border-emerald-500/20">
-                          ↓ Downlink e Mediação Humana
+                        <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-400/80 bg-[#0C1E38] px-3 py-0.5 rounded-full border border-emerald-500/20">
+                          <ArrowDown className="h-2.5 w-2.5 text-emerald-400" /> Downlink e Mediação Humana
                         </span>
                       </div>
 
@@ -335,7 +337,7 @@ export default function ExecutiveDossierModal({
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="font-mono text-[10px] font-bold text-emerald-300 uppercase tracking-wider">
-                              ETAPA 03 // PONTA EDUCACIONAL
+                              ETAPA 03 • PONTA EDUCACIONAL
                             </span>
                             <h4 className="text-sm font-bold text-white mt-0.5">
                               3. Sala Conectada + Professor Mediador Presencial
@@ -413,10 +415,10 @@ export default function ExecutiveDossierModal({
                       <Link
                         href="/mapa"
                         onClick={onClose}
-                        className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-300 px-5 py-3 text-xs font-bold text-slate-950 shadow-[0_0_20px_rgba(0,216,255,0.4)] transition-all hover:brightness-110 hover:scale-[1.01]"
+                        className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-300 px-5 py-3 text-xs font-bold text-slate-950 shadow-[0_0_20px_rgba(0,216,255,0.4)] transition-all hover:brightness-110 active:scale-[0.97] touch-manipulation select-none"
                       >
                         <MapPin className="h-4 w-4" />
-                        <span>ABRIR RADAR CARTOGRÁFICO DE ESCOLAS ↗</span>
+                        <span>Abrir Radar Cartográfico de Escolas</span>
                         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                       </Link>
                     </div>
@@ -513,8 +515,8 @@ export default function ExecutiveDossierModal({
                   onClick={handlePrint}
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#1A365D] bg-[#0C1E38]/80 px-3.5 py-2 font-mono text-xs font-semibold text-slate-200 hover:border-cyan-400/50 hover:bg-cyan-500/10 hover:text-white transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300 cursor-pointer whitespace-nowrap"
                 >
-                  <Printer className="h-3.5 w-3.5 text-cyan-300" />
-                  <span>BAIXAR DOSSIÊ EM PDF ↓</span>
+                  <Download className="h-3.5 w-3.5 text-cyan-300" />
+                  <span>BAIXAR DOSSIÊ EM PDF</span>
                 </button>
 
                 <Link
@@ -522,7 +524,8 @@ export default function ExecutiveDossierModal({
                   onClick={onClose}
                   className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-300 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-slate-950 shadow-[0_0_15px_rgba(0,216,255,0.3)] hover:brightness-110 transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300 cursor-pointer whitespace-nowrap"
                 >
-                  <span>ACESSAR TRANSPARÊNCIA →</span>
+                  <span>ACESSAR TRANSPARÊNCIA</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
             </div>

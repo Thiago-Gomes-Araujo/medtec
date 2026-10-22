@@ -518,7 +518,7 @@ export default function SchoolMap() {
                   CAMADA 2: ARTÉRIAS GEOGRÁFICAS (HIDROGRAFIA & BR-364)
               ======================================================== */}
               <g id="arterias-geograficas">
-                {/* 1. EIXO RODOVIÁRIO: RODOVIA BR-364 (PORTO VELHO → VILHENA) */}
+                {/* 1. EIXO RODOVIÁRIO: RODOVIA BR-364 (PORTO VELHO - VILHENA) */}
                 <path
                   d="M 317 105 L 394 200 L 492 287 L 536 337 L 645 450"
                   fill="none"
@@ -551,7 +551,7 @@ export default function SchoolMap() {
                   filter={selectedType === 'ribeirinha' ? 'url(#glow-river)' : undefined}
                 />
 
-                {/* 3. CALHA DO RIO MADEIRA (PORTO VELHO → BAIXO MADEIRA / CALAMA) */}
+                {/* 3. CALHA DO RIO MADEIRA (PORTO VELHO - BAIXO MADEIRA / CALAMA) */}
                 <path
                   d="M 160 200 C 220 180, 260 145, 317 105 C 350 85, 385 70, 415 60"
                   fill="none"
@@ -784,8 +784,9 @@ export default function SchoolMap() {
                     strokeWidth="1.2"
                     filter="url(#glow-cyan)"
                   />
-                  <text x="12" y="18" fill="#00D8FF" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    📡 TRANSMISSÃO SATELITAL • BANDA KU
+                  <circle cx="16" cy="15" r="3" fill="#00D8FF" />
+                  <text x="25" y="18" fill="#00D8FF" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                    TRANSMISSÃO SATELITAL • BANDA KU
                   </text>
                   <text x="12" y="34" fill="#E6F4FF" fontSize="11" fontFamily="monospace" fontWeight="bold">
                     {hoveredSchool ? hoveredSchool.nome.slice(0, 24) : activeTargetNode.name}

@@ -17,7 +17,8 @@ import {
   Users,
   ScrollText,
   Satellite,
-  Sparkles
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ExecutiveDossierModal from './ExecutiveDossierModal';
@@ -366,7 +367,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                                 className="group flex items-center gap-1.5 text-[11px] font-semibold text-[#004A99] dark:text-[#00D8FF] hover:underline transition-all cursor-pointer active:scale-[0.98] duration-150 ease-out"
                               >
                                 <span>Ver Transmissão</span>
-                                <span className="group-hover:translate-x-0.5 transition-transform duration-150 ease-out">→</span>
+                                <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform duration-150 ease-out" />
                               </Link>
                               <button
                                 type="button"

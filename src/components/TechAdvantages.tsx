@@ -15,7 +15,8 @@ import {
   Cpu,
   Sprout,
   ShieldCheck,
-  Check
+  Check,
+  ArrowLeftRight
 } from 'lucide-react';
 
 export default function TechAdvantages() {
@@ -137,7 +138,9 @@ export default function TechAdvantages() {
                 <span className="text-slate-300 dark:text-slate-600">•</span>
                 <span>Banda C / Ku & IP Rural</span>
               </div>
-              <span className="text-[#05549D] dark:text-cyan-300 font-bold tabular-nums">Porto Velho ⇄ 52 Municípios</span>
+              <span className="text-[#05549D] dark:text-cyan-300 font-bold tabular-nums inline-flex items-center gap-1.5">
+                Porto Velho <ArrowLeftRight className="w-3.5 h-3.5 text-sky-600 dark:text-cyan-300" /> 52 Municípios
+              </span>
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />

@@ -36,7 +36,7 @@ export default function TeacherProfiles({ filterRole = 'Todas' }: TeacherProfile
                 {getInitials(p.nome)}
               </div>
               <div className="min-w-0">
-                <h3 className="truncate font-semibold text-slate-900 dark:text-white text-base">{p.nome}</h3>
+                <h3 className="truncate font-semibold text-slate-900 dark:text-white text-base text-balance">{p.nome}</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{p.disciplina}</p>
               </div>
             </div>
@@ -62,13 +62,13 @@ export default function TeacherProfiles({ filterRole = 'Todas' }: TeacherProfile
               <span className="truncate">{p.escola}</span>
             </p>
 
-            <p className="mt-3 flex-1 text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+            <p className="mt-3 flex-1 text-sm text-slate-700 dark:text-slate-300 leading-relaxed text-pretty">
               {p.resumo}
             </p>
 
             <button
               onClick={() => setSelectedProf(p)}
-              className="mt-4 inline-flex items-center justify-center rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#0F2647] hover:text-[#05549D] dark:hover:text-[#00D8FF] transition-colors cursor-pointer"
+              className="mt-4 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-3.5 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#0F2647] hover:text-[#05549D] dark:hover:text-[#00D8FF] transition-all duration-150 ease-out cursor-pointer active:scale-[0.97] touch-manipulation select-none min-h-[44px]"
             >
               Ler entrevista completa
             </button>
