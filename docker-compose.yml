@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  medtec:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: medtec-web:prod
+    container_name: medtec-web
+    restart: unless-stopped
+    ports:
+      - "3022:3022"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3022"
+      HOSTNAME: 0.0.0.0
+    volumes:
+      - medtec-data:/app/src/data
+      - medtec-uploads:/app/public/uploads
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3022').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  medtec-data:
+  medtec-uploads:
