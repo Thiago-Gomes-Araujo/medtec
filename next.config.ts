@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   /* Tailwind v4 class-based dark mode reload trigger */
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    agentUpgrade: "security",
+  },
   turbopack: {
     rules: {
       "*.css": {
