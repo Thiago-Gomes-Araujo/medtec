@@ -9,7 +9,8 @@ import {
   MapPin, 
   Signal, 
   CheckCircle2, 
-  GraduationCap 
+  GraduationCap,
+  ArrowRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { escolasData, Escola, municipiosList } from '@/data/medtecData';
@@ -518,7 +519,7 @@ export default function SchoolMap() {
                   CAMADA 2: ARTÉRIAS GEOGRÁFICAS (HIDROGRAFIA & BR-364)
               ======================================================== */}
               <g id="arterias-geograficas">
-                {/* 1. EIXO RODOVIÁRIO: RODOVIA BR-364 (PORTO VELHO → VILHENA) */}
+                {/* 1. EIXO RODOVIÁRIO: RODOVIA BR-364 (PORTO VELHO - VILHENA) */}
                 <path
                   d="M 317 105 L 394 200 L 492 287 L 536 337 L 645 450"
                   fill="none"
@@ -551,7 +552,7 @@ export default function SchoolMap() {
                   filter={selectedType === 'ribeirinha' ? 'url(#glow-river)' : undefined}
                 />
 
-                {/* 3. CALHA DO RIO MADEIRA (PORTO VELHO → BAIXO MADEIRA / CALAMA) */}
+                {/* 3. CALHA DO RIO MADEIRA (PORTO VELHO - BAIXO MADEIRA / CALAMA) */}
                 <path
                   d="M 160 200 C 220 180, 260 145, 317 105 C 350 85, 385 70, 415 60"
                   fill="none"
@@ -784,8 +785,9 @@ export default function SchoolMap() {
                     strokeWidth="1.2"
                     filter="url(#glow-cyan)"
                   />
-                  <text x="12" y="18" fill="#00D8FF" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    📡 TRANSMISSÃO SATELITAL • BANDA KU
+                  <circle cx="16" cy="15" r="3" fill="#00D8FF" />
+                  <text x="25" y="18" fill="#00D8FF" fontSize="10" fontFamily="monospace" fontWeight="bold">
+                    TRANSMISSÃO SATELITAL • BANDA KU
                   </text>
                   <text x="12" y="34" fill="#E6F4FF" fontSize="11" fontFamily="monospace" fontWeight="bold">
                     {hoveredSchool ? hoveredSchool.nome.slice(0, 24) : activeTargetNode.name}
@@ -934,26 +936,26 @@ export default function SchoolMap() {
                       onMouseEnter={() => setHoveredSchoolId(escola.id)}
                       onMouseLeave={() => setHoveredSchoolId(null)}
                       onClick={() => setSelectedCity(escola.municipio)}
-                      className={`group relative rounded-[12px] border p-4 sm:p-5 transition-all cursor-pointer shadow-sm dark:shadow-none ${
+                      className={`group relative rounded-xl border p-4 transition-all cursor-pointer shadow-xs dark:shadow-none ${
                         isHovered
-                          ? 'border-[#00D8FF] bg-sky-50/50 dark:bg-[#0F2647] shadow-md dark:shadow-[0_0_20px_rgba(0,216,255,0.18)] translate-x-1'
+                          ? 'border-[#00D8FF] bg-sky-50/50 dark:bg-[#0F2647] shadow-md dark:shadow-[0_0_16px_rgba(0,216,255,0.15)] translate-x-1'
                           : 'border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] hover:border-sky-400 dark:hover:border-[#00D8FF]/70'
                       }`}
                     >
                       {/* Marcador Luminoso Lateral no Hover */}
                       <div
-                        className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-[12px] bg-[#00D8FF] transition-opacity ${
+                        className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-[#00D8FF] transition-opacity ${
                           isHovered ? 'opacity-100' : 'opacity-0'
                         }`}
                       />
 
-                      {/* CABEÇALHO DO CARD DA ESCOLA */}
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-mono text-sm uppercase font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug group-hover:text-sky-700 dark:group-hover:text-[#00D8FF] transition-colors">
+                      {/* CABEÇALHO DO CARD DA ESCOLA (1 Badge no Topo) */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-mono text-sm uppercase font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug group-hover:text-sky-700 dark:group-hover:text-[#00D8FF] transition-colors truncate">
                             {escola.nome}
                           </h3>
-                          <div className="mt-1 flex items-center gap-2 text-xs text-slate-500 dark:text-[#6482A6] font-mono">
+                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500 dark:text-[#6482A6] font-mono">
                             <MapPin className="h-3 w-3 text-cyan-600 dark:text-cyan-400 shrink-0" />
                             <span>{escola.municipio}</span>
                             {escola.comunidade && (
@@ -965,47 +967,42 @@ export default function SchoolMap() {
                           </div>
                         </div>
 
-                        {/* BADGES TÉCNICAS */}
-                        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
-                          <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}>
-                            {escola.tipo}
-                          </span>
-                          <span className="rounded-full border border-slate-200 dark:border-[#1A365D] bg-slate-100 dark:bg-[#061224] px-2 py-0.5 text-[10px] font-mono text-slate-700 dark:text-cyan-200">
-                            {escola.conexao}
-                          </span>
-                        </div>
+                        {/* 1 BADGE DA TIPOLOGIA NO TOPO */}
+                        <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}>
+                          {escola.tipo}
+                        </span>
                       </div>
 
                       {/* DIVISÓRIA INTERNA 1PX DASHED */}
-                      <div className="my-3 border-t border-dashed border-slate-200 dark:border-[#1A365D]" />
+                      <div className="my-2.5 border-t border-dashed border-slate-200 dark:border-[#1A365D]" />
 
-                      {/* LINHA DE MÉTRICAS (TURMAS, ALUNOS, SINAL) */}
-                      <div className="grid grid-cols-3 gap-2 text-xs font-mono text-slate-600 dark:text-slate-300">
-                        <div className="flex items-center gap-1.5">
-                          <BookOpen className="h-3.5 w-3.5 text-[#05549D] dark:text-[#00D8FF]" />
-                          <span>{escola.turmas} turmas</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <Users className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
-                          <span>{escola.alunos} alunos</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                          <Signal className="h-3.5 w-3.5" />
-                          <span>{escola.statusSinal || 'Sinal 99.8%'}</span>
-                        </div>
-                      </div>
-
-                      {/* RODAPÉ DO CARD: PROFESSOR MEDIADOR RESPONSÁVEL */}
-                      <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 dark:bg-[#061224]/80 px-3 py-2 border border-slate-200 dark:border-[#1A365D]/60 text-xs font-mono">
-                        <div className="flex items-center gap-2 truncate">
-                          <GraduationCap className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <span className="text-slate-700 dark:text-slate-300 truncate">
-                            <span className="text-slate-400 dark:text-slate-500">Mediador:</span> {escola.mediador}
+                      {/* LINHA DE MÉTRICAS & LINK FOCAR NO RADAR */}
+                      <div className="flex items-center justify-between text-xs font-mono text-slate-600 dark:text-slate-300">
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center gap-1">
+                            <BookOpen className="h-3.5 w-3.5 text-[#05549D] dark:text-[#00D8FF]" />
+                            {escola.turmas} turmas
+                          </span>
+                          <span className="text-slate-300 dark:text-white/20">•</span>
+                          <span className="flex items-center gap-1">
+                            <Users className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                            {escola.alunos} alunos
                           </span>
                         </div>
+
+                        <span className="text-[11px] font-bold text-[#05549D] dark:text-[#00D8FF] group-hover:underline inline-flex items-center gap-1 shrink-0">
+                          Focar no Radar <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                        </span>
+                      </div>
+
+                      {/* LINHA DISCRETA DO MEDIADOR RESPONSÁVEL */}
+                      <div className="mt-2 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                        <span className="truncate">
+                          Mediador: <strong className="text-slate-700 dark:text-slate-300 font-medium">{escola.mediador}</strong>
+                        </span>
                         {escola.distanciaKm && (
-                          <span className="text-[10px] text-slate-500 dark:text-[#6482A6] shrink-0 font-semibold">
-                            {escola.distanciaKm} km da SEDUC
+                          <span className="shrink-0 text-[10px]">
+                            {escola.distanciaKm} km SEDUC
                           </span>
                         )}
                       </div>

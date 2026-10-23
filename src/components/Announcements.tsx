@@ -24,23 +24,23 @@ export default function Announcements({ announcements }: AnnouncementsProps) {
     switch (type) {
       case 'urgente':
         return {
-          icon: <AlertCircle size={15} className="text-rose-600" />,
+          icon: <AlertCircle size={15} className="text-rose-600 dark:text-rose-400" />,
           label: 'Urgente',
-          bg: 'bg-rose-50 border-rose-200 text-rose-800',
+          bg: 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800/50 text-rose-800 dark:text-rose-300',
           dot: 'bg-rose-500'
         };
       case 'aviso':
         return {
-          icon: <AlertTriangle size={15} className="text-amber-600" />,
+          icon: <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400" />,
           label: 'Aviso Importante',
-          bg: 'bg-amber-50 border-amber-200 text-amber-800',
+          bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300',
           dot: 'bg-amber-500'
         };
       default:
         return {
-          icon: <Info size={15} className="text-blue-600" />,
+          icon: <Info size={15} className="text-blue-600 dark:text-cyan-400" />,
           label: 'Comunicado',
-          bg: 'bg-blue-50 border-blue-200 text-blue-800',
+          bg: 'bg-blue-50 dark:bg-sky-950/40 border-blue-200 dark:border-sky-800/50 text-blue-800 dark:text-sky-300',
           dot: 'bg-blue-500'
         };
     }

@@ -35,6 +35,7 @@ export function getDatabase(): DatabaseSchema {
       })),
       gallery: parsed.gallery ?? defaults.gallery,
       banners: normalizeBanners(parsed, defaults),
+      users: parsed.users ?? defaults.users ?? [],
     };
   } catch (error) {
     console.error('Error reading database file:', error);

@@ -10,7 +10,8 @@ import {
   X, 
   ChevronLeft, 
   ChevronRight, 
-  Radio 
+  Radio,
+  MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -38,8 +39,8 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
     coords: 'LAT -8.76° S • LON -63.90° W',
     infra: 'Estúdio Central SEDUC • 4K UHD Broadcast • Fibra Óptica',
     origem: 'Coordenadoria de Mídias Educacionais (SEDUC-RO)',
-    bentoClass: 'md:col-span-8 md:row-span-2',
-    aspectRatio: 'min-h-[440px] md:min-h-[500px]'
+    bentoClass: 'md:col-span-8',
+    aspectRatio: 'h-[250px] sm:h-[270px]'
   },
   'gal-3': {
     regCode: 'REG_02 // RO',
@@ -48,8 +49,8 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
     coords: 'LAT -11.10° S • LON -61.20° W',
     infra: 'Transmissão Satelital Banda Ku • Painel Solar Fotovoltaico',
     origem: 'EEEFM Indígena Paiter Suruí (CRE Cacoal)',
-    bentoClass: 'md:col-span-4 md:row-span-2',
-    aspectRatio: 'min-h-[440px] md:min-h-[500px]'
+    bentoClass: 'md:col-span-4',
+    aspectRatio: 'h-[250px] sm:h-[270px]'
   },
   'gal-2': {
     regCode: 'REG_03 // RO',
@@ -59,7 +60,7 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
     infra: 'Receptor Satelital Ku • Smart TV 65" Interativa',
     origem: 'EEEFM Juscelino Kubitschek (Extensão Rural)',
     bentoClass: 'md:col-span-5',
-    aspectRatio: 'min-h-[340px]'
+    aspectRatio: 'h-[240px] sm:h-[260px]'
   },
   'gal-4': {
     regCode: 'REG_04 // RO',
@@ -69,7 +70,7 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
     infra: 'Auditório Multimídia • Transmissão Síncrona IP',
     origem: 'Gerência de Capacitação Pedagógica (SEDUC-RO)',
     bentoClass: 'md:col-span-7',
-    aspectRatio: 'min-h-[340px]'
+    aspectRatio: 'h-[240px] sm:h-[260px]'
   },
   'gal-5': {
     regCode: 'REG_05 // RO',
@@ -79,7 +80,7 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
     infra: 'Estande Tecnológico • Conexão Redundante Satélite/Rádio',
     origem: 'Feira Estadual de Ciência e Tecnologia MEDTEC',
     bentoClass: 'md:col-span-6',
-    aspectRatio: 'min-h-[340px]'
+    aspectRatio: 'h-[240px] sm:h-[260px]'
   },
   'gal-6': {
     regCode: 'REG_06 // RO',
@@ -89,7 +90,7 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
     infra: 'Switch de Produção Blackmagic • Teleprompter e Iluminação LED',
     origem: 'Estúdios de Transmissão da Coordenadoria de Mídias',
     bentoClass: 'md:col-span-6',
-    aspectRatio: 'min-h-[340px]'
+    aspectRatio: 'h-[240px] sm:h-[260px]'
   }
 };
 
@@ -172,7 +173,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
     setSelectedIndex((prev) => (prev! < filteredGallery.length - 1 ? prev! + 1 : 0));
   }, [selectedIndex, filteredGallery.length]);
 
-  // Atalhos de Teclado (ESC, ←, →)
+  // Atalhos de Teclado (ESC, Setas Esquerda/Direita)
   useEffect(() => {
     if (selectedIndex === null) return;
 
@@ -262,7 +263,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
               title="Visualizar como catálogo e índice técnico"
             >
               <List className="h-3.5 w-3.5" />
-              <span>☰ ÍNDICE TÉCNICO</span>
+              <span>ÍNDICE TÉCNICO</span>
             </button>
           </div>
 
@@ -321,7 +322,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     key={photo.id}
                     layout
                     onClick={() => setSelectedIndex(index)}
-                    className={`group relative overflow-hidden rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-slate-900 hover:border-[#00D8FF] transition-all duration-200 ease-out cursor-pointer shadow-lg flex flex-col justify-between active:scale-[0.99] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF] ${gridSpanClass} ${meta.aspectRatio}`}
+                    className={`group relative overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-slate-900 hover:border-[#00D8FF] transition-all duration-200 ease-out cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-between active:scale-[0.99] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF] ${gridSpanClass} ${meta.aspectRatio}`}
                   >
                     {/* Imagem de Fundo com Zoom Suave no Hover */}
                     <img
@@ -335,38 +336,43 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/35 group-hover:from-black/95 group-hover:via-black/55 transition-all duration-200" />
 
                     {/* TOPO DO CARD: BADGE TÉCNICA E CÓDIGO CATALOGRÁFICO */}
-                    <div className="relative z-10 flex items-center justify-between p-4 sm:p-5">
-                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-[#00D8FF] text-[11px] uppercase font-mono px-3 py-1 rounded-full font-semibold shadow-sm">
+                    <div className="relative z-10 flex items-center justify-between p-3 sm:p-3.5">
+                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-[#00D8FF] text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full font-semibold shadow-xs">
                         {photo.category}
                       </span>
 
-                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-slate-300 group-hover:text-white text-[11px] font-mono px-2.5 py-1 rounded-full transition-colors tabular-nums">
+                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-slate-300 group-hover:text-white text-[10px] font-mono px-2 py-0.5 rounded-full transition-colors tabular-nums">
                         {meta.regCode}
                       </span>
                     </div>
 
                     {/* BASE DO CARD: DATA, LOCALIZAÇÃO, TÍTULO E DESLIZAMENTO DO HOVER */}
-                    <div className="relative z-10 p-5 sm:p-6 space-y-2">
+                    <div className="relative z-10 p-3.5 sm:p-4 space-y-1">
                       {/* Linha de Data e Localização */}
-                      <p className="text-[11px] font-mono uppercase tracking-wider text-cyan-200 tabular-nums">
-                        {photo.date} • 📍 {meta.location}
+                      <p className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider text-cyan-200 tabular-nums flex items-center gap-1.5">
+                        <span>{photo.date}</span>
+                        <span>•</span>
+                        <span className="inline-flex items-center gap-1 truncate">
+                          <MapPin className="h-3 w-3 text-cyan-300 shrink-0" />
+                          {meta.location}
+                        </span>
                       </p>
 
-                      {/* Título em Destaque */}
-                      <h3 className="font-display text-lg sm:text-xl font-bold uppercase leading-snug text-white group-hover:text-[#00D8FF] transition-colors text-balance">
+                      {/* Título em Destaque Compacto */}
+                      <h3 className="font-display text-sm sm:text-base font-semibold leading-snug text-white group-hover:text-[#00D8FF] transition-colors text-balance line-clamp-1 group-hover:line-clamp-2">
                         {photo.title}
                       </h3>
 
-                      {/* Descrição Completa e Botão de Inspeção (Desliza e Revela no Hover) */}
-                      <div className="max-h-0 opacity-0 group-hover:max-h-48 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden">
-                        <p className="text-xs text-slate-200 leading-relaxed font-normal pt-1.5 text-pretty">
+                      {/* Descrição Compacta e Botão de Inspeção no Hover */}
+                      <div className="max-h-0 opacity-0 group-hover:max-h-36 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden">
+                        <p className="text-xs text-slate-200 leading-relaxed font-normal pt-1 line-clamp-2 text-pretty">
                           {photo.description}
                         </p>
 
-                        <div className="mt-3 pt-2.5 border-t border-dashed border-white/20 flex items-center justify-between text-xs font-mono text-[#00D8FF]">
-                          <span className="flex items-center gap-1.5 font-semibold">
-                            <Maximize2 className="h-3.5 w-3.5" />
-                            <span>[ ⊕ INSPECIONAR REGISTRO ]</span>
+                        <div className="mt-2 pt-2 border-t border-dashed border-white/20 flex items-center justify-between text-xs font-mono text-[#00D8FF]">
+                          <span className="flex items-center gap-1 font-semibold text-[11px]">
+                            <Maximize2 className="h-3 w-3" />
+                            <span>[ ⊕ INSPECIONAR ]</span>
                           </span>
                           <span className="text-[10px] text-slate-300 hidden sm:inline tabular-nums">
                             {meta.coords}
@@ -516,18 +522,18 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     className="inline-flex items-center gap-1.5 rounded-xl border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all duration-150 ease-out cursor-pointer font-semibold touch-manipulation select-none active:scale-[0.95] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    <span>← ANTERIOR</span>
+                    <span>ANTERIOR</span>
                   </button>
 
                   <span className="hidden sm:inline text-[11px] text-[#6482A6]">
-                    USE AS SETAS DO TECLADO [ ← ] [ → ]
+                    Navegue pelas setas do teclado
                   </span>
 
                   <button
                     onClick={handleNext}
                     className="inline-flex items-center gap-1.5 rounded-xl border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all duration-150 ease-out cursor-pointer font-semibold touch-manipulation select-none active:scale-[0.95] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
                   >
-                    <span>PRÓXIMA →</span>
+                    <span>PRÓXIMA</span>
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -613,7 +619,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     className="w-full rounded-xl border border-[#1A365D] bg-[#040B16] py-3 text-xs font-mono font-semibold text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] hover:bg-[#071326] transition-all duration-150 ease-out flex items-center justify-center gap-2 cursor-pointer shadow-sm touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
                   >
                     <X className="h-4 w-4" />
-                    <span>[ ESC // FECHAR INSPETOR ]</span>
+                    <span>ESC • Fechar Inspetor</span>
                   </button>
                 </div>
 

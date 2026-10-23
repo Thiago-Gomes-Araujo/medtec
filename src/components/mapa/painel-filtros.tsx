@@ -67,9 +67,10 @@ export function PainelFiltros({
           {isFiltrado && (
             <button
               onClick={resetarFiltros}
-              className="inline-flex items-center gap-1 text-[11px] text-[#00D8FF] hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1 text-[11px] text-[#00D8FF] hover:underline cursor-pointer active:scale-95 transition-transform"
             >
-              Resetar Filtros ×
+              <span>Resetar filtros</span>
+              <X className="h-3 w-3" />
             </button>
           )}
         </div>
@@ -78,8 +79,8 @@ export function PainelFiltros({
       {/* FILTRO 1: PÍLULAS DE MUNICÍPIOS */}
       <div>
         <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#6482A6] font-semibold">
-            [ 01 • NÓ GEOGRÁFICO / POLO REGIONAL ]
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#6482A6] font-semibold">
+            01 • Polo Regional
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -117,8 +118,8 @@ export function PainelFiltros({
 
       {/* FILTRO 2: TIPOLOGIA DE COMUNIDADE COM CORES SEMÂNTICAS */}
       <div>
-        <span className="mb-1.5 block text-[10px] font-mono uppercase tracking-[0.18em] text-[#6482A6] font-semibold">
-          [ 02 • TIPOLOGIA DE COMUNIDADE ]
+        <span className="mb-1.5 block text-[10px] font-mono uppercase tracking-wider text-[#6482A6] font-semibold">
+          02 • Tipologia de Comunidade
         </span>
         <div className="flex flex-wrap items-center gap-1.5">
           {[

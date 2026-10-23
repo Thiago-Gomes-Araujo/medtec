@@ -118,7 +118,7 @@ export function MapaCanvas({
       {/* Régua e Telemetria Superior Flutuante */}
       <div className="pointer-events-none absolute left-3 top-2.5 z-[400] flex items-center gap-2 font-mono text-[10px] text-[#00D8FF] bg-[#0C1E38]/85 px-2.5 py-1 rounded border border-[#1A365D] backdrop-blur-sm">
         <Radio className="h-3 w-3 animate-pulse text-[#F43F5E]" />
-        <span className="font-bold tracking-wider">CANVAS LEAFLET // SINAL ATIVO</span>
+        <span className="font-bold tracking-wider">Canvas Cartográfico • Sinal Ativo</span>
         <span className="text-[#1A365D]">|</span>
         <span className="text-slate-300">RONDÔNIA</span>
       </div>
@@ -178,14 +178,14 @@ export function MapaCanvas({
         >
           <Tooltip direction="top" offset={[0, -18]} opacity={0.95}>
             <span className="font-mono text-xs font-bold text-[#F43F5E]">
-              📡 [ HUB SEDUC • ESTÚDIO CENTRAL PVH ]
+              Hub SEDUC • Estúdio Central PVH
             </span>
           </Tooltip>
           <Popup className="medtec-popup">
             <div className="p-2 space-y-2 font-mono text-xs text-[#E6F4FF]">
               <div className="flex items-center gap-1.5 text-[#F43F5E] font-bold border-b border-[#1A365D] pb-1">
                 <Radio className="h-3.5 w-3.5 animate-pulse" />
-                <span>HUB EMISSOR CENTRAL // SEDUC</span>
+                <span>Hub Emissor Central • SEDUC</span>
               </div>
               <p className="text-[11px] text-slate-300">
                 Estúdio Principal de Transmissão de Aulas ao Vivo via Satélite (Banda Ku).

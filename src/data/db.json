@@ -300,7 +300,7 @@
       "id": "gal-1",
       "title": "Transmissão ao Vivo nos Estúdios Centrais",
       "description": "Professores especialistas ministrando aulas com recursos audiovisuais e tecnologia interativa em Porto Velho.",
-      "imageUrl": "https://images.unsplash.com/photo-1492619375914-88005aa9e8fb?auto=format&fit=crop&w=800&q=80",
+      "imageUrl": "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?auto=format&fit=crop&w=1000&q=80",
       "category": "Estúdios",
       "date": "Outubro 2026"
     },
@@ -308,7 +308,7 @@
       "id": "gal-2",
       "title": "Sala de Aula Conectada na Zona Rural",
       "description": "Estudantes acompanhando a aula mediada com o apoio do professor presencial e material didático da SEDUC.",
-      "imageUrl": "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80",
+      "imageUrl": "https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&w=800&q=80",
       "category": "Salas de Aula",
       "date": "Setembro 2026"
     },
@@ -316,7 +316,7 @@
       "id": "gal-3",
       "title": "Atendimento às Comunidades Indígenas",
       "description": "Inclusão educacional com respeito às tradições, garantindo acesso pleno ao Ensino Médio nas aldeias.",
-      "imageUrl": "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=800&q=80",
+      "imageUrl": "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1000&q=80",
       "category": "Comunidades",
       "date": "Agosto 2026"
     },
@@ -343,6 +343,18 @@
       "imageUrl": "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=800&q=80",
       "category": "Estúdios",
       "date": "Maio 2026"
+    }
+  ],
+  "users": [
+    {
+      "id": "usr-1792681670819-m78vf",
+      "name": "Zequinha",
+      "cpf": "946.468.110-14",
+      "profileType": "Editor de Notícias",
+      "role": "operador",
+      "active": true,
+      "createdAt": "22/10/2026",
+      "passwordHash": "2be1e27becbb115b1d1d0eae040b73d0:b1afecf758fb7acacf275e55daaf85f5ff19f24a5c56c77bc902b77da624bcfb006ec0f773ad1bbdfcddfa9f6afd38038fe84b989e245b1209ee06f37a4014ca"
     }
   ]
 }

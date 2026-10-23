@@ -15,7 +15,7 @@ export default function ProjetosPage() {
     <div className="flex flex-col min-h-screen bg-[#F8FAFC] dark:bg-[#040B16] text-[#0A2540] dark:text-[#E6F4FF] transition-colors duration-200">
       <SiteHeader />
 
-      <main className="flex-1 pb-16">
+      <main className="flex-1 pt-28 md:pt-32 pb-16">
         <ProjectsInteractiveStage />
       </main>
 

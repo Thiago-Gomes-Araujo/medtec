@@ -38,23 +38,23 @@ export default function StudentStories({ filterCategory = 'Todas' }: StudentStor
           </div>
 
           <div className="mt-4 flex items-center gap-3">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-600 dark:bg-emerald-500 font-display font-bold text-white shadow-sm">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-emerald-600 dark:bg-emerald-500 font-display font-bold text-white shadow-xs">
               {getInitials(aluno.nome)}
             </div>
             <div className="min-w-0">
-              <h3 className="truncate font-semibold text-slate-900 dark:text-white text-base">{aluno.nome}</h3>
+              <h3 className="truncate font-semibold text-slate-900 dark:text-white text-base text-balance">{aluno.nome}</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {aluno.comunidade} · {aluno.municipio}
               </p>
             </div>
           </div>
 
-          <p className="mt-4 flex items-start gap-2 font-display font-semibold text-[#05549D] dark:text-[#00D8FF] text-sm">
+          <p className="mt-4 flex items-start gap-2 font-display font-semibold text-[#05549D] dark:text-[#00D8FF] text-sm text-balance">
             <Award className="mt-0.5 h-4 w-4 shrink-0 text-[#05549D] dark:text-[#00D8FF]" />
             <span>{aluno.conquista}</span>
           </p>
 
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 leading-relaxed text-pretty">
             {aluno.resumo}
           </p>
         </article>

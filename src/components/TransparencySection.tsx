@@ -82,31 +82,31 @@ export default function TransparencySection() {
 
       {/* Indicators Grid */}
       {activeTab === 'indicadores' && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {filteredIndicadores.length === 0 ? (
-            <div className="col-span-full rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-8 text-center text-sm text-slate-500 dark:text-slate-400">
+            <div className="col-span-full rounded-xl border border-dashed border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-8 text-center text-sm font-mono text-slate-500 dark:text-slate-400">
               Nenhum indicador encontrado para o termo pesquisado.
             </div>
           ) : (
             filteredIndicadores.map((ind: Indicador, idx: number) => (
               <div
                 key={idx}
-                className="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 shadow-card hover:border-slate-300 dark:hover:border-[#00D8FF]/50 transition-all"
+                className="flex flex-col justify-between rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 shadow-xs hover:border-slate-300 dark:hover:border-[#00D8FF]/50 transition-all"
               >
                 <div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#6482A6] mb-2">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">Ano de Referência: {ind.ano}</span>
-                    <span>Atualizado: {ind.data}</span>
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#6482A6] mb-1.5 font-mono">
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">Ano: {ind.ano}</span>
+                    <span className="text-[11px]">Atualizado: {ind.data}</span>
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug line-clamp-2">
                     {ind.metrica}
                   </h3>
-                  <p className="mt-3 font-display text-3xl font-bold text-primary dark:text-[#00D8FF] tracking-tight">
+                  <p className="mt-2 font-display text-2xl sm:text-3xl font-bold text-primary dark:text-[#00D8FF] tracking-tight">
                     {ind.valor}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#1A365D] flex items-center justify-between">
+                <div className="mt-3.5 pt-3 border-t border-dashed border-slate-200 dark:border-white/10 flex items-center justify-between">
                   <a
                     href={ind.fonte.url}
                     target="_blank"
@@ -116,7 +116,7 @@ export default function TransparencySection() {
                     Fonte: <span className="underline">{ind.fonte.nome}</span>
                     <ExternalLink className="h-3 w-3" />
                   </a>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/40 px-2 py-0.5 text-[11px] font-semibold text-sky-800 dark:text-sky-300">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/40 px-2 py-0.5 text-[10px] font-mono font-semibold text-sky-800 dark:text-sky-300">
                     <CheckCircle2 className="h-3 w-3 text-sky-600 dark:text-[#00D8FF]" />
                     Auditado
                   </span>
@@ -129,22 +129,22 @@ export default function TransparencySection() {
 
       {/* Contracts & Budget Grid */}
       {activeTab === 'orcamento' && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {filteredContratos.length === 0 ? (
-            <div className="col-span-full rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-8 text-center text-sm text-slate-500 dark:text-slate-400">
+            <div className="col-span-full rounded-xl border border-dashed border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-8 text-center text-sm font-mono text-slate-500 dark:text-slate-400">
               Nenhum contrato localizado com este filtro.
             </div>
           ) : (
             filteredContratos.map((cont: Contrato, idx: number) => (
               <div
                 key={idx}
-                className="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 shadow-card hover:border-slate-300 dark:hover:border-[#00D8FF]/50 transition-all"
+                className="flex flex-col justify-between rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 shadow-xs hover:border-slate-300 dark:hover:border-[#00D8FF]/50 transition-all"
               >
                 <div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#6482A6] mb-2">
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#6482A6] mb-1.5 font-mono">
                     <span className="font-semibold text-slate-700 dark:text-slate-300">Exercício: {cont.ano}</span>
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
                         cont.status === 'Em execução'
                           ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40'
                           : 'bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800/40'
@@ -153,15 +153,15 @@ export default function TransparencySection() {
                       {cont.status}
                     </span>
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug line-clamp-2">
                     {cont.item}
                   </h3>
-                  <p className="mt-3 font-display text-2xl font-bold text-primary dark:text-[#00D8FF] tracking-tight">
+                  <p className="mt-2 font-display text-xl sm:text-2xl font-bold text-primary dark:text-[#00D8FF] tracking-tight">
                     {cont.valor}
                   </p>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#1A365D] flex items-center justify-between">
+                <div className="mt-3.5 pt-3 border-t border-dashed border-slate-200 dark:border-white/10 flex items-center justify-between">
                   <a
                     href={cont.fonte.url}
                     target="_blank"
@@ -171,7 +171,7 @@ export default function TransparencySection() {
                     Publicação: <span className="underline">{cont.fonte.nome}</span>
                     <ExternalLink className="h-3 w-3" />
                   </a>
-                  <span className="text-[11px] text-slate-500 dark:text-[#6482A6]">
+                  <span className="text-[11px] font-mono text-slate-500 dark:text-[#6482A6]">
                     Ref: {cont.data}
                   </span>
                 </div>
@@ -193,9 +193,10 @@ export default function TransparencySection() {
           href="https://transparencia.ro.gov.br/"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs font-semibold text-sky-800 dark:text-[#00D8FF] underline hover:text-sky-950 dark:hover:text-white"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-800 dark:text-[#00D8FF] hover:underline hover:text-sky-950 dark:hover:text-white transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none"
         >
-          Acessar Portal da Transparência RO ↗
+          <span>Acessar Portal da Transparência RO</span>
+          <ExternalLink className="h-3.5 w-3.5" />
         </a>
       </div>
     </div>

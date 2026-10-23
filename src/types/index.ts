@@ -78,6 +78,23 @@ export interface SiteInfo {
   videoUrl?: string;
 }
 
+export type UserProfileType = 
+  | 'Editor de Notícias' 
+  | 'Curador de Fotos' 
+  | 'Publicador de Avisos' 
+  | 'Operador de Conteúdo';
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  cpf: string; // formato 000.000.000-00
+  profileType: UserProfileType;
+  role: 'operador';
+  active: boolean;
+  createdAt: string;
+  passwordHash: string; // Hash seguro com sal
+}
+
 export interface DatabaseSchema {
   siteInfo: SiteInfo;
   stats: Stats;
@@ -86,5 +103,7 @@ export interface DatabaseSchema {
   news: NewsItem[];
   gallery: GalleryItem[];
   banners: BannerItem[];
+  users?: UserAccount[];
 }
+
 

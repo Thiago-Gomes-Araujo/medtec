@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
+import { getDatabase } from '@/lib/db';
 
 export const AUTH_COOKIE_NAME = 'medtec_admin_session';
 
@@ -8,8 +9,35 @@ export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
 export interface SessionPayload {
   username: string;
+  role?: 'gestor' | 'operador';
+  name?: string;
+  profileType?: string;
   iat: number;
   exp: number;
+}
+
+/**
+ * Gera um hash seguro com sal aleatório usando scrypt.
+ */
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+/**
+ * Verifica se a senha corresponde ao hash seguro armazenado.
+ */
+export function verifyPassword(password: string, storedHash: string): boolean {
+  try {
+    const [salt, key] = storedHash.split(':');
+    if (!salt || !key) return false;
+    const keyBuffer = Buffer.from(key, 'hex');
+    const derivedKey = crypto.scryptSync(password, salt, 64);
+    return crypto.timingSafeEqual(keyBuffer, derivedKey);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -87,13 +115,87 @@ export function verifyCredentials(usernameAttempt: string, passwordAttempt: stri
 }
 
 /**
+ * Autentica o login verificando se é o Gestor Geral (admin) ou um Operador cadastrado (CPF).
+ */
+export function authenticateUser(loginAttempt: string, passwordAttempt: string): {
+  authenticated: boolean;
+  user?: {
+    username: string;
+    role: 'gestor' | 'operador';
+    name: string;
+    profileType: string;
+  };
+  error?: string;
+} {
+  const cleanLogin = loginAttempt.trim();
+  if (!cleanLogin || !passwordAttempt) {
+    return { authenticated: false, error: 'Informe usuário e senha' };
+  }
+
+  // 1. Verifica se é o Gestor Geral (admin)
+  if (verifyCredentials(cleanLogin, passwordAttempt)) {
+    return {
+      authenticated: true,
+      user: {
+        username: getAdminCredentials().username,
+        role: 'gestor',
+        name: 'Gestor Geral SEDUC',
+        profileType: 'Gestor Geral',
+      },
+    };
+  }
+
+  // 2. Verifica se é um Operador cadastrado (por CPF formatado ou apenas dígitos)
+  try {
+    const db = getDatabase();
+    const cleanAttempt = cleanLogin.replace(/\D/g, '');
+
+    const matchedUser = db.users?.find((u) => {
+      const cleanUserCpf = u.cpf.replace(/\D/g, '');
+      return cleanUserCpf === cleanAttempt || u.cpf === cleanLogin;
+    });
+
+    if (matchedUser) {
+      if (matchedUser.active === false) {
+        return { authenticated: false, error: 'Conta de operador inativa. Contate o gestor.' };
+      }
+
+      const isPassValid = verifyPassword(passwordAttempt, matchedUser.passwordHash);
+      if (isPassValid) {
+        return {
+          authenticated: true,
+          user: {
+            username: matchedUser.cpf,
+            role: 'operador',
+            name: matchedUser.name,
+            profileType: matchedUser.profileType,
+          },
+        };
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao verificar operador no banco:', err);
+  }
+
+  return { authenticated: false, error: 'Usuário/CPF ou senha incorretos' };
+}
+
+/**
  * Gera um token assinado com HMAC-SHA256 no formato: base64url(payload).base64url(signature)
  */
-export function createSessionToken(username: string): string {
+export function createSessionToken(
+  username: string,
+  role: 'gestor' | 'operador' = 'gestor',
+  name?: string,
+  profileType?: string
+): string {
   const secret = getSessionSecret();
   const now = Math.floor(Date.now() / 1000);
   const payload: SessionPayload = {
     username,
+    role,
+    name: name || (role === 'gestor' ? 'Gestor Geral SEDUC' : 'Operador'),
+    profileType: profileType || (role === 'gestor' ? 'Gestor Geral' : 'Operador'),
     iat: now,
     exp: now + SESSION_MAX_AGE_SECONDS,
   };
@@ -165,7 +267,14 @@ export function verifySessionToken(token: string | undefined | null): SessionPay
 /**
  * Helper assíncrono para verificar se a requisição possui sessão válida via cookie.
  */
-export async function verifyAdminSession(): Promise<{ valid: boolean; username?: string }> {
+export async function verifyAdminSession(): Promise<{
+  valid: boolean;
+  username?: string;
+  role?: 'gestor' | 'operador';
+  name?: string;
+  profileType?: string;
+  isGestor?: boolean;
+}> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(AUTH_COOKIE_NAME)?.value;
@@ -175,7 +284,15 @@ export async function verifyAdminSession(): Promise<{ valid: boolean; username?:
       return { valid: false };
     }
 
-    return { valid: true, username: session.username };
+    const role = session.role || 'gestor';
+    return {
+      valid: true,
+      username: session.username,
+      role,
+      name: session.name,
+      profileType: session.profileType,
+      isGestor: role === 'gestor',
+    };
   } catch {
     return { valid: false };
   }

@@ -14,7 +14,8 @@ import {
   School,
   FileText,
   Lightbulb,
-  Check
+  Check,
+  Package
 } from 'lucide-react';
 import { ProjectMission } from '@/data/projectsData';
 
@@ -87,8 +88,9 @@ export default function ReplicationPassportModal({
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-[10px] font-bold tracking-widest uppercase rounded-full px-2.5 py-0.5 bg-[#004A99]/10 dark:bg-cyan-400/10 text-[#004A99] dark:text-[#00D8FF] border border-[#004A99]/20 dark:border-cyan-400/30">
-                      📦 PASSAPORTE DE REPLICAÇÃO PEDAGÓGICA
+                    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold tracking-widest uppercase rounded-full px-2.5 py-0.5 bg-[#004A99]/10 dark:bg-cyan-400/10 text-[#004A99] dark:text-[#00D8FF] border border-[#004A99]/20 dark:border-cyan-400/30">
+                      <Package className="h-3 w-3" />
+                      <span>Passaporte de Replicação Pedagógica</span>
                     </span>
                     <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
                       {mission.missionCode} • {mission.track}
@@ -281,8 +283,8 @@ export default function ReplicationPassportModal({
                     </>
                   ) : downloadSuccess ? (
                     <>
-                      <Check className="h-4 w-4" />
-                      <span>✓ Guia Baixado com Sucesso!</span>
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Guia Baixado com Sucesso!</span>
                     </>
                   ) : (
                     <>

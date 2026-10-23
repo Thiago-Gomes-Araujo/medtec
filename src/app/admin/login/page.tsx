@@ -169,10 +169,10 @@ export default function AdminLoginPage() {
           {/* Formulário de Login */}
           <form onSubmit={handleLogin} className="space-y-4">
             
-            {/* Campo Usuário */}
+            {/* Campo Usuário ou CPF */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Usuário
+                Usuário ou CPF
               </label>
               <div className="relative">
                 <input
@@ -180,11 +180,14 @@ export default function AdminLoginPage() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Digite seu usuário"
+                  placeholder="admin ou 000.000.000-00"
                   className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-sm text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#005ca9]/20 dark:focus:ring-cyan-500/20 focus:border-[#005ca9] dark:focus:border-cyan-400 transition-all bg-white dark:bg-[#0C1E38]"
                 />
                 <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-mono">
+                Gestor (admin) ou Operador (CPF cadastrado)
+              </p>
             </div>
 
             {/* Campo Senha */}

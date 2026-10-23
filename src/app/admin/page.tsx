@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { DatabaseSchema, NewsItem, AnnouncementItem, GalleryItem, AnnouncementType } from '@/types';
 import { 
@@ -19,7 +19,8 @@ import {
   Upload, 
   Eye, 
   CheckCircle, 
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
 import SiteHeader from '@/components/SiteHeader';
@@ -28,6 +29,7 @@ import PageHeader from '@/components/PageHeader';
 import EditorialKanban from '@/components/EditorialKanban';
 import SitePhotosManager from '@/components/SitePhotosManager';
 import NewsPublicationPreview from '@/components/NewsPublicationPreview';
+import UserManager from '@/components/UserManager';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -36,8 +38,15 @@ export default function AdminDashboardPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<'fotos' | 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo'>('fotos');
   const [newsFolder, setNewsFolder] = useState('Todas');
-  const [mainView, setMainView] = useState<'kanban' | 'cms'>('kanban');
+  const [mainView, setMainView] = useState<'kanban' | 'cms' | 'usuarios'>('kanban');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userSession, setUserSession] = useState<{
+    isGestor: boolean;
+    username?: string;
+    role?: string;
+    name?: string;
+    profileType?: string;
+  }>({ isGestor: false });
 
   // Estado para formulário de Notícia (novo ou edição)
   const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
@@ -79,36 +88,55 @@ export default function AdminDashboardPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // Carrega dados iniciais e verifica sessão
-  useEffect(() => {
-    let isMounted = true;
+  const loadData = useCallback(async () => {
+    try {
+      const authRes = await fetch('/api/auth');
+      if (authRes.ok) {
+        const authJson = await authRes.json();
+        const isGestor = authJson.isGestor !== false;
+        const profileType = authJson.profileType;
 
-    async function loadData() {
-      try {
-        const authRes = await fetch('/api/auth');
-        if (!isMounted) return;
-        if (authRes.ok) {
-          setIsLoggedIn(true);
-          const res = await fetch('/api/data');
-          if (res.ok && isMounted) {
-            const json = await res.json();
-            setData(json);
+        setIsLoggedIn(true);
+        setUserSession({
+          isGestor,
+          username: authJson.user,
+          role: authJson.role,
+          name: authJson.name,
+          profileType,
+        });
+
+        // Configura a aba inicial e visão de acordo com a atribuição do perfil
+        if (!isGestor) {
+          setMainView('cms');
+          if (profileType === 'Editor de Notícias') {
+            setActiveTab('noticias');
+          } else if (profileType === 'Curador de Fotos') {
+            setActiveTab('fotos');
+          } else if (profileType === 'Publicador de Avisos') {
+            setActiveTab('avisos');
+          } else {
+            setActiveTab('noticias');
           }
-        } else {
-          setIsLoggedIn(false);
-          router.push('/admin/login');
         }
-      } catch (err) {
-        console.error(err);
-        if (isMounted) router.push('/admin/login');
+
+        const res = await fetch('/api/data');
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+        }
+      } else {
+        setIsLoggedIn(false);
+        router.push('/admin/login');
       }
+    } catch (err) {
+      console.error(err);
+      router.push('/admin/login');
     }
-
-    void loadData();
-
-    return () => {
-      isMounted = false;
-    };
   }, [router]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const handleLogout = async () => {
     await fetch('/api/auth', { method: 'DELETE' });
@@ -349,111 +377,177 @@ export default function AdminDashboardPage() {
   const publishedCount = data ? data.news.filter((item) => item.published !== false).length : 0;
   const draftCount = data ? data.news.length - publishedCount : 0;
 
+  // Permissões por Atribuição de Perfil
+  const canAccessNews = userSession.isGestor || userSession.profileType === 'Editor de Notícias' || userSession.profileType === 'Operador de Conteúdo';
+  const canAccessPhotos = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
+  const canAccessAnnouncements = userSession.isGestor || userSession.profileType === 'Publicador de Avisos' || userSession.profileType === 'Operador de Conteúdo';
+  const canAccessGallery = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
+
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col text-slate-800">
       <SiteHeader />
 
       <PageHeader
-        eyebrow="Acesso restrito (simulação)"
-        title="Painel Editorial SEDUC-RO"
-        text="Todo conteúdo passa por Rascunho → Revisão Jurídica/LGPD → Aprovado → Publicado."
+        eyebrow={
+          userSession.isGestor
+            ? "Acesso restrito (Gestor Geral)"
+            : `Acesso Operacional • ${userSession.profileType || 'Operador'}`
+        }
+        title={
+          userSession.isGestor
+            ? "Painel Editorial & Administrativo SEDUC-RO"
+            : userSession.profileType === 'Editor de Notícias'
+            ? "Central de Notícias da Mediação Tecnológica"
+            : userSession.profileType === 'Curador de Fotos'
+            ? "Gerenciamento Visual & Fotos do Portal"
+            : userSession.profileType === 'Publicador de Avisos'
+            ? "Central de Publicação de Avisos Oficiais"
+            : "Painel de Conteúdo MEDTEC"
+        }
+        text={
+          userSession.isGestor
+            ? "Fluxo editorial com triagem em Rascunho, Revisão Jurídica/LGPD, Aprovação e Publicação Oficial."
+            : userSession.profileType === 'Editor de Notícias'
+            ? "Área restrita para criação, edição e publicação oficial de reportagens e coberturas de polos."
+            : userSession.profileType === 'Curador de Fotos'
+            ? "Área restrita para atualização das fotos do site e curadoria do acervo fotográfico."
+            : userSession.profileType === 'Publicador de Avisos'
+            ? "Área restrita para criação e divulgação de comunicados importantes para polos e estudantes."
+            : "Área operacional para gestão de conteúdo informativo do portal."
+        }
       />
 
       <div className="mx-auto max-w-7xl px-4 pt-6 w-full">
-        {/* Main View Switcher */}
-        <div className="flex border-b border-slate-200 mb-8 gap-3">
-          <button
-            onClick={() => setMainView('kanban')}
-            className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
-              mainView === 'kanban'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <Sparkles className="h-4 w-4" />
-            Pipeline Editorial (Kanban & LGPD)
-          </button>
-          <button
-            onClick={() => setMainView('cms')}
-            className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
-              mainView === 'cms'
-                ? 'border-primary text-primary'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            Gerenciador Geral de Notícias & Portal CMS
-          </button>
-        </div>
-
-        {mainView === 'kanban' && (
-          <div className="pb-16">
-            <EditorialKanban />
-          </div>
-        )}
-
-        {mainView === 'cms' && (!isLoggedIn || !data) && (
-          <div className="flex flex-col items-center justify-center my-16 space-y-3">
+        {/* Loading State: só renderiza o conteúdo quando autenticado e dados carregados */}
+        {(!isLoggedIn || !data) ? (
+          <div className="flex flex-col items-center justify-center my-24 space-y-3">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-xs text-slate-500 font-medium">Carregando dados do painel gestor...</p>
+            <p className="text-xs text-slate-500 font-medium">Carregando painel...</p>
           </div>
-        )}
-
-        {mainView === 'cms' && isLoggedIn && data && (
-          <div className="space-y-6 pb-16">
-            <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-primary"></span>
-                <span className="text-xs font-semibold text-slate-700">Gestor Autenticado: admin (SEDUC)</span>
+        ) : (
+          <>
+            {/* Main View Switcher: EXCLUSIVO DO GESTOR GERAL */}
+            {userSession.isGestor && (
+              <div className="flex border-b border-slate-200 mb-8 gap-3">
+                <button
+                  onClick={() => setMainView('kanban')}
+                  className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+                    mainView === 'kanban'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Pipeline Editorial (Kanban & LGPD)
+                </button>
+                <button
+                  onClick={() => setMainView('cms')}
+                  className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+                    mainView === 'cms'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Gerenciador Geral de Notícias & Portal CMS
+                </button>
+                <button
+                  onClick={() => setMainView('usuarios')}
+                  className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+                    mainView === 'usuarios'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Users className="h-4 w-4" />
+                  Cadastro de Novos Usuários {data?.users ? `(${data.users.length})` : ''}
+                </button>
               </div>
-              <button
-                onClick={handleLogout}
-                className="text-xs text-rose-600 font-semibold hover:underline"
-              >
-                Encerrar Sessão
-              </button>
-            </div>
-      <header className="bg-slate-900 text-white px-6 py-4 shadow-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center font-bold text-white shadow-md">
-              <Tv size={22} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base tracking-tight text-white">
-                  Painel de Gestão CMS
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono text-[10px] font-bold">
-                  MEDTEC RO
-                </span>
+            )}
+
+            {/* VISÃO KANBAN (Apenas Gestor) */}
+            {userSession.isGestor && mainView === 'kanban' && (
+              <div className="pb-16">
+                <EditorialKanban />
               </div>
-              <p className="text-xs text-slate-400">
-                Gerencie Notícias, Galeria, Avisos e Redes Sociais com persistência em disco
-              </p>
+            )}
+
+            {/* VISÃO CMS (Gestor quando mainView === 'cms', ou qualquer operador) */}
+            {(userSession.isGestor ? mainView === 'cms' : true) && (
+              <div className="space-y-6 pb-16">
+                <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${userSession.isGestor ? 'bg-primary' : 'bg-emerald-500'}`}></span>
+                    <span className="text-xs font-semibold text-slate-700">
+                      {userSession.isGestor
+                        ? 'Gestor Autenticado: admin (SEDUC - Acesso Total)'
+                        : `Operador Autenticado: ${userSession.name || userSession.username} • Atribuição: ${userSession.profileType || 'Operador de Conteúdo'}`}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="text-xs text-rose-600 font-semibold hover:underline cursor-pointer"
+                  >
+                    Encerrar Sessão
+                  </button>
+                </div>
+          <header className="bg-slate-900 text-white px-6 py-4 shadow-md sticky top-0 z-40">
+            <div className="max-w-7xl mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center font-bold text-white shadow-md">
+                  <Tv size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-base tracking-tight text-white">
+                      {userSession.isGestor
+                        ? 'Painel de Gestão CMS'
+                        : userSession.profileType === 'Editor de Notícias'
+                        ? 'Painel do Editor de Notícias'
+                        : userSession.profileType === 'Curador de Fotos'
+                        ? 'Painel de Gestão de Fotos'
+                        : userSession.profileType === 'Publicador de Avisos'
+                        ? 'Painel de Publicação de Avisos'
+                        : 'Painel do Operador CMS'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono text-[10px] font-bold">
+                      MEDTEC RO
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400">
+                    {userSession.isGestor
+                      ? 'Gerencie Notícias, Galeria, Avisos e Redes Sociais com persistência em disco'
+                      : userSession.profileType === 'Editor de Notícias'
+                      ? 'Área exclusiva para criar, editar e publicar notícias no portal MEDTEC'
+                      : userSession.profileType === 'Curador de Fotos'
+                      ? 'Área exclusiva para upload de fotos do site e acervo da galeria'
+                      : userSession.profileType === 'Publicador de Avisos'
+                      ? 'Área exclusiva para publicação de comunicados e avisos oficiais'
+                      : 'Gerencie notícias, fotos e avisos com publicação em tempo real'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/"
+                  target="_blank"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 text-xs font-semibold border border-slate-700 transition"
+                >
+                  <Eye size={14} />
+                  <span>Ver Site Público</span>
+                </Link>
+
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 text-xs font-semibold border border-rose-500/30 transition cursor-pointer"
+                >
+                  <LogOut size={14} />
+                  <span>Sair</span>
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              target="_blank"
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 text-xs font-semibold border border-slate-700 transition"
-            >
-              <Eye size={14} />
-              <span>Ver Site Público</span>
-            </Link>
-
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 text-xs font-semibold border border-rose-500/30 transition cursor-pointer"
-            >
-              <LogOut size={14} />
-              <span>Sair</span>
-            </button>
-          </div>
-        </div>
-      </header>
+          </header>
 
       {/* Alerta de Feedback de Salvamento */}
       {saveSuccess && (
@@ -463,87 +557,99 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Navegação por Abas */}
+      {/* Navegação por Abas: exibição estrita por perfil */}
       <div className="bg-white border-b border-slate-200 shadow-xs">
         <div className="max-w-7xl mx-auto px-6 flex flex-wrap gap-2 pt-3">
-          <button
-            onClick={() => setActiveTab('fotos')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'fotos'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <ImageIcon size={16} />
-            <span>Fotos do site</span>
-          </button>
+          {canAccessPhotos && (
+            <button
+              onClick={() => setActiveTab('fotos')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'fotos'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <ImageIcon size={16} />
+              <span>Fotos do site</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('noticias')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'noticias'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Newspaper size={16} />
-            <span>Notícias ({data.news.length})</span>
-          </button>
+          {canAccessNews && (
+            <button
+              onClick={() => setActiveTab('noticias')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'noticias'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Newspaper size={16} />
+              <span>Notícias ({data.news.length})</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('avisos')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'avisos'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Bell size={16} />
-            <span>Avisos ({data.announcements.length})</span>
-          </button>
+          {canAccessAnnouncements && (
+            <button
+              onClick={() => setActiveTab('avisos')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'avisos'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Bell size={16} />
+              <span>Avisos ({data.announcements.length})</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('galeria')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'galeria'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <ImageIcon size={16} />
-            <span>Galeria de Fotos ({data.gallery.length})</span>
-          </button>
+          {canAccessGallery && (
+            <button
+              onClick={() => setActiveTab('galeria')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'galeria'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <ImageIcon size={16} />
+              <span>Galeria de Fotos ({data.gallery.length})</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('redes')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'redes'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Share2 size={16} />
-            <span>Redes Sociais & Contatos</span>
-          </button>
+          {userSession.isGestor && (
+            <>
+              <button
+                onClick={() => setActiveTab('redes')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'redes'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Share2 size={16} />
+                <span>Redes Sociais & Contatos</span>
+              </button>
 
-          <button
-            onClick={() => setActiveTab('siteInfo')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'siteInfo'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
-          >
-            <Settings size={16} />
-            <span>Métricas & Textos Institucionais</span>
-          </button>
+              <button
+                onClick={() => setActiveTab('siteInfo')}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'siteInfo'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <Settings size={16} />
+                <span>Métricas & Textos Institucionais</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Conteúdo Principal da Aba */}
       <main className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full space-y-8">
         
-        {activeTab === 'fotos' && (
+        {activeTab === 'fotos' && canAccessPhotos && (
           <SitePhotosManager
             data={data}
             saving={saving}
@@ -552,7 +658,7 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ================= ABA NOTÍCIAS ================= */}
-        {activeTab === 'noticias' && (
+        {activeTab === 'noticias' && canAccessNews && (
           <div className="space-y-8">
             {/* Formulário de Criação / Edição */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start xl:gap-8">
@@ -943,7 +1049,7 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ================= ABA AVISOS ================= */}
-        {activeTab === 'avisos' && (
+        {activeTab === 'avisos' && canAccessAnnouncements && (
           <div className="space-y-8">
             {/* Criar Aviso */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200">
@@ -1081,7 +1187,7 @@ export default function AdminDashboardPage() {
         )}
 
         {/* ================= ABA GALERIA ================= */}
-        {activeTab === 'galeria' && (
+        {activeTab === 'galeria' && canAccessGallery && (
           <div className="space-y-8">
             {/* Upload de Foto */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200">
@@ -1427,6 +1533,33 @@ export default function AdminDashboardPage() {
 
       </div>
       )}
+
+      {/* ================= VIEW: CADASTRO E GESTÃO DE NOVOS USUÁRIOS (EXCLUSIVO GESTOR) ================= */}
+      {userSession.isGestor && mainView === 'usuarios' && (
+        <div className="space-y-6 pb-16">
+          <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-primary"></span>
+              <span className="text-xs font-semibold text-slate-700">
+                Gestor Autenticado: admin (SEDUC - Acesso Total e Controle de Operadores)
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="text-xs text-rose-600 font-semibold hover:underline cursor-pointer"
+            >
+              Encerrar Sessão
+            </button>
+          </div>
+
+          <UserManager
+            users={data.users || []}
+            onRefreshUsers={loadData}
+          />
+        </div>
+      )}
+          </>
+        )}
       </div>
 
       <SiteFooter />

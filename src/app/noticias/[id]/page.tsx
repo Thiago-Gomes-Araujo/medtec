@@ -63,10 +63,10 @@ export default async function NoticiaDetalhePage({ params }: Props) {
           <div>
             <Link
               href="/noticias"
-              className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-[#05549D] dark:text-[#00D8FF] hover:underline group cursor-pointer"
+              className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-[#05549D] dark:text-[#00D8FF] hover:underline group cursor-pointer active:scale-[0.97] transition-all duration-150 ease-out touch-manipulation select-none"
             >
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-              <span>[ ← VOLTAR PARA TODAS AS NOTÍCIAS ]</span>
+              <span>Voltar para todas as notícias</span>
             </Link>
           </div>
 
@@ -77,12 +77,12 @@ export default async function NoticiaDetalhePage({ params }: Props) {
                 <Radio className="h-3 w-3 text-emerald-500 dark:text-emerald-400 animate-pulse" />
                 {newsItem.category || 'Geral'}
               </span>
-              <span className="text-xs font-mono text-slate-400 dark:text-[#6482A6]">
-                {'//'} COBERTURA OFICIAL
+              <span className="text-xs font-mono text-slate-500 dark:text-[#6482A6] font-semibold">
+                Cobertura Oficial • SEDUC-RO
               </span>
             </div>
 
-            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl uppercase font-medium text-slate-900 dark:text-[#E6F4FF] leading-[1.05] tracking-tight">
+            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-[#E6F4FF] leading-tight tracking-tight text-balance">
               {newsItem.title}
             </h1>
 
@@ -112,7 +112,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
 
           {/* Resumo destacado (Lead) */}
           {newsItem.excerpt && (
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#0C1E38] border-l-4 border-[#05549D] dark:border-[#00D8FF] border-y border-r border-slate-200 dark:border-[#1A365D] text-slate-800 dark:text-[#E6F4FF] font-mono text-sm sm:text-base leading-relaxed shadow-sm">
+            <div className="p-6 rounded-2xl bg-white dark:bg-[#0C1E38] border-l-4 border-[#05549D] dark:border-[#00D8FF] border-y border-r border-slate-200/90 dark:border-[#1A365D] text-slate-800 dark:text-[#E6F4FF] font-sans text-sm sm:text-base leading-relaxed shadow-xs text-pretty">
               &ldquo;{newsItem.excerpt}&rdquo;
             </div>
           )}
