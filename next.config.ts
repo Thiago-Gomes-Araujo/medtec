@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   /* Tailwind v4 class-based dark mode reload trigger */
   cacheComponents: true,
   partialPrefetching: true,
