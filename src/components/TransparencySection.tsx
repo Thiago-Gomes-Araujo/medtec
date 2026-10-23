@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Search, ExternalLink, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { indicadoresData, contratosData, Indicador, Contrato } from '@/data/medtecData';
+import { sanitizeSearchInput } from '@/lib/security';
 
 export default function TransparencySection() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -32,7 +33,8 @@ export default function TransparencySection() {
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
+            maxLength={100}
             placeholder="Busca rápida em transparência..."
             className="w-full rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] py-2 pl-9 pr-3 text-sm text-slate-800 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-primary dark:focus:border-[#00D8FF] focus:outline-none focus:ring-1 focus:ring-primary shadow-sm transition-colors"
           />
