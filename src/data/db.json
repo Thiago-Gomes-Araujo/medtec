@@ -345,16 +345,13 @@
       "date": "Maio 2026"
     }
   ],
-  "users": [
-    {
-      "id": "usr-1792681670819-m78vf",
-      "name": "Zequinha",
-      "cpf": "946.468.110-14",
-      "profileType": "Editor de Notícias",
-      "role": "operador",
-      "active": true,
-      "createdAt": "22/10/2026",
-      "passwordHash": "2be1e27becbb115b1d1d0eae040b73d0:b1afecf758fb7acacf275e55daaf85f5ff19f24a5c56c77bc902b77da624bcfb006ec0f773ad1bbdfcddfa9f6afd38038fe84b989e245b1209ee06f37a4014ca"
-    }
-  ]
+  "users": [],
+  "schools": [],
+  "teachers": [],
+  "students": [],
+  "projects": [],
+  "transparency": {
+    "indicadores": [],
+    "contratos": []
+  }
 }

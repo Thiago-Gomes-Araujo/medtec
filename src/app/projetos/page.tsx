@@ -8,6 +8,19 @@ export const metadata: Metadata = {
   title: 'Missões e Projetos Pedagógicos | MEDTEC Rondônia - SEDUC-RO',
   description:
     'Laboratório Vivo de Inovação Aplicada da Mediação Tecnológica em Rondônia. Conheça as missões agroecológicas, científicas, indígenas e tecnológicas desenvolvidas nas salas conectadas dos 52 municípios.',
+  openGraph: {
+    title: 'Missões e Projetos Pedagógicos | MEDTEC Rondônia - SEDUC-RO',
+    description:
+      'Laboratório Vivo de Inovação Aplicada da Mediação Tecnológica em Rondônia. Conheça as missões agroecológicas, científicas e tecnológicas dos 52 municípios.',
+    type: 'website',
+    locale: 'pt_BR',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Missões e Projetos Pedagógicos | MEDTEC Rondônia - SEDUC-RO',
+    description:
+      'Laboratório Vivo de Inovação Aplicada da Mediação Tecnológica em Rondônia.',
+  },
 };
 
 export default function ProjetosPage() {

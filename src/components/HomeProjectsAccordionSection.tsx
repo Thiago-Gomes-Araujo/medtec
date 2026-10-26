@@ -108,6 +108,8 @@ export default function HomeProjectsAccordionSection() {
                   src={proj.image}
                   alt={proj.title}
                   loading="lazy"
+                  decoding="async"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                   className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 pointer-events-none ${
                     isHovered ? 'opacity-100 filter-none' : 'opacity-80 brightness-75'
                   }`}

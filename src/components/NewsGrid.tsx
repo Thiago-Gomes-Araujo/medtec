@@ -71,6 +71,8 @@ export default function NewsGrid({ news = [], limit, filter = false }: NewsGridP
                       src={item.coverImage || '/hero.jpg'}
                       alt={item.title}
                       loading="lazy"
+                      decoding="async"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="h-full w-full object-cover transition-opacity duration-300"
                     />
                   </div>

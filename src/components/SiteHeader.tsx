@@ -19,7 +19,11 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ExecutiveDossierModal from './ExecutiveDossierModal';
+import dynamic from 'next/dynamic';
+
+const ExecutiveDossierModal = dynamic(() => import('./ExecutiveDossierModal'), {
+  ssr: false,
+});
 
 interface SiteHeaderProps {
   onOpenPitchModal?: () => void;

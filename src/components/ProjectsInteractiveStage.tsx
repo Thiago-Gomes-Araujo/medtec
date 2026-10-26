@@ -402,6 +402,7 @@ export default function ProjectsInteractiveStage() {
                       alt={currentProject.title}
                       loading="lazy"
                       decoding="async"
+                      sizes="(max-width: 768px) 100vw, 50vw"
                       className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent pointer-events-none" />

@@ -325,7 +325,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
         <div className="rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white/95 dark:bg-[#0C1E38]/90 p-4 shadow-sm dark:shadow-xl backdrop-blur-md flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           
           {/* Esquerda: Filtros de Categoria com Contador */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar sm:flex-wrap pb-1 sm:pb-0">
             {categoriesList.map((cat) => {
               const isSelected = selectedCategory === cat;
               const count = categoryCounts[cat] || 0;
@@ -462,6 +462,8 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                         }}
                         className="h-full w-full object-cover transition-opacity duration-300"
                         loading="eager"
+                        decoding="async"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
 
                       {/* Gradiente sutil para legibilidade e profundidade */}
@@ -632,6 +634,8 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                               }}
                               className="h-full w-full object-cover transition-opacity duration-300"
                               loading="lazy"
+                              decoding="async"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             />
 
                             {/* Tag de Categoria no Topo Esquerdo */}
@@ -731,6 +735,8 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                       }}
                       className="h-full w-full object-cover transition-opacity duration-300"
                       loading="lazy"
+                      decoding="async"
+                      sizes="(max-width: 768px) 100vw, 300px"
                     />
                     <div className="absolute top-2 left-2">
                       <span className="rounded-md bg-slate-950/80 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white backdrop-blur-sm">
@@ -923,6 +929,8 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                     <img
                       src={activeNews.coverImage || FALLBACK_NEWS_COVER}
                       alt={activeNews.title}
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover"
                     />
                   </div>
@@ -1065,6 +1073,8 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                             <img
                               src={relItem.coverImage || FALLBACK_NEWS_COVER}
                               alt={relItem.title}
+                              loading="lazy"
+                              decoding="async"
                               className="h-16 w-20 rounded-lg object-cover shrink-0 bg-slate-900"
                             />
                             <div className="min-w-0 flex-1">

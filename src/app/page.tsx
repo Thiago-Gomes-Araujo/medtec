@@ -2,16 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { 
   ArrowRight, 
   ArrowDown,
-  Radio, 
   Satellite,
   Signal,
-  Users,
-  Building2,
-  Activity,
-  MapPin,
   CheckCircle2,
   Play
 } from 'lucide-react';
@@ -21,7 +17,11 @@ import TechAdvantages from '@/components/TechAdvantages';
 import Methodology from '@/components/Methodology';
 import HomeProjectsAccordionSection from '@/components/HomeProjectsAccordionSection';
 import LiveBroadcastSection from '@/components/LiveBroadcastSection';
-import PresentationPitchModal from '@/components/PresentationPitchModal';
+
+const PresentationPitchModal = dynamic(
+  () => import('@/components/PresentationPitchModal'),
+  { ssr: false }
+);
 
 export default function HomePage() {
   const [pitchModalOpen, setPitchModalOpen] = useState(false);

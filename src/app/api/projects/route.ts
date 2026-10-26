@@ -30,7 +30,10 @@ export async function GET(request: Request) {
       tracks: TRACK_OPTIONS,
       items,
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'digest' in error && (error as { digest?: string }).digest === 'NEXT_PRERENDER_INTERRUPTED') {
+      throw error;
+    }
     console.error('Erro na rota /api/projects:', error);
     return NextResponse.json({ success: false, error: 'Falha ao buscar projetos' }, { status: 500 });
   }

@@ -40,7 +40,10 @@ export async function GET(request: Request) {
       indicadores,
       contratos,
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'digest' in error && (error as { digest?: string }).digest === 'NEXT_PRERENDER_INTERRUPTED') {
+      throw error;
+    }
     console.error('Erro na rota /api/transparency:', error);
     return NextResponse.json({ success: false, error: 'Falha ao buscar dados de transparência' }, { status: 500 });
   }
