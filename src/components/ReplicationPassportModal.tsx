@@ -91,8 +91,8 @@ export default function ReplicationPassportModal({
                       <Package className="h-3 w-3" />
                       <span>Passaporte de Replicação Pedagógica</span>
                     </span>
-                    <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
-                      {mission.missionCode} • {mission.track}
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      Projeto {mission.number} • {mission.track}
                     </span>
                   </div>
                   <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-[#E6F4FF] leading-snug text-balance">

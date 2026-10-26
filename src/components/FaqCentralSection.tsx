@@ -189,12 +189,12 @@ const FAQ_DATA: FaqItem[] = [
   },
 ];
 
-const CATEGORIES: { label: FaqCategory; prefix: string }[] = [
-  { label: 'Todas as Dúvidas', prefix: 'ALL //' },
-  { label: 'Metodologia & Aulas ao Vivo', prefix: '01 //' },
-  { label: 'Infraestrutura & Satélite', prefix: '02 //' },
-  { label: 'Comunidades & Matrículas', prefix: '03 //' },
-  { label: 'Legislação & Diretrizes', prefix: '04 //' },
+const CATEGORIES: { label: FaqCategory }[] = [
+  { label: 'Todas as Dúvidas' },
+  { label: 'Metodologia & Aulas ao Vivo' },
+  { label: 'Infraestrutura & Satélite' },
+  { label: 'Comunidades & Matrículas' },
+  { label: 'Legislação & Diretrizes' },
 ];
 
 export default function FaqCentralSection() {
@@ -268,38 +268,32 @@ export default function FaqCentralSection() {
   };
 
   return (
-    <div className="relative w-full bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors">
-      
-      {/* Grade Cartesiana Sutil de Fundo (Hero Grid) */}
-      <div className="hero-grid pointer-events-none absolute inset-0 opacity-40 dark:opacity-40" />
-
+    <div className="relative w-full bg-[#F8FAFC] dark:bg-[#0B1528] text-slate-800 dark:text-slate-100 transition-colors">
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-10">
 
-        {/* ========================================================
-            BARRA DE BUSCA "COMMAND PALETTE" ESTILO RAYCAST / ORYZO
-        ======================================================== */}
-        <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#071326] p-2 sm:p-3 shadow-sm dark:shadow-2xl space-y-3">
-          <div className="relative flex items-center rounded-lg border-b-2 border-slate-300 dark:border-[#E6F4FF]/30 bg-slate-50 dark:bg-[#0C1E38]/60 px-4 sm:px-6 py-3.5 transition-colors focus-within:border-[#05549D] dark:focus-within:border-[#00D8FF]">
-            <Search className="h-5 w-5 text-[#05549D] dark:text-[#00D8FF] shrink-0 mr-3" />
+        {/* BARRA DE BUSCA INSTITUCIONAL */}
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 sm:p-3 shadow-xs space-y-3">
+          <div className="relative flex items-center rounded-lg border-b-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-4 sm:px-6 py-3.5 transition-colors focus-within:border-[#004A99] dark:focus-within:border-sky-500">
+            <Search className="h-5 w-5 text-[#004A99] dark:text-sky-400 shrink-0 mr-3" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
               maxLength={100}
-              placeholder="Digite sua dúvida, componente curricular (ex: NBAZ) ou palavra-chave..."
-              className="w-full bg-transparent font-mono text-sm sm:text-base text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:outline-none"
+              placeholder="Digite sua dúvida, componente curricular ou palavra-chave..."
+              className="w-full bg-transparent text-sm sm:text-base text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden"
             />
             {searchTerm ? (
               <button
                 onClick={() => setSearchTerm('')}
-                className="ml-2 inline-flex items-center gap-1 rounded bg-slate-100 dark:bg-[#061224] px-2 py-1 font-mono text-[10px] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-[#1A365D] cursor-pointer"
+                className="ml-2 inline-flex items-center gap-1 rounded bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-700 cursor-pointer"
               >
-                <span>LIMPAR</span>
+                <span>Limpar</span>
                 <X className="h-3 w-3" />
               </button>
             ) : (
-              <span className="hidden sm:inline-flex items-center gap-1.5 rounded bg-slate-100 dark:bg-[#061224] px-2 py-1 font-mono text-[10px] text-slate-500 dark:text-[#6482A6] border border-slate-200 dark:border-[#1A365D]/80">
-                <kbd className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[9px]">ESC</kbd>
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                <kbd className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-[10px]">ESC</kbd>
                 <span>para limpar</span>
               </span>
             )}
@@ -307,20 +301,20 @@ export default function FaqCentralSection() {
 
           {/* Tags de Pesquisa Rápida */}
           <div className="flex flex-wrap items-center gap-2 px-2 pt-1">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-slate-500 dark:text-[#6482A6] font-semibold">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               Sugestões:
             </span>
             {[
-              '#Antena Banda Ku',
-              '#Professor Mediador',
-              '#Certificação ENEM',
-              '#Horários das Aulas',
-              '#Material em PDF',
+              'Antena Banda Ku',
+              'Professor Mediador',
+              'Certificação ENEM',
+              'Horários das Aulas',
+              'Material Didático',
             ].map((tag) => (
               <button
                 key={tag}
                 onClick={() => handleTagClick(tag)}
-                className="rounded-md border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] px-3 py-1 font-mono text-[11px] uppercase text-slate-700 dark:text-[#E6F4FF]/75 hover:border-[#05549D] dark:hover:border-[#00D8FF] hover:text-[#05549D] dark:hover:text-[#00D8FF] transition-all cursor-pointer"
+                className="rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 text-xs text-slate-700 dark:text-slate-300 hover:border-[#004A99] dark:hover:border-sky-500 hover:text-[#004A99] dark:hover:text-sky-300 transition-all cursor-pointer"
               >
                 {tag}
               </button>
@@ -328,94 +322,92 @@ export default function FaqCentralSection() {
           </div>
         </div>
 
-        {/* ========================================================
-            2. BENTO CARDS DE "RESPOSTA RÁPIDA" (TOP 3 DÚVIDAS CAMPEÃS)
-        ======================================================== */}
-        <div className="space-y-3">
+        {/* 2. CARDS DE PRINCIPAIS DÚVIDAS */}
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[#05549D] dark:text-[#00D8FF]" />
-            <h2 className="font-mono text-xs uppercase tracking-[0.2em] text-[#05549D] dark:text-[#00D8FF] font-semibold">
-              DIAGNÓSTICO EXPRESSO // TOP 3 RESPOSTAS RÁPIDAS
+            <Sparkles className="h-4 w-4 text-[#004A99] dark:text-sky-400" />
+            <h2 className="text-xs uppercase tracking-wider text-[#004A99] dark:text-sky-400 font-semibold">
+              Principais Perguntas e Respostas
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* Card 01: Horários */}
-            <div className="group relative rounded-[12px] border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-[24px] shadow-sm dark:shadow-lg transition-all duration-300 hover:border-[#05549D] dark:hover:border-[#00D8FF]/70 hover:shadow-md dark:hover:shadow-[0_0_20px_rgba(0,216,255,0.12)] flex flex-col justify-between">
+            <div className="group relative rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs hover:border-[#004A99] dark:hover:border-sky-500 transition-all flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-[#05549D] dark:text-[#00D8FF] font-bold">
-                    01 // TEMPO REAL
+                  <span className="text-xs font-semibold text-[#004A99] dark:text-sky-400">
+                    Turno Matutino
                   </span>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-[#05549D] dark:text-[#00D8FF]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-[#004A99] dark:text-sky-400">
                     <Clock className="h-4 w-4" />
                   </div>
                 </div>
 
-                <h3 className="font-display text-lg uppercase font-medium leading-snug text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#05549D] dark:group-hover:text-[#00D8FF] transition-colors">
-                  HORÁRIOS DE TRANSMISSÃO
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition-colors">
+                  Horários de Transmissão
                 </h3>
 
-                <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 font-normal">
+                <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                   As aulas ao vivo iniciam pontualmente às <strong>07h30</strong> (turno matutino), transmitidas diretamente dos estúdios da SEDUC em Porto Velho.
                 </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-dashed border-slate-100 dark:border-[#1A365D] text-[11px] font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
-                <span>Sinal Síncrono 100% Homologado</span>
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-medium">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>Transmissão Homologada</span>
               </div>
             </div>
 
             {/* Card 02: Mediador */}
-            <div className="group relative rounded-[12px] border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-[24px] shadow-sm dark:shadow-lg transition-all duration-300 hover:border-[#05549D] dark:hover:border-[#00D8FF]/70 hover:shadow-md dark:hover:shadow-[0_0_20px_rgba(0,216,255,0.12)] flex flex-col justify-between">
+            <div className="group relative rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs hover:border-[#004A99] dark:hover:border-sky-500 transition-all flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-[#05549D] dark:text-[#00D8FF] font-bold">
-                    02 // PRESENCIAL DIÁRIO
+                  <span className="text-xs font-semibold text-[#004A99] dark:text-sky-400">
+                    Presencial Diário
                   </span>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-[#05549D] dark:text-[#00D8FF]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-[#004A99] dark:text-sky-400">
                     <GraduationCap className="h-4 w-4" />
                   </div>
                 </div>
 
-                <h3 className="font-display text-lg uppercase font-medium leading-snug text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#05549D] dark:group-hover:text-[#00D8FF] transition-colors">
-                  PAPEL DO MEDIADOR
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition-colors">
+                  Papel do Mediador
                 </h3>
 
-                <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 font-normal">
+                <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                   Toda sala conectada conta com um <strong>professor mediador presencial</strong> para apoiar os alunos diariamente nas atividades, oficinas práticas e dúvidas.
                 </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-dashed border-slate-100 dark:border-[#1A365D] text-[11px] font-mono text-sky-700 dark:text-cyan-300 flex items-center gap-1.5">
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-sky-700 dark:text-sky-300 flex items-center gap-1.5 font-medium">
                 <Users className="h-3.5 w-3.5" />
                 <span>Docência Compartilhada Estado-Escola</span>
               </div>
             </div>
 
             {/* Card 03: Validade */}
-            <div className="group relative rounded-[12px] border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-[24px] shadow-sm dark:shadow-lg transition-all duration-300 hover:border-[#05549D] dark:hover:border-[#00D8FF]/70 hover:shadow-md dark:hover:shadow-[0_0_20px_rgba(0,216,255,0.12)] flex flex-col justify-between">
+            <div className="group relative rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs hover:border-[#004A99] dark:hover:border-sky-500 transition-all flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-[#05549D] dark:text-[#00D8FF] font-bold">
-                    03 // RECONHECIMENTO MEC
+                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    Reconhecimento Oficial
                   </span>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-emerald-600 dark:text-emerald-400">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400">
                     <Award className="h-4 w-4" />
                   </div>
                 </div>
 
-                <h3 className="font-display text-lg uppercase font-medium leading-snug text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#05549D] dark:group-hover:text-[#00D8FF] transition-colors">
-                  VALIDADE & DIPLOMA
+                <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition-colors">
+                  Validade e Certificação
                 </h3>
 
-                <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300 font-normal">
+                <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
                   O Ensino Médio pelo MEDTEC possui exatamente a <strong>mesma validade legal e certificação oficial</strong> da rede estadual regular (Lei Estadual 3.846/2016).
                 </p>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-dashed border-slate-100 dark:border-[#1A365D] text-[11px] font-mono text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-medium">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 <span>Acesso pleno ao ENEM e Ensino Superior</span>
               </div>
@@ -423,24 +415,19 @@ export default function FaqCentralSection() {
           </div>
         </div>
 
-        {/* DIVISÓRIA TÉCNICA 1PX DASHED */}
-        <div className="border-t border-dashed border-slate-200 dark:border-[#1A365D]" />
+        <div className="border-t border-slate-200 dark:border-slate-800" />
 
-        {/* ========================================================
-            3. LAYOUT SPLIT-SCREEN (12 COLUNAS)
-        ======================================================== */}
+        {/* 3. LAYOUT SPLIT-SCREEN (12 COLUNAS) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* ========================================================
-              A. COLUNA ESQUERDA FIXA (4 COLS: PERSONAS E ÍNDICE)
-          ======================================================== */}
+          {/* COLUNA ESQUERDA (4 COLS: PERSONAS E ÍNDICE) */}
           <aside className="lg:col-span-4 sticky top-28 space-y-6">
             
-            {/* Bloco 1: Seletor de Perfil (Quem é você?) */}
-            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 shadow-sm dark:shadow-lg space-y-3">
-              <div className="border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-[#6482A6] font-semibold">
-                  Filtro de Público • Quem é você?
+            {/* Bloco 1: Seletor de Perfil */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-3">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-2">
+                <span className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+                  Público Alvo
                 </span>
               </div>
 
@@ -456,33 +443,30 @@ export default function FaqCentralSection() {
                     <button
                       key={item.id}
                       onClick={() => setSelectedPersona(item.id as FaqPersona)}
-                      className={`w-full text-left rounded-xl px-3 py-2 text-xs font-mono font-medium transition-all duration-150 ease-out flex items-center justify-between cursor-pointer active:scale-[0.98] touch-manipulation select-none min-h-[44px] ${
+                      className={`w-full text-left rounded-lg px-3 py-2 text-xs font-medium transition-all flex items-center justify-between cursor-pointer ${
                         isSelected
-                          ? 'border border-[#0284C7] dark:border-[#00D8FF] bg-sky-50 dark:bg-[#061224] text-[#05549D] dark:text-[#00D8FF] shadow-xs dark:shadow-[0_0_12px_rgba(0,216,255,0.2)] font-semibold'
-                          : 'border border-transparent bg-transparent text-slate-600 dark:text-[#6482A6] hover:bg-slate-100 dark:hover:bg-[#061224]/60 hover:text-slate-900 dark:hover:text-white'
+                          ? 'border border-[#004A99] dark:border-sky-500 bg-sky-50 dark:bg-slate-800 text-[#004A99] dark:text-sky-300 font-semibold shadow-xs'
+                          : 'border border-transparent bg-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       <span className="inline-flex items-center gap-2 truncate">
                         <Badge3D size="xs" variant={isSelected ? 'solid' : 'subtle'} icon={item.icon} />
                         <span className="truncate">{item.label}</span>
                       </span>
-                      {isSelected && (
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#0284C7] dark:bg-[#00D8FF] animate-ping" />
-                      )}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Bloco 2: Índice de Categorias Técnicas com Contador Dinâmico */}
-            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 shadow-sm dark:shadow-lg space-y-3">
-              <div className="border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-2 flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-[#6482A6] font-semibold">
-                  Índice de Categorias
+            {/* Bloco 2: Índice de Categorias */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-3">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-2 flex items-center justify-between">
+                <span className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+                  Categorias
                 </span>
-                <span className="text-[10px] font-mono text-[#0284C7] dark:text-[#00D8FF] font-semibold">
-                  {filteredFaqs.length} ITENS
+                <span className="text-xs text-[#004A99] dark:text-sky-400 font-semibold">
+                  {filteredFaqs.length} itens
                 </span>
               </div>
 
@@ -490,30 +474,24 @@ export default function FaqCentralSection() {
                 {CATEGORIES.map((cat) => {
                   const isSelected = selectedCategory === cat.label;
                   const count = categoryCounts[cat.label] || 0;
-                  const formattedCount = String(count).padStart(2, '0');
 
                   return (
                     <button
                       key={cat.label}
                       onClick={() => setSelectedCategory(cat.label)}
-                      className={`w-full text-left rounded-lg px-4 py-2 text-xs font-mono transition-all flex items-center justify-between cursor-pointer ${
+                      className={`w-full text-left rounded-lg px-3.5 py-2 text-xs transition-all flex items-center justify-between cursor-pointer ${
                         isSelected
-                          ? 'border border-[#0284C7] dark:border-[#00D8FF] bg-sky-50 dark:bg-[#061224] text-slate-900 dark:text-[#E6F4FF] font-semibold shadow-sm dark:shadow-[0_0_14px_rgba(0,216,255,0.22)]'
-                          : 'border border-dashed border-slate-200 dark:border-[#1A365D] bg-transparent text-slate-600 dark:text-[#6482A6] hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-white'
+                          ? 'border border-[#004A99] dark:border-sky-500 bg-sky-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold shadow-xs'
+                          : 'border border-slate-200 dark:border-slate-800 bg-transparent text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
-                      <div className="flex items-center gap-2 truncate pr-2">
-                        <span className={isSelected ? 'text-[#0284C7] dark:text-[#00D8FF]' : 'text-slate-400 dark:text-slate-500'}>
-                          {cat.prefix}
-                        </span>
-                        <span className="truncate">{cat.label}</span>
-                      </div>
+                      <span className="truncate pr-2">{cat.label}</span>
                       <span
-                        className={`text-[10px] font-bold shrink-0 ${
-                          isSelected ? 'text-[#0284C7] dark:text-[#00D8FF]' : 'text-slate-400 dark:text-slate-500'
+                        className={`text-xs font-semibold shrink-0 ${
+                          isSelected ? 'text-[#004A99] dark:text-sky-400' : 'text-slate-400 dark:text-slate-500'
                         }`}
                       >
-                        [{formattedCount}]
+                        ({count})
                       </span>
                     </button>
                   );
@@ -521,37 +499,35 @@ export default function FaqCentralSection() {
               </div>
             </div>
 
-            {/* Micro Widget de Status do Suporte */}
-            <div className="rounded-xl border border-dashed border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224]/70 p-4 font-mono text-xs space-y-2">
-              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">
-                <Radio className="h-3.5 w-3.5 animate-pulse" />
-                <span>NÚCLEO DE SUPORTE OPERACIONAL</span>
+            {/* Suporte */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70 p-4 text-xs space-y-2">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold">
+                <Radio className="h-4 w-4" />
+                <span>Atendimento Pedagógico e Técnico</span>
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                Atendimento síncrono durante todo o turno letivo matutino das escolas.
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Suporte ativo durante todo o turno letivo matutino das escolas.
               </p>
             </div>
 
           </aside>
 
-          {/* ========================================================
-              B. COLUNA DIREITA (8 COLS: ACORDEÕES "RICH ANSWER")
-          ======================================================== */}
+          {/* COLUNA DIREITA (8 COLS: ACORDEÕES) */}
           <main className="lg:col-span-8 space-y-4">
             
             <div className="mb-2 flex items-center justify-between px-1">
-              <span className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-[#6482A6]">
-                RESPOSTAS VERIFICADAS // {selectedCategory.toUpperCase()} ({filteredFaqs.length})
+              <span className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+                Respostas: {selectedCategory} ({filteredFaqs.length})
               </span>
               {searchTerm && (
-                <span className="text-xs font-mono text-[#0284C7] dark:text-[#00D8FF]">
-                  Filtrando por: &ldquo;{searchTerm}&rdquo;
+                <span className="text-xs text-[#004A99] dark:text-sky-400 font-medium">
+                  Buscando por: &ldquo;{searchTerm}&rdquo;
                 </span>
               )}
             </div>
 
             {filteredFaqs.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 dark:border-[#1A365D] bg-slate-50/50 dark:bg-[#0C1E38]/50 p-12 text-center font-mono">
+              <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-12 text-center">
                 <HelpCircle className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" />
                 <p className="text-sm text-slate-600 dark:text-slate-300">
                   Nenhuma dúvida localizada para os critérios de busca selecionados.
@@ -562,7 +538,7 @@ export default function FaqCentralSection() {
                     setSelectedCategory('Todas as Dúvidas');
                     setSelectedPersona('todos');
                   }}
-                  className="mt-4 text-xs text-[#0284C7] dark:text-[#00D8FF] hover:underline cursor-pointer"
+                  className="mt-4 text-xs text-[#004A99] dark:text-sky-400 hover:underline cursor-pointer"
                 >
                   Restaurar filtros e ver todas as perguntas
                 </button>
@@ -576,10 +552,10 @@ export default function FaqCentralSection() {
                   <motion.div
                     key={item.id}
                     layout
-                    className={`rounded-xl border transition-all duration-300 overflow-hidden ${
+                    className={`rounded-xl border transition-all duration-200 overflow-hidden ${
                       isOpen
-                        ? 'border-[#0284C7] dark:border-[#00D8FF] bg-white dark:bg-[#0C1E38] shadow-md dark:shadow-[0_0_20px_rgba(0,216,255,0.12)]'
-                        : 'border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] hover:border-[#0284C7]/60 dark:hover:border-[#00D8FF]/60'
+                        ? 'border-[#004A99] dark:border-sky-500 bg-white dark:bg-slate-900 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
                     }`}
                   >
                     {/* CABEÇALHO DA PERGUNTA */}
@@ -589,35 +565,30 @@ export default function FaqCentralSection() {
                       aria-expanded={isOpen}
                     >
                       <div className="space-y-1.5 flex-1 pr-2">
-                        {/* Linha técnica: Índice + Categoria */}
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-[#0284C7] dark:text-[#00D8FF]">
-                            {item.index} {'//'}
-                          </span>
-                          <span className="rounded-md border border-sky-300 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2 py-0.5 text-[10px] font-mono uppercase text-[#05549D] dark:text-[#00D8FF] font-semibold">
+                          <span className="rounded-md bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 px-2 py-0.5 text-xs text-[#004A99] dark:text-sky-300 font-semibold">
                             {item.category}
                           </span>
                         </div>
 
-                        {/* Título da Pergunta */}
-                        <h3 className="font-display text-sm sm:text-base font-semibold leading-snug text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#0284C7] dark:group-hover:text-[#00D8FF] transition-colors">
+                        <h3 className="text-sm sm:text-base font-semibold leading-snug text-slate-900 dark:text-slate-100 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition-colors">
                           {item.question}
                         </h3>
                       </div>
 
-                      {/* Botão [ + ] / [ − ] com rotação */}
+                      {/* Botão + / − */}
                       <div
-                        className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-lg border font-mono text-sm font-bold transition-all duration-300 ${
+                        className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-lg border text-sm font-semibold transition-all ${
                           isOpen
-                            ? 'border-[#0284C7] dark:border-[#00D8FF] bg-sky-50 dark:bg-[#061224] text-[#0284C7] dark:text-[#00D8FF] shadow-xs'
-                            : 'border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                            ? 'border-[#004A99] dark:border-sky-500 bg-sky-50 dark:bg-slate-800 text-[#004A99] dark:text-sky-300'
+                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                         }`}
                       >
                         {isOpen ? '−' : '+'}
                       </div>
                     </button>
 
-                    {/* CORPO DA RESPOSTA ("RICH ANSWER" ANIMADO) */}
+                    {/* CORPO DA RESPOSTA */}
                     <AnimatePresence>
                       {isOpen && (
                         <motion.div
@@ -708,10 +679,9 @@ export default function FaqCentralSection() {
             
             {/* Esquerda: Informações Técnicas */}
             <div className="space-y-1.5 max-w-2xl">
-              <div className="flex items-center gap-2 font-mono text-xs text-[#0284C7] dark:text-[#00D8FF]">
-                <span className="h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
-                <span className="font-bold tracking-wider uppercase">
-                  SUPORTE ATIVO {'//'} COORDENADORIA DE MÍDIAS EDUCACIONAIS
+              <div className="flex items-center gap-2 text-xs text-[#004A99] dark:text-sky-400">
+                <span className="font-semibold tracking-wider uppercase">
+                  Suporte Ativo: Coordenadoria de Mídias Educacionais
                 </span>
               </div>
 

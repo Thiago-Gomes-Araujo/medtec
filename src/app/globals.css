@@ -8,93 +8,74 @@
     --font-display: var(--font-display, "Space Grotesk", ui-sans-serif, system-ui, sans-serif);
     --font-mono: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
 
-    /* ==========================================================
-       MODO CLARO (Editorial Executivo SEDUC - Ice Slate & Navy)
-    ========================================================== */
-    --background: #F0F4F9;
-    --foreground: #0B1B30;
-    
-    --card: #FFFFFF;
-    --card-foreground: #0B1B30;
-    --card-soft: #E8F0F8;
+    /* MODO CLARO INSTITUCIONAL (SEDUC-RO) */
+    --background: #F8FAFC;
+    --foreground: #0F172A;
 
-    /* Primary brand: Azul Oficial SEDUC / Rondônia */
-    --primary: #05549D;
+    --card: #FFFFFF;
+    --card-foreground: #0F172A;
+    --card-soft: #F1F5F9;
+
+    /* Azul Oficial SEDUC / Rondônia */
+    --primary: #004A99;
     --primary-light: #0284C7;
-    --primary-deep: #071E3D;
+    --primary-deep: #002D5E;
     --primary-foreground: #FFFFFF;
 
-    /* Secondary */
-    --secondary: #EBF2F7;
-    --secondary-foreground: #05549D;
+    --secondary: #F1F5F9;
+    --secondary-foreground: #004A99;
 
-    /* Muted */
     --muted: #E2E8F0;
-    --muted-foreground: #556E8A;
+    --muted-foreground: #475569;
 
-    /* Eyebrow & Brand Accent */
     --success: #059669;
     --success-foreground: #FFFFFF;
     --success-soft: #ECFDF5;
 
-    /* Accent & Warning */
     --accent: #E0F2FE;
     --accent-foreground: #0369A1;
     --warning: #D97706;
     --warning-soft: #FEF3C7;
 
-    /* Borders */
-    --border: #D2DFEB;
-    --border-dashed: #CBDCEB;
+    --border: #E2E8F0;
+    --border-dashed: #CBD5E1;
 
-    /* Hero Gradient */
-    --gradient-hero: linear-gradient(118deg, rgba(5, 84, 157, 0.95) 0%, rgba(7, 30, 61, 0.9) 60%, rgba(2, 132, 199, 0.75) 100%);
-    --glow: #0284C7;
+    --glow: transparent;
   }
 
   .dark {
-    /* ==========================================================
-       MODO ESCURO (Oficial MEDTEC - Cyber Telemetria Amazônica)
-    ========================================================== */
-    --background: #040B16;
-    --foreground: #E6F4FF;
+    /* MODO ESCURO INSTITUCIONAL SÓBRIO */
+    --background: #0B1528;
+    --foreground: #F8FAFC;
 
-    --card: #0C1E38;
-    --card-foreground: #E6F4FF;
-    --card-soft: #061224;
+    --card: #132238;
+    --card-foreground: #F8FAFC;
+    --card-soft: #0E1A2E;
 
-    /* Primary brand: Ciano Elétrico MEDTEC */
-    --primary: #00D8FF;
-    --primary-light: #38BDF8;
-    --primary-deep: #040D1A;
-    --primary-foreground: #040B16;
+    --primary: #38BDF8;
+    --primary-light: #7DD3FC;
+    --primary-deep: #07162C;
+    --primary-foreground: #0B1528;
 
-    /* Secondary */
-    --secondary: #0F2647;
-    --secondary-foreground: #00D8FF;
+    --secondary: #172844;
+    --secondary-foreground: #38BDF8;
 
-    /* Muted */
-    --muted: #1A365D;
-    --muted-foreground: #6482A6;
+    --muted: #1E293B;
+    --muted-foreground: #94A3B8;
 
-    /* Eyebrow & Brand Accent */
     --success: #10B981;
-    --success-foreground: #040B16;
+    --success-foreground: #0B1528;
     --success-soft: #064E3B;
 
-    /* Accent & Warning */
-    --accent: #0C284D;
-    --accent-foreground: #00D8FF;
+    --accent: #172844;
+    --accent-foreground: #38BDF8;
     --warning: #F59E0B;
     --warning-soft: #78350F;
 
-    /* Borders */
-    --border: #1A365D;
-    --border-dashed: #1A365D;
+    --border: #1E293B;
+    --border-dashed: #1E293B;
 
-    /* Hero Gradient */
-    --gradient-hero: linear-gradient(118deg, rgba(2, 6, 18, 0.94) 0%, rgba(6, 28, 58, 0.82) 46%, rgba(8, 80, 110, 0.55) 100%);
-    --glow: #00D8FF;
+    --glow: transparent;
   }
 
   html {
@@ -107,7 +88,7 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
-    transition: background-color 0.25s ease, color 0.25s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
     overflow-x: hidden;
     max-width: 100vw;
   }
@@ -119,14 +100,18 @@
 
 /* Typography Helpers */
 .font-display {
-  font-family: var(--font-display), "Sora", sans-serif;
+  font-family: var(--font-display), "Space Grotesk", sans-serif;
 }
 
 .font-sans {
   font-family: var(--font-sans), "Manrope", sans-serif;
 }
 
-/* Colors matching Figma Blue & Lovable architecture */
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+/* Utilitários Institucionais SEDUC */
 .bg-primary { background-color: var(--primary) !important; }
 .text-primary { color: var(--primary) !important; }
 .border-primary { border-color: var(--primary) !important; }
@@ -161,152 +146,28 @@
 .bg-card { background-color: var(--card) !important; }
 .text-card-foreground { color: var(--card-foreground) !important; }
 
-.border-primary-foreground\/20 { border-color: rgba(255, 255, 255, 0.2) !important; }
-.border-primary-foreground\/30 { border-color: rgba(255, 255, 255, 0.3) !important; }
-.border-primary-foreground\/40 { border-color: rgba(255, 255, 255, 0.4) !important; }
-.bg-primary-foreground\/10 { background-color: rgba(255, 255, 255, 0.1) !important; }
-.bg-primary-foreground\/20 { background-color: rgba(255, 255, 255, 0.2) !important; }
-
-.bg-hero-overlay {
-  background: var(--gradient-hero) !important;
-}
-
 .shadow-card {
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 4px 14px 0 rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 2px 6px -1px rgba(0, 0, 0, 0.03) !important;
 }
 
 .shadow-card:hover {
-  box-shadow: 0 4px 12px 0 rgba(2, 132, 199, 0.1), 0 12px 24px -4px rgba(5, 84, 157, 0.08) !important;
+  box-shadow: 0 4px 12px 0 rgba(0, 74, 153, 0.08) !important;
 }
 
-/* Modal and transition backdrop blur */
-.backdrop-blur-md {
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.font-mono {
-  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
+/* Backgrounds lisos sem matriz/quadriculados */
 .hero-grid {
-  background-image:
-    linear-gradient(rgba(34, 211, 238, 0.16) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(34, 211, 238, 0.16) 1px, transparent 1px);
-  background-size: 56px 56px;
-  mask-image: radial-gradient(ellipse at 30% 40%, black 10%, transparent 72%);
+  background: transparent !important;
 }
 
 .site-mesh {
-  background-color: var(--background);
-  background-image:
-    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(2, 132, 199, 0.08), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(5, 84, 157, 0.06), transparent 46%),
-    linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
-  background-size: auto, auto, 48px 48px, 48px 48px;
-  transition: background-color 0.25s ease;
-}
-
-.dark .site-mesh {
-  background-color: #040B16;
-  background-image:
-    radial-gradient(ellipse 80% 50% at 0% -10%, rgba(0, 216, 255, 0.12), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(5, 84, 157, 0.16), transparent 46%),
-    linear-gradient(rgba(0, 216, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 216, 255, 0.035) 1px, transparent 1px);
-  background-size: auto, auto, 48px 48px, 48px 48px;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
-}
-
-.animate-float {
-  animation: float 7s ease-in-out infinite;
+  background: var(--background) !important;
 }
 
 .hud-frame {
-  box-shadow:
-    0 0 0 1px rgba(5, 84, 157, 0.12),
-    0 20px 50px -20px rgba(5, 84, 157, 0.14);
-}
-
-.dark .hud-frame {
-  background:
-    linear-gradient(160deg, rgba(8, 18, 36, 0.72), rgba(4, 10, 22, 0.55));
-  box-shadow:
-    0 0 0 1px rgba(34, 211, 238, 0.28),
-    0 30px 80px -30px rgba(34, 211, 238, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: none !important;
+  border-color: var(--border) !important;
 }
 
 .glow-card {
-  box-shadow: 0 18px 40px -28px rgba(2, 132, 199, 0.55);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
 }
-
-.glow-card:hover {
-  box-shadow:
-    0 0 0 1px rgba(34, 211, 238, 0.45),
-    0 24px 50px -24px rgba(8, 145, 178, 0.55);
-}
-
-/* Amazônia Aeroespacial / Telemetria Waveform Animations */
-@keyframes soundwave {
-  0%, 100% { height: 4px; opacity: 0.6; }
-  50% { height: 16px; opacity: 1; }
-}
-
-.animate-wave-1 { animation: soundwave 1.1s ease-in-out infinite; }
-.animate-wave-2 { animation: soundwave 0.8s ease-in-out infinite 0.2s; }
-.animate-wave-3 { animation: soundwave 1.3s ease-in-out infinite 0.4s; }
-.animate-wave-4 { animation: soundwave 0.9s ease-in-out infinite 0.1s; }
-.animate-wave-5 { animation: soundwave 1.2s ease-in-out infinite 0.3s; }
-
-/* Signal strength bars pulse */
-@keyframes signalPulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
-}
-
-.animate-signal-1 { animation: signalPulse 2s ease-in-out infinite; }
-.animate-signal-2 { animation: signalPulse 2s ease-in-out infinite 0.2s; }
-.animate-signal-3 { animation: signalPulse 2s ease-in-out infinite 0.4s; }
-.animate-signal-4 { animation: signalPulse 2s ease-in-out infinite 0.6s; }
-
-/* Radar Cartográfico de Telemetria Amazônica */
-@keyframes radarPing {
-  0% { r: 6px; opacity: 0.95; stroke-width: 2px; }
-  100% { r: 42px; opacity: 0; stroke-width: 0.5px; }
-}
-
-@keyframes beamDash {
-  0% { stroke-dashoffset: 48; }
-  100% { stroke-dashoffset: 0; }
-}
-
-@keyframes riverGlow {
-  0%, 100% { opacity: 0.65; filter: drop-shadow(0 0 2px rgba(0, 216, 255, 0.4)); }
-  50% { opacity: 1; filter: drop-shadow(0 0 8px rgba(0, 216, 255, 0.95)); }
-}
-
-.animate-radar-ping {
-  animation: radarPing 2.4s cubic-bezier(0, 0.2, 0.8, 1) infinite;
-}
-
-.animate-beam-dash {
-  animation: beamDash 1.6s linear infinite;
-}
-
-.animate-river-glow {
-  animation: riverGlow 3s ease-in-out infinite;
-}
-
-@keyframes pulseLine {
-  0% { left: 0%; opacity: 0; }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { left: calc(100% - 96px); opacity: 0; }
-}
-

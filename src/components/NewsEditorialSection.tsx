@@ -312,11 +312,6 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
 
   return (
     <div className="relative w-full bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors">
-      
-      {/* Grade Cartesiana Sutil de Fundo */}
-      <div className="hero-grid pointer-events-none absolute inset-0 opacity-40 dark:opacity-40" />
-
-
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-10">
 
         {/* ========================================================
@@ -329,13 +324,12 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
             {categoriesList.map((cat) => {
               const isSelected = selectedCategory === cat;
               const count = categoryCounts[cat] || 0;
-              const formattedCount = String(count).padStart(2, '0');
 
               return (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-mono transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
+                  className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                     isSelected
                       ? 'border border-[#004A99] dark:border-[#00D8FF] bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950 font-bold shadow-sm'
                       : 'border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224]/60 text-slate-600 dark:text-[#6482A6] hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -343,7 +337,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 >
                   <span>{cat}</span>
                   <span className={`text-[10px] font-bold tabular-nums ${isSelected ? 'text-sky-200 dark:text-slate-950' : 'text-slate-400 dark:text-slate-500'}`}>
-                    [{formattedCount}]
+                    ({count})
                   </span>
                 </button>
               );
@@ -361,7 +355,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
                 maxLength={100}
                 placeholder="Pesquisar reportagem..."
-                className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] pl-9 pr-8 py-2 text-xs font-mono text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-[#004A99] dark:focus:border-[#00D8FF] focus:outline-hidden focus:ring-1 focus:ring-[#004A99] dark:focus:ring-[#00D8FF] transition-all duration-150"
+                className="w-full rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] pl-9 pr-8 py-2 text-xs text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-[#004A99] dark:focus:border-[#00D8FF] focus:outline-hidden focus:ring-1 focus:ring-[#004A99] dark:focus:ring-[#00D8FF] transition-all duration-150"
               />
               {searchTerm && (
                 <button
@@ -373,24 +367,24 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
               )}
             </div>
 
-            {/* Alternador de Modos: MODO REVISTA vs LISTA DE LEITURA */}
-            <div className="flex items-center gap-1 shrink-0 bg-slate-100 dark:bg-[#061224] p-1 rounded-xl border border-slate-200 dark:border-[#1A365D]">
+            {/* Alternador de Modos: Revista vs Lista */}
+            <div className="flex items-center gap-1 shrink-0 bg-slate-100 dark:bg-[#061224] p-1 rounded-lg border border-slate-200 dark:border-[#1A365D]">
               <button
                 onClick={() => setViewMode('magazine')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                   viewMode === 'magazine'
                     ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs border border-slate-200 dark:border-cyan-400/30 font-bold'
                     : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
                 }`}
-                title="Modo Revista: Manchete de Capa + Cards Editoriais"
+                title="Modo Revista: Visualização ampla em cards"
               >
                 <BookOpen className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">MODO REVISTA</span>
+                <span className="hidden sm:inline">Revista</span>
               </button>
 
               <button
                 onClick={() => setViewMode('list')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                   viewMode === 'list'
                     ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs border border-slate-200 dark:border-cyan-400/30 font-bold'
                     : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
@@ -398,7 +392,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 title="Lista de Leitura: Visualização compacta contínua"
               >
                 <List className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">LISTA DE LEITURA</span>
+                <span className="hidden sm:inline">Lista</span>
               </button>
             </div>
           </div>
@@ -465,25 +459,14 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                         decoding="async"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
-
-                      {/* Gradiente sutil para legibilidade e profundidade */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 lg:bg-gradient-to-r lg:from-transparent lg:to-black/30 pointer-events-none" />
-
-                      {/* Badge de Destaque no Topo da Imagem */}
-                      <div className="absolute top-3 left-3 z-10">
-                        <span className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-slate-950/85 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-xs">
-                          <Star className="h-2.5 w-2.5 text-cyan-300 fill-cyan-300" />
-                          <span>Destaque Editorial</span>
-                        </span>
-                      </div>
                     </div>
 
                     {/* Coluna Editorial (7 colunas no desktop) */}
                     <div className="lg:col-span-7 p-4 sm:p-5 flex flex-col justify-between h-full bg-white dark:bg-[#0C1E38]">
                       <div className="space-y-2">
                         {/* Kicker Discreto: Categoria • Região • Data + Indicador Numérico 01 / 04 */}
-                        <div className="flex items-center justify-between gap-2 text-xs font-mono">
-                          <div className="flex items-center gap-1.5 text-[#004A99] dark:text-[#00D8FF] font-bold tracking-wider uppercase text-[10px] sm:text-[11px] truncate">
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-1.5 text-[#004A99] dark:text-[#00D8FF] font-semibold text-xs truncate">
                             <span className="inline-flex items-center gap-1 shrink-0">
                               <MapPin className="h-3 w-3 shrink-0" />
                               <span className="truncate max-w-[120px] sm:max-w-[180px]">
@@ -491,15 +474,15 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                               </span>
                             </span>
                             <span className="text-slate-300 dark:text-slate-600 shrink-0">•</span>
-                            <span className="truncate shrink-0">{currentSlideArticle.category || 'Geral'}</span>
+                            <span className="truncate shrink-0 font-bold">{currentSlideArticle.category || 'Geral'}</span>
                             <span className="text-slate-300 dark:text-slate-600 shrink-0">•</span>
-                            <span className="tabular-nums font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+                            <span className="tabular-nums font-medium text-slate-500 dark:text-slate-400 shrink-0">
                               {currentSlideArticle.publishedAt}
                             </span>
                           </div>
 
                           {/* Indicador Numérico 01 / 04 */}
-                          <div className="shrink-0 flex items-center gap-1 font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 tabular-nums bg-slate-100 dark:bg-[#061224] px-2 py-0.5 rounded-md border border-slate-200 dark:border-[#1A365D]">
+                          <div className="shrink-0 flex items-center gap-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 tabular-nums bg-slate-100 dark:bg-[#061224] px-2 py-0.5 rounded-md border border-slate-200 dark:border-[#1A365D]">
                             <span className="text-[#004A99] dark:text-[#00D8FF]">
                               {String(activeSlide + 1).padStart(2, '0')}
                             </span>
@@ -508,7 +491,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           </div>
                         </div>
 
-                        {/* Título: font-display font-semibold text-balance line-clamp-2 */}
+                        {/* Título */}
                         <h3
                           onClick={() => setActiveArticleId(currentSlideArticle.id)}
                           className="font-display text-base sm:text-lg lg:text-xl font-bold tracking-tight text-slate-900 dark:text-white hover:text-[#004A99] dark:hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2 text-balance cursor-pointer pt-0.5"
@@ -516,16 +499,16 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           {currentSlideArticle.title}
                         </h3>
 
-                        {/* Resumo: line-clamp-2 text-pretty */}
+                        {/* Resumo */}
                         <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed line-clamp-2 font-sans text-pretty">
                           {currentSlideArticle.excerpt}
                         </p>
                       </div>
 
                       {/* Rodapé do Card: Autor à esquerda + Navegação Minimalista + Botão à direita */}
-                      <div className="pt-3 border-t border-dashed border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+                      <div className="pt-3 border-t border-slate-100 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
                         {/* Esquerda: Autor/Coordenação + Tempo de Leitura */}
-                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-mono text-[10px] sm:text-[11px] truncate">
+                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs truncate">
                           <span className="truncate">
                             Por <strong className="text-slate-700 dark:text-slate-300 font-semibold">{currentSlideArticle.author || 'Coordenação SEDUC-RO'}</strong>
                           </span>
@@ -536,9 +519,9 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           </span>
                         </div>
 
-                        {/* Direita: Controles Sutis do Carrossel (Pílulas + Setas) e Ação */}
+                        {/* Direita: Controles Sutis do Carrossel e Ação */}
                         <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
-                          {/* 4 Indicadores Horizontais (Pílulas Finas) */}
+                          {/* 4 Indicadores Horizontais */}
                           <div className="flex items-center gap-1" role="tablist" aria-label="Navegação dos 4 destaques">
                             {carouselArticles.map((_, idx) => {
                               const isActive = idx === activeSlide;
@@ -583,7 +566,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           {/* Botão Ler Matéria */}
                           <button
                             onClick={() => setActiveArticleId(currentSlideArticle.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#004A99] hover:bg-[#003875] dark:bg-[#00D8FF] dark:hover:bg-cyan-300 text-white dark:text-slate-950 font-mono text-xs font-bold transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none cursor-pointer shadow-xs shrink-0"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#004A99] hover:bg-[#003875] dark:bg-[#00D8FF] dark:hover:bg-cyan-300 text-white dark:text-slate-950 text-xs font-bold transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none cursor-pointer shadow-xs shrink-0"
                           >
                             <span>Ler Matéria</span>
                             <ArrowRight className="h-3.5 w-3.5" />
@@ -603,17 +586,17 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
 
               return (
                 <div className="space-y-4 pt-1">
-                  <div className="flex items-center justify-between border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-2.5">
-                    <h3 className="font-mono text-xs font-bold uppercase tracking-[0.22em] text-slate-900 dark:text-[#E6F4FF] flex items-center gap-2">
-                      <Radio className="h-3 w-3 text-emerald-500 animate-pulse" />
-                      <span>Reportagens &amp; Coberturas nos Polos</span>
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-[#1A365D] pb-2.5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-[#E6F4FF] flex items-center gap-2">
+                      <Radio className="h-3.5 w-3.5 text-[#004A99] dark:text-[#00D8FF]" />
+                      <span>Reportagens e Coberturas nos Polos</span>
                     </h3>
-                    <span className="text-[11px] font-mono text-slate-500 dark:text-[#6482A6] tabular-nums">
+                    <span className="text-xs text-slate-500 dark:text-[#6482A6] tabular-nums font-medium">
                       {articlesToRender.length} {articlesToRender.length === 1 ? 'matéria' : 'matérias'}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {articlesToRender.map((item, idx) => {
                       const editorial = getEditorialDetails(item, idx);
                       const cover = item.coverImage || FALLBACK_NEWS_COVER;
@@ -624,8 +607,8 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           onClick={() => setActiveArticleId(item.id)}
                           className="group flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-xs hover:shadow-md transition-all duration-200 ease-out cursor-pointer active:scale-[0.99] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF]"
                         >
-                          {/* PARTE SUPERIOR: MINIATURA EXCLUSIVA h-40 (160px) */}
-                          <div className="relative h-40 w-full overflow-hidden bg-slate-950 shrink-0">
+                          {/* PARTE SUPERIOR: MINIATURA LIMPA */}
+                          <div className="relative h-44 w-full overflow-hidden bg-slate-950 shrink-0">
                             <img
                               src={cover}
                               alt={item.title}
@@ -637,57 +620,46 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                               decoding="async"
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             />
-
-                            {/* Tag de Categoria no Topo Esquerdo */}
-                            <div className="absolute top-2.5 left-2.5 z-10">
-                              <span className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-slate-950/80 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
-                                {item.category || 'Geral'}
-                              </span>
-                            </div>
-
-                            {/* Tempo de Leitura no Canto Inferior Direito */}
-                            <div className="absolute bottom-2 right-2 z-10">
-                              <span className="inline-flex items-center gap-1 rounded bg-black/75 px-1.5 py-0.5 font-mono text-[10px] text-cyan-200 backdrop-blur-sm tabular-nums">
-                                <Clock className="h-2.5 w-2.5 text-cyan-300" />
-                                <span>{editorial.readingTime} min</span>
-                              </span>
-                            </div>
                           </div>
 
-                          {/* PARTE INFERIOR: CORPO EDITORIAL COMPACTO (p-4 sm:p-5) */}
+                          {/* PARTE INFERIOR: CORPO EDITORIAL COMPACTO */}
                           <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
                             
-                            <div className="space-y-1.5">
-                              {/* Localidade e Data */}
-                              <div className="text-[11px] font-mono font-bold tracking-wider text-[#004A99] dark:text-[#00D8FF] flex items-center gap-1.5 tabular-nums">
-                                <span>{item.publishedAt}</span>
+                            <div className="space-y-2">
+                              {/* Categoria, Localidade e Data */}
+                              <div className="text-xs font-semibold text-[#004A99] dark:text-[#00D8FF] flex items-center gap-1.5 flex-wrap">
+                                <span className="bg-sky-50 dark:bg-sky-950/60 px-2 py-0.5 rounded text-[11px] font-bold border border-sky-200 dark:border-sky-500/30">
+                                  {item.category || 'Geral'}
+                                </span>
                                 <span>•</span>
-                                <span className="truncate inline-flex items-center gap-1">
+                                <span className="text-slate-500 dark:text-slate-400 font-medium tabular-nums">{item.publishedAt}</span>
+                                <span>•</span>
+                                <span className="text-slate-500 dark:text-slate-400 font-medium truncate inline-flex items-center gap-1">
                                   <MapPin className="h-3 w-3 shrink-0" />
                                   {editorial.polo.split('•')[0].trim()}
                                 </span>
                               </div>
 
-                              {/* Título da Notícia: text-base font-semibold line-clamp-2 */}
+                              {/* Título da Notícia */}
                               <h4 className="font-display text-base font-semibold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2 text-balance">
                                 {item.title}
                               </h4>
 
-                              {/* Resumo: line-clamp-2 */}
+                              {/* Resumo */}
                               <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed font-sans text-pretty">
                                 {item.excerpt}
                               </p>
                             </div>
 
-                            {/* Rodapé do Card: Linha Tracejada + Autor + Link */}
-                            <div className="pt-2.5 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex items-center justify-between text-xs">
-                              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[55%]">
+                            {/* Rodapé do Card: Autor + Link */}
+                            <div className="pt-2.5 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs">
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[55%]">
                                 {item.author || 'Coord. de Mídias'}
                               </span>
 
-                              <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-[#004A99] dark:text-[#00D8FF] group-hover:underline shrink-0">
+                              <span className="inline-flex items-center gap-1 text-xs font-bold text-[#004A99] dark:text-[#00D8FF] group-hover:underline shrink-0">
                                 <span>Continuar lendo</span>
-                                <ArrowUpRight className="h-3 w-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                                <ArrowUpRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                               </span>
                             </div>
 
@@ -738,25 +710,24 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                       decoding="async"
                       sizes="(max-width: 768px) 100vw, 300px"
                     />
-                    <div className="absolute top-2 left-2">
-                      <span className="rounded-md bg-slate-950/80 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white backdrop-blur-sm">
-                        {item.category || 'Geral'}
-                      </span>
-                    </div>
                   </div>
 
                   {/* Conteúdo da Linha */}
                   <div className="flex-1 min-w-0 flex flex-col justify-between space-y-1.5">
                     <div>
-                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-mono text-[#004A99] dark:text-[#00D8FF] font-semibold mb-1">
-                        <span>{item.publishedAt}</span>
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs text-[#004A99] dark:text-[#00D8FF] font-semibold mb-1">
+                        <span className="bg-sky-50 dark:bg-sky-950/60 px-2 py-0.5 rounded text-[11px] font-bold border border-sky-200 dark:border-sky-500/30">
+                          {item.category || 'Geral'}
+                        </span>
                         <span>•</span>
-                        <span className="inline-flex items-center gap-1">
+                        <span className="text-slate-500 dark:text-slate-400 font-medium">{item.publishedAt}</span>
+                        <span>•</span>
+                        <span className="text-slate-500 dark:text-slate-400 font-medium inline-flex items-center gap-1">
                           <MapPin className="h-3 w-3 shrink-0" />
                           {editorial.polo}
                         </span>
                         <span>•</span>
-                        <span className="text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
+                        <span className="text-slate-500 dark:text-slate-400 inline-flex items-center gap-1 font-medium">
                           <Clock className="h-3 w-3 shrink-0" />
                           {editorial.readingTime} min
                         </span>
@@ -771,8 +742,8 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                       </p>
                     </div>
 
-                    <div className="pt-2 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex items-center justify-between text-xs font-mono">
-                      <span className="text-slate-500 dark:text-slate-400">
+                    <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-xs">
+                      <span className="text-slate-500 dark:text-slate-400 text-xs">
                         {item.author || 'Equipe SEDUC-RO'}
                       </span>
 
@@ -805,13 +776,13 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
               exit={{ scale: 0.96, opacity: 0, y: 15 }}
               transition={{ duration: 0.22, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-4xl max-h-[92vh] rounded-3xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#071326] shadow-2xl overflow-hidden flex flex-col text-slate-900 dark:text-[#E6F4FF]"
+              className="relative w-full max-w-4xl max-h-[92vh] rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#071326] shadow-2xl overflow-hidden flex flex-col text-slate-900 dark:text-[#E6F4FF]"
             >
               
               {/* 1. BARRA DE PROGRESSO DE LEITURA (0% a 100%) */}
-              <div className="h-1.5 w-full bg-slate-100 dark:bg-[#061224] shrink-0 overflow-hidden">
+              <div className="h-1 w-full bg-slate-100 dark:bg-[#061224] shrink-0 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-[#004A99] via-sky-400 to-[#00D8FF] transition-all duration-75"
+                  className="h-full bg-[#004A99] dark:bg-[#00D8FF] transition-all duration-75"
                   style={{ width: `${readingProgress}%` }}
                 />
               </div>
@@ -820,19 +791,18 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
               <div className="border-b border-slate-200 dark:border-[#1A365D] px-5 py-3.5 flex items-center justify-between gap-4 bg-slate-50/80 dark:bg-[#0C1E38]/80 backdrop-blur-sm shrink-0">
                 
                 {/* Esquerda: Identificação Editorial e Categoria */}
-                <div className="flex items-center gap-2 text-xs font-mono">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold uppercase text-[10px]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    SINAL ATIVO
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-500/30 text-[#004A99] dark:text-sky-300 font-bold uppercase text-[10px]">
+                    Notícia Oficial
                   </span>
-                  <span className="font-semibold text-slate-700 dark:text-cyan-300">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">
                     {activeNews.category || 'Geral'}
                   </span>
                 </div>
 
                 {/* Centro: Conforto Visual (Tamanho da Fonte A- / A+) + Tempo de Leitura */}
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center bg-white dark:bg-[#061224] border border-slate-200 dark:border-[#1A365D] rounded-lg p-0.5 text-xs font-mono">
+                  <div className="flex items-center bg-white dark:bg-[#061224] border border-slate-200 dark:border-[#1A365D] rounded-lg p-0.5 text-xs">
                     <button
                       onClick={() => setFontSize('sm')}
                       className={`px-2 py-1 rounded transition-all duration-150 ease-out touch-manipulation select-none active:scale-[0.92] ${fontSize === 'sm' ? 'bg-[#004A99] text-white font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
@@ -856,7 +826,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                     </button>
                   </div>
 
-                  <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-[#061224] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1A365D] tabular-nums">
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 bg-white dark:bg-[#061224] px-2.5 py-1 rounded-lg border border-slate-200 dark:border-[#1A365D] tabular-nums">
                     <Clock className="h-3 w-3 text-[#004A99] dark:text-[#00D8FF]" />
                     <span>{activeEditorial.readingTime} min</span>
                   </span>
@@ -874,9 +844,9 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
 
                   <button
                     onClick={() => setActiveArticleId(null)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2.5 py-1.5 font-mono text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none cursor-pointer font-bold focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300"
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none cursor-pointer font-semibold"
                   >
-                    <span>ESC</span>
+                    <span>Fechar</span>
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </div>

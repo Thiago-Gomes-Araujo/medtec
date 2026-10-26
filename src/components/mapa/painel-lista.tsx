@@ -82,10 +82,10 @@ export function PainelLista({
       {/* ================= 2. CARDS DE UNIDADES ESCOLARES (HOVER & CLICK SYNC) ================= */}
       <div className="flex-1 flex flex-col min-h-0">
         <div className="mb-2 flex items-center justify-between px-1">
-          <p className="text-xs font-mono uppercase tracking-wider text-[#6482A6]">
-            UNIDADES ESCOLARES // {municipioAtual.toUpperCase()} ({pontos.length})
+          <p className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+            Unidades Escolares: {municipioAtual} ({pontos.length})
           </p>
-          <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
+          <span className="text-[11px] text-slate-400 dark:text-slate-500 hidden sm:inline">
             Clique para centralizar no mapa
           </span>
         </div>
@@ -93,8 +93,8 @@ export function PainelLista({
         {/* Lista com scroll estilizado */}
         <div className="max-h-[560px] overflow-y-auto space-y-3 pr-1">
           {pontos.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[#1A365D] bg-[#0C1E38]/50 p-8 text-center text-sm font-mono text-slate-400">
-              <Satellite className="mx-auto h-8 w-8 text-[#1A365D] mb-2" />
+            <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-8 text-center text-sm text-slate-500">
+              <Satellite className="mx-auto h-8 w-8 text-slate-400 dark:text-slate-600 mb-2" />
               Nenhuma unidade escolar encontrada com os filtros selecionados.
             </div>
           ) : (
@@ -104,9 +104,9 @@ export function PainelLista({
               const isAtivo = isSelected || isHovered;
 
               // Cores da tag de modalidade
-              let modalidadeBadge = 'border-cyan-500/30 bg-cyan-950/40 text-cyan-300';
+              let modalidadeBadge = 'border-sky-500/30 bg-sky-950/40 text-sky-300';
               if (ponto.tipo === 'ribeirinha')
-                modalidadeBadge = 'border-sky-500/30 bg-sky-950/40 text-sky-300';
+                modalidadeBadge = 'border-blue-500/30 bg-blue-950/40 text-blue-300';
               if (ponto.tipo === 'indígena')
                 modalidadeBadge = 'border-teal-500/30 bg-teal-950/40 text-teal-300';
               if (ponto.tipo === 'rural')
@@ -124,13 +124,13 @@ export function PainelLista({
                   onClick={() => onSelect(ponto.id)}
                   className={`group relative rounded-xl border p-4 transition-all cursor-pointer ${
                     isAtivo
-                      ? 'border-[#00D8FF] bg-[#0F2647] shadow-[0_0_16px_rgba(0,216,255,0.15)] translate-x-0.5'
-                      : 'border-[#1A365D] bg-[#0C1E38] hover:border-[#00D8FF]/70'
+                      ? 'border-[#004A99] dark:border-sky-500 bg-sky-50/50 dark:bg-slate-800/80 shadow-xs translate-x-0.5'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
-                  {/* Marcador Luminoso Lateral */}
+                  {/* Marcador Lateral */}
                   <div
-                    className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-[#00D8FF] transition-opacity ${
+                    className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-[#004A99] dark:bg-sky-500 transition-opacity ${
                       isAtivo ? 'opacity-100' : 'opacity-0'
                     }`}
                   />
@@ -138,15 +138,15 @@ export function PainelLista({
                   {/* CABEÇALHO DO CARD (1 Badge no Topo) */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-mono text-sm uppercase font-semibold text-[#E6F4FF] leading-snug group-hover:text-[#00D8FF] transition-colors truncate">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-snug group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition-colors truncate">
                         {ponto.nome}
                       </h3>
-                      <div className="mt-0.5 flex items-center gap-1.5 text-xs text-[#6482A6] font-mono">
-                        <MapPin className="h-3 w-3 text-cyan-400 shrink-0" />
+                      <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                        <MapPin className="h-3 w-3 text-sky-600 dark:text-sky-400 shrink-0" />
                         <span>{ponto.municipio}</span>
                         {ponto.comunidade && (
                           <>
-                            <span className="text-[#1A365D]">•</span>
+                            <span className="text-slate-300 dark:text-slate-600">•</span>
                             <span className="text-slate-400 truncate">
                               {ponto.comunidade}
                             </span>
@@ -157,41 +157,41 @@ export function PainelLista({
 
                     {/* 1 BADGE DA TIPOLOGIA NO TOPO */}
                     <span
-                      className={`shrink-0 rounded-md border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}
+                      className={`shrink-0 rounded-md border px-2.5 py-0.5 text-xs font-medium ${modalidadeBadge}`}
                     >
                       {ponto.tipo}
                     </span>
                   </div>
 
-                  {/* DIVISÓRIA 1PX DASHED */}
-                  <div className="my-2.5 border-t border-dashed border-[#1A365D]" />
+                  {/* DIVISÓRIA */}
+                  <div className="my-2.5 border-t border-slate-100 dark:border-slate-800" />
 
-                  {/* LINHA DE MÉTRICAS & LINK FOCAR NO RADAR */}
-                  <div className="flex items-center justify-between text-xs font-mono text-slate-300">
+                  {/* LINHA DE MÉTRICAS & LINK VER NO MAPA */}
+                  <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
                     <div className="flex items-center gap-2">
                       <span className="flex items-center gap-1">
-                        <BookOpen className="h-3.5 w-3.5 text-[#00D8FF]" />
+                        <BookOpen className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400" />
                         {ponto.turmas} turmas
                       </span>
-                      <span className="text-white/20">•</span>
+                      <span className="text-slate-300 dark:text-slate-600">•</span>
                       <span className="flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5 text-sky-400" />
+                        <Users className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400" />
                         {ponto.alunos} alunos
                       </span>
                     </div>
 
-                    <span className="text-[11px] font-bold text-[#00D8FF] group-hover:underline inline-flex items-center gap-1 shrink-0">
-                      Focar no Radar <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                    <span className="text-xs font-semibold text-[#004A99] dark:text-sky-400 group-hover:underline inline-flex items-center gap-1 shrink-0">
+                      Ver no mapa <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
                     </span>
                   </div>
 
                   {/* LINHA DISCRETA DO MEDIADOR */}
-                  <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                  <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                     <span className="truncate">
-                      Mediador: <strong className="text-slate-300 font-medium">{ponto.mediador}</strong>
+                      Mediador: <strong className="text-slate-700 dark:text-slate-300 font-medium">{ponto.mediador}</strong>
                     </span>
                     {ponto.distanciaKm !== undefined && (
-                      <span className="shrink-0 text-[10px] text-[#6482A6]">
+                      <span className="shrink-0 text-[11px] text-slate-400">
                         {ponto.distanciaKm} km
                       </span>
                     )}

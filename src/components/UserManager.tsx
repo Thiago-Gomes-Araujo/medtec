@@ -15,11 +15,9 @@ import {
   FileText, 
   Image as ImageIcon, 
   Bell, 
-  Sparkles,
   X
 } from 'lucide-react';
 import { UserAccount, UserProfileType } from '@/types';
-import Badge3D from '@/components/Badge3D';
 import { sanitizeSearchInput } from '@/lib/security';
 
 interface UserManagerProps {
@@ -40,7 +38,7 @@ const PROFILE_OPTIONS: { id: number; type: UserProfileType; label: string; desc:
     type: 'Gestor',
     label: 'Gestor Operacional',
     desc: 'Supervisão pedagógica, acompanhamento de alunos e polos',
-    icon: Sparkles,
+    icon: Users,
   },
   {
     id: 3,
@@ -247,15 +245,10 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
       <div className="rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Badge3D variant="pill">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span>Controle de Acessos Operacionais</span>
-              </Badge3D>
-              <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">
-                • SEDUC-RO
-              </span>
-            </div>
+            <p className="text-xs font-semibold text-[#004A99] dark:text-sky-400 flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Controle de Acessos Operacionais • SEDUC-RO
+            </p>
             <h2 className="text-xl sm:text-2xl font-bold font-display text-slate-900 dark:text-white pt-1">
               Gestão de Usuários Operadores
             </h2>
@@ -494,7 +487,7 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
                       {/* Nome e Avatar */}
                       <td className="py-3.5 px-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#004A99]/10 dark:bg-[#00D8FF]/10 text-[#004A99] dark:text-[#00D8FF] font-mono font-bold text-xs border border-[#004A99]/20">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#004A99]/10 dark:bg-[#00D8FF]/10 text-[#004A99] dark:text-[#00D8FF] font-mono font-bold text-xs border border-[#004A99]/20">
                             {user.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
@@ -533,7 +526,7 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
                         >
                           <span
                             className={`h-1.5 w-1.5 rounded-full ${
-                              isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                              isActive ? 'bg-emerald-500' : 'bg-slate-400'
                             }`}
                           />
                           <span>{isActive ? 'Ativo' : 'Inativo'}</span>

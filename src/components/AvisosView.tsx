@@ -79,19 +79,6 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
 
   return (
     <div className="space-y-6">
-      {/* Barra Informativa SEDUC Compacta */}
-      <div className="rounded-xl border border-amber-200/80 dark:border-amber-500/30 bg-amber-50/70 dark:bg-amber-950/20 px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-colors">
-        <div className="flex items-center gap-2">
-          <ShieldAlert size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
-          <span className="text-amber-900/90 dark:text-amber-300 font-medium">
-            Informes oficiais com validade jurídica para escolas, polos e turmas conectadas de Rondônia.
-          </span>
-        </div>
-        <span className="shrink-0 self-start sm:self-auto font-mono text-[10px] uppercase font-bold text-amber-800 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-900/40 px-2.5 py-0.5 rounded-md border border-amber-200 dark:border-amber-700/50">
-          Portaria SEDUC nº 928/2025
-        </span>
-      </div>
-
       {/* Barra de Filtros e Busca */}
       <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between pb-4 border-b border-slate-200 dark:border-[#1A365D] transition-colors">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -102,7 +89,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
               <button
                 key={cat.key}
                 onClick={() => setSelectedType(cat.key)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                   isSelected
                     ? 'bg-[#004A99] text-white dark:bg-[#00D8FF] dark:text-slate-950 font-bold shadow-xs'
                     : 'bg-white dark:bg-[#0C1E38] border border-slate-200 dark:border-[#1A365D] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#0F2647]'
@@ -110,7 +97,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
               >
                 <span>{cat.label}</span>
                 <span
-                  className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold tabular-nums ${
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${
                     isSelected 
                       ? 'bg-sky-200 text-slate-950 dark:bg-slate-950 dark:text-[#00D8FF]' 
                       : 'bg-slate-100 dark:bg-[#061224] text-slate-600 dark:text-slate-400'
@@ -130,7 +117,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
             maxLength={100}
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-[#004A99]/20 dark:focus:ring-cyan-500/20 focus:border-[#004A99] dark:focus:border-[#00D8FF] transition-all duration-150"
+            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-[#004A99]/20 dark:focus:ring-cyan-500/20 focus:border-[#004A99] dark:focus:border-[#00D8FF] transition-all duration-150"
           />
           <Search size={14} className="absolute left-2.5 top-2 text-slate-400 dark:text-slate-500" />
         </div>
@@ -139,7 +126,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
       {/* Lista de Cards Compactos */}
       {filteredItems.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-[#0C1E38] rounded-xl border border-dashed border-slate-200 dark:border-[#1A365D] p-6 transition-colors">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-[#061224] flex items-center justify-center mx-auto mb-2 text-slate-400 dark:text-slate-500">
+          <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-[#061224] flex items-center justify-center mx-auto mb-2 text-slate-400 dark:text-slate-500">
             <Megaphone size={18} />
           </div>
           <h3 className="text-xs font-bold text-slate-800 dark:text-white font-display">Nenhum aviso encontrado</h3>
@@ -155,7 +142,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
               <article
                 key={item.id}
                 onClick={() => setSelectedAviso(item)}
-                className={`glow-card bg-white dark:bg-[#0C1E38] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md dark:hover:border-cyan-400/50 transition-all duration-200 ease-out flex flex-col justify-between group active:scale-[0.99] touch-manipulation select-none cursor-pointer ${style.cardBorder}`}
+                className={`bg-white dark:bg-[#0C1E38] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group active:scale-[0.99] touch-manipulation select-none cursor-pointer ${style.cardBorder}`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2.5">
@@ -163,7 +150,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
                       <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
                       {style.label}
                     </span>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-mono tabular-nums">
+                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
                       <Calendar size={12} />
                       {item.date}
                     </span>
@@ -178,10 +165,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
                   </p>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-dashed border-slate-200/80 dark:border-[#1A365D]/60 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400 font-mono">
-                    ID: {item.id}
-                  </span>
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-[#1A365D]/60 flex items-center justify-end">
                   <button
                     type="button"
                     onClick={(e) => {

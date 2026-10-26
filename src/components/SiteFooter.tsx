@@ -4,36 +4,33 @@ import { ExternalLink } from 'lucide-react';
 
 export default function SiteFooter() {
   return (
-    <footer className="relative mt-20 overflow-hidden border-t border-sky-400/30 dark:border-cyan-500/20 bg-gradient-to-r from-[#05549D] via-[#072F5E] to-[#0A3D73] dark:from-[#040B16] dark:via-[#07162C] dark:to-[#040B16] text-white transition-colors duration-200">
-      <div className="hero-grid pointer-events-none absolute inset-0 opacity-30 dark:opacity-35" aria-hidden="true" />
-      <div className="pointer-events-none absolute -right-16 top-0 h-64 w-64 rounded-full bg-sky-400/20 dark:bg-cyan-500/10 blur-3xl" aria-hidden="true" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/80 dark:via-cyan-400/40 to-transparent" aria-hidden="true" />
+    <footer className="relative mt-20 border-t border-slate-200 dark:border-slate-800 bg-[#004A99] dark:bg-[#08152B] text-white transition-colors duration-200">
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 text-sm">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-3 lg:col-span-2">
             <Link
               href="/"
               aria-label="Voltar para a página inicial do MEDTEC Rondônia"
-              className="group inline-block cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300 rounded-lg p-1 -ml-1 transition-opacity hover:opacity-95"
+              className="group inline-block cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white rounded-lg p-1 -ml-1 transition-opacity hover:opacity-95"
             >
-              <p className="font-mono text-xs font-semibold uppercase tracking-wider text-cyan-300 dark:text-cyan-300">
+              <p className="text-xs font-semibold uppercase tracking-wider text-sky-200 dark:text-sky-300">
                 Rede Estadual de Rondônia
               </p>
-              <p className="font-display text-2xl font-bold tracking-tight text-white dark:text-[#E6F4FF] text-balance group-hover:text-cyan-200 transition-colors">
+              <p className="font-display text-2xl font-bold tracking-tight text-white dark:text-[#E6F4FF] text-balance group-hover:text-sky-200 transition-colors">
                 MEDTEC Rondônia · SEDUC-RO
               </p>
             </Link>
-            <p className="max-w-xl text-sm leading-relaxed text-sky-100/90 dark:text-slate-400 text-pretty [overflow-wrap:anywhere]">
+            <p className="max-w-xl text-sm leading-relaxed text-sky-100/90 dark:text-slate-300 text-pretty [overflow-wrap:anywhere]">
               Ensino Médio com Mediação Tecnológica, Lei Estadual nº 3.846/2016 e Portaria SEDUC nº 928/2025.
               Garantindo o direito universal à educação básica de excelência no campo, nas águas e nas florestas de todo o estado de Rondônia.
             </p>
-            <p className="text-xs text-sky-200/80 dark:text-slate-500 [overflow-wrap:anywhere]">
+            <p className="text-xs text-sky-200/80 dark:text-slate-400 [overflow-wrap:anywhere]">
               Governo do Estado de Rondônia | Secretaria de Estado da Educação (SEDUC-RO) - Coordenadoria de Mídias Educacionais. Palácio Rio Madeira, Porto Velho - RO.
             </p>
           </div>
 
           <div>
-            <h4 className="mb-3 font-mono text-xs font-bold uppercase tracking-wider text-cyan-300 dark:text-cyan-300">
+            <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-sky-200 dark:text-sky-300">
               Navegação
             </h4>
             <ul className="space-y-2 text-sm text-sky-100/90 dark:text-slate-400">
@@ -54,7 +51,7 @@ export default function SiteFooter() {
           </div>
 
           <div>
-            <h4 className="mb-3 font-mono text-xs font-bold uppercase tracking-wider text-cyan-300 dark:text-cyan-300">
+            <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-sky-200 dark:text-sky-300">
               Fontes oficiais
             </h4>
             <ul className="space-y-2 text-sm text-sky-100/90 dark:text-slate-400">

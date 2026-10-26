@@ -44,55 +44,55 @@ export function PainelFiltros({
       {/* BARRA SUPERIOR: BUSCA RÁPIDA & RESET */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#6482A6]" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
           <input
             type="text"
             value={filtros.busca || ''}
             onChange={(e) => setBusca(sanitizeSearchInput(e.target.value))}
             maxLength={100}
             placeholder="Buscar por escola, comunidade ou polo..."
-            className="w-full rounded-lg border border-[#1A365D] bg-[#061224]/90 pl-9 pr-8 py-1.5 text-xs font-mono text-[#E6F4FF] placeholder-[#6482A6] focus:border-[#00D8FF] focus:outline-none transition-colors"
+            className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/90 pl-9 pr-8 py-2 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:border-[#004A99] dark:focus:border-sky-500 focus:outline-hidden transition-colors"
           />
           {filtros.busca && (
             <button
               onClick={() => setBusca('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
 
-        <div className="flex items-center justify-between sm:justify-end gap-3 text-xs font-mono">
-          <span className="text-[#6482A6]">
-            Mostrando <strong className="text-[#00D8FF]">{totalResultados}</strong> pontos
+        <div className="flex items-center justify-between sm:justify-end gap-3 text-xs">
+          <span className="text-slate-500 dark:text-slate-400">
+            Mostrando <strong className="text-slate-900 dark:text-white">{totalResultados}</strong> unidades
           </span>
           {isFiltrado && (
             <button
               onClick={resetarFiltros}
-              className="inline-flex items-center gap-1 text-[11px] text-[#00D8FF] hover:underline cursor-pointer active:scale-95 transition-transform"
+              className="inline-flex items-center gap-1 text-xs text-[#004A99] dark:text-sky-400 hover:underline cursor-pointer"
             >
-              <span>Resetar filtros</span>
+              <span>Limpar filtros</span>
               <X className="h-3 w-3" />
             </button>
           )}
         </div>
       </div>
 
-      {/* FILTRO 1: PÍLULAS DE MUNICÍPIOS */}
+      {/* FILTRO 1: MUNICÍPIOS */}
       <div>
-        <div className="mb-1.5 flex items-center justify-between">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-[#6482A6] font-semibold">
-            01 • Polo Regional
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            Município ou Polo Regional
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={() => setMunicipio('Todos')}
-            className={`rounded-lg px-3 py-1.5 text-xs font-mono font-medium transition-all cursor-pointer ${
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
               filtros.municipio === 'Todos'
-                ? 'border border-[#00D8FF] bg-[#0C1E38] text-[#00D8FF] shadow-[0_0_14px_rgba(0,216,255,0.25)]'
-                : 'border border-[#1A365D] bg-[#061224]/80 text-slate-300 hover:border-slate-500 hover:text-white'
+                ? 'border border-[#004A99] dark:border-sky-500 bg-[#004A99] dark:bg-sky-600 text-white font-semibold shadow-xs'
+                : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             Todos ({municipios.length > 0 ? municipios.length : 52})
@@ -103,51 +103,47 @@ export function PainelFiltros({
               <button
                 key={m}
                 onClick={() => setMunicipio(m)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-mono font-medium transition-all cursor-pointer ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                   isSelected
-                    ? 'border border-[#00D8FF] bg-[#0C1E38] text-[#00D8FF] shadow-[0_0_14px_rgba(0,216,255,0.25)]'
-                    : 'border border-[#1A365D] bg-[#061224]/80 text-slate-300 hover:border-slate-500 hover:text-white'
+                    ? 'border border-[#004A99] dark:border-sky-500 bg-[#004A99] dark:bg-sky-600 text-white font-semibold shadow-xs'
+                    : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 {m}
               </button>
             );
           })}
-          <span className="rounded-lg border border-dashed border-[#1A365D] px-2 py-1.5 text-[11px] font-mono text-slate-500">
+          <span className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 px-2 py-1.5 text-[11px] text-slate-500 dark:text-slate-400">
             +46 municípios
           </span>
         </div>
       </div>
 
-      {/* FILTRO 2: TIPOLOGIA DE COMUNIDADE COM CORES SEMÂNTICAS */}
+      {/* FILTRO 2: TIPOLOGIA DE COMUNIDADE */}
       <div>
-        <span className="mb-1.5 block text-[10px] font-mono uppercase tracking-wider text-[#6482A6] font-semibold">
-          02 • Tipologia de Comunidade
+        <span className="mb-2 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+          Tipologia de Comunidade
         </span>
         <div className="flex flex-wrap items-center gap-1.5">
           {[
-            { id: 'todas', label: 'TODAS', dotColor: 'bg-white' },
-            { id: 'urbana', label: 'URBANA', dotColor: 'bg-[#00D8FF]' },
-            { id: 'rural', label: 'RURAL', dotColor: 'bg-amber-400' },
-            { id: 'ribeirinha', label: 'RIBEIRINHA', dotColor: 'bg-sky-400' },
-            { id: 'indígena', label: 'INDÍGENA / QUILOMBOLA', dotColor: 'bg-[#10B981]' },
+            { id: 'todas', label: 'Todas', dotColor: 'bg-slate-400' },
+            { id: 'urbana', label: 'Urbana', dotColor: 'bg-sky-500' },
+            { id: 'rural', label: 'Rural', dotColor: 'bg-amber-500' },
+            { id: 'ribeirinha', label: 'Ribeirinha', dotColor: 'bg-blue-500' },
+            { id: 'indígena', label: 'Indígena / Quilombola', dotColor: 'bg-emerald-500' },
           ].map((item) => {
             const isSelected = filtros.tipo === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setTipo(item.id)}
-                className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-mono transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                   isSelected
-                    ? 'border border-[#00D8FF] bg-[#0C1E38] text-white font-semibold shadow-[0_0_12px_rgba(0,216,255,0.2)]'
-                    : 'border border-[#1A365D] bg-[#061224]/60 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                    ? 'border border-[#004A99] dark:border-sky-500 bg-[#004A99] dark:bg-sky-600 text-white font-semibold shadow-xs'
+                    : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${item.dotColor} ${
-                    isSelected ? 'animate-ping' : ''
-                  }`}
-                />
+                <span className={`h-2 w-2 rounded-full ${item.dotColor}`} />
                 <span>{item.label}</span>
               </button>
             );

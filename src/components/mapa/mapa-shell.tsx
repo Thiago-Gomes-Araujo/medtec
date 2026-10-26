@@ -45,28 +45,23 @@ export function MapaShell() {
 
   return (
     <div className="space-y-6">
-      {/* ========================================================
-          CABEÇALHO HUD DO MAPA DA COMUNIDADE
-      ======================================================== */}
-      <div className="rounded-2xl border border-[#1A365D] bg-[#040B16] p-4 sm:p-6 shadow-2xl">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-dashed border-[#1A365D] pb-3 text-[11px] font-mono">
-          <div className="flex items-center gap-2 text-[#00D8FF]">
-            <Radio className="h-3.5 w-3.5 animate-pulse text-[#F43F5E]" />
-            <span className="font-bold tracking-wider uppercase">
-              MAPA DA COMUNIDADE // PADRÃO LEAFLET SÍNCRONO
+      {/* CABEÇALHO DO MAPA */}
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-xs">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 text-xs">
+          <div className="flex items-center gap-2 text-[#004A99] dark:text-sky-400">
+            <Radio className="h-4 w-4" />
+            <span className="font-semibold">
+              Mapa das Comunidades Atendidas
             </span>
           </div>
-          <div className="flex items-center gap-3 text-slate-400">
-            <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-              BANDA KU OPERACIONAL
+          <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+            <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              Conexão Satelital Operacional
             </span>
-            <span className="text-[#1A365D] hidden sm:inline">|</span>
-            <span className="text-[#6482A6] hidden sm:inline">
-              ROTA OSRM / GEOCODE PROXY
+            <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
+            <span className="hidden sm:inline">
+              Rede Estadual de Ensino de Rondônia
             </span>
           </div>
         </div>

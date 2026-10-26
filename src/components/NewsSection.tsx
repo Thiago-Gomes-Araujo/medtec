@@ -115,25 +115,15 @@ export default function NewsSection({ news }: NewsSectionProps) {
                     alt={item.title}
                     className="w-full h-full object-cover transition-opacity duration-300"
                   />
-                  <div className="absolute top-3 left-3">
-                    <span className="px-2.5 py-1 rounded-md bg-primary/90 text-white text-[11px] font-bold backdrop-blur-xs">
-                      {item.category}
-                    </span>
-                  </div>
-                  {item.featured && (
-                    <div className="absolute top-3 right-3">
-                      <span className="px-2.5 py-1 rounded-md bg-amber-500 text-slate-950 text-[11px] font-extrabold shadow-sm">
-                        Destaque
-                      </span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Conteúdo */}
                 <div className="p-6 flex-1 flex flex-col justify-between">
                   <div>
                     {/* Metadados */}
-                    <div className="flex items-center gap-3 text-xs text-slate-400 mb-3">
+                    <div className="flex items-center gap-2.5 text-xs text-slate-500 mb-3 flex-wrap">
+                      <span className="font-semibold text-primary">{item.category}</span>
+                      <span>•</span>
                       <span className="flex items-center gap-1 font-medium">
                         <Calendar size={13} />
                         {item.publishedAt}

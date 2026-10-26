@@ -101,7 +101,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="site-mesh min-h-screen text-[#0B1B30] dark:text-[#E6F4FF] font-sans antialiased selection:bg-cyan-400 selection:text-slate-950 flex flex-col transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
+      <body className="bg-[#F8FAFC] dark:bg-[#0B1528] min-h-screen text-[#0F172A] dark:text-[#F8FAFC] font-sans antialiased selection:bg-[#004A99] selection:text-white dark:selection:bg-[#38BDF8] dark:selection:text-slate-900 flex flex-col transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
         {children}
       </body>
     </html>

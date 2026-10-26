@@ -303,58 +303,47 @@ export default function SchoolMap() {
         {/* ========================================================
             COLUNA DA ESQUERDA: RADAR CARTOGRÁFICO DE TELEMETRIA AMAZÔNICA
         ======================================================== */}
-        <div className="relative rounded-2xl border border-[#1A365D] bg-[#040B16] p-4 sm:p-6 shadow-2xl flex flex-col justify-between overflow-hidden">
-          
-          {/* Cantoneiras Técnicas (Retícula HUD nos 4 cantos) */}
-          <div className="pointer-events-none absolute left-3 top-3 h-3.5 w-3.5 border-l-2 border-t-2 border-[#00D8FF]/70" />
-          <div className="pointer-events-none absolute right-3 top-3 h-3.5 w-3.5 border-r-2 border-t-2 border-[#00D8FF]/70" />
-          <div className="pointer-events-none absolute bottom-3 left-3 h-3.5 w-3.5 border-b-2 border-l-2 border-[#00D8FF]/70" />
-          <div className="pointer-events-none absolute bottom-3 right-3 h-3.5 w-3.5 border-b-2 border-r-2 border-[#00D8FF]/70" />
-
-          {/* CABEÇALHO DO MAPA: SISTEMA DE FILTROS DUPLOS E TELEMETRIA */}
-          <div className="space-y-3.5 relative z-10">
-            
+        <div className="relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm flex flex-col justify-between overflow-hidden">
+          {/* CABEÇALHO DO MAPA */}
+          <div className="space-y-4 relative z-10">
             {/* Linha de Status de Conexão Superior */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-dashed border-[#1A365D] pb-3 text-[11px] font-mono">
-              <div className="flex items-center gap-2 text-[#00D8FF]">
-                <Radio className="h-3.5 w-3.5 animate-pulse text-[#F43F5E]" />
-                <span className="font-bold tracking-wider uppercase">Radar Cartográfico • Estado de Rondônia</span>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 text-xs">
+              <div className="flex items-center gap-2 text-[#004A99] dark:text-sky-400">
+                <Radio className="h-4 w-4" />
+                <span className="font-semibold">Mapa Territorial • Estado de Rondônia</span>
               </div>
-              <div className="flex items-center gap-3 text-slate-400">
-                <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                  </span>
-                  BANDA KU 100% OPERACIONAL
+              <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  Conexão Satelital Operacional
                 </span>
-                <span className="text-[#1A365D] hidden sm:inline">|</span>
-                <span className="text-[#6482A6] hidden sm:inline">UPLINK SEDUC-PVH</span>
+                <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
+                <span className="hidden sm:inline">SEDUC Porto Velho</span>
               </div>
             </div>
 
-            {/* FILTRO 1: PÍLULAS DE MUNICÍPIOS */}
+            {/* FILTRO 1: MUNICÍPIOS */}
             <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#6482A6] font-semibold">
-                  [ 01 • NÓ GEOGRÁFICO / MUNICÍPIO ]
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Município ou Polo Regional
                 </span>
                 {selectedCity !== 'Todos' && (
                   <button
                     onClick={() => setSelectedCity('Todos')}
-                    className="text-[10px] font-mono text-[#00D8FF] hover:underline cursor-pointer"
+                    className="text-xs text-[#004A99] dark:text-sky-400 hover:underline cursor-pointer"
                   >
-                    Resetar Filtro ×
+                    Limpar filtro
                   </button>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   onClick={() => setSelectedCity('Todos')}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-mono font-medium transition-all cursor-pointer ${
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                     selectedCity === 'Todos'
-                      ? 'border border-[#00D8FF] bg-[#0C1E38] text-[#00D8FF] shadow-[0_0_14px_rgba(0,216,255,0.25)]'
-                      : 'border border-[#1A365D] bg-[#061224]/80 text-slate-300 hover:border-slate-500 hover:text-white'
+                      ? 'border border-[#004A99] dark:border-sky-500 bg-[#004A99] dark:bg-sky-600 text-white font-semibold shadow-xs'
+                      : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   Todos ({dynamicMunicipios.length > 0 ? dynamicMunicipios.length : 52})
@@ -365,47 +354,47 @@ export default function SchoolMap() {
                     <button
                       key={m}
                       onClick={() => setSelectedCity(m)}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-mono font-medium transition-all cursor-pointer ${
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                         isSelected
-                          ? 'border border-[#00D8FF] bg-[#0C1E38] text-[#00D8FF] shadow-[0_0_14px_rgba(0,216,255,0.25)]'
-                          : 'border border-[#1A365D] bg-[#061224]/80 text-slate-300 hover:border-slate-500 hover:text-white'
+                          ? 'border border-[#004A99] dark:border-sky-500 bg-[#004A99] dark:bg-sky-600 text-white font-semibold shadow-xs'
+                          : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
                       {m}
                     </button>
                   );
                 })}
-                <span className="rounded-lg border border-dashed border-[#1A365D] px-2 py-1.5 text-[11px] font-mono text-slate-500">
+                <span className="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 px-2 py-1.5 text-[11px] text-slate-500 dark:text-slate-400">
                   +46 municípios
                 </span>
               </div>
             </div>
 
-            {/* FILTRO 2: TIPOLOGIA DE COMUNIDADE COM INDICADORES LUMINOSOS */}
+            {/* FILTRO 2: TIPOLOGIA DE COMUNIDADE */}
             <div>
-              <span className="mb-1.5 block text-[10px] font-mono uppercase tracking-[0.18em] text-[#6482A6] font-semibold">
-                [ 02 • TIPOLOGIA DE COMUNIDADE ]
+              <span className="mb-2 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Tipologia de Comunidade
               </span>
               <div className="flex flex-wrap items-center gap-1.5">
                 {[
-                  { id: 'todas', label: 'TODAS', dotColor: 'bg-white' },
-                  { id: 'urbana', label: 'URBANA', dotColor: 'bg-[#00D8FF]' },
-                  { id: 'rural', label: 'RURAL', dotColor: 'bg-amber-400' },
-                  { id: 'ribeirinha', label: 'RIBEIRINHA', dotColor: 'bg-cyan-300' },
-                  { id: 'indígena', label: 'INDÍGENA / QUILOMBOLA', dotColor: 'bg-[#10B981]' }
+                  { id: 'todas', label: 'Todas', dotColor: 'bg-slate-400' },
+                  { id: 'urbana', label: 'Urbana', dotColor: 'bg-sky-500' },
+                  { id: 'rural', label: 'Rural', dotColor: 'bg-amber-500' },
+                  { id: 'ribeirinha', label: 'Ribeirinha', dotColor: 'bg-blue-500' },
+                  { id: 'indígena', label: 'Indígena / Quilombola', dotColor: 'bg-emerald-500' }
                 ].map((item) => {
                   const isSelected = selectedType === item.id;
                   return (
                     <button
                       key={item.id}
                       onClick={() => setSelectedType(item.id)}
-                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-1 text-xs font-mono transition-all cursor-pointer ${
+                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition-all cursor-pointer ${
                         isSelected
-                          ? 'border border-[#00D8FF] bg-[#0C1E38] text-white font-semibold shadow-[0_0_12px_rgba(0,216,255,0.2)]'
-                          : 'border border-[#1A365D] bg-[#061224]/60 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+                          ? 'border border-[#004A99] dark:border-sky-500 bg-[#004A99] dark:bg-sky-600 text-white font-semibold shadow-xs'
+                          : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white'
                       }`}
                     >
-                      <span className={`h-1.5 w-1.5 rounded-full ${item.dotColor} ${isSelected ? 'animate-ping' : ''}`} />
+                      <span className={`h-2 w-2 rounded-full ${item.dotColor}`} />
                       <span>{item.label}</span>
                     </button>
                   );
@@ -418,18 +407,7 @@ export default function SchoolMap() {
           {/* ========================================================
               CANVAS CARTOGRÁFICO INTERATIVO SVG (VIEWBOX 0 0 760 580)
           ======================================================== */}
-          <div className="relative mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl border border-[#1A365D] bg-[#020710] shadow-inner">
-            
-            {/* RÉGUAS E MARCAÇÕES DE COORDENADAS REAIS NAS BORDAS */}
-            <div className="pointer-events-none absolute left-2.5 top-2 z-20 font-mono text-[9px] uppercase tracking-wider text-[#6482A6]/80">
-              LAT -8.76° S a -13.69° S
-            </div>
-            <div className="pointer-events-none absolute right-2.5 top-2 z-20 font-mono text-[9px] uppercase tracking-wider text-[#6482A6]/80">
-              LON -66.80° W a -59.77° W
-            </div>
-            <div className="pointer-events-none absolute left-2.5 bottom-2 z-20 font-mono text-[9px] text-[#6482A6]/60">
-              DATUM: SIRGAS 2000 • RONDÔNIA
-            </div>
+          <div className="relative mt-4 aspect-[4/3] w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-950 shadow-inner">
 
             {/* SVG CARTOGRÁFICO DE 4 CAMADAS */}
             <svg
@@ -716,16 +694,6 @@ export default function SchoolMap() {
                       onMouseLeave={() => setHoveredNodeId(null)}
                       onClick={() => setSelectedCity(node.municipio)}
                     >
-                      {/* Retícula/Mira Técnica nos Cantos quando Selecionado/Hover */}
-                      {(isSelected || isHovered) && (
-                        <g stroke={nodeColor} strokeWidth="1.4" fill="none">
-                          <path d={`M ${node.x - 12} ${node.y - 7} L ${node.x - 12} ${node.y - 12} L ${node.x - 7} ${node.y - 12}`} />
-                          <path d={`M ${node.x + 7} ${node.y - 12} L ${node.x + 12} ${node.y - 12} L ${node.x + 12} ${node.y - 7}`} />
-                          <path d={`M ${node.x - 12} ${node.y + 7} L ${node.x - 12} ${node.y + 12} L ${node.x - 7} ${node.y + 12}`} />
-                          <path d={`M ${node.x + 7} ${node.y + 12} L ${node.x + 12} ${node.y + 12} L ${node.x + 12} ${node.y + 7}`} />
-                        </g>
-                      )}
-
                       {/* Círculo de Brilho Externo */}
                       <circle
                         cx={node.x}
@@ -746,18 +714,18 @@ export default function SchoolMap() {
                         filter="url(#glow-cyan)"
                       />
 
-                      {/* TAG FLUTUANTE COMPACTA HUD AO LADO DO NÓ */}
+                      {/* TAG FLUTUANTE AO LADO DO NÓ */}
                       {(() => {
                         const count = municipalityStats[node.municipio]?.alunos;
                         const tagText = isHub
                           ? isSelected || isHovered
-                            ? `[ HUB SEDUC • ${count || 132} ALUNOS ]`
-                            : '[ PORTO VELHO • 132 ALUNOS ]'
+                            ? `Hub SEDUC • ${count || 132} alunos`
+                            : 'Porto Velho • 132 alunos'
                           : isSelected || isHovered
                           ? count
-                            ? `[ ${node.name.toUpperCase()} • ${count} ALUNOS ]`
-                            : `[ ${node.name.toUpperCase()} ]`
-                          : `[ ${node.name.toUpperCase()} ]`;
+                            ? `${node.name} • ${count} alunos`
+                            : node.name
+                          : node.name;
 
                         const tagWidth = tagText.length * 6.6 + 14;
                         const isRightSide = node.x > 480;
@@ -785,7 +753,6 @@ export default function SchoolMap() {
                               y="12.5"
                               fill={isSelected || isHovered ? nodeColor : '#E6F4FF'}
                               fontSize="9"
-                              fontFamily="monospace"
                               fontWeight={isSelected || isHovered ? 'bold' : 'normal'}
                               className="select-none tracking-tight"
                             >
@@ -799,9 +766,7 @@ export default function SchoolMap() {
                 })}
               </g>
 
-              {/* ========================================================
-                  TOOLTIP DINÂMICO DE TELEMETRIA EM TEMPO REAL NO MAPA
-              ======================================================== */}
+              {/* TOOLTIP DE UNIDADE NO MAPA */}
               {activeTargetNode && (
                 <g
                   transform={`translate(${Math.min(520, Math.max(20, activeTargetNode.x - 110))}, ${
@@ -811,7 +776,7 @@ export default function SchoolMap() {
                 >
                   <rect
                     width="220"
-                    height="70"
+                    height="60"
                     rx="8"
                     fill="#0C1E38"
                     fillOpacity="0.96"
@@ -820,54 +785,49 @@ export default function SchoolMap() {
                     filter="url(#glow-cyan)"
                   />
                   <circle cx="16" cy="15" r="3" fill="#00D8FF" />
-                  <text x="25" y="18" fill="#00D8FF" fontSize="10" fontFamily="monospace" fontWeight="bold">
-                    TRANSMISSÃO SATELITAL • BANDA KU
+                  <text x="25" y="18" fill="#00D8FF" fontSize="10" fontWeight="bold">
+                    Transmissão Satelital • SEDUC-RO
                   </text>
-                  <text x="12" y="34" fill="#E6F4FF" fontSize="11" fontFamily="monospace" fontWeight="bold">
+                  <text x="12" y="34" fill="#E6F4FF" fontSize="11" fontWeight="bold">
                     {hoveredSchool ? hoveredSchool.nome.slice(0, 24) : activeTargetNode.name}
                   </text>
-                  <text x="12" y="48" fill="#6482A6" fontSize="9" fontFamily="monospace">
-                    COORD: {activeTargetNode.lat} • {activeTargetNode.lon}
-                  </text>
-                  <text x="12" y="60" fill="#10B981" fontSize="9" fontFamily="monospace" fontWeight="semibold">
-                    STATUS: SINAL SATELITAL ATIVO // SEDUC-RO
+                  <text x="12" y="48" fill="#10B981" fontSize="9" fontWeight="semibold">
+                    Status: Conexão regular ativa
                   </text>
                 </g>
               )}
             </svg>
           </div>
 
-          {/* ========================================================
-              RODAPÉ INTERNO DO MAPA: BARRA DE STATUS DE TELEMETRIA
-          ======================================================== */}
-          <div className="mt-4 border-t border-dashed border-[#1A365D] pt-3 text-[11px] font-mono text-slate-300">
+          {/* RODAPÉ DO MAPA */}
+          <div className="mt-4 border-t border-slate-200 dark:border-slate-800 pt-3 text-xs text-slate-500 dark:text-slate-400">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-white font-medium">
-                  TERRITÓRIO DE RONDÔNIA • COBERTURA: 100% (52 MUNICÍPIOS)
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-slate-800 dark:text-slate-200 font-medium">
+                  Cobertura estadual nos 52 municípios
                 </span>
-                <span className="text-white/20 hidden md:inline">•</span>
-                <span className="text-[#00D8FF] hidden md:inline">SINAL: BANDA KU ATIVO</span>
+                <span className="text-slate-300 dark:text-slate-700 hidden md:inline">•</span>
+                <span className="text-sky-600 dark:text-sky-400 hidden md:inline">Transmissão via satélite regular</span>
               </div>
 
-              {/* LEGENDA TÉCNICA DE TELEMETRIA */}
-              <div className="flex flex-wrap items-center gap-3 text-[10px]">
+              {/* LEGENDA */}
+              <div className="flex flex-wrap items-center gap-3 text-xs">
                 <div className="flex items-center gap-1.5" title="Polos Urbanos ao longo da BR-364">
                   <span className="h-2 w-2 rounded-full bg-[#00D8FF]" />
-                  <span className="text-slate-300 font-medium">Polos Urbanos (BR-364)</span>
+                  <span className="text-slate-600 dark:text-slate-400">Polos Urbanos</span>
                 </div>
                 <div className="flex items-center gap-1.5" title="Comunidades Ribeirinhas, Indígenas e Quilombolas">
                   <span className="h-2 w-2 rounded-full bg-[#10B981]" />
-                  <span className="text-slate-300 font-medium">Ribeirinha / Indígena</span>
+                  <span className="text-slate-600 dark:text-slate-400">Ribeirinha / Indígena</span>
                 </div>
-                <div className="flex items-center gap-1.5" title="Calhas dos Rios Madeira, Mamoré e Guaporé">
+                <div className="flex items-center gap-1.5" title="Calhas Fluviais">
                   <span className="h-2 w-2 rounded-full bg-[#0284C7]" />
-                  <span className="text-slate-300 font-medium">Calha Fluvial</span>
+                  <span className="text-slate-600 dark:text-slate-400">Calha Fluvial</span>
                 </div>
-                <div className="flex items-center gap-1.5 border-l border-[#1A365D] pl-2.5" title="Estúdio Emissor Central SEDUC Porto Velho">
-                  <span className="h-2 w-2 rounded-full bg-[#F43F5E] animate-pulse" />
-                  <span className="text-rose-300 font-semibold">Hub Emissor SEDUC</span>
+                <div className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-800 pl-2.5" title="Estúdio Central SEDUC Porto Velho">
+                  <span className="h-2 w-2 rounded-full bg-[#F43F5E]" />
+                  <span className="text-rose-600 dark:text-rose-400 font-semibold">Hub SEDUC</span>
                 </div>
               </div>
             </div>
@@ -875,76 +835,70 @@ export default function SchoolMap() {
 
         </div>
 
-        {/* ========================================================
-            COLUNA DA DIREITA: SINCRONIZAÇÃO BIDIRECIONAL & ESCOLAS
-        ======================================================== */}
+        {/* COLUNA DA DIREITA: ESCOLAS */}
         <div className="space-y-4 flex flex-col justify-between">
           
-          {/* ================= 1. PAINEL DE KPIS DINÂMICOS (3 MÓDULOS) ================= */}
+          {/* PAINEL DE INDICADORES */}
           <div className="grid grid-cols-3 gap-3">
-            {/* KPI 1: Escolas */}
-            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-3.5 sm:p-4 transition-all hover:border-slate-300 dark:hover:border-[#00D8FF]/40 shadow-sm dark:shadow-none">
-              <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-slate-500 dark:text-[#6482A6]">
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 sm:p-4 shadow-xs">
+              <span className="block text-xs uppercase font-medium text-slate-500 dark:text-slate-400">
                 Escolas Conectadas
               </span>
-              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-tight text-slate-900 dark:text-[#E6F4FF]">
+              <p className="mt-1 font-display text-2xl sm:text-3xl font-bold leading-tight text-slate-900 dark:text-white">
                 {filteredSchools.length}
               </p>
-              <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+              <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="h-3 w-3" />
                 <span>100% ativas</span>
               </div>
             </div>
 
-            {/* KPI 2: Turmas */}
-            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-3.5 sm:p-4 transition-all hover:border-slate-300 dark:hover:border-[#00D8FF]/40 shadow-sm dark:shadow-none">
-              <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-slate-500 dark:text-[#6482A6]">
-                Turmas no Ar
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 sm:p-4 shadow-xs">
+              <span className="block text-xs uppercase font-medium text-slate-500 dark:text-slate-400">
+                Turmas Ativas
               </span>
-              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-tight text-slate-900 dark:text-[#E6F4FF]">
+              <p className="mt-1 font-display text-2xl sm:text-3xl font-bold leading-tight text-slate-900 dark:text-white">
                 {stats.turmas}
               </p>
-              <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-cyan-700 dark:text-cyan-400">
+              <div className="mt-2 flex items-center gap-1 text-xs text-sky-600 dark:text-sky-400">
                 <Signal className="h-3 w-3" />
-                <span>Síncronas</span>
+                <span>Em mediação</span>
               </div>
             </div>
 
-            {/* KPI 3: Estudantes */}
-            <div className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-3.5 sm:p-4 transition-all hover:border-slate-300 dark:hover:border-[#00D8FF]/40 shadow-sm dark:shadow-none">
-              <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-slate-500 dark:text-[#6482A6]">
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 sm:p-4 shadow-xs">
+              <span className="block text-xs uppercase font-medium text-slate-500 dark:text-slate-400">
                 Alunos Atendidos
               </span>
-              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-tight text-slate-900 dark:text-[#E6F4FF]">
+              <p className="mt-1 font-display text-2xl sm:text-3xl font-bold leading-tight text-slate-900 dark:text-white">
                 {stats.alunos}
               </p>
-              <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-sky-700 dark:text-sky-400">
+              <div className="mt-2 flex items-center gap-1 text-xs text-sky-600 dark:text-sky-400">
                 <Users className="h-3 w-3" />
                 <span>Matriculados</span>
               </div>
             </div>
           </div>
 
-          {/* ================= 2. CARDS DE UNIDADES ESCOLARES (HOVER & CLICK SYNC) ================= */}
+          {/* LISTA DE ESCOLAS */}
           <div className="flex-1">
             <div className="mb-2 flex items-center justify-between px-1">
-              <p className="text-xs font-mono uppercase tracking-wider text-slate-600 dark:text-[#6482A6]">
-                UNIDADES ESCOLARES • {selectedCity.toUpperCase()} ({filteredSchools.length})
+              <p className="text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 font-semibold">
+                Unidades Escolares: {selectedCity} ({filteredSchools.length})
               </p>
-              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
-                Passe o mouse para ativar o feixe no mapa
+              <span className="text-xs text-slate-400 dark:text-slate-500">
+                Selecione uma escola para focar
               </span>
             </div>
 
-            {/* Lista com Barra de Rolagem Personalizada */}
             <div className="max-h-[580px] space-y-3 overflow-y-auto pr-1">
               {filteredSchools.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-slate-300 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38]/50 p-10 text-center text-sm font-mono text-slate-500 dark:text-slate-400 shadow-sm">
-                  <Satellite className="mx-auto h-8 w-8 text-slate-400 dark:text-[#1A365D] mb-2" />
+                <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-10 text-center text-sm text-slate-500">
+                  <Satellite className="mx-auto h-8 w-8 text-slate-400 dark:text-slate-600 mb-2" />
                   Nenhuma unidade escolar encontrada para esta combinação de filtros.
                   <button
                     onClick={() => { setSelectedCity('Todos'); setSelectedType('todas'); }}
-                    className="mt-3 block mx-auto text-xs text-[#05549D] dark:text-[#00D8FF] hover:underline cursor-pointer"
+                    className="mt-3 block mx-auto text-xs text-[#004A99] dark:text-sky-400 hover:underline cursor-pointer"
                   >
                     Restaurar visualização completa
                   </button>
@@ -953,9 +907,8 @@ export default function SchoolMap() {
                 filteredSchools.map((escola: Escola) => {
                   const isHovered = hoveredSchoolId === escola.id;
 
-                  // Indicador de cor da modalidade
-                  let modalidadeBadge = 'border-cyan-500/30 bg-cyan-50 text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-300';
-                  if (escola.tipo === 'ribeirinha') modalidadeBadge = 'border-emerald-500/30 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300';
+                  let modalidadeBadge = 'border-sky-500/30 bg-sky-50 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300';
+                  if (escola.tipo === 'ribeirinha') modalidadeBadge = 'border-blue-500/30 bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300';
                   if (escola.tipo === 'indígena') modalidadeBadge = 'border-teal-500/30 bg-teal-50 text-teal-800 dark:bg-teal-950/40 dark:text-teal-300';
                   if (escola.tipo === 'rural') modalidadeBadge = 'border-amber-500/30 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300';
 
@@ -970,72 +923,66 @@ export default function SchoolMap() {
                       onMouseEnter={() => setHoveredSchoolId(escola.id)}
                       onMouseLeave={() => setHoveredSchoolId(null)}
                       onClick={() => setSelectedCity(escola.municipio)}
-                      className={`group relative rounded-xl border p-4 transition-all cursor-pointer shadow-xs dark:shadow-none ${
+                      className={`group relative rounded-xl border p-4 transition-all cursor-pointer shadow-xs ${
                         isHovered
-                          ? 'border-[#00D8FF] bg-sky-50/50 dark:bg-[#0F2647] shadow-md dark:shadow-[0_0_16px_rgba(0,216,255,0.15)] translate-x-1'
-                          : 'border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] hover:border-sky-400 dark:hover:border-[#00D8FF]/70'
+                          ? 'border-[#004A99] dark:border-sky-500 bg-sky-50/50 dark:bg-slate-800/80'
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
                       }`}
                     >
-                      {/* Marcador Luminoso Lateral no Hover */}
                       <div
-                        className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-[#00D8FF] transition-opacity ${
+                        className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-[#004A99] dark:bg-sky-500 transition-opacity ${
                           isHovered ? 'opacity-100' : 'opacity-0'
                         }`}
                       />
 
-                      {/* CABEÇALHO DO CARD DA ESCOLA (1 Badge no Topo) */}
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-mono text-sm uppercase font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug group-hover:text-sky-700 dark:group-hover:text-[#00D8FF] transition-colors truncate">
+                          <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-snug group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition-colors truncate">
                             {escola.nome}
                           </h3>
-                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500 dark:text-[#6482A6] font-mono">
-                            <MapPin className="h-3 w-3 text-cyan-600 dark:text-cyan-400 shrink-0" />
+                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                            <MapPin className="h-3 w-3 text-sky-600 dark:text-sky-400 shrink-0" />
                             <span>{escola.municipio}</span>
                             {escola.comunidade && (
                               <>
-                                <span className="text-slate-300 dark:text-[#1A365D]">•</span>
-                                <span className="text-slate-500 dark:text-slate-400 truncate">{escola.comunidade}</span>
+                                <span className="text-slate-300 dark:text-slate-700">•</span>
+                                <span className="text-slate-400 truncate">{escola.comunidade}</span>
                               </>
                             )}
                           </div>
                         </div>
 
-                        {/* 1 BADGE DA TIPOLOGIA NO TOPO */}
-                        <span className={`shrink-0 rounded-md border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}>
+                        <span className={`shrink-0 rounded-md border px-2.5 py-0.5 text-xs font-medium ${modalidadeBadge}`}>
                           {escola.tipo}
                         </span>
                       </div>
 
-                      {/* DIVISÓRIA INTERNA 1PX DASHED */}
-                      <div className="my-2.5 border-t border-dashed border-slate-200 dark:border-[#1A365D]" />
+                      <div className="my-2.5 border-t border-slate-100 dark:border-slate-800" />
 
-                      {/* LINHA DE MÉTRICAS & LINK FOCAR NO RADAR */}
-                      <div className="flex items-center justify-between text-xs font-mono text-slate-600 dark:text-slate-300">
+                      <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
                         <div className="flex items-center gap-2">
                           <span className="flex items-center gap-1">
-                            <BookOpen className="h-3.5 w-3.5 text-[#05549D] dark:text-[#00D8FF]" />
+                            <BookOpen className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400" />
                             {escola.turmas} turmas
                           </span>
-                          <span className="text-slate-300 dark:text-white/20">•</span>
+                          <span className="text-slate-300 dark:text-slate-700">•</span>
                           <span className="flex items-center gap-1">
-                            <Users className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+                            <Users className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400" />
                             {escola.alunos} alunos
                           </span>
                         </div>
 
-                        <span className="text-[11px] font-bold text-[#05549D] dark:text-[#00D8FF] group-hover:underline inline-flex items-center gap-1 shrink-0">
-                          Focar no Radar <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                        <span className="text-xs font-semibold text-[#004A99] dark:text-sky-400 group-hover:underline inline-flex items-center gap-1 shrink-0">
+                          Ver no mapa <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
                         </span>
                       </div>
 
-                      {/* LINHA DISCRETA DO MEDIADOR RESPONSÁVEL */}
-                      <div className="mt-2 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                      <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                         <span className="truncate">
                           Mediador: <strong className="text-slate-700 dark:text-slate-300 font-medium">{escola.mediador}</strong>
                         </span>
                         {escola.distanciaKm && (
-                          <span className="shrink-0 text-[10px]">
+                          <span className="shrink-0 text-[11px] text-slate-400">
                             {escola.distanciaKm} km SEDUC
                           </span>
                         )}

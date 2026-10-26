@@ -45,11 +45,11 @@ export default function HomeProjectsAccordionSection() {
         {/* Cabeçalho Editorial da Seção */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1">
-            <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF]">
-              Exploração Panorâmica por Território
+            <p className="text-sm font-semibold text-[#004A99] dark:text-sky-400">
+              Projetos Pedagógicos nas Escolas de Rondônia
             </p>
             <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight text-balance">
-              Panorama dos 6 Ecossistemas Pedagógicos
+              Panorama das Atividades Pedagógicas por Município
             </h2>
           </div>
 
@@ -81,7 +81,7 @@ export default function HomeProjectsAccordionSection() {
           <div className="rounded-2xl border border-dashed border-slate-300 dark:border-[#1A365D] p-12 text-center">
             <Sparkles className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" />
             <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
-              Nenhuma missão pedagógica cadastrada
+              Nenhum projeto pedagógico cadastrado
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Os projetos pedagógicos serão exibidos aqui assim que registrados na API oficial.
@@ -122,18 +122,18 @@ export default function HomeProjectsAccordionSection() {
                 {isHovered ? (
                   <div className="relative z-10 flex flex-col justify-between h-full space-y-3">
                     
-                    {/* Topo da Lâmina (1 Tag despoluída) */}
+                    {/* Topo da Lâmina */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[#00D8FF] border border-[#00D8FF]/40 tabular-nums">
-                        {proj.missionCode} • {proj.typology}
+                      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-white border border-white/20">
+                        {proj.typology}
                       </span>
                     </div>
 
                     {/* Meio / Rodapé da Lâmina */}
                     <div className="space-y-2.5">
                       <div className="space-y-1">
-                        <span className="text-[11px] font-mono text-slate-300 flex items-center gap-1">
-                          <MapPin className="h-3 w-3 text-[#00D8FF]" />
+                        <span className="text-[11px] text-slate-300 flex items-center gap-1 font-medium">
+                          <MapPin className="h-3 w-3 text-sky-400" />
                           {proj.territory}
                         </span>
                         <h3 className="font-display text-base sm:text-lg font-bold text-white leading-snug text-balance">
@@ -148,7 +148,7 @@ export default function HomeProjectsAccordionSection() {
 
                       {/* Ações e Identificação */}
                       <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <span className="text-[11px] font-mono text-slate-300 truncate">
+                        <span className="text-[11px] text-slate-300 truncate">
                           {proj.school} • {proj.mediatorName}
                         </span>
 
@@ -156,7 +156,7 @@ export default function HomeProjectsAccordionSection() {
                           href="/projetos"
                           className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-white text-slate-950 hover:bg-[#00D8FF] transition-all duration-150 ease-out text-xs font-bold cursor-pointer shadow-sm shrink-0 whitespace-nowrap touch-manipulation select-none active:scale-[0.97]"
                         >
-                          <span>Inspecionar</span>
+                          <span>Ver detalhes</span>
                           <ArrowUpRight className="h-3.5 w-3.5" />
                         </Link>
                       </div>
@@ -168,21 +168,21 @@ export default function HomeProjectsAccordionSection() {
                   <div className="relative z-10 flex lg:flex-col justify-between items-center h-full w-full">
                     
                     {/* Número Compacto Vertical */}
-                    <span className="font-mono text-xl lg:text-2xl font-black text-white/50 tabular-nums">
+                    <span className="text-xl lg:text-2xl font-black text-white/50 tabular-nums">
                       {proj.number}
                     </span>
 
                     {/* Título Vertical Compacto (Desktop) / Linha Horizontal (Mobile) */}
                     <div className="lg:[writing-mode:vertical-lr] lg:rotate-180 flex items-center gap-2">
-                      <span className="font-mono text-[10px] tracking-widest text-[#00D8FF] font-bold">
-                        {proj.municipality.toUpperCase()}
+                      <span className="text-[10px] tracking-wider text-sky-300 font-bold uppercase">
+                        {proj.municipality}
                       </span>
                       <span className="text-xs font-semibold text-white truncate max-w-[140px] lg:max-w-[180px]">
                         {proj.shortTitle}
                       </span>
                     </div>
 
-                    <span className="text-[10px] font-mono text-white/40 hidden lg:block">
+                    <span className="text-[10px] text-white/40 hidden lg:block">
                       +
                     </span>
                   </div>

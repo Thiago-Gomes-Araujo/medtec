@@ -20,74 +20,60 @@ interface GallerySectionProps {
 }
 
 interface PhotoMetadata {
-  regCode: string;
   location: string;
   municipio: string;
-  coords: string;
   infra: string;
   origem: string;
   bentoClass: string;
   aspectRatio: string;
 }
 
-// Metadados catalográficos detalhados para cada registro histórico do MEDTEC
+// Informações institucionais de cada registro do MEDTEC
 const CATALOG_INFO: Record<string, PhotoMetadata> = {
   'gal-1': {
-    regCode: 'REG_01 // RO',
     location: 'Porto Velho, RO, Estúdios SEDUC',
     municipio: 'Porto Velho',
-    coords: 'LAT -8.76° S • LON -63.90° W',
-    infra: 'Estúdio Central SEDUC • 4K UHD Broadcast • Fibra Óptica',
+    infra: 'Estúdio Central SEDUC, Transmissão via satélite e fibra óptica',
     origem: 'Coordenadoria de Mídias Educacionais (SEDUC-RO)',
     bentoClass: 'md:col-span-8',
     aspectRatio: 'h-[250px] sm:h-[270px]'
   },
   'gal-3': {
-    regCode: 'REG_02 // RO',
     location: 'Cacoal, RO, Terra Indígena Paiter Suruí',
     municipio: 'Cacoal',
-    coords: 'LAT -11.10° S • LON -61.20° W',
-    infra: 'Transmissão Satelital Banda Ku • Painel Solar Fotovoltaico',
+    infra: 'Recepção satelital com alimentação solar fotovoltaica',
     origem: 'EEEFM Indígena Paiter Suruí (CRE Cacoal)',
     bentoClass: 'md:col-span-4',
     aspectRatio: 'h-[250px] sm:h-[270px]'
   },
   'gal-2': {
-    regCode: 'REG_03 // RO',
     location: 'Ji-Paraná, RO, Zona Rural (Setor Riachuelo)',
     municipio: 'Ji-Paraná',
-    coords: 'LAT -10.88° S • LON -61.94° W',
-    infra: 'Receptor Satelital Ku • Smart TV 65" Interativa',
+    infra: 'Receptor satelital e tela interativa de 65 polegadas',
     origem: 'EEEFM Juscelino Kubitschek (Extensão Rural)',
     bentoClass: 'md:col-span-5',
     aspectRatio: 'h-[240px] sm:h-[260px]'
   },
   'gal-4': {
-    regCode: 'REG_04 // RO',
     location: 'Porto Velho, RO, Palácio Rio Madeira',
     municipio: 'Porto Velho',
-    coords: 'LAT -8.74° S • LON -63.89° W',
-    infra: 'Auditório Multimídia • Transmissão Síncrona IP',
+    infra: 'Auditório multimídia com transmissão integrada',
     origem: 'Gerência de Capacitação Pedagógica (SEDUC-RO)',
     bentoClass: 'md:col-span-7',
     aspectRatio: 'h-[240px] sm:h-[260px]'
   },
   'gal-5': {
-    regCode: 'REG_05 // RO',
     location: 'Ariquemes, RO, Vale do Jamari',
     municipio: 'Ariquemes',
-    coords: 'LAT -9.91° S • LON -63.04° W',
-    infra: 'Estande Tecnológico • Conexão Redundante Satélite/Rádio',
-    origem: 'Feira Estadual de Ciência e Tecnologia MEDTEC',
+    infra: 'Estande tecnológico com conexão de apoio',
+    origem: 'Mostra Estadual de Inovação Pedagógica MEDTEC',
     bentoClass: 'md:col-span-6',
     aspectRatio: 'h-[240px] sm:h-[260px]'
   },
   'gal-6': {
-    regCode: 'REG_06 // RO',
     location: 'Porto Velho, RO, Complexo de Mídias',
     municipio: 'Porto Velho',
-    coords: 'LAT -8.76° S • LON -63.90° W',
-    infra: 'Switch de Produção Blackmagic • Teleprompter e Iluminação LED',
+    infra: 'Mesa de corte profissional, teleprompter e iluminação LED',
     origem: 'Estúdios de Transmissão da Coordenadoria de Mídias',
     bentoClass: 'md:col-span-6',
     aspectRatio: 'h-[240px] sm:h-[260px]'
@@ -151,16 +137,14 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
   const activeMeta = useMemo(() => {
     if (!activePhoto) return null;
     return CATALOG_INFO[activePhoto.id] || {
-      regCode: `REG_${String(selectedIndex! + 1).padStart(2, '0')} // RO`,
       location: 'Rondônia, Brasil',
       municipio: 'Rondônia',
-      coords: 'LAT -8.76° S • LON -63.90° W',
-      infra: 'Transmissão Satelital Banda Ku • 4K UHD',
+      infra: 'Transmissão via satélite e rede estadual de ensino',
       origem: 'Coordenadoria de Mídias Educacionais (SEDUC-RO)',
       bentoClass: 'md:col-span-6',
       aspectRatio: 'min-h-[340px]'
     };
-  }, [activePhoto, selectedIndex]);
+  }, [activePhoto]);
 
   // Navegação no Lightbox
   const handlePrev = useCallback(() => {
@@ -197,78 +181,69 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
   }, [selectedIndex, handlePrev, handleNext]);
 
   return (
-    <div className="relative w-full bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors">
-      
-      {/* Grade Cartesiana Sutil de Fundo (Hero Grid) */}
-      <div className="hero-grid pointer-events-none absolute inset-0 opacity-40 dark:opacity-40" />
-
+    <div className="relative w-full bg-[#F8FAFC] dark:bg-[#0B1528] text-slate-800 dark:text-slate-100 transition-colors">
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-8">
 
-        {/* ========================================================
-            BARRA DE FERRAMENTAS TÉCNICA (FILTROS + MODO DE EXIBIÇÃO)
-        ======================================================== */}
-        <div className="border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* BARRA DE FERRAMENTAS INSTITUCIONAL */}
+        <div className="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           
-          {/* Esquerda: Filtros de Categoria com Contador */}
+          {/* Filtros de Categoria */}
           <div className="flex flex-wrap items-center gap-2">
             {categoriesList.map((cat) => {
               const isSelected = selectedCategory === cat;
               const count = categoryCounts[cat] || 0;
-              const formattedCount = String(count).padStart(2, '0');
 
               return (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-mono transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#05549D] dark:focus-visible:ring-[#00D8FF] ${
+                  className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-150 ease-out cursor-pointer active:scale-[0.98] ${
                     isSelected
-                      ? 'border border-[#05549D] dark:border-[#00D8FF] bg-[#05549D] dark:bg-[#0C1E38] text-white dark:text-[#E6F4FF] font-semibold shadow-sm dark:shadow-[0_0_14px_rgba(0,216,255,0.22)]'
-                      : 'border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224]/50 text-slate-600 dark:text-[#6482A6] hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      ? 'border border-[#004A99] dark:border-sky-500 bg-[#004A99] dark:bg-sky-600 text-white font-semibold shadow-xs'
+                      : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <span>{cat}</span>
-                  <span className={`text-[10px] font-bold tabular-nums ${isSelected ? 'text-sky-200 dark:text-[#00D8FF]' : 'text-slate-400 dark:text-slate-500'}`}>
-                    [{formattedCount}]
+                  <span className={`text-[11px] font-semibold tabular-nums ${isSelected ? 'text-sky-100' : 'text-slate-400 dark:text-slate-500'}`}>
+                    ({count})
                   </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Direita: Alternador de Modo de Visualização (Bento Mosaico vs Índice Técnico) */}
-          <div className="flex items-center gap-1.5 self-start md:self-auto shrink-0 bg-slate-100 dark:bg-[#061224] p-1 rounded-xl border border-slate-200 dark:border-[#1A365D]">
+          {/* Alternador de Modo de Visualização */}
+          <div className="flex items-center gap-1.5 self-start md:self-auto shrink-0 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
             <button
               onClick={() => setViewMode('bento')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#05549D] dark:focus-visible:ring-[#00D8FF] ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ease-out cursor-pointer ${
                 viewMode === 'bento'
-                  ? 'bg-white dark:bg-[#0C1E38] text-[#05549D] dark:text-[#00D8FF] border border-slate-200 dark:border-[#00D8FF]/70 shadow-sm font-semibold'
-                  : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-slate-800 text-[#004A99] dark:text-sky-400 border border-slate-200 dark:border-slate-700 shadow-xs font-semibold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
-              title="Visualizar em mosaico assimétrico Bento Grid"
+              title="Visualizar em grade"
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              <span>⊞ BENTO MOSAICO</span>
+              <span>Grade</span>
             </button>
 
             <button
               onClick={() => setViewMode('list')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#05549D] dark:focus-visible:ring-[#00D8FF] ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ease-out cursor-pointer ${
                 viewMode === 'list'
-                  ? 'bg-white dark:bg-[#0C1E38] text-[#05549D] dark:text-[#00D8FF] border border-slate-200 dark:border-[#00D8FF]/70 shadow-sm font-semibold'
-                  : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-slate-800 text-[#004A99] dark:text-sky-400 border border-slate-200 dark:border-slate-700 shadow-xs font-semibold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
-              title="Visualizar como catálogo e índice técnico"
+              title="Visualizar em lista"
             >
               <List className="h-3.5 w-3.5" />
-              <span>ÍNDICE TÉCNICO</span>
+              <span>Lista</span>
             </button>
           </div>
 
         </div>
 
-        {/* ========================================================
-            3. CONTEÚDO PRINCIPAL: BENTO GRID ASSIMÉTRICO OU ÍNDICE
-        ======================================================== */}
+        {/* CONTEÚDO */}
         <AnimatePresence mode="wait">
           {filteredGallery.length === 0 ? (
             <motion.div
@@ -276,42 +251,38 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="rounded-2xl border border-dashed border-slate-300 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38]/40 p-12 text-center"
+              className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-12 text-center"
             >
               <Camera className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" />
-              <p className="text-sm font-mono text-slate-600 dark:text-slate-300">
-                Nenhum registro fotográfico catalogado para a categoria selecionada.
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Nenhum registro fotográfico encontrado para a categoria selecionada.
               </p>
               <button
                 onClick={() => setSelectedCategory('Todas')}
-                className="mt-3 text-xs font-mono text-[#05549D] dark:text-[#00D8FF] hover:underline cursor-pointer"
+                className="mt-3 text-xs text-[#004A99] dark:text-sky-400 hover:underline cursor-pointer"
               >
-                Ver todos os registros fotográficos
+                Ver todos os registros
               </button>
             </motion.div>
           ) : viewMode === 'bento' ? (
-            /* ================= MODO 1: BENTO MOSAICO ASSIMÉTRICO ================= */
             <motion.div
               key="bento-view"
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
               className="grid grid-cols-1 md:grid-cols-12 gap-5"
             >
               {filteredGallery.map((photo, index) => {
                 const meta = CATALOG_INFO[photo.id] || {
-                  regCode: `REG_${String(index + 1).padStart(2, '0')} // RO`,
                   location: 'Rondônia, Brasil',
                   municipio: 'Rondônia',
-                  coords: 'LAT -8.76° S • LON -63.90° W',
-                  infra: 'Transmissão Satelital Banda Ku • 4K UHD',
+                  infra: 'Transmissão via satélite e rede estadual',
                   origem: 'Coordenadoria de Mídias Educacionais (SEDUC-RO)',
                   bentoClass: 'md:col-span-6',
                   aspectRatio: 'min-h-[340px]'
                 };
 
-                // Se o filtro reduziu a menos de 4 fotos, equilibra a grade
                 const gridSpanClass = filteredGallery.length < 4 ? 'md:col-span-6' : meta.bentoClass;
 
                 return (
@@ -319,9 +290,9 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     key={photo.id}
                     layout
                     onClick={() => setSelectedIndex(index)}
-                    className={`group relative overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-slate-900 hover:border-[#00D8FF] transition-all duration-200 ease-out cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-between active:scale-[0.99] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF] ${gridSpanClass} ${meta.aspectRatio}`}
+                    className={`group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-900 hover:border-[#004A99] dark:hover:border-sky-500 transition-all duration-200 ease-out cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-end active:scale-[0.99] ${gridSpanClass} ${meta.aspectRatio}`}
                   >
-                    {/* Imagem de Fundo */}
+                    {/* Imagem Limpa de Fundo */}
                     <img
                       src={photo.imageUrl}
                       alt={photo.title}
@@ -330,50 +301,37 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                       decoding="async"
                     />
 
-                    {/* Gradiente Escuro de Proteção e Contraste Tipográfico */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/35 group-hover:from-black/95 group-hover:via-black/55 transition-all duration-200" />
+                    {/* Gradiente Suave de Leitura */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/40 to-transparent group-hover:from-slate-950/95 transition-all duration-200" />
 
-                    {/* TOPO DO CARD: BADGE TÉCNICA E CÓDIGO CATALOGRÁFICO */}
-                    <div className="relative z-10 flex items-center justify-between p-3 sm:p-3.5">
-                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-[#00D8FF] text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-md font-semibold shadow-xs">
-                        {photo.category}
-                      </span>
-
-                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-slate-300 group-hover:text-white text-[10px] font-mono px-2 py-0.5 rounded-md transition-colors tabular-nums">
-                        {meta.regCode}
-                      </span>
-                    </div>
-
-                    {/* BASE DO CARD: DATA, LOCALIZAÇÃO, TÍTULO E DESLIZAMENTO DO HOVER */}
-                    <div className="relative z-10 p-3.5 sm:p-4 space-y-1">
-                      {/* Linha de Data e Localização */}
-                      <p className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider text-cyan-200 tabular-nums flex items-center gap-1.5">
+                    {/* BASE DO CARD: Informações institucionais limpas */}
+                    <div className="relative z-10 p-4 space-y-1.5">
+                      <div className="flex items-center gap-2 text-xs text-sky-200 font-medium">
+                        <span className="bg-black/60 px-2 py-0.5 rounded text-[11px] font-semibold text-white">
+                          {photo.category}
+                        </span>
+                        <span>•</span>
                         <span>{photo.date}</span>
                         <span>•</span>
                         <span className="inline-flex items-center gap-1 truncate">
-                          <MapPin className="h-3 w-3 text-cyan-300 shrink-0" />
+                          <MapPin className="h-3 w-3 text-sky-300 shrink-0" />
                           {meta.location}
                         </span>
-                      </p>
+                      </div>
 
-                      {/* Título em Destaque Compacto */}
-                      <h3 className="font-display text-sm sm:text-base font-semibold leading-snug text-white group-hover:text-[#00D8FF] transition-colors text-balance line-clamp-1 group-hover:line-clamp-2">
+                      <h3 className="text-sm sm:text-base font-semibold leading-snug text-white group-hover:text-sky-300 transition-colors line-clamp-2">
                         {photo.title}
                       </h3>
 
-                      {/* Descrição Compacta e Botão de Inspeção no Hover */}
-                      <div className="max-h-0 opacity-0 group-hover:max-h-36 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden">
-                        <p className="text-xs text-slate-200 leading-relaxed font-normal pt-1 line-clamp-2 text-pretty">
+                      <div className="max-h-0 opacity-0 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-200 ease-out overflow-hidden pt-0.5">
+                        <p className="text-xs text-slate-200 line-clamp-2">
                           {photo.description}
                         </p>
 
-                        <div className="mt-2 pt-2 border-t border-dashed border-white/20 flex items-center justify-between text-xs font-mono text-[#00D8FF]">
-                          <span className="flex items-center gap-1 font-semibold text-[11px]">
-                            <Maximize2 className="h-3 w-3" />
-                            <span>[ ⊕ INSPECIONAR ]</span>
-                          </span>
-                          <span className="text-[10px] text-slate-300 hidden sm:inline tabular-nums">
-                            {meta.coords}
+                        <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-xs text-sky-300">
+                          <span className="flex items-center gap-1 font-semibold text-xs">
+                            <Maximize2 className="h-3.5 w-3.5" />
+                            <span>Ampliar imagem</span>
                           </span>
                         </div>
                       </div>
@@ -384,22 +342,19 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
               })}
             </motion.div>
           ) : (
-            /* ================= MODO 2: ÍNDICE TÉCNICO EDITORIAL ================= */
             <motion.div
               key="list-view"
-              initial={{ opacity: 0, y: 15 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] divide-y divide-dashed divide-slate-200 dark:divide-[#1A365D] overflow-hidden shadow-sm dark:shadow-xl"
+              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden shadow-xs"
             >
               {filteredGallery.map((photo, index) => {
                 const meta = CATALOG_INFO[photo.id] || {
-                  regCode: `REG_${String(index + 1).padStart(2, '0')} // RO`,
                   location: 'Rondônia, Brasil',
                   municipio: 'Rondônia',
-                  coords: 'LAT -8.76° S • LON -63.90° W',
-                  infra: 'Transmissão Satelital Banda Ku • 4K UHD',
+                  infra: 'Transmissão via satélite e rede estadual',
                   origem: 'Coordenadoria de Mídias Educacionais (SEDUC-RO)',
                   bentoClass: 'md:col-span-6',
                   aspectRatio: 'min-h-[340px]'
@@ -409,48 +364,41 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                   <div
                     key={photo.id}
                     onClick={() => setSelectedIndex(index)}
-                    className="group flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 sm:p-5 hover:bg-slate-50 dark:hover:bg-[#0F2647] transition-all duration-150 ease-out cursor-pointer active:scale-[0.99] touch-manipulation select-none"
+                    className="group flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 sm:p-5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors duration-150 cursor-pointer"
                   >
-                    {/* Código e Miniatura */}
                     <div className="flex items-center gap-4 shrink-0">
-                      <span className="w-20 font-mono text-xs text-slate-500 dark:text-[#6482A6] font-semibold tabular-nums">
-                        {meta.regCode}
-                      </span>
-
-                      <div className="relative h-16 w-24 sm:h-18 sm:w-28 overflow-hidden rounded-xl border border-slate-200 dark:border-[#1A365D] bg-black">
+                      <div className="relative h-16 w-24 sm:h-18 sm:w-28 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-900">
                         <img
                           src={photo.imageUrl}
                           alt={photo.title}
-                          className="h-full w-full object-cover transition-opacity duration-300"
+                          className="h-full w-full object-cover"
                           loading="lazy"
                           decoding="async"
                         />
                       </div>
                     </div>
 
-                    {/* Título e Descrição */}
                     <div className="flex-1 min-w-0 pr-2">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="rounded-md border border-sky-300 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2 py-0.5 text-[10px] font-mono uppercase text-[#05549D] dark:text-[#00D8FF] font-semibold">
+                        <span className="rounded-md bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 px-2 py-0.5 text-xs text-[#004A99] dark:text-sky-300 font-semibold">
                           {photo.category}
                         </span>
-                        <span className="text-xs font-mono text-slate-500 dark:text-[#6482A6] tabular-nums">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
                           {photo.date} • {meta.location}
                         </span>
                       </div>
-                      <h3 className="font-mono text-sm sm:text-base uppercase font-semibold text-slate-900 dark:text-[#E6F4FF] group-hover:text-[#05549D] dark:group-hover:text-[#00D8FF] transition-colors truncate">
+                      <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition-colors truncate">
                         {photo.title}
                       </h3>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-1 mt-0.5 text-pretty">
+                      <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-1 mt-0.5">
                         {photo.description}
                       </p>
                     </div>
 
-                    {/* Botão de Inspeção */}
                     <div className="shrink-0 self-end md:self-center">
-                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] px-3.5 py-1.5 text-xs font-mono text-[#05549D] dark:text-[#00D8FF] group-hover:border-[#05549D] dark:group-hover:border-[#00D8FF] group-hover:bg-[#05549D] dark:group-hover:bg-[#00D8FF] group-hover:text-white dark:group-hover:text-slate-950 transition-all font-semibold">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3.5 py-1.5 text-xs text-[#004A99] dark:text-sky-400 group-hover:bg-[#004A99] group-hover:text-white dark:group-hover:bg-sky-600 dark:group-hover:text-white transition-all font-semibold">
                         <Maximize2 className="h-3 w-3" />
-                        <span>INSPECIONAR</span>
+                        <span>Ampliar</span>
                       </span>
                     </div>
                   </div>
@@ -462,166 +410,137 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
 
       </div>
 
-      {/* ========================================================
-          4. MODAL LIGHTBOX SPLIT-SCREEN (INSPEÇÃO DE DOCUMENTO)
-      ======================================================== */}
+      {/* MODAL LIGHTBOX INSTITUCIONAL */}
       <AnimatePresence>
         {activePhoto && activeMeta && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-8 bg-[#040B16]/95 backdrop-blur-xl animate-in fade-in duration-200"
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-8 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
             onClick={() => setSelectedIndex(null)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              exit={{ scale: 0.96, opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-7xl max-h-[92vh] rounded-2xl border border-[#1A365D] bg-[#071326] shadow-2xl overflow-hidden flex flex-col lg:flex-row"
+              className="relative w-full max-w-6xl max-h-[92vh] rounded-xl border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden flex flex-col lg:flex-row"
             >
-              
-              {/* Botão Fechar no Canto Superior Direito (Mobile) */}
+              {/* Botão Fechar Mobile */}
               <button
                 onClick={() => setSelectedIndex(null)}
                 className="lg:hidden absolute top-3 right-3 z-30 rounded-lg border border-white/20 bg-black/70 p-2 text-white hover:bg-white hover:text-black transition-colors"
-                aria-label="Fechar inspetor"
+                aria-label="Fechar visualização"
               >
                 <X className="h-5 w-5" />
               </button>
 
-              {/* ================= COLUNA DA ESQUERDA: VISUALIZADOR HUD (68%) ================= */}
-              <div className="relative lg:w-[68%] bg-[#020710] flex flex-col justify-between p-4 sm:p-6 border-b lg:border-b-0 lg:border-r border-[#1A365D]">
-                
-                {/* HUD Superior: Contador e Calibração Óptica */}
-                <div className="mb-3 flex items-center justify-between text-xs font-mono text-[#6482A6] border-b border-dashed border-[#1A365D] pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="text-[#E6F4FF] font-semibold">
-                      REGISTRO {String(selectedIndex! + 1).padStart(2, '0')} DE {String(filteredGallery.length).padStart(2, '0')}
-                    </span>
-                  </div>
-                  <span className="hidden sm:inline text-[#00D8FF]">
-                    RESOLUÇÃO 4K UHD // ARQUIVO MEDTEC-RO
+              {/* Coluna da Imagem */}
+              <div className="relative lg:w-[68%] bg-black flex flex-col justify-between p-4 sm:p-6 border-b lg:border-b-0 lg:border-r border-slate-800">
+                <div className="mb-3 flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-3">
+                  <span className="text-white font-medium">
+                    Registro {selectedIndex! + 1} de {filteredGallery.length}
+                  </span>
+                  <span className="hidden sm:inline text-sky-400 font-medium">
+                    Acervo Institucional MEDTEC-RO
                   </span>
                 </div>
 
-                {/* Área da Fotografia Limpa e Focada */}
-                <div className="relative flex-1 flex items-center justify-center my-auto min-h-[300px] max-h-[58vh] lg:max-h-[66vh] overflow-hidden rounded-xl bg-black/60 p-2 border border-white/5">
+                <div className="relative flex-1 flex items-center justify-center my-auto min-h-[300px] max-h-[58vh] lg:max-h-[66vh] overflow-hidden rounded-lg bg-black/60 p-2">
                   <img
                     src={activePhoto.imageUrl}
                     alt={activePhoto.title}
-                    className="max-h-full max-w-full object-contain rounded-lg shadow-2xl select-none"
+                    className="max-h-full max-w-full object-contain rounded-md select-none"
                   />
                 </div>
 
-                {/* HUD Inferior: Controles de Navegação Rápida */}
-                <div className="mt-3 flex items-center justify-between pt-3 border-t border-dashed border-[#1A365D] text-xs font-mono">
+                <div className="mt-3 flex items-center justify-between pt-3 border-t border-slate-800 text-xs">
                   <button
                     onClick={handlePrev}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all duration-150 ease-out cursor-pointer font-semibold touch-manipulation select-none active:scale-[0.95] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3.5 py-2 text-white hover:border-sky-500 hover:text-sky-400 transition-all cursor-pointer font-medium"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    <span>ANTERIOR</span>
+                    <span>Anterior</span>
                   </button>
 
-                  <span className="hidden sm:inline text-[11px] text-[#6482A6]">
+                  <span className="hidden sm:inline text-xs text-slate-400">
                     Navegue pelas setas do teclado
                   </span>
 
                   <button
                     onClick={handleNext}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-[#1A365D] bg-[#0C1E38] px-3.5 py-2 text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] transition-all duration-150 ease-out cursor-pointer font-semibold touch-manipulation select-none active:scale-[0.95] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3.5 py-2 text-white hover:border-sky-500 hover:text-sky-400 transition-all cursor-pointer font-medium"
                   >
-                    <span>PRÓXIMA</span>
+                    <span>Próxima</span>
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
-
               </div>
 
-              {/* ================= COLUNA DA DIREITA: FICHA TÉCNICA CATALOGRÁFICA (32%) ================= */}
-              <div className="lg:w-[32%] bg-[#0C1E38] p-5 sm:p-6 lg:p-7 flex flex-col justify-between overflow-y-auto max-h-[45vh] lg:max-h-[92vh]">
-                
+              {/* Coluna de Informações */}
+              <div className="lg:w-[32%] bg-slate-900 p-5 sm:p-6 lg:p-7 flex flex-col justify-between overflow-y-auto max-h-[45vh] lg:max-h-[92vh]">
                 <div className="space-y-4">
-                  {/* Cabeçalho da Ficha */}
-                  <div className="border-b border-dashed border-[#1A365D] pb-3">
-                    <p className="font-mono text-xs uppercase tracking-[0.2em] text-[#00D8FF] font-semibold">
-                      {'//'} FICHA CATALOGRÁFICA • MEDTEC-RO
-                    </p>
-                    <p className="mt-1 font-mono text-[11px] text-[#6482A6] tabular-nums">
-                      CÓDIGO: {activeMeta.regCode}
+                  <div className="border-b border-slate-800 pb-3">
+                    <p className="text-xs uppercase tracking-wider text-sky-400 font-semibold">
+                      Registro de Imagem
                     </p>
                   </div>
 
-                  {/* Título e Descrição */}
                   <div>
-                    <h2 className="font-display text-xl sm:text-2xl uppercase font-bold leading-[1.1] text-[#E6F4FF] text-balance">
+                    <h2 className="text-lg sm:text-xl font-bold leading-snug text-white">
                       {activePhoto.title}
                     </h2>
-                    <p className="mt-3 text-sm leading-relaxed text-slate-300 font-normal text-pretty">
+                    <p className="mt-2.5 text-sm leading-relaxed text-slate-300">
                       {activePhoto.description}
                     </p>
                   </div>
 
-                  {/* TABELA TÉCNICA SEPARADA POR LINHAS 1PX DASHED */}
-                  <div className="rounded-xl border border-[#1A365D] bg-[#061224]/80 p-3.5 space-y-2.5 font-mono text-xs">
-                    
-                    <div className="flex items-start justify-between gap-2 border-b border-dashed border-[#1A365D] pb-2">
-                      <span className="text-[#6482A6] uppercase text-[10px] font-bold">CATEGORIA:</span>
-                      <span className="text-[#00D8FF] font-semibold uppercase text-right">
+                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3.5 space-y-2.5 text-xs">
+                    <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
+                      <span className="text-slate-400 uppercase text-[11px] font-semibold">Categoria:</span>
+                      <span className="text-sky-300 font-semibold text-right">
                         {activePhoto.category}
                       </span>
                     </div>
 
-                    <div className="flex items-start justify-between gap-2 border-b border-dashed border-[#1A365D] pb-2">
-                      <span className="text-[#6482A6] uppercase text-[10px] font-bold">LOCALIDADE:</span>
-                      <span className="text-[#E6F4FF] text-right">
+                    <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
+                      <span className="text-slate-400 uppercase text-[11px] font-semibold">Localidade:</span>
+                      <span className="text-slate-200 text-right">
                         {activeMeta.location}
                       </span>
                     </div>
 
-                    <div className="flex items-start justify-between gap-2 border-b border-dashed border-[#1A365D] pb-2">
-                      <span className="text-[#6482A6] uppercase text-[10px] font-bold">COORDENADAS:</span>
-                      <span className="text-slate-300 text-right text-[11px] tabular-nums">
-                        {activeMeta.coords}
-                      </span>
-                    </div>
-
-                    <div className="flex items-start justify-between gap-2 border-b border-dashed border-[#1A365D] pb-2">
-                      <span className="text-[#6482A6] uppercase text-[10px] font-bold">DATA REGISTRO:</span>
-                      <span className="text-[#E6F4FF] font-semibold text-right tabular-nums">
+                    <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
+                      <span className="text-slate-400 uppercase text-[11px] font-semibold">Data do registro:</span>
+                      <span className="text-slate-200 font-medium text-right tabular-nums">
                         {activePhoto.date}
                       </span>
                     </div>
 
-                    <div className="flex items-start justify-between gap-2 border-b border-dashed border-[#1A365D] pb-2">
-                      <span className="text-[#6482A6] uppercase text-[10px] font-bold">INFRAESTRUTURA:</span>
-                      <span className="text-emerald-400 font-medium text-right text-[11px]">
+                    <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
+                      <span className="text-slate-400 uppercase text-[11px] font-semibold">Infraestrutura:</span>
+                      <span className="text-slate-200 font-medium text-right">
                         {activeMeta.infra}
                       </span>
                     </div>
 
                     <div className="flex items-start justify-between gap-2 pt-0.5">
-                      <span className="text-[#6482A6] uppercase text-[10px] font-bold">UNIDADE / ORIGEM:</span>
-                      <span className="text-slate-300 text-right text-[11px]">
+                      <span className="text-slate-400 uppercase text-[11px] font-semibold">Origem:</span>
+                      <span className="text-slate-300 text-right">
                         {activeMeta.origem}
                       </span>
                     </div>
-
                   </div>
                 </div>
 
-                {/* BOTÃO DE FECHAMENTO */}
-                <div className="mt-6 pt-4 border-t border-dashed border-[#1A365D]">
+                <div className="mt-6 pt-4 border-t border-slate-800">
                   <button
                     onClick={() => setSelectedIndex(null)}
-                    className="w-full rounded-xl border border-[#1A365D] bg-[#040B16] py-3 text-xs font-mono font-semibold text-[#E6F4FF] hover:border-[#00D8FF] hover:text-[#00D8FF] hover:bg-[#071326] transition-all duration-150 ease-out flex items-center justify-center gap-2 cursor-pointer shadow-sm touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF]"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2.5 text-xs font-semibold text-slate-200 hover:border-sky-500 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <X className="h-4 w-4" />
-                    <span>ESC • Fechar Inspetor</span>
+                    <span>Fechar visualização</span>
                   </button>
                 </div>
-
               </div>
 
             </motion.div>

@@ -387,7 +387,7 @@ export default function AdminDashboardPage() {
   const canAccessGallery = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col text-slate-800 overflow-x-hidden max-w-[100vw]">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B1528] flex flex-col text-slate-800 dark:text-slate-100 overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
 
       <PageHeader
