@@ -41,6 +41,10 @@ export default function AdminLoginPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
+        if (data.tokens) {
+          localStorage.setItem('medtec_access_token', data.tokens.access_token);
+          localStorage.setItem('medtec_refresh_token', data.tokens.refresh_token);
+        }
         const searchParams = new URLSearchParams(window.location.search);
         const redirectTarget = searchParams.get('redirect') || '/admin';
         router.push(redirectTarget);

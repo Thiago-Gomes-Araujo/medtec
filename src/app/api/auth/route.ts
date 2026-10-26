@@ -23,6 +23,73 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Informe usuário e senha' }, { status: 400 });
     }
 
+    // 1. Tenta autenticar na API Backend (Rails API v1 em http://172.16.107.63:3023/api/v1)
+    const backendUrl = process.env.BACKEND_API_URL || 'http://172.16.107.63:3023/api/v1';
+    let backendTokens: { access_token: string; refresh_token: string } | null = null;
+    let backendUser: { id: number; nome: string; cpf: string; perfil_nome: string } | null = null;
+
+    try {
+      const backendRes = await fetch(`${backendUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cpf: username, password }),
+      });
+
+      if (backendRes.ok) {
+        const backendJson = await backendRes.json();
+        if (backendJson?.data?.access_token) {
+          backendTokens = backendJson.data;
+
+          // Busca perfil do usuário em /auth/me
+          const meRes = await fetch(`${backendUrl}/auth/me`, {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${backendTokens?.access_token}`,
+            },
+          });
+          if (meRes.ok) {
+            const meJson = await meRes.json();
+            backendUser = meJson.data;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('API Backend indisponível para validação de login, recorrendo à validação local:', err);
+    }
+
+    // Se o backend autenticou com sucesso
+    if (backendUser && backendTokens) {
+      const userLogin = backendUser.cpf;
+      const role = backendUser.perfil_nome === 'Administrador' ? 'gestor' : 'operador';
+      const name = backendUser.nome;
+      const profileType = backendUser.perfil_nome;
+      const token = createSessionToken(userLogin, role, name, profileType);
+
+      const response = NextResponse.json({
+        success: true,
+        message: 'Autenticado com sucesso!',
+        user: { username: userLogin, role, name, profileType },
+        tokens: backendTokens,
+      });
+
+      const isHttps =
+        request.headers.get('x-forwarded-proto') === 'https' ||
+        request.url.startsWith('https://');
+
+      response.cookies.set({
+        name: AUTH_COOKIE_NAME,
+        value: token,
+        httpOnly: true,
+        path: '/',
+        maxAge: SESSION_MAX_AGE_SECONDS,
+        sameSite: 'lax',
+        secure: isHttps,
+      });
+
+      return response;
+    }
+
+    // 2. Validação local (fallback para Gestor Geral ou banco local)
     const authResult = authenticateUser(username, password);
 
     if (authResult.authenticated && authResult.user) {
@@ -34,6 +101,10 @@ export async function POST(request: Request) {
         user: { username: userLogin, role, name, profileType }
       });
 
+      const isHttps =
+        request.headers.get('x-forwarded-proto') === 'https' ||
+        request.url.startsWith('https://');
+
       response.cookies.set({
         name: AUTH_COOKIE_NAME,
         value: token,
@@ -41,7 +112,7 @@ export async function POST(request: Request) {
         path: '/',
         maxAge: SESSION_MAX_AGE_SECONDS,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        secure: isHttps,
       });
 
       return response;

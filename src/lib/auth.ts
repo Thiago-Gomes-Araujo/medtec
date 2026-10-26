@@ -303,12 +303,16 @@ export async function verifyAdminSession(): Promise<{
  */
 export function validateCsrfOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
-  const host = request.headers.get('host');
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const host = forwardedHost || request.headers.get('host');
 
   if (origin && host) {
     try {
       const originUrl = new URL(origin);
-      if (originUrl.host !== host) {
+      const hostWithoutPort = host.split(':')[0];
+      const originHostWithoutPort = originUrl.hostname;
+
+      if (originUrl.host !== host && originHostWithoutPort !== hostWithoutPort) {
         return false;
       }
     } catch {
