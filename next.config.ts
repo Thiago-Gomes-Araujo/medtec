@@ -48,6 +48,11 @@ const nextConfig: NextConfig = {
         destination: '/admin/login',
         permanent: true,
       },
+      {
+        source: '/painel-gestor',
+        destination: '/admin',
+        permanent: false,
+      },
     ];
   },
   async headers() {
