@@ -16,7 +16,7 @@ import {
   Lightbulb,
   Package
 } from 'lucide-react';
-import { ProjectMission } from '@/data/projectsData';
+import { ProjectMission } from '@/types';
 
 interface ReplicationPassportModalProps {
   mission: ProjectMission | null;

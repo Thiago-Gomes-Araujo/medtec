@@ -36,6 +36,11 @@ export function getDatabase(): DatabaseSchema {
       gallery: parsed.gallery ?? defaults.gallery,
       banners: normalizeBanners(parsed, defaults),
       users: parsed.users ?? defaults.users ?? [],
+      schools: parsed.schools ?? defaults.schools ?? [],
+      teachers: parsed.teachers ?? defaults.teachers ?? [],
+      students: parsed.students ?? defaults.students ?? [],
+      projects: parsed.projects ?? defaults.projects ?? [],
+      transparency: parsed.transparency ?? defaults.transparency ?? { indicadores: [], contratos: [] },
     };
   } catch (error) {
     console.error('Error reading database file:', error);

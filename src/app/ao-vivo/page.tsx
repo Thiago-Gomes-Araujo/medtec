@@ -5,7 +5,6 @@ import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import LiveBroadcastSection from '@/components/LiveBroadcastSection';
 import { getDatabase } from '@/lib/db';
-import initialData from '@/data/initialData.json';
 import { SocialLinks } from '@/types';
 
 export const metadata: Metadata = {
@@ -21,7 +20,7 @@ export const metadata: Metadata = {
 
 export default async function AoVivoPage() {
   const db = getDatabase();
-  const socials = db.socials || (initialData.socials as SocialLinks);
+  const socials: SocialLinks = db.socials;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040D1A] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
@@ -34,7 +33,11 @@ export default async function AoVivoPage() {
           text="Aulas ao vivo transmitidas dos estúdios centrais de TV da SEDUC em Porto Velho para centenas de salas conectadas em todo o estado de Rondônia, acompanhadas diariamente por professores mediadores presenciais."
         />
 
-        <LiveBroadcastSection socials={socials} />
+        <LiveBroadcastSection
+          socials={socials}
+          announcements={db.announcements || []}
+          news={db.news || []}
+        />
       </main>
 
       <SiteFooter />

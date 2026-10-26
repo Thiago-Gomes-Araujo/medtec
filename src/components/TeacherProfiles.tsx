@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { MapPin, School, X, Quote, Sparkles } from 'lucide-react';
-import { Professor, professoresData } from '@/data/medtecData';
+import React, { useState, useEffect } from 'react';
+import { MapPin, School, X, Quote, Sparkles, Loader2, Users } from 'lucide-react';
+import { Professor } from '@/types';
 
 function getInitials(name: string) {
   const parts = name.replace(/^(Prof\.|Profa\.)\s*/i, '').trim().split(' ');
@@ -16,17 +16,79 @@ interface TeacherProfilesProps {
 
 export default function TeacherProfiles({ filterRole = 'Todas' }: TeacherProfilesProps) {
   const [selectedProf, setSelectedProf] = useState<Professor | null>(null);
+  const [teachers, setTeachers] = useState<Professor[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const displayedProfs = professoresData.filter((p) => {
-    if (filterRole === 'Todas') return true;
-    if (filterRole === 'Mediador') return p.funcao === 'Mediador' || p.funcao === 'Mediadora';
-    return p.funcao === filterRole;
-  });
+  useEffect(() => {
+    let isMounted = true;
+    async function loadTeachers() {
+      setLoading(true);
+      try {
+        const query = filterRole !== 'Todas' ? `?funcao=${encodeURIComponent(filterRole)}` : '';
+        const res = await fetch(`/api/teachers${query}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            setTeachers(data.items || []);
+          }
+        }
+      } catch (err) {
+        console.error('Falha ao carregar professores da API:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadTeachers();
+    return () => {
+      isMounted = false;
+    };
+  }, [filterRole]);
+
+  if (loading) {
+    return (
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div
+            key={i}
+            className="flex flex-col rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white/60 dark:bg-[#0C1E38]/60 p-5 animate-pulse"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-14 w-14 rounded-full bg-slate-200 dark:bg-slate-700" />
+              <div className="space-y-2 flex-1">
+                <div className="h-4 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
+                <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <div className="h-5 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+              <div className="h-5 w-24 rounded bg-slate-200 dark:bg-slate-700" />
+            </div>
+            <div className="mt-4 h-12 rounded bg-slate-200 dark:bg-slate-700" />
+            <div className="mt-4 h-10 rounded bg-slate-200 dark:bg-slate-700" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (teachers.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-300 dark:border-[#1A365D] p-12 text-center">
+        <Users className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" />
+        <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+          Nenhum docente encontrado
+        </h4>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          Não há registros de professores correspondentes ao filtro selecionado na base oficial.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {displayedProfs.map((p) => (
+        {teachers.map((p) => (
           <article
             key={p.id}
             className="flex flex-col rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 shadow-xs hover:border-sky-400 dark:hover:border-cyan-400/50 hover:shadow-md transition-all"

@@ -1,4 +1,4 @@
-import { escolasData, Escola } from '@/data/medtecData';
+import { Escola } from '@/types';
 import { PontoMapa, FiltrosMapa, Coordenada } from './types';
 
 // Hub Emissor Central da SEDUC (Porto Velho - Rondônia)
@@ -34,7 +34,7 @@ export function parseCoordenada(valor?: string | number): number | null {
  * Normaliza a base de dados de escolas para o formato PontoMapa exigido pelo mapa.
  * Remove automaticamente pontos com coordenadas inválidas (Regra 5 do guia).
  */
-export function normalizarEscolas(dados: Escola[] = escolasData): PontoMapa[] {
+export function normalizarEscolas(dados: Escola[] = []): PontoMapa[] {
   const pontos: PontoMapa[] = [];
 
   for (const escola of dados) {

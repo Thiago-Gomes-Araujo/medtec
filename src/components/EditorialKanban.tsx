@@ -1,19 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowRight,
   Check,
   FileText,
   Paperclip,
   Clock,
-  FileCheck
+  FileCheck,
+  Loader2,
+  Sparkles
 } from 'lucide-react';
-import {
-  etapasEditoriais,
-  itensEditoriaisIniciais,
-  ItemEditorial
-} from '@/data/medtecData';
+import { ItemEditorial, EtapaEditorial } from '@/types';
+
+const ETAPAS_EDITORIAIS: EtapaEditorial[] = [
+  'Rascunho',
+  'Revisão Jurídica/LGPD',
+  'Aprovado',
+  'Publicado'
+];
 
 interface AuditLog {
   data: string;
@@ -22,32 +27,51 @@ interface AuditLog {
 }
 
 export default function EditorialKanban() {
-  const [itens, setItens] = useState<ItemEditorial[]>(itensEditoriaisIniciais);
-  const [historico, setHistorico] = useState<AuditLog[]>([
-    {
-      data: '09/10/2026 14:20',
-      acao: 'Enviado para Revisão Jurídica/LGPD',
-      titulo: itensEditoriaisIniciais[0].titulo
-    },
-    {
-      data: '08/10/2026 10:05',
-      acao: 'Aprovado pela Coordenação MEDTEC',
-      titulo: itensEditoriaisIniciais[1].titulo
-    },
-    {
-      data: '02/10/2026 09:00',
-      acao: 'Publicado na Rede SEDUC',
-      titulo: itensEditoriaisIniciais[2].titulo
+  const [itens, setItens] = useState<ItemEditorial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [historico, setHistorico] = useState<AuditLog[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadEditorial() {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/editorial');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            const list: ItemEditorial[] = data.items || [];
+            setItens(list);
+            if (list.length > 0) {
+              setHistorico([
+                {
+                  data: new Date().toLocaleDateString('pt-BR'),
+                  acao: 'Carregado do CMS Central',
+                  titulo: list[0]?.titulo || 'Registro de Pauta',
+                },
+              ]);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Falha ao carregar editorial da API:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     }
-  ]);
+    loadEditorial();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const avancarEtapa = (id: number) => {
     setItens((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;
-        const currentIndex = etapasEditoriais.indexOf(item.etapa);
-        const nextIndex = Math.min(currentIndex + 1, etapasEditoriais.length - 1);
-        const proximaEtapa = etapasEditoriais[nextIndex];
+        const currentIndex = ETAPAS_EDITORIAIS.indexOf(item.etapa);
+        const nextIndex = Math.min(currentIndex + 1, ETAPAS_EDITORIAIS.length - 1);
+        const proximaEtapa = ETAPAS_EDITORIAIS[nextIndex];
 
         setHistorico((h) => [
           {
@@ -74,7 +98,7 @@ export default function EditorialKanban() {
     <div className="space-y-10">
       {/* 4 Stages Kanban Grid */}
       <div className="grid gap-4 md:grid-cols-4">
-        {etapasEditoriais.map((etapaNome, idx) => {
+        {ETAPAS_EDITORIAIS.map((etapaNome, idx) => {
           const itensDestaEtapa = itens.filter((i) => i.etapa === etapaNome);
 
           return (

@@ -1,12 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  PROJECTS_DATA, 
-  TRACK_OPTIONS, 
-  ProjectMission 
-} from '@/data/projectsData';
+import { ProjectMission } from '@/types';
 import ReplicationPassportModal from './ReplicationPassportModal';
 import Badge3D from '@/components/Badge3D';
 import { 
@@ -26,27 +22,71 @@ import {
   FlaskConical,
   Landmark,
   Cpu,
-  Trophy
+  Trophy,
+  Loader2
 } from 'lucide-react';
 
+const DEFAULT_TRACKS = [
+  'Todas as Missões',
+  'Agroecologia & NBAZ',
+  'Ciência na Amazônia',
+  'Saberes Indígenas & História',
+  'Tecnologia Solar & Robótica',
+];
+
 export default function ProjectsInteractiveStage() {
-  const [selectedTrack, setSelectedTrack] = useState<string>(TRACK_OPTIONS[0]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>(PROJECTS_DATA[0].id);
+  const [projects, setProjects] = useState<ProjectMission[]>([]);
+  const [tracks, setTracks] = useState<string[]>(DEFAULT_TRACKS);
+  const [selectedTrack, setSelectedTrack] = useState<string>(DEFAULT_TRACKS[0]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadProjects() {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/projects');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            const items: ProjectMission[] = data.items || [];
+            setProjects(items);
+            if (data.tracks && Array.isArray(data.tracks) && data.tracks.length > 0) {
+              setTracks(data.tracks);
+              setSelectedTrack(data.tracks[0]);
+            }
+            if (items.length > 0) {
+              setSelectedProjectId(items[0].id);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Falha ao carregar projetos da API:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadProjects();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Filtragem de projetos pelo dock de trilhas
-  const filteredProjects = selectedTrack === 'Todas as Missões (06)'
-    ? PROJECTS_DATA
-    : PROJECTS_DATA.filter((p) => {
+  const filteredProjects = selectedTrack.includes('Todas')
+    ? projects
+    : projects.filter((p) => {
         if (selectedTrack.includes('Agroecologia')) return p.track === 'Agroecologia & NBAZ';
         if (selectedTrack.includes('Ciência')) return p.track === 'Ciência na Amazônia';
         if (selectedTrack.includes('Indígenas')) return p.track === 'Saberes Indígenas & História';
         if (selectedTrack.includes('Solar')) return p.track === 'Tecnologia Solar & Robótica';
-        return true;
+        return p.track === selectedTrack;
       });
 
   // Projeto selecionado atual
-  const currentProject = PROJECTS_DATA.find((p) => p.id === selectedProjectId) || PROJECTS_DATA[0];
+  const currentProject = projects.find((p) => p.id === selectedProjectId) || projects[0] || null;
 
   // Alterna o projeto e ajusta a trilha se necessário
   const handleSelectProject = (project: ProjectMission) => {
@@ -55,10 +95,13 @@ export default function ProjectsInteractiveStage() {
 
   // Avança para a próxima missão circularmente
   const handleNextMission = () => {
-    const currentIndex = PROJECTS_DATA.findIndex((p) => p.id === selectedProjectId);
-    const nextIndex = (currentIndex + 1) % PROJECTS_DATA.length;
-    const nextProject = PROJECTS_DATA[nextIndex];
-    setSelectedProjectId(nextProject.id);
+    if (projects.length === 0) return;
+    const currentIndex = projects.findIndex((p) => p.id === selectedProjectId);
+    const nextIndex = (currentIndex + 1) % projects.length;
+    const nextProject = projects[nextIndex];
+    if (nextProject) {
+      setSelectedProjectId(nextProject.id);
+    }
   };
 
 
@@ -162,20 +205,20 @@ export default function ProjectsInteractiveStage() {
 
         {/* Dock de Trilhas Temáticas (Filtros Horizontais em Cápsulas com Ícones 3D) */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {TRACK_OPTIONS.map((track) => {
+          {tracks.map((track) => {
             const isSelected = selectedTrack === track;
             return (
               <button
                 key={track}
                 onClick={() => {
                   setSelectedTrack(track);
-                  if (track !== 'Todas as Missões (06)') {
-                    const firstMatch = PROJECTS_DATA.find((p) => {
+                  if (!track.includes('Todas')) {
+                    const firstMatch = projects.find((p) => {
                       if (track.includes('Agroecologia')) return p.track === 'Agroecologia & NBAZ';
                       if (track.includes('Ciência')) return p.track === 'Ciência na Amazônia';
                       if (track.includes('Indígenas')) return p.track === 'Saberes Indígenas & História';
                       if (track.includes('Solar')) return p.track === 'Tecnologia Solar & Robótica';
-                      return true;
+                      return p.track === track;
                     });
                     if (firstMatch) {
                       setSelectedProjectId(firstMatch.id);
@@ -208,16 +251,31 @@ export default function ProjectsInteractiveStage() {
             <span>Console de Inspeção • Missão Pedagógica em Detalhe</span>
           </div>
           <span className="text-xs font-mono text-slate-500 dark:text-slate-400 tabular-nums">
-            {PROJECTS_DATA.findIndex((p) => p.id === currentProject.id) + 1} de {PROJECTS_DATA.length}
+            {currentProject ? projects.findIndex((p) => p.id === currentProject.id) + 1 : 0} de {projects.length}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          
-          {/* ======================================================== */}
-          {/* COLUNA ESQUERDA (lg:col-span-4: ÍNDICE DE MISSÕES)       */}
-          {/* ======================================================== */}
-          <div className="lg:col-span-4 flex flex-col gap-2">
+        {loading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch animate-pulse">
+            <div className="lg:col-span-4 rounded-2xl bg-slate-200 dark:bg-slate-800 h-96" />
+            <div className="lg:col-span-8 rounded-2xl bg-slate-200 dark:bg-slate-800 h-96" />
+          </div>
+        ) : !currentProject || projects.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 dark:border-[#1A365D] p-16 text-center">
+            <Sparkles className="mx-auto h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" />
+            <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-base">
+              Nenhuma missão pedagógica encontrada
+            </h4>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
+              Não foram encontradas missões cadastradas para esta trilha na base oficial da API.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            {/* ======================================================== */}
+            {/* COLUNA ESQUERDA (lg:col-span-4: ÍNDICE DE MISSÕES)       */}
+            {/* ======================================================== */}
+            <div className="lg:col-span-4 flex flex-col gap-2">
             <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-slate-50/70 dark:bg-[#08182E]/50 p-2 space-y-1.5">
               <span className="block px-2 pt-0.5 font-mono text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
                 Selecione uma missão para inspecionar
@@ -442,6 +500,7 @@ export default function ProjectsInteractiveStage() {
           </div>
 
         </div>
+        )}
 
       </section>
 
