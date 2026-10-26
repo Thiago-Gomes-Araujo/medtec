@@ -5,7 +5,6 @@ import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import NewsEditorialSection from '@/components/NewsEditorialSection';
 import { getDatabase } from '@/lib/db';
-import initialData from '@/data/initialData.json';
 import { NewsItem } from '@/types';
 
 export const metadata: Metadata = {
@@ -21,9 +20,7 @@ export const metadata: Metadata = {
 
 export default async function NoticiasPage() {
   const data = getDatabase();
-  const newsList = (data.news && data.news.length > 0)
-    ? data.news
-    : (initialData.news as NewsItem[]);
+  const newsList: NewsItem[] = data.news || [];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">

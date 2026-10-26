@@ -5,7 +5,6 @@ import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import GallerySection from '@/components/GallerySection';
 import { getDatabase } from '@/lib/db';
-import initialData from '@/data/initialData.json';
 import { GalleryItem } from '@/types';
 
 export const metadata: Metadata = {
@@ -21,9 +20,7 @@ export const metadata: Metadata = {
 
 export default async function GaleriaPage() {
   const db = getDatabase();
-  const gallery = (db.gallery && db.gallery.length > 0) 
-    ? db.gallery 
-    : (initialData.gallery as GalleryItem[]);
+  const gallery: GalleryItem[] = db.gallery || [];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">

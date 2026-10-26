@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import initialData from '@/data/initialData.json';
 import { SocialLinks, AnnouncementItem, NewsItem } from '@/types';
 import { 
   Radio, 
@@ -27,11 +26,42 @@ import {
 
 interface LiveBroadcastSectionProps {
   socials?: SocialLinks;
+  announcements?: AnnouncementItem[];
+  news?: NewsItem[];
 }
 
 export default function LiveBroadcastSection({ 
-  socials = initialData.socials as SocialLinks 
+  socials: propSocials,
+  announcements: propAnnouncements = [],
+  news: propNews = [],
 }: LiveBroadcastSectionProps) {
+  const [dynamicData, setDynamicData] = React.useState<{
+    socials?: SocialLinks;
+    announcements: AnnouncementItem[];
+    news: NewsItem[];
+  }>({
+    socials: propSocials,
+    announcements: propAnnouncements,
+    news: propNews,
+  });
+
+  React.useEffect(() => {
+    if (!propSocials || propAnnouncements.length === 0 || propNews.length === 0) {
+      fetch('/api/data')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data) {
+            setDynamicData({
+              socials: propSocials || data.socials,
+              announcements: propAnnouncements.length > 0 ? propAnnouncements : data.announcements || [],
+              news: propNews.length > 0 ? propNews : data.news || [],
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [propSocials, propAnnouncements, propNews]);
+
   const schedules = [
     {
       shift: 'Turno Matutino',
@@ -53,13 +83,13 @@ export default function LiveBroadcastSection({
     },
   ];
 
-  // Dados com tratamento defensivo e resiliência (Harden & Break-UI)
+  // Dados com tratamento defensivo e resiliência vindos da API
   const urgentAnnouncement: AnnouncementItem | undefined = 
-    (initialData.announcements as AnnouncementItem[] | undefined)?.find(
-      (a) => a.active && a.type === 'urgente'
-    ) || (initialData.announcements as AnnouncementItem[] | undefined)?.[0];
+    dynamicData.announcements.find((a) => a.active && a.type === 'urgente') || dynamicData.announcements[0];
 
-  const recentNews: NewsItem[] = (initialData.news as NewsItem[] | undefined)?.slice(0, 2) || [];
+  const recentNews: NewsItem[] = dynamicData.news.slice(0, 2);
+
+  const socials = dynamicData.socials;
 
   const youtubeUrl = socials?.youtube?.trim() || 'https://www.youtube.com/@SeducRondonia';
   const whatsappUrl = socials?.whatsapp?.trim() || 'https://wa.me/5569999999999';

@@ -1,14 +1,42 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Search, ExternalLink, ShieldCheck, CheckCircle2 } from 'lucide-react';
-import { indicadoresData, contratosData, Indicador, Contrato } from '@/data/medtecData';
+import React, { useState, useEffect } from 'react';
+import { Search, ExternalLink, ShieldCheck, CheckCircle2, Loader2, FileText } from 'lucide-react';
+import { Indicador, Contrato } from '@/types';
 import { sanitizeSearchInput } from '@/lib/security';
 
 export default function TransparencySection() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState<string | number>('todos');
   const [activeTab, setActiveTab] = useState<'indicadores' | 'orcamento'>('indicadores');
+  const [indicadores, setIndicadores] = useState<Indicador[]>([]);
+  const [contratos, setContratos] = useState<Contrato[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadTransparency() {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/transparency');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            setIndicadores(data.indicadores || []);
+            setContratos(data.contratos || []);
+          }
+        }
+      } catch (err) {
+        console.error('Falha ao carregar dados de transparência da API:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadTransparency();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filterItem = (title: string, year: number) => {
     const matchYear = selectedYear === 'todos' || year === selectedYear;
@@ -16,11 +44,11 @@ export default function TransparencySection() {
     return matchYear && matchSearch;
   };
 
-  const filteredIndicadores = indicadoresData.filter((i) =>
+  const filteredIndicadores = indicadores.filter((i) =>
     filterItem(i.metrica, i.ano)
   );
 
-  const filteredContratos = contratosData.filter((c) =>
+  const filteredContratos = contratos.filter((c) =>
     filterItem(c.item, c.ano)
   );
 
@@ -68,7 +96,7 @@ export default function TransparencySection() {
               : 'border-transparent text-slate-500 dark:text-[#6482A6] hover:text-slate-800 dark:hover:text-[#E6F4FF]'
           }`}
         >
-          Indicadores Educacionais ({filteredIndicadores.length})
+          Indicadores Educacionais ({loading ? '...' : filteredIndicadores.length})
         </button>
         <button
           onClick={() => setActiveTab('orcamento')}
@@ -78,59 +106,74 @@ export default function TransparencySection() {
               : 'border-transparent text-slate-500 dark:text-[#6482A6] hover:text-slate-800 dark:hover:text-[#E6F4FF]'
           }`}
         >
-          Execução Orçamentária e Contratos ({filteredContratos.length})
+          Execução Orçamentária e Contratos ({loading ? '...' : filteredContratos.length})
         </button>
       </div>
 
-      {/* Indicators Grid */}
-      {activeTab === 'indicadores' && (
+      {loading ? (
         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredIndicadores.length === 0 ? (
-            <div className="col-span-full rounded-xl border border-dashed border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-8 text-center text-sm font-mono text-slate-500 dark:text-slate-400">
-              Nenhum indicador encontrado para o termo pesquisado.
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white/60 dark:bg-[#0C1E38]/60 p-5 animate-pulse space-y-3"
+            >
+              <div className="h-4 w-1/3 rounded bg-slate-200 dark:bg-slate-700" />
+              <div className="h-5 w-3/4 rounded bg-slate-200 dark:bg-slate-700" />
+              <div className="h-8 w-1/2 rounded bg-slate-200 dark:bg-slate-700" />
             </div>
-          ) : (
-            filteredIndicadores.map((ind: Indicador, idx: number) => (
-              <div
-                key={idx}
-                className="flex flex-col justify-between rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 shadow-xs hover:border-slate-300 dark:hover:border-[#00D8FF]/50 transition-all"
-              >
-                <div>
-                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#6482A6] mb-1.5 font-mono">
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">Ano: {ind.ano}</span>
-                    <span className="text-[11px]">Atualizado: {ind.data}</span>
-                  </div>
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug line-clamp-2">
-                    {ind.metrica}
-                  </h3>
-                  <p className="mt-2 font-display text-2xl sm:text-3xl font-bold text-primary dark:text-[#00D8FF] tracking-tight">
-                    {ind.valor}
-                  </p>
-                </div>
-
-                <div className="mt-3.5 pt-3 border-t border-dashed border-slate-200 dark:border-white/10 flex items-center justify-between">
-                  <a
-                    href={ind.fonte.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-[#00D8FF] transition-colors"
-                  >
-                    Fonte: <span className="underline">{ind.fonte.nome}</span>
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                  <span className="inline-flex items-center gap-1 rounded-md bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/40 px-2 py-0.5 text-[10px] font-mono font-semibold text-sky-800 dark:text-sky-300">
-                    <CheckCircle2 className="h-3 w-3 text-sky-600 dark:text-[#00D8FF]" />
-                    Auditado
-                  </span>
-                </div>
-              </div>
-            ))
-          )}
+          ))}
         </div>
-      )}
+      ) : (
+        <>
+          {/* Indicators Grid */}
+          {activeTab === 'indicadores' && (
+            <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredIndicadores.length === 0 ? (
+                <div className="col-span-full rounded-xl border border-dashed border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-8 text-center text-sm font-mono text-slate-500 dark:text-slate-400">
+                  Nenhum indicador encontrado para o termo pesquisado.
+                </div>
+              ) : (
+                filteredIndicadores.map((ind: Indicador, idx: number) => (
+                  <div
+                    key={idx}
+                    className="flex flex-col justify-between rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 shadow-xs hover:border-slate-300 dark:hover:border-[#00D8FF]/50 transition-all"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#6482A6] mb-1.5 font-mono">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">Ano: {ind.ano}</span>
+                        <span className="text-[11px]">Atualizado: {ind.data}</span>
+                      </div>
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-[#E6F4FF] leading-snug line-clamp-2">
+                        {ind.metrica}
+                      </h3>
+                      <p className="mt-2 font-display text-2xl sm:text-3xl font-bold text-primary dark:text-[#00D8FF] tracking-tight">
+                        {ind.valor}
+                      </p>
+                    </div>
 
-      {/* Contracts & Budget Grid */}
-      {activeTab === 'orcamento' && (
+                    <div className="mt-3.5 pt-3 border-t border-dashed border-slate-200 dark:border-white/10 flex items-center justify-between">
+                      <a
+                        href={ind.fonte.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-[#00D8FF] transition-colors"
+                      >
+                        Fonte: <span className="underline">{ind.fonte.nome}</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/40 px-2 py-0.5 text-[10px] font-mono font-semibold text-sky-800 dark:text-sky-300">
+                        <CheckCircle2 className="h-3 w-3 text-sky-600 dark:text-[#00D8FF]" />
+                        Auditado
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* Contracts & Budget Grid */}
+          {activeTab === 'orcamento' && (
         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {filteredContratos.length === 0 ? (
             <div className="col-span-full rounded-xl border border-dashed border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-8 text-center text-sm font-mono text-slate-500 dark:text-slate-400">
@@ -182,6 +225,8 @@ export default function TransparencySection() {
           )}
         </div>
       )}
+    </>
+  )}
 
       {/* Official Audit Notice */}
       <div className="mt-8 rounded-xl border border-sky-200 dark:border-[#1A365D] bg-sky-50/80 dark:bg-[#0C1E38] p-4 flex items-center justify-between flex-wrap gap-3">

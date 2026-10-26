@@ -1,15 +1,42 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { PROJECTS_DATA } from '@/data/projectsData';
-import { MapPin, ArrowUpRight, ArrowRight } from 'lucide-react';
+import { ProjectMission } from '@/types';
+import { MapPin, ArrowUpRight, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 
 export default function HomeProjectsAccordionSection() {
-  // Inicializa com a Missão #06 expandida (como demonstrado na prévia)
-  const [hoveredId, setHoveredId] = useState<string>(
-    PROJECTS_DATA[PROJECTS_DATA.length - 1]?.id || PROJECTS_DATA[0].id
-  );
+  const [projects, setProjects] = useState<ProjectMission[]>([]);
+  const [hoveredId, setHoveredId] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadProjects() {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/projects');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            const list: ProjectMission[] = data.items || [];
+            setProjects(list);
+            if (list.length > 0) {
+              setHoveredId(list[list.length - 1]?.id || list[0]?.id || '');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Falha ao carregar projetos da API:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadProjects();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <section id="projetos-ecossistemas" className="relative scroll-mt-20 py-20 sm:py-28 bg-[#F0F4F8] dark:bg-[#040B16] transition-colors duration-200 border-t border-slate-200/80 dark:border-white/5">
@@ -41,21 +68,41 @@ export default function HomeProjectsAccordionSection() {
         </div>
 
         {/* LÂMINAS EXPANSÍVEIS HORIZONTAIS (ACCORDION DECK) */}
-        <div className="flex flex-col lg:flex-row gap-2.5 min-h-[400px] lg:h-[390px] w-full">
-          {PROJECTS_DATA.map((proj) => {
-            const isHovered = hoveredId === proj.id;
-
-            return (
+        {loading ? (
+          <div className="flex flex-col lg:flex-row gap-2.5 min-h-[390px] w-full animate-pulse">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
-                key={proj.id}
-                onMouseEnter={() => setHoveredId(proj.id)}
-                onClick={() => setHoveredId(proj.id)}
-                className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ease-out flex flex-col justify-between p-4 sm:p-5 touch-manipulation select-none ${
-                  isHovered
-                    ? 'lg:flex-[3.5] min-h-[320px] lg:min-h-0 ring-2 ring-[#004A99] dark:ring-[#00D8FF] shadow-xl'
-                    : 'lg:flex-[0.8] min-h-[80px] lg:min-h-0 bg-slate-900/90 hover:brightness-110 active:scale-[0.99]'
-                }`}
-              >
+                key={i}
+                className="flex-1 min-h-[80px] lg:min-h-0 rounded-xl bg-slate-200 dark:bg-slate-800/80 p-5"
+              />
+            ))}
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 dark:border-[#1A365D] p-12 text-center">
+            <Sparkles className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" />
+            <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+              Nenhuma missão pedagógica cadastrada
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Os projetos pedagógicos serão exibidos aqui assim que registrados na API oficial.
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-2.5 min-h-[400px] lg:h-[390px] w-full">
+            {projects.map((proj) => {
+              const isHovered = hoveredId === proj.id;
+
+              return (
+                <div
+                  key={proj.id}
+                  onMouseEnter={() => setHoveredId(proj.id)}
+                  onClick={() => setHoveredId(proj.id)}
+                  className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ease-out flex flex-col justify-between p-4 sm:p-5 touch-manipulation select-none ${
+                    isHovered
+                      ? 'lg:flex-[3.5] min-h-[320px] lg:min-h-0 ring-2 ring-[#004A99] dark:ring-[#00D8FF] shadow-xl'
+                      : 'lg:flex-[0.8] min-h-[80px] lg:min-h-0 bg-slate-900/90 hover:brightness-110 active:scale-[0.99]'
+                  }`}
+                >
                 {/* Imagem de Fundo em Alta Resolução */}
                 <img
                   src={proj.image}
@@ -143,6 +190,7 @@ export default function HomeProjectsAccordionSection() {
             );
           })}
         </div>
+        )}
 
       </div>
     </section>

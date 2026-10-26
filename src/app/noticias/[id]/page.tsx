@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { getDatabase } from '@/lib/db';
-import initialData from '@/data/initialData.json';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight, Calendar, User, ArrowLeft, Tag, Radio } from 'lucide-react';
@@ -19,9 +18,7 @@ export const instant = false;
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const data = getDatabase();
-  const allNews: NewsItem[] = (data.news && data.news.length > 0)
-    ? data.news
-    : (initialData.news as NewsItem[]);
+  const allNews: NewsItem[] = data.news || [];
 
   const newsItem = allNews.find((n) => n.id === id || n.slug === id);
 
@@ -49,9 +46,7 @@ const FALLBACK_COVER =
 export default async function NoticiaDetalhePage({ params }: Props) {
   const { id } = await params;
   const data = getDatabase();
-  const allNews: NewsItem[] = (data.news && data.news.length > 0)
-    ? data.news
-    : (initialData.news as NewsItem[]);
+  const allNews: NewsItem[] = data.news || [];
 
   const newsItem = allNews.find((n) => n.id === id || n.slug === id);
 

@@ -5,7 +5,6 @@ import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import AvisosView from '@/components/AvisosView';
 import { getDatabase } from '@/lib/db';
-import initialData from '@/data/initialData.json';
 import { AnnouncementItem } from '@/types';
 
 export const metadata: Metadata = {
@@ -21,9 +20,7 @@ export const metadata: Metadata = {
 
 export default async function AvisosPage() {
   const db = getDatabase();
-  const announcements = (db.announcements && db.announcements.length > 0)
-    ? db.announcements
-    : (initialData.announcements as AnnouncementItem[]);
+  const announcements: AnnouncementItem[] = db.announcements || [];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F0F4F9] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors duration-200 overflow-x-hidden max-w-[100vw]">

@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { municipiosList } from '@/data/medtecData';
 import { FiltrosMapa } from './types';
 import { Search, X } from 'lucide-react';
 import { sanitizeSearchInput } from '@/lib/security';
@@ -10,12 +9,14 @@ interface PainelFiltrosProps {
   filtros: FiltrosMapa;
   onFiltrosChange: (novosFiltros: FiltrosMapa) => void;
   totalResultados: number;
+  municipios?: string[];
 }
 
 export function PainelFiltros({
   filtros,
   onFiltrosChange,
   totalResultados,
+  municipios = [],
 }: PainelFiltrosProps) {
   const setMunicipio = (municipio: string) => {
     onFiltrosChange({ ...filtros, municipio });
@@ -94,9 +95,9 @@ export function PainelFiltros({
                 : 'border border-[#1A365D] bg-[#061224]/80 text-slate-300 hover:border-slate-500 hover:text-white'
             }`}
           >
-            Todos (52)
+            Todos ({municipios.length > 0 ? municipios.length : 52})
           </button>
-          {municipiosList.map((m) => {
+          {municipios.map((m) => {
             const isSelected = filtros.municipio === m;
             return (
               <button

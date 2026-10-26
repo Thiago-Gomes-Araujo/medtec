@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   medtec:
     build:
@@ -16,6 +14,11 @@ services:
       NODE_ENV: production
       PORT: "3022"
       HOSTNAME: 0.0.0.0
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-MedTec@Seduc2026!}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:-e28b6d0a7c141b8cd064efc7672fd8540a3fa94f412c4976a67514218200d01a}
+      BACKEND_API_URL: ${BACKEND_API_URL:-http://172.16.107.63:3023/api/v1}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://172.16.107.63:3023/api/v1}
     volumes:
       - medtec-data:/app/src/data
       - medtec-uploads:/app/public/uploads

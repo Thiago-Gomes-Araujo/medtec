@@ -5,7 +5,6 @@ import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import SocialSection from '@/components/SocialSection';
 import { getDatabase } from '@/lib/db';
-import initialData from '@/data/initialData.json';
 import { SocialLinks } from '@/types';
 
 export const metadata: Metadata = {
@@ -21,7 +20,7 @@ export const metadata: Metadata = {
 
 export default async function RedesPage() {
   const db = getDatabase();
-  const socials = db.socials || (initialData.socials as SocialLinks);
+  const socials: SocialLinks = db.socials;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">

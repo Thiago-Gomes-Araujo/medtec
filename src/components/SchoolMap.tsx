@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Satellite, 
   Users, 
@@ -9,10 +9,11 @@ import {
   MapPin, 
   Signal, 
   CheckCircle2, 
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { escolasData, Escola, municipiosList } from '@/data/medtecData';
+import { Escola } from '@/types';
 
 // Definição dos nós cartográficos reais de telemetria no SVG (viewBox: 0 0 760 580)
 interface TelemetryNode {
@@ -197,15 +198,49 @@ export default function SchoolMap() {
   const [selectedType, setSelectedType] = useState<string>('todas');
   const [hoveredSchoolId, setHoveredSchoolId] = useState<number | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
+  const [schools, setSchools] = useState<Escola[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSchools() {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/schools');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            setSchools(data.items || []);
+          }
+        }
+      } catch (err) {
+        console.error('Falha ao carregar escolas da API:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadSchools();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const dynamicMunicipios = useMemo(() => {
+    const set = new Set<string>();
+    schools.forEach((s) => {
+      if (s.municipio) set.add(s.municipio);
+    });
+    return Array.from(set).sort();
+  }, [schools]);
 
   // Filtragem bidirecional de escolas
   const filteredSchools = useMemo(() => {
-    return escolasData.filter((e) => {
+    return schools.filter((e) => {
       const matchCity = selectedCity === 'Todos' || e.municipio === selectedCity;
       const matchType = selectedType === 'todas' || e.tipo === selectedType;
       return matchCity && matchType;
     });
-  }, [selectedCity, selectedType]);
+  }, [schools, selectedCity, selectedType]);
 
   // Contadores dinâmicos dos KPIs
   const stats = useMemo(() => {
@@ -221,7 +256,7 @@ export default function SchoolMap() {
   // Estatísticas agregadas por município para nós HUD de telemetria
   const municipalityStats = useMemo(() => {
     const map: Record<string, { alunos: number; escolas: number; turmas: number }> = {};
-    escolasData.forEach((e) => {
+    schools.forEach((e) => {
       if (!map[e.municipio]) {
         map[e.municipio] = { alunos: 0, escolas: 0, turmas: 0 };
       }
@@ -230,13 +265,13 @@ export default function SchoolMap() {
       map[e.municipio].turmas += e.turmas;
     });
     return map;
-  }, []);
+  }, [schools]);
 
   // Identifica a escola com hover para telemetria em tempo real
   const hoveredSchool = useMemo(() => {
     if (!hoveredSchoolId) return null;
-    return escolasData.find((e) => e.id === hoveredSchoolId) || null;
-  }, [hoveredSchoolId]);
+    return schools.find((e) => e.id === hoveredSchoolId) || null;
+  }, [schools, hoveredSchoolId]);
 
   // Identifica o nó ativo no mapa baseado no hover da escola ou no nó sob mouse
   const activeTargetNode = useMemo(() => {
@@ -322,9 +357,9 @@ export default function SchoolMap() {
                       : 'border border-[#1A365D] bg-[#061224]/80 text-slate-300 hover:border-slate-500 hover:text-white'
                   }`}
                 >
-                  Todos (52)
+                  Todos ({dynamicMunicipios.length > 0 ? dynamicMunicipios.length : 52})
                 </button>
-                {municipiosList.map((m) => {
+                {dynamicMunicipios.map((m) => {
                   const isSelected = selectedCity === m;
                   return (
                     <button
