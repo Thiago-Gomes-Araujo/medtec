@@ -118,7 +118,7 @@ export default function TransparencySection() {
                     Fonte: <span className="underline">{ind.fonte.nome}</span>
                     <ExternalLink className="h-3 w-3" />
                   </a>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/40 px-2 py-0.5 text-[10px] font-mono font-semibold text-sky-800 dark:text-sky-300">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800/40 px-2 py-0.5 text-[10px] font-mono font-semibold text-sky-800 dark:text-sky-300">
                     <CheckCircle2 className="h-3 w-3 text-sky-600 dark:text-[#00D8FF]" />
                     Auditado
                   </span>
@@ -146,7 +146,7 @@ export default function TransparencySection() {
                   <div className="flex items-center justify-between text-xs text-slate-500 dark:text-[#6482A6] mb-1.5 font-mono">
                     <span className="font-semibold text-slate-700 dark:text-slate-300">Exercício: {cont.ano}</span>
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono font-bold ${
                         cont.status === 'Em execução'
                           ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40'
                           : 'bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800/40'

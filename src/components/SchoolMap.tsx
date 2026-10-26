@@ -9,7 +9,6 @@ import {
   MapPin, 
   Signal, 
   CheckCircle2, 
-  GraduationCap,
   ArrowRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -796,7 +795,7 @@ export default function SchoolMap() {
                     COORD: {activeTargetNode.lat} • {activeTargetNode.lon}
                   </text>
                   <text x="12" y="60" fill="#10B981" fontSize="9" fontFamily="monospace" fontWeight="semibold">
-                    STATUS: 99.8% SÍNCRONO • LATÊNCIA: 18ms
+                    STATUS: SINAL SATELITAL ATIVO // SEDUC-RO
                   </text>
                 </g>
               )}
@@ -853,7 +852,7 @@ export default function SchoolMap() {
               <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-slate-500 dark:text-[#6482A6]">
                 Escolas Conectadas
               </span>
-              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-[0.9] text-slate-900 dark:text-[#E6F4FF]">
+              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-tight text-slate-900 dark:text-[#E6F4FF]">
                 {filteredSchools.length}
               </p>
               <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
@@ -867,7 +866,7 @@ export default function SchoolMap() {
               <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-slate-500 dark:text-[#6482A6]">
                 Turmas no Ar
               </span>
-              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-[0.9] text-slate-900 dark:text-[#E6F4FF]">
+              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-tight text-slate-900 dark:text-[#E6F4FF]">
                 {stats.turmas}
               </p>
               <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-cyan-700 dark:text-cyan-400">
@@ -881,7 +880,7 @@ export default function SchoolMap() {
               <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-slate-500 dark:text-[#6482A6]">
                 Alunos Atendidos
               </span>
-              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-[0.9] text-slate-900 dark:text-[#E6F4FF]">
+              <p className="mt-1 font-display text-[32px] sm:text-[41px] font-medium leading-tight text-slate-900 dark:text-[#E6F4FF]">
                 {stats.alunos}
               </p>
               <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-sky-700 dark:text-sky-400">
@@ -968,7 +967,7 @@ export default function SchoolMap() {
                         </div>
 
                         {/* 1 BADGE DA TIPOLOGIA NO TOPO */}
-                        <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}>
+                        <span className={`shrink-0 rounded-md border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}>
                           {escola.tipo}
                         </span>
                       </div>

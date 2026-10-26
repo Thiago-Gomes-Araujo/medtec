@@ -33,7 +33,7 @@ export default function NewsModal({ news, onClose }: NewsModalProps) {
         {/* Botão Fechar */}
         <button
           onClick={onClose}
-          className="absolute top-3.5 right-3.5 z-10 p-2 rounded-full bg-slate-900/60 hover:bg-slate-900 text-white backdrop-blur-md transition-all active:scale-95 cursor-pointer touch-manipulation select-none"
+          className="absolute top-3.5 right-3.5 z-10 p-2 rounded-lg bg-slate-900/60 hover:bg-slate-900 text-white backdrop-blur-md transition-all active:scale-95 cursor-pointer touch-manipulation select-none"
           aria-label="Fechar notícia"
         >
           <X size={18} />
@@ -47,7 +47,7 @@ export default function NewsModal({ news, onClose }: NewsModalProps) {
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-4">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950 text-[11px] font-bold font-mono shadow-xs">
+            <span className="px-2.5 py-0.5 rounded-md bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950 text-[11px] font-bold font-mono shadow-xs">
               {news.category}
             </span>
           </div>

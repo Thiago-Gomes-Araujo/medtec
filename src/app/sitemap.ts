@@ -16,6 +16,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/avisos', changeFrequency: 'daily' as const, priority: 0.8 },
     { path: '/galeria', changeFrequency: 'weekly' as const, priority: 0.8 },
     { path: '/duvidas', changeFrequency: 'weekly' as const, priority: 0.8 },
+    { path: '/faq', changeFrequency: 'weekly' as const, priority: 0.8 },
     { path: '/transparencia', changeFrequency: 'monthly' as const, priority: 0.8 },
     { path: '/comunidades', changeFrequency: 'weekly' as const, priority: 0.7 },
     { path: '/ao-vivo', changeFrequency: 'weekly' as const, priority: 0.7 },

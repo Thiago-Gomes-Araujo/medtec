@@ -9,9 +9,12 @@ import {
   AlertTriangle, 
   Calendar, 
   ArrowUpRight, 
-  Search,
-  ShieldAlert,
-  Megaphone
+  Search, 
+  ShieldAlert, 
+  Megaphone, 
+  X, 
+  CheckCircle2,
+  FileText
 } from 'lucide-react';
 
 interface AvisosViewProps {
@@ -21,6 +24,7 @@ interface AvisosViewProps {
 export default function AvisosView({ announcements }: AvisosViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('Todas');
+  const [selectedAviso, setSelectedAviso] = useState<AnnouncementItem | null>(null);
 
   const activeItems = announcements.filter((a) => a.active !== false);
 
@@ -106,7 +110,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
               >
                 <span>{cat.label}</span>
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold tabular-nums ${
+                  className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold tabular-nums ${
                     isSelected 
                       ? 'bg-sky-200 text-slate-950 dark:bg-slate-950 dark:text-[#00D8FF]' 
                       : 'bg-slate-100 dark:bg-[#061224] text-slate-600 dark:text-slate-400'
@@ -150,11 +154,12 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
             return (
               <article
                 key={item.id}
-                className={`glow-card bg-white dark:bg-[#0C1E38] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md dark:hover:border-cyan-400/50 transition-all duration-200 ease-out flex flex-col justify-between group active:scale-[0.99] touch-manipulation select-none ${style.cardBorder}`}
+                onClick={() => setSelectedAviso(item)}
+                className={`glow-card bg-white dark:bg-[#0C1E38] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md dark:hover:border-cyan-400/50 transition-all duration-200 ease-out flex flex-col justify-between group active:scale-[0.99] touch-manipulation select-none cursor-pointer ${style.cardBorder}`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2.5">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${style.badge}`}>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${style.badge}`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
                       {style.label}
                     </span>
@@ -173,20 +178,89 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
                   </p>
                 </div>
 
-                {item.linkText && item.linkUrl && (
-                  <div className="mt-3 pt-3 border-t border-dashed border-slate-200/80 dark:border-[#1A365D]/60 flex items-center justify-end">
-                    <a
-                      href={item.linkUrl}
-                      className="text-xs font-semibold text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1 group/link transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] rounded-md px-1.5 py-0.5"
-                    >
-                      <span>{item.linkText}</span>
-                      <ArrowUpRight size={13} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
-                    </a>
-                  </div>
-                )}
+                <div className="mt-3 pt-3 border-t border-dashed border-slate-200/80 dark:border-[#1A365D]/60 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    ID: {item.id}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedAviso(item);
+                    }}
+                    className="text-xs font-semibold text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1 group/link transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] rounded-md px-1.5 py-0.5 cursor-pointer"
+                  >
+                    <span>{item.linkText || 'Ler comunicado completo'}</span>
+                    <ArrowUpRight size={13} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
+                  </button>
+                </div>
               </article>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal de Leitura Completa de Aviso */}
+      {selectedAviso && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setSelectedAviso(null)}
+        >
+          <div
+            className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-[#0C1E38] border border-slate-200 dark:border-[#1A365D] p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3">
+              <div className="space-y-1">
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold border ${getTypeStyle(selectedAviso.type).badge}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${getTypeStyle(selectedAviso.type).dot}`} />
+                  {getTypeStyle(selectedAviso.type).label}
+                </span>
+                <span className="block text-xs font-mono text-slate-500 dark:text-slate-400">
+                  Publicado em: {selectedAviso.date} • SEDUC-RO
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedAviso(null)}
+                aria-label="Fechar comunicado"
+                className="rounded-lg p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <h2 className="text-xl font-bold font-display text-slate-900 dark:text-white leading-tight">
+                {selectedAviso.title}
+              </h2>
+
+              <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
+                {selectedAviso.content}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-sky-200/80 dark:border-cyan-500/20 bg-sky-50/60 dark:bg-[#07162C] p-3 text-xs space-y-1.5">
+              <div className="flex items-center gap-2 text-[#004A99] dark:text-cyan-300 font-semibold">
+                <FileText size={14} />
+                <span>Orientações da Coordenadoria de Mídias Educacionais</span>
+              </div>
+              <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                Este comunicado possui caráter oficial para todas as salas conectadas, polos e professores mediadores de Rondônia conforme a Portaria SEDUC nº 928/2025.
+              </p>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => setSelectedAviso(null)}
+                className="px-4 py-2 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white font-medium text-xs transition-colors cursor-pointer shadow-xs"
+              >
+                Ciente e Fechar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

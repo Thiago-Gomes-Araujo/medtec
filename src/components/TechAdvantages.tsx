@@ -11,9 +11,6 @@ import {
   Sparkles,
   CheckCircle2,
   BookOpen,
-  Compass,
-  Cpu,
-  Sprout,
   ShieldCheck,
   Check,
   ArrowLeftRight
@@ -80,12 +77,13 @@ export default function TechAdvantages() {
 
   return (
     <section id="tecnologia" className="relative scroll-mt-20 py-20 sm:py-28 bg-[#F0F4F8] dark:bg-[#040B16] transition-colors duration-200">
+      <div id="pilares" className="absolute -top-24 pointer-events-none" aria-hidden="true" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         
         {/* ================= 1. CABEÇALHO DA SEÇÃO ================= */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-100 dark:bg-cyan-950/60 border border-sky-300 dark:border-cyan-500/20 text-[#05549D] dark:text-cyan-300 font-mono text-[11px] font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-sky-100 dark:bg-cyan-950/60 border border-sky-300 dark:border-cyan-500/20 text-[#05549D] dark:text-cyan-300 font-mono text-[11px] font-bold uppercase tracking-wider">
             <Sparkles className="h-3.5 w-3.5 text-[#0284C7] dark:text-cyan-400" />
             <span>Pilares da Mediação Tecnológica • Lei Estadual nº 3.846/2016</span>
           </div>
@@ -95,7 +93,7 @@ export default function TechAdvantages() {
           </h2>
 
           <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl mx-auto text-pretty">
-            Unindo tecnologia satelital de ponta à presença calorosa de professores mediadores para garantir que nenhum jovem rondoniense fique para trás.
+            Unindo tecnologia satelital de ponta à presença de professores mediadores para garantir o direito à educação pública de qualidade.
           </p>
         </div>
 
@@ -103,15 +101,15 @@ export default function TechAdvantages() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
           
           {/* CARD 1: TRANSMISSÃO AO VIVO (Col Span 8) */}
-          <div className="lg:col-span-8 glow-card group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-gradient-to-br from-white via-white to-sky-50/60 dark:from-[#0C1E38] dark:via-[#0C1E38] dark:to-[#081528] p-4 sm:p-5 transition-all duration-200 ease-out hover:border-[#0284C7] dark:hover:border-cyan-400/80 shadow-sm dark:shadow-xl">
+          <div className="lg:col-span-8 group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 transition-colors duration-150 shadow-sm">
             <div className="relative z-10">
               <div className="flex items-center justify-between gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-sky-100 dark:bg-cyan-500/10 border border-sky-300 dark:border-cyan-500/20 text-[#05549D] dark:text-cyan-400 flex items-center justify-center group-hover:scale-105 transition-all duration-200 ease-out">
+                <div className="w-10 h-10 rounded-lg bg-sky-100 dark:bg-cyan-500/10 border border-sky-300 dark:border-cyan-500/20 text-[#05549D] dark:text-cyan-400 flex items-center justify-center transition-colors">
                   <Satellite className="w-5 h-5" />
                 </div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-950/80 text-cyan-900 dark:text-cyan-200 font-mono text-[11px] font-bold border border-cyan-200 dark:border-cyan-500/30">
-                  <Radio className="w-3 h-3 text-cyan-600 dark:text-cyan-400 animate-pulse" />
-                  Uplink 4K Ultra HD
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-cyan-100 dark:bg-cyan-950/80 text-cyan-900 dark:text-cyan-200 font-mono text-[11px] font-bold border border-cyan-200 dark:border-cyan-500/30">
+                  <Radio className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
+                  Transmissão Satelital
                 </span>
               </div>
 
@@ -133,18 +131,16 @@ export default function TechAdvantages() {
                 Porto Velho <ArrowLeftRight className="w-3 h-3 text-sky-600 dark:text-cyan-300" /> 52 Municípios
               </span>
             </div>
-
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
           </div>
 
           {/* CARD 2: PROFESSOR MEDIADOR PRESENCIAL (Col Span 4) */}
-          <div className="lg:col-span-4 glow-card group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 transition-all duration-200 ease-out hover:border-[#0284C7] dark:hover:border-cyan-400/80 shadow-sm dark:shadow-xl">
+          <div className="lg:col-span-4 group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 transition-colors duration-150 shadow-sm">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-lg bg-sky-100 dark:bg-sky-500/10 border border-sky-300 dark:border-sky-500/20 text-[#05549D] dark:text-sky-400 flex items-center justify-center group-hover:scale-105 transition-all duration-200 ease-out">
+                <div className="w-10 h-10 rounded-lg bg-sky-100 dark:bg-sky-500/10 border border-sky-300 dark:border-sky-500/20 text-[#05549D] dark:text-sky-400 flex items-center justify-center transition-colors">
                   <Users className="w-5 h-5" />
                 </div>
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-500/30 tabular-nums">
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-sky-50 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-500/30 tabular-nums">
                   Apoio Humano 100%
                 </span>
               </div>
@@ -159,21 +155,19 @@ export default function TechAdvantages() {
             </div>
 
             <div className="mt-5 pt-3 border-t border-dashed border-slate-200 dark:border-white/10 text-[11px] font-semibold text-[#05549D] dark:text-sky-300 flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               <span>Plantão ativo durante as transmissões</span>
             </div>
-
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-400 to-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
           </div>
 
           {/* CARD 3: EQUIDADE E INCLUSÃO GEOGRÁFICA (Col Span 4) */}
-          <div className="lg:col-span-4 glow-card group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 transition-all duration-200 ease-out hover:border-[#0284C7] dark:hover:border-cyan-400/80 shadow-sm dark:shadow-xl">
+          <div className="lg:col-span-4 group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 transition-colors duration-150 shadow-sm">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-500/10 border border-rose-300 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-105 transition-all duration-200 ease-out">
+                <div className="w-10 h-10 rounded-lg bg-rose-100 dark:bg-rose-500/10 border border-rose-300 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center transition-colors">
                   <HeartHandshake className="w-5 h-5" />
                 </div>
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30">
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30">
                   Universalização
                 </span>
               </div>
@@ -191,18 +185,16 @@ export default function TechAdvantages() {
               <span>Ribeirinhos • Indígenas • Rurais</span>
               <span className="text-rose-600 dark:text-rose-400 font-bold tabular-nums">100% Gratuito</span>
             </div>
-
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-400 to-amber-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
           </div>
 
           {/* CARD 4: SUSTENTABILIDADE & ITINERÁRIO NBAZ (Col Span 8) */}
-          <div className="lg:col-span-8 glow-card group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-gradient-to-br from-white via-white to-emerald-50/50 dark:from-[#0C1E38] dark:via-[#0C1E38] dark:to-[#071a28] p-4 sm:p-5 transition-all duration-200 ease-out hover:border-[#0284C7] dark:hover:border-cyan-400/80 shadow-sm dark:shadow-xl">
+          <div className="lg:col-span-8 group relative flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 transition-colors duration-150 shadow-sm">
             <div>
               <div className="flex items-center justify-between gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-all duration-200 ease-out">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition-colors">
                   <Leaf className="w-5 h-5" />
                 </div>
-                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
+                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
                   Itinerário NBAZ • SEDUC
                 </span>
               </div>

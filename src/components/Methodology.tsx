@@ -89,7 +89,7 @@ export default function Methodology() {
         
         {/* ================= 1. CABEÇALHO DA SEÇÃO ================= */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sky-50 dark:bg-cyan-950/60 text-[#004A99] dark:text-cyan-300 border border-sky-200 dark:border-cyan-500/20 text-xs sm:text-sm font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-md bg-sky-50 dark:bg-cyan-950/60 text-[#004A99] dark:text-cyan-300 border border-sky-200 dark:border-cyan-500/20 text-xs sm:text-sm font-bold uppercase tracking-wider">
             <Sparkles className="h-3.5 w-3.5 text-[#004A99] dark:text-[#00D8FF]" />
             <span>Passo a Passo da Aula • Fluxo Integrado</span>
           </div>
@@ -123,7 +123,7 @@ export default function Methodology() {
                   <div className="space-y-3">
                     {/* Topo: Número e Ícone Alinhados */}
                     <div className="flex items-center justify-between">
-                      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#004A99] to-[#0284C7] dark:from-[#00D8FF] dark:to-[#0284C7] flex items-center justify-center text-white dark:text-[#040B16] font-bold font-mono text-xs shadow-xs group-hover:scale-105 transition-transform duration-200 ease-out tabular-nums">
+                      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#004A99] to-[#0284C7] dark:from-[#00D8FF] dark:to-[#0284C7] flex items-center justify-center text-white dark:text-[#040B16] font-bold font-mono text-xs shadow-xs tabular-nums">
                         {item.step}
                       </span>
 
@@ -190,7 +190,7 @@ export default function Methodology() {
                         <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-cyan-950/80 border border-sky-300 dark:border-cyan-400/40 text-[#004A99] dark:text-[#00D8FF] flex items-center justify-center font-mono font-bold text-xs shadow-xs">
                           {edu.initials}
                         </div>
-                        <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#0C1E38] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 truncate max-w-[110px]">
+                        <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-[#0C1E38] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 truncate max-w-[110px]">
                           {edu.tag}
                         </span>
                       </div>
@@ -218,7 +218,7 @@ export default function Methodology() {
                 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-cyan-400/20 text-cyan-200 border border-cyan-400/30">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-cyan-400/20 text-cyan-200 border border-cyan-400/30">
                       <Compass className="h-3.5 w-3.5" />
                       REDE ESTADUAL CONECTADA
                     </span>

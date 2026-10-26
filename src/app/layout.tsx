@@ -6,6 +6,7 @@ const manrope = Manrope({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
+  preload: true,
 });
 
 const spaceGrotesk = Space_Grotesk({
@@ -13,6 +14,7 @@ const spaceGrotesk = Space_Grotesk({
   variable: '--font-display',
   weight: ['400', '500', '600', '700'],
   display: 'swap',
+  preload: true,
 });
 
 const jetbrains = JetBrains_Mono({
@@ -20,11 +22,19 @@ const jetbrains = JetBrains_Mono({
   variable: '--font-mono',
   weight: ['400', '500', '600'],
   display: 'swap',
+  preload: true,
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://medtec.seduc.ro.gov.br';
+
 export const metadata: Metadata = {
-  title: 'MEDTEC em Foco — Ensino Médio com Mediação Tecnológica de Rondônia',
-  description: 'Histórias, escolas, dados e transparência do Ensino Médio com Mediação Tecnológica da SEDUC-RO. Lei Estadual nº 3.846/2016.',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'MEDTEC Rondônia | Ensino Médio com Mediação Tecnológica - SEDUC-RO',
+    template: '%s | MEDTEC Rondônia - SEDUC-RO',
+  },
+  description:
+    'Portal oficial do Ensino Médio com Mediação Tecnológica da Secretaria de Estado da Educação de Rondônia (SEDUC-RO). Aulas ao vivo via satélite, projetos pedagógicos, mural de avisos e escolas atendidas nos 52 municípios.',
   keywords: [
     'MEDTEC',
     'SEDUC Rondônia',
@@ -34,15 +44,26 @@ export const metadata: Metadata = {
     'Educação Rural',
     'Educação Ribeirinha',
     'Educação Indígena',
-    'Transparência SEDUC'
+    'Transparência SEDUC',
   ],
   authors: [{ name: 'SEDUC - Secretaria de Estado da Educação de Rondônia' }],
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
-    title: 'MEDTEC em Foco — Rondônia',
-    description: 'A educação que chega a todos os cantos de Rondônia. Histórias, escolas e transparência oficial.',
+    title: 'MEDTEC Rondônia | Ensino Médio com Mediação Tecnológica - SEDUC-RO',
+    description:
+      'Portal oficial do Ensino Médio com Mediação Tecnológica da Secretaria de Estado da Educação de Rondônia (SEDUC-RO). Aulas ao vivo via satélite, projetos pedagógicos, mural de avisos e escolas atendidas nos 52 municípios.',
     type: 'website',
     locale: 'pt_BR',
-    siteName: 'MEDTEC em Foco · SEDUC-RO',
+    siteName: 'MEDTEC - SEDUC-RO',
+    url: siteUrl,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MEDTEC Rondônia | Ensino Médio com Mediação Tecnológica - SEDUC-RO',
+    description:
+      'Portal oficial do Ensino Médio com Mediação Tecnológica da Secretaria de Estado da Educação de Rondônia (SEDUC-RO).',
   },
 };
 
@@ -52,7 +73,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning className={`${manrope.variable} ${spaceGrotesk.variable} ${jetbrains.variable} scroll-smooth`}>
+    <html
+      lang="pt-BR"
+      suppressHydrationWarning
+      className={`${manrope.variable} ${spaceGrotesk.variable} ${jetbrains.variable} scroll-smooth overflow-x-hidden max-w-[100vw]`}
+    >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" href="/favicon.ico" />
@@ -76,7 +101,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="site-mesh min-h-screen text-[#0B1B30] dark:text-[#E6F4FF] font-sans antialiased selection:bg-cyan-400 selection:text-slate-950 flex flex-col transition-colors duration-200">
+      <body className="site-mesh min-h-screen text-[#0B1B30] dark:text-[#E6F4FF] font-sans antialiased selection:bg-cyan-400 selection:text-slate-950 flex flex-col transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
         {children}
       </body>
     </html>

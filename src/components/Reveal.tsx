@@ -12,7 +12,7 @@ interface RevealProps {
 
 /**
  * Revela o conteúdo com fade + translate quando entra na viewport.
- * Movimento sutil, sem brilhos — respeita prefers-reduced-motion via CSS (.reveal).
+ * Movimento sutil, sem brilhos - respeita prefers-reduced-motion via CSS (.reveal).
  */
 export default function Reveal({ children, className = '', delay = 0, as = 'div' }: RevealProps) {
   const ref = useRef<HTMLElement | null>(null);

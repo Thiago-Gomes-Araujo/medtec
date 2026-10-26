@@ -14,7 +14,6 @@ import {
   School,
   FileText,
   Lightbulb,
-  Check,
   Package
 } from 'lucide-react';
 import { ProjectMission } from '@/data/projectsData';
@@ -88,7 +87,7 @@ export default function ReplicationPassportModal({
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1.5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold tracking-widest uppercase rounded-full px-2.5 py-0.5 bg-[#004A99]/10 dark:bg-cyan-400/10 text-[#004A99] dark:text-[#00D8FF] border border-[#004A99]/20 dark:border-cyan-400/30">
+                    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold tracking-widest uppercase rounded-md px-2.5 py-0.5 bg-[#004A99]/10 dark:bg-cyan-400/10 text-[#004A99] dark:text-[#00D8FF] border border-[#004A99]/20 dark:border-cyan-400/30">
                       <Package className="h-3 w-3" />
                       <span>Passaporte de Replicação Pedagógica</span>
                     </span>
@@ -114,7 +113,7 @@ export default function ReplicationPassportModal({
                 {/* Close Button */}
                 <button
                   onClick={onClose}
-                  className="rounded-full p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all duration-150 ease-out cursor-pointer shrink-0 touch-manipulation select-none active:scale-[0.92] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300"
+                  className="rounded-lg p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-all duration-150 ease-out cursor-pointer shrink-0 touch-manipulation select-none active:scale-[0.92] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300"
                   aria-label="Fechar roteiro"
                 >
                   <X className="h-5 w-5" />
@@ -204,7 +203,7 @@ export default function ReplicationPassportModal({
                         <span className="font-mono text-xs font-bold text-[#004A99] dark:text-[#00D8FF]">
                           {step.title}
                         </span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 tabular-nums">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 tabular-nums">
                           Fase {step.week} de 4
                         </span>
                       </div>

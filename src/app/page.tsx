@@ -27,7 +27,7 @@ export default function HomePage() {
   const [pitchModalOpen, setPitchModalOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F0F4F8] dark:bg-[#040D1A] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors duration-200">
+    <div className="flex min-h-screen flex-col bg-[#F0F4F8] dark:bg-[#040D1A] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
       {/* CABEÇALHO FLUTUANTE EM GLASSMORPHISM */}
       <SiteHeader onOpenPitchModal={() => setPitchModalOpen(true)} />
 
@@ -41,6 +41,8 @@ export default function HomePage() {
             alt="Transmissão das aulas do MEDTEC Rondônia"
             width={1600}
             height={912}
+            decoding="async"
+            fetchPriority="high"
             className="absolute inset-0 h-full w-full object-cover opacity-25 mix-blend-luminosity pointer-events-none"
           />
 
@@ -103,10 +105,9 @@ export default function HomePage() {
             <div className="lg:col-span-7 space-y-6">
               
               {/* 1. LINHA DE STATUS INSTITUCIONAL */}
-              <div className="inline-flex flex-wrap items-center gap-2 sm:gap-3 rounded-full border border-white/15 bg-white/10 dark:bg-slate-900/60 px-4 py-1.5 text-xs font-medium text-slate-200 backdrop-blur-md select-none">
+              <div className="inline-flex flex-wrap items-center gap-2 sm:gap-3 rounded-md border border-white/15 bg-white/10 dark:bg-slate-900/60 px-3.5 py-1.5 text-xs font-medium text-slate-200 backdrop-blur-md select-none">
                 <span className="flex items-center gap-2 text-emerald-400 font-semibold">
                   <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
                   </span>
                   Sinal Satelital Ativo • 52 Municípios
@@ -117,17 +118,17 @@ export default function HomePage() {
                 <span className="text-slate-300/80 hidden md:inline">Portaria SEDUC nº 928/2025</span>
               </div>
 
-              {/* 2. TÍTULO PRINCIPAL (H1) COM CONTRASTE SÓLIDO & ACENTO CYAN */}
-              <h1 className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.75rem] text-balance">
-                A educação do futuro chega a{' '}
+              {/* 2. TÍTULO PRINCIPAL INSTITUCIONAL */}
+              <h1 className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.5rem] text-balance">
+                Ensino Médio com Mediação Tecnológica{' '}
                 <span className="text-[#00D8FF]">
-                  todo canto de Rondônia
+                  na Rede Estadual de Rondônia
                 </span>
               </h1>
 
-              {/* 3. SUBTÍTULO DESCRITIVO */}
+              {/* 3. SUBTÍTULO DIRETO E INSTITUCIONAL */}
               <p className="max-w-2xl text-base leading-relaxed text-slate-200 sm:text-lg text-pretty">
-                Aulas ao vivo diretamente dos estúdios televisivos da Coordenadoria de Mídias Educacionais em Porto Velho para centenas de salas conectadas em todo o estado, acompanhadas diariamente por professores mediadores presenciais.
+                Aulas transmitidas ao vivo dos estúdios da SEDUC em Porto Velho para estudantes do 1º ao 3º ano em comunidades rurais, ribeirinhas, indígenas e quilombolas nos 52 municípios.
               </p>
 
               {/* 4. LINHA EDITORIAL DE PÚBLICO INTEGRADA */}
@@ -148,32 +149,29 @@ export default function HomePage() {
                 </span>
               </div>
 
-              {/* 5. GRUPO DE CTAs COM FEEDBACK ATIVO E TOUCH MANIPULATION */}
+              {/* 5. GRUPO DE CTAs COM BOTÕES TÉCNICOS ROUNDED-LG */}
               <div className="pt-2 flex flex-wrap items-center gap-3.5">
-                {/* Botão Primário Sólido Institucional */}
                 <a
                   href="#como-funciona"
-                  className="group inline-flex items-center gap-2 rounded-full bg-white text-slate-950 hover:bg-slate-100 dark:bg-[#00D8FF] dark:text-slate-950 dark:hover:bg-[#38BDF8] px-6 py-3.5 text-sm font-extrabold shadow-md active:scale-[0.97] transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none"
+                  className="group inline-flex items-center gap-2 rounded-lg bg-white text-slate-950 hover:bg-slate-100 dark:bg-[#00D8FF] dark:text-slate-950 dark:hover:bg-[#38BDF8] px-5 py-3 text-sm font-extrabold shadow-sm active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none"
                 >
                   <span>Como funciona o MEDTEC</span>
                   <ArrowRight className="h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" />
                 </a>
 
-                {/* Botão Secundário */}
                 <a
                   href="#ao-vivo"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 hover:bg-white/15 text-white px-5 py-3.5 text-sm font-semibold backdrop-blur-md active:scale-[0.97] transition-all duration-150 ease-out cursor-pointer shadow-xs touch-manipulation select-none"
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 hover:bg-white/15 text-white px-5 py-3 text-sm font-semibold backdrop-blur-md active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer shadow-xs touch-manipulation select-none"
                 >
                   <Play className="h-4 w-4 text-rose-400 fill-rose-400/40" />
                   <span>Canal ao vivo</span>
                 </a>
 
-                {/* Link Terciário Discreto */}
                 <Link
                   href="/avisos"
                   className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer group touch-manipulation select-none"
                 >
-                  <span>Avisos e notícias</span>
+                  <span>Avisos e comunicados</span>
                   <ArrowRight className="h-3.5 w-3.5 transition-transform duration-150 ease-out group-hover:translate-x-1 text-cyan-300" />
                 </Link>
               </div>
@@ -182,7 +180,7 @@ export default function HomePage() {
 
             {/* ================= COLUNA DA DIREITA: PAINEL DE TRANSMISSÃO E MÉTRICAS ================= */}
             <div className="lg:col-span-5">
-              <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-slate-900/90 text-white backdrop-blur-xl shadow-2xl">
+              <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-slate-900/90 text-white backdrop-blur-xl shadow-xl">
                 
                 {/* Cabeçalho Institucional do Painel */}
                 <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10">
@@ -193,9 +191,8 @@ export default function HomePage() {
                     <p className="mt-0.5 text-xs text-slate-300 font-medium">Transmissão Síncrona Estadual</p>
                   </div>
 
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/20 border border-rose-500/40 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-rose-300">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-500/20 border border-rose-500/40 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-rose-300">
                     <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-75" />
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
                     </span>
                     Ao Vivo
@@ -208,26 +205,26 @@ export default function HomePage() {
                     src="/hero.jpg"
                     alt="Transmissão das aulas ao vivo no estúdio MEDTEC Porto Velho"
                     className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                   
-                  {/* Gradiente sutil */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20" />
 
-                  {/* Informações discretas sobrepostas */}
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-slate-200">
-                    <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 font-mono text-[11px]">
+                    <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 font-mono text-[11px]">
                       <Satellite className="h-3.5 w-3.5 text-cyan-400" />
                       Sinal Satelital Banda Ku
                     </span>
 
-                    <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10 font-mono text-[11px] font-bold text-white">
+                    <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 font-mono text-[11px] font-bold text-white">
                       <Signal className="h-3.5 w-3.5 text-emerald-400" />
-                      4K Ultra HD
+                      Alta Definição
                     </span>
                   </div>
                 </div>
 
-                {/* GRADE ARQUITETÔNICA CONTÍNUA (ESTILO VERCEL/LINEAR COM DIVISORES FINOS) */}
+                {/* GRADE ARQUITETÔNICA CONTÍNUA */}
                 <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10">
                   
                   {/* Métrica 1: Estudantes */}
@@ -271,15 +268,12 @@ export default function HomePage() {
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex justify-center">
             <a 
               href="#tecnologia" 
-              className="group flex items-center justify-center cursor-pointer touch-manipulation select-none active:scale-[0.92] transition-transform duration-150 ease-out focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300 rounded-full"
+              className="group flex items-center justify-center cursor-pointer touch-manipulation select-none active:scale-[0.95] transition-transform duration-150 ease-out focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300 rounded-lg"
               aria-label="Rolar para os pilares e matriz curricular"
             >
-              <span className="relative h-14 w-14 flex items-center justify-center">
-                <span className="absolute inset-0 rounded-full bg-cyan-400/20 blur-sm animate-ping" />
-                <div className="relative w-10 h-10 rounded-full bg-[#07162C]/80 border border-cyan-400/60 shadow-[0_0_20px_rgba(0,216,255,0.35)] flex items-center justify-center backdrop-blur-md group-hover:scale-105 group-hover:border-cyan-300 transition-all duration-200">
-                  <ArrowDown className="h-4 w-4 text-cyan-300 animate-bounce" />
-                </div>
-              </span>
+              <div className="w-9 h-9 rounded-lg bg-[#07162C]/80 border border-cyan-400/40 shadow-sm flex items-center justify-center backdrop-blur-md transition-colors">
+                <ArrowDown className="h-4 w-4 text-cyan-300" />
+              </div>
             </a>
           </div>
 

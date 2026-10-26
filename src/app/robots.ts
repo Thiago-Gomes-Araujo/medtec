@@ -20,6 +20,7 @@ export default function robots(): MetadataRoute.Robots {
           '/galeria',
           '/mapa',
           '/duvidas',
+          '/faq',
           '/transparencia',
           '/comunidades',
           '/ao-vivo',

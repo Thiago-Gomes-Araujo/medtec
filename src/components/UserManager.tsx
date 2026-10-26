@@ -12,8 +12,6 @@ import {
   EyeOff, 
   CheckCircle2, 
   AlertCircle, 
-  Clock, 
-  Lock, 
   FileText, 
   Image as ImageIcon, 
   Bell, 
@@ -518,7 +516,7 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
 
                       {/* Tipo de Perfil */}
                       <td className="py-3.5 px-3">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-500/20">
                           {user.profileType}
                         </span>
                       </td>
@@ -528,7 +526,7 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(user)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold transition-all cursor-pointer ${
                             isActive
                               ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20'
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'

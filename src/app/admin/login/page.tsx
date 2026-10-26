@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#0b1729]">
+    <div className="min-h-screen w-full flex flex-col lg:flex-row bg-[#0b1729] overflow-x-hidden max-w-[100vw]">
       
       {/* =========================================
           LADO ESQUERDO: BANNER MEDIAÇÃO TECNOLÓGICA

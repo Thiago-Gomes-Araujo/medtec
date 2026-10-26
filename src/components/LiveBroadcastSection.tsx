@@ -36,7 +36,7 @@ export default function LiveBroadcastSection({
     {
       shift: 'Turno Matutino',
       hours: '07h30 às 11h45',
-      desc: 'Formação Geral Básica (BNCC) — Linguagens, Matemática, Ciências da Natureza e Humanas.',
+      desc: 'Formação Geral Básica (BNCC), Linguagens, Matemática, Ciências da Natureza e Humanas.',
       status: 'Sinal Regular'
     },
     {
@@ -74,6 +74,7 @@ export default function LiveBroadcastSection({
     >
       {/* Âncoras para links de navegação profunda */}
       <div id="transmissoes" className="absolute -top-20" aria-hidden="true" />
+      <div id="transmissao" className="absolute -top-20" aria-hidden="true" />
       <div id="redes" className="absolute -top-20" aria-hidden="true" />
 
       {/* Grid de Fundo Técnico */}
@@ -87,7 +88,7 @@ export default function LiveBroadcastSection({
         
         {/* ================= 1. CABEÇALHO DA SEÇÃO (TYPESET & DISTILL) ================= */}
         <header className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-cyan-950/60 border border-slate-200 dark:border-cyan-500/30 text-[#004A99] dark:text-cyan-300 font-mono text-xs font-semibold uppercase tracking-wide shadow-2xs">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white dark:bg-cyan-950/60 border border-slate-200 dark:border-cyan-500/30 text-[#004A99] dark:text-cyan-300 font-mono text-xs font-semibold uppercase tracking-wide shadow-2xs">
             <Radio className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400 animate-pulse shrink-0" aria-hidden="true" />
             <span>Sinal Síncrono &amp; Comunicação • SEDUC Rondônia</span>
           </div>
@@ -115,11 +116,11 @@ export default function LiveBroadcastSection({
               {/* Barra de Status do Estúdio */}
               <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-slate-100 dark:border-white/10">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-white shadow-2xs">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-3 py-1 font-mono text-[11px] font-bold uppercase tracking-wider text-white shadow-2xs">
                     <Radio className="h-3 w-3 animate-pulse shrink-0" aria-hidden="true" />
                     Sinal no Ar • PVH
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2.5 py-1 font-mono text-[11px] text-[#004A99] dark:text-cyan-200 font-semibold">
+                  <span className="inline-flex items-center gap-1 rounded-md border border-sky-200 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2.5 py-1 font-mono text-[11px] text-[#004A99] dark:text-cyan-200 font-semibold">
                     <Satellite className="h-3 w-3 shrink-0" aria-hidden="true" />
                     Banda Ku &amp; IP
                   </span>
@@ -127,7 +128,7 @@ export default function LiveBroadcastSection({
 
                 <div className="flex items-center gap-1.5 font-mono text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  <span>Uplink 99.8% Ativo</span>
+                  <span>Transmissão Satelital Ativa</span>
                 </div>
               </div>
 
@@ -244,7 +245,7 @@ export default function LiveBroadcastSection({
                     Mural &amp; Publicações Recentes
                   </h3>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-sky-50 dark:bg-cyan-950/60 text-[#004A99] dark:text-cyan-300 border border-sky-200 dark:border-cyan-500/30 shrink-0">
+                <span className="px-2.5 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-sky-50 dark:bg-cyan-950/60 text-[#004A99] dark:text-cyan-300 border border-sky-200 dark:border-cyan-500/30 shrink-0">
                   Feed Oficial
                 </span>
               </div>
@@ -411,9 +412,9 @@ export default function LiveBroadcastSection({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram Oficial do Governo de Rondônia (abre em nova aba)"
-              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100/90 dark:hover:bg-pink-950/30 active:bg-slate-200/80 dark:active:bg-pink-950/50 active:scale-[0.96] border border-slate-200 dark:border-white/10 hover:border-pink-400/80 dark:hover:border-pink-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-pink-500 cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-2 min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100/90 dark:hover:bg-sky-950/30 active:bg-slate-200/80 dark:active:bg-sky-950/50 active:scale-[0.96] border border-slate-200 dark:border-white/10 hover:border-sky-400/80 dark:hover:border-cyan-500/40 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:shadow-xs active:shadow-none transition-all duration-150 ease-out touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer shadow-2xs"
             >
-              <InstagramIcon size={16} className="text-pink-600 shrink-0" />
+              <InstagramIcon size={16} className="text-sky-600 dark:text-cyan-400 shrink-0" />
               <span>Instagram</span>
             </a>
 

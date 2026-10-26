@@ -11,18 +11,24 @@ export default function SiteFooter() {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 text-sm">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-3 lg:col-span-2">
-            <p className="font-mono text-xs font-semibold uppercase tracking-wider text-cyan-300 dark:text-cyan-300">
-              Rede Estadual de Rondônia
-            </p>
-            <p className="font-display text-2xl font-bold tracking-tight text-white dark:text-[#E6F4FF] text-balance">
-              MEDTEC em Foco · Rondônia
-            </p>
+            <Link
+              href="/"
+              aria-label="Voltar para a página inicial do MEDTEC Rondônia"
+              className="group inline-block cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300 rounded-lg p-1 -ml-1 transition-opacity hover:opacity-95"
+            >
+              <p className="font-mono text-xs font-semibold uppercase tracking-wider text-cyan-300 dark:text-cyan-300">
+                Rede Estadual de Rondônia
+              </p>
+              <p className="font-display text-2xl font-bold tracking-tight text-white dark:text-[#E6F4FF] text-balance group-hover:text-cyan-200 transition-colors">
+                MEDTEC Rondônia · SEDUC-RO
+              </p>
+            </Link>
             <p className="max-w-xl text-sm leading-relaxed text-sky-100/90 dark:text-slate-400 text-pretty [overflow-wrap:anywhere]">
-              Ensino Médio com Mediação Tecnológica — Lei Estadual nº 3.846/2016.
+              Ensino Médio com Mediação Tecnológica, Lei Estadual nº 3.846/2016 e Portaria SEDUC nº 928/2025.
               Garantindo o direito universal à educação básica de excelência no campo, nas águas e nas florestas de todo o estado de Rondônia.
             </p>
             <p className="text-xs text-sky-200/80 dark:text-slate-500 [overflow-wrap:anywhere]">
-              Secretaria de Estado da Educação de Rondônia (SEDUC-RO) · Palácio Rio Madeira, Porto Velho - RO.
+              Governo do Estado de Rondônia | Secretaria de Estado da Educação (SEDUC-RO) - Coordenadoria de Mídias Educacionais. Palácio Rio Madeira, Porto Velho - RO.
             </p>
           </div>
 
@@ -37,7 +43,7 @@ export default function SiteFooter() {
               <li><Link href="/avisos" className="inline-block hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation">Mural de Avisos</Link></li>
               <li><Link href="/comunidades" className="inline-block hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation">O MEDTEC nas Comunidades</Link></li>
               <li><Link href="/noticias" className="inline-block hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation">Notícias e Comunicados</Link></li>
-              <li><Link href="/projetos" className="inline-block hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation">Projetos &amp; Práticas Pedagógicas</Link></li>
+              <li><Link href="/projetos" className="inline-block hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation">Projetos Pedagógicos</Link></li>
               <li><Link href="/acervo" className="inline-block hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation">Acervo Fotográfico</Link></li>
               <li><Link href="/duvidas" className="inline-block hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation">Dúvidas Frequentes (FAQ)</Link></li>
               <li><Link href="/ao-vivo" className="inline-block hover:text-cyan-200 dark:hover:text-cyan-300 hover:underline active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation">Ao Vivo &amp; Redes Oficiais</Link></li>
@@ -86,7 +92,7 @@ export default function SiteFooter() {
         </div>
 
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-sky-400/25 dark:border-white/10 pt-6 text-xs text-sky-200/80 dark:text-slate-500 sm:flex-row">
-          <p>© 2026 Governo do Estado de Rondônia — SEDUC-RO. Todos os direitos reservados.</p>
+          <p>© 2026 Governo do Estado de Rondônia - SEDUC-RO. Todos os direitos reservados.</p>
           <p>Conforme diretrizes da LGPD e do Estatuto da Criança e do Adolescente (ECA).</p>
         </div>
       </div>

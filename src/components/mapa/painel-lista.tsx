@@ -9,7 +9,6 @@ import {
   MapPin,
   Signal,
   CheckCircle2,
-  GraduationCap,
   ArrowRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -42,7 +41,7 @@ export function PainelLista({
           <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-[#6482A6]">
             Escolas
           </span>
-          <p className="mt-1 font-display text-[28px] sm:text-[36px] font-medium leading-[0.9] text-[#E6F4FF]">
+          <p className="mt-1 font-display text-[28px] sm:text-[36px] font-medium leading-tight text-[#E6F4FF]">
             {estatisticas.totalEscolas}
           </p>
           <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-emerald-400">
@@ -56,7 +55,7 @@ export function PainelLista({
           <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-[#6482A6]">
             Turmas
           </span>
-          <p className="mt-1 font-display text-[28px] sm:text-[36px] font-medium leading-[0.9] text-[#E6F4FF]">
+          <p className="mt-1 font-display text-[28px] sm:text-[36px] font-medium leading-tight text-[#E6F4FF]">
             {estatisticas.turmas}
           </p>
           <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-cyan-400">
@@ -70,7 +69,7 @@ export function PainelLista({
           <span className="block text-[11px] sm:text-[12px] uppercase font-mono tracking-wider text-[#6482A6]">
             Alunos
           </span>
-          <p className="mt-1 font-display text-[28px] sm:text-[36px] font-medium leading-[0.9] text-[#E6F4FF]">
+          <p className="mt-1 font-display text-[28px] sm:text-[36px] font-medium leading-tight text-[#E6F4FF]">
             {estatisticas.alunos}
           </p>
           <div className="mt-2 flex items-center gap-1 text-[10px] font-mono text-sky-400">
@@ -158,7 +157,7 @@ export function PainelLista({
 
                     {/* 1 BADGE DA TIPOLOGIA NO TOPO */}
                     <span
-                      className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}
+                      className={`shrink-0 rounded-md border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}
                     >
                       {ponto.tipo}
                     </span>

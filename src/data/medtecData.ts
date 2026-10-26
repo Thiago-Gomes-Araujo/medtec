@@ -100,7 +100,7 @@ export const professoresData: Professor[] = [
     funcao: 'Ministrante',
     disciplina: 'Biologia',
     municipio: 'Porto Velho',
-    escola: 'Estúdio MEDTEC — SEDUC/RO',
+    escola: 'Estúdio MEDTEC, SEDUC-RO',
     resumo: 'Transforma o bioma amazônico em laboratório vivo, conectando conteúdos do ENEM à realidade das comunidades ribeirinhas.',
     entrevista: 'Começo cada aula lembrando que do outro lado da tela há estudantes que atravessam rios para chegar à escola. Uso exemplos da floresta, da pesca e da agricultura familiar para tornar a biologia concreta. O retorno dos mediadores é essencial: eles me contam o que funcionou e o que precisa de reforço imediato nas transmissões.'
   },
@@ -130,7 +130,7 @@ export const professoresData: Professor[] = [
     funcao: 'Ministrante',
     disciplina: 'Matemática',
     municipio: 'Porto Velho',
-    escola: 'Estúdio MEDTEC — SEDUC/RO',
+    escola: 'Estúdio MEDTEC, SEDUC-RO',
     resumo: 'Desenvolve metodologias ativas com gráficos interativos e resolução de problemas práticos do cotidiano rondoniense.',
     entrevista: 'Ensinar matemática para 129 escolas simultaneamente exige dinamismo visual e clareza absoluta. Utilizamos lousas digitais e simulações para que geometria e álgebra façam sentido imediato no dia a dia dos alunos.'
   },
@@ -140,7 +140,7 @@ export const professoresData: Professor[] = [
     funcao: 'Mediadora',
     disciplina: 'Mediação e Projetos Sociais',
     municipio: 'Porto Velho',
-    escola: 'EEEFM Nazaré — Baixo Madeira',
+    escola: 'EEEFM Nazaré, Baixo Madeira',
     resumo: 'Mobiliza a comunidade ribeirinha para a permanência escolar e lidera projetos de iniciação científica na várzea.',
     entrevista: 'Mesmo nos meses de seca severa ou de grandes cheias do Rio Madeira, a antena do satélite nos mantém conectados com a SEDUC. Nossos alunos sentem que o Estado está presente na comunidade.'
   },
@@ -150,7 +150,7 @@ export const professoresData: Professor[] = [
     funcao: 'Ministrante',
     disciplina: 'História',
     municipio: 'Porto Velho',
-    escola: 'Estúdio MEDTEC — SEDUC/RO',
+    escola: 'Estúdio MEDTEC, SEDUC-RO',
     resumo: 'Produz aulas sobre a Estrada de Ferro Madeira-Mamoré e os ciclos de ocupação regional com acervo histórico rondoniense.',
     entrevista: 'Contar a história de Rondônia para quem vive nela é um privilégio. Cruzamos documentos históricos com as memórias orais dos distritos, criando um senso profundo de pertencimento.'
   }
@@ -223,7 +223,7 @@ export const escolasData: Escola[] = [
   // --- PORTO VELHO ---
   {
     id: 1,
-    nome: 'EEEFM Nazaré — Baixo Madeira',
+    nome: 'EEEFM Nazaré, Baixo Madeira',
     municipio: 'Porto Velho',
     tipo: 'ribeirinha',
     turmas: 4,
@@ -232,14 +232,14 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Distrito de Nazaré (Calha do Madeira)',
     distanciaKm: 135,
-    statusSinal: 'Sincronizado • 99.8%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'calama-nazare',
     lat: '-8.03° S',
     lon: '-62.86° W'
   },
   {
     id: 2,
-    nome: 'EEEFM Rio Branco — Extensão Calama',
+    nome: 'EEEFM Rio Branco, Extensão Calama',
     municipio: 'Porto Velho',
     tipo: 'ribeirinha',
     turmas: 3,
@@ -248,14 +248,14 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Distrito de Calama (Foz do Rio Ji-Paraná)',
     distanciaKm: 178,
-    statusSinal: 'Sincronizado • 99.7%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'calama-nazare',
     lat: '-8.01° S',
     lon: '-62.82° W'
   },
   {
     id: 3,
-    nome: 'EEEFM Marcelo Cândia — Polo Urbano',
+    nome: 'EEEFM Marcelo Cândia, Polo Urbano',
     municipio: 'Porto Velho',
     tipo: 'urbana',
     turmas: 4,
@@ -264,14 +264,14 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra de Alta Densidade',
     comunidade: 'Zona Leste / Bairro Escola de Polícia',
     distanciaKm: 8,
-    statusSinal: 'Sincronizado • 100%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'porto-velho',
     lat: '-8.76° S',
     lon: '-63.88° W'
   },
   {
     id: 4,
-    nome: 'EEEFM Almirante Barroso — Extensão Fluvial',
+    nome: 'EEEFM Almirante Barroso, Extensão Fluvial',
     municipio: 'Porto Velho',
     tipo: 'ribeirinha',
     turmas: 3,
@@ -280,14 +280,14 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Distrito de São Carlos do Jamari',
     distanciaKm: 90,
-    statusSinal: 'Sincronizado • 99.6%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'sao-carlos',
     lat: '-8.45° S',
     lon: '-63.50° W'
   },
   {
     id: 5,
-    nome: 'EEEFM Rio Pardo — Comunidade Rural',
+    nome: 'EEEFM Rio Pardo, Comunidade Rural',
     municipio: 'Porto Velho',
     tipo: 'rural',
     turmas: 3,
@@ -296,14 +296,14 @@ export const escolasData: Escola[] = [
     conexao: 'Rádio Digital / Satélite',
     comunidade: 'Assentamento Rural Rio Pardo',
     distanciaKm: 140,
-    statusSinal: 'Sincronizado • 99.4%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'porto-velho',
     lat: '-9.42° S',
     lon: '-64.12° W'
   },
   {
     id: 6,
-    nome: 'EEEFM Indígena Karitiana — Aldeia Byyjyty',
+    nome: 'EEEFM Indígena Karitiana, Aldeia Byyjyty',
     municipio: 'Porto Velho',
     tipo: 'indígena',
     turmas: 2,
@@ -312,7 +312,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Terra Indígena Karitiana',
     distanciaKm: 95,
-    statusSinal: 'Sincronizado • 99.5%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'porto-velho',
     lat: '-9.25° S',
     lon: '-64.20° W'
@@ -321,7 +321,7 @@ export const escolasData: Escola[] = [
   // --- GUAJARÁ-MIRIM ---
   {
     id: 7,
-    nome: 'EEEFM Simón Bolívar — Distrito de Surpresa',
+    nome: 'EEEFM Simón Bolívar, Distrito de Surpresa',
     municipio: 'Guajará-Mirim',
     tipo: 'ribeirinha',
     turmas: 6,
@@ -330,7 +330,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Distrito de Surpresa (Encontro Mamoré/Guaporé)',
     distanciaKm: 210,
-    statusSinal: 'Sincronizado • 99.9%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'surpresa',
     lat: '-11.85° S',
     lon: '-65.35° W'
@@ -346,14 +346,14 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Comunidade Remanescente de Quilombo Pedras Negras',
     distanciaKm: 260,
-    statusSinal: 'Sincronizado • 99.5%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'pedras-negras',
     lat: '-12.50° S',
     lon: '-64.30° W'
   },
   {
     id: 9,
-    nome: 'EEEFM Indígena Oro Win — Aldeia São Luís',
+    nome: 'EEEFM Indígena Oro Win, Aldeia São Luís',
     municipio: 'Guajará-Mirim',
     tipo: 'indígena',
     turmas: 2,
@@ -362,14 +362,14 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Terra Indígena Pacaas Novos',
     distanciaKm: 180,
-    statusSinal: 'Sincronizado • 99.7%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'guajara-mirim',
     lat: '-10.95° S',
     lon: '-65.15° W'
   },
   {
     id: 10,
-    nome: 'EEEFM Irmã Maria Giuliana — Polo Fronteira',
+    nome: 'EEEFM Irmã Maria Giuliana, Polo Fronteira',
     municipio: 'Guajará-Mirim',
     tipo: 'urbana',
     turmas: 3,
@@ -378,14 +378,14 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra Óptica',
     comunidade: 'Centro Urbano / Calha Mamoré',
     distanciaKm: 330,
-    statusSinal: 'Sincronizado • 100%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'guajara-mirim',
     lat: '-10.78° S',
     lon: '-65.32° W'
   },
   {
     id: 11,
-    nome: 'EEEFM Rural Iata — Linha Pioneira',
+    nome: 'EEEFM Rural Iata, Linha Pioneira',
     municipio: 'Guajará-Mirim',
     tipo: 'rural',
     turmas: 3,
@@ -394,7 +394,7 @@ export const escolasData: Escola[] = [
     conexao: 'Rádio Digital',
     comunidade: 'Vila Iata (BR-425)',
     distanciaKm: 310,
-    statusSinal: 'Sincronizado • 99.4%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'guajara-mirim',
     lat: '-10.60° S',
     lon: '-65.25° W'
@@ -403,7 +403,7 @@ export const escolasData: Escola[] = [
   // --- ARIQUEMES ---
   {
     id: 12,
-    nome: 'EEEFM Cora Coralina — Distrito de Rio Pardo',
+    nome: 'EEEFM Cora Coralina, Distrito de Rio Pardo',
     municipio: 'Ariquemes',
     tipo: 'rural',
     turmas: 5,
@@ -412,14 +412,14 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra rural',
     comunidade: 'Setor de Assentamento Rural Rio Pardo',
     distanciaKm: 200,
-    statusSinal: 'Sincronizado • 99.8%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'ariquemes',
     lat: '-9.91° S',
     lon: '-63.04° W'
   },
   {
     id: 13,
-    nome: 'EEEFM Tancredo Neves — Anexo Urbano',
+    nome: 'EEEFM Tancredo Neves, Anexo Urbano',
     municipio: 'Ariquemes',
     tipo: 'urbana',
     turmas: 2,
@@ -428,7 +428,7 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra Óptica',
     comunidade: 'Setor 09 / Vale do Jamari',
     distanciaKm: 200,
-    statusSinal: 'Sincronizado • 100%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'ariquemes',
     lat: '-9.93° S',
     lon: '-63.02° W'
@@ -444,7 +444,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Gleba Rio Branco',
     distanciaKm: 240,
-    statusSinal: 'Sincronizado • 99.6%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'ariquemes',
     lat: '-9.80° S',
     lon: '-63.20° W'
@@ -460,7 +460,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Povoado Jamari das Águas',
     distanciaKm: 215,
-    statusSinal: 'Sincronizado • 99.7%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'ariquemes',
     lat: '-9.85° S',
     lon: '-62.90° W'
@@ -476,7 +476,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Posto Indígena Alto Jamari',
     distanciaKm: 250,
-    statusSinal: 'Sincronizado • 99.5%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'ariquemes',
     lat: '-10.15° S',
     lon: '-63.30° W'
@@ -485,7 +485,7 @@ export const escolasData: Escola[] = [
   // --- JI-PARANÁ ---
   {
     id: 17,
-    nome: 'EEEFM Juscelino Kubitschek — Extensão Rural',
+    nome: 'EEEFM Juscelino Kubitschek, Extensão Rural',
     municipio: 'Ji-Paraná',
     tipo: 'rural',
     turmas: 5,
@@ -494,14 +494,14 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra rural',
     comunidade: 'Linha 128 / Setor Riachuelo',
     distanciaKm: 375,
-    statusSinal: 'Sincronizado • 99.8%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'ji-parana',
     lat: '-10.88° S',
     lon: '-61.94° W'
   },
   {
     id: 18,
-    nome: 'EEEFM Aluízio Ferreira — Polo Central',
+    nome: 'EEEFM Aluízio Ferreira, Polo Central',
     municipio: 'Ji-Paraná',
     tipo: 'urbana',
     turmas: 4,
@@ -510,14 +510,14 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra Óptica',
     comunidade: '1º Distrito / Bairro Casa Preta',
     distanciaKm: 375,
-    statusSinal: 'Sincronizado • 100%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'ji-parana',
     lat: '-10.87° S',
     lon: '-61.93° W'
   },
   {
     id: 19,
-    nome: 'EEEFM Nova Londrina — Setor das Linhas',
+    nome: 'EEEFM Nova Londrina, Setor das Linhas',
     municipio: 'Ji-Paraná',
     tipo: 'rural',
     turmas: 3,
@@ -526,7 +526,7 @@ export const escolasData: Escola[] = [
     conexao: 'Rádio Digital',
     comunidade: 'Distrito de Nova Londrina',
     distanciaKm: 405,
-    statusSinal: 'Sincronizado • 99.5%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'ji-parana',
     lat: '-11.02° S',
     lon: '-62.10° W'
@@ -542,14 +542,14 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Comunidade das Balsas / Margem do Machado',
     distanciaKm: 390,
-    statusSinal: 'Sincronizado • 99.7%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'ji-parana',
     lat: '-10.80° S',
     lon: '-61.98° W'
   },
   {
     id: 21,
-    nome: 'EEEFM Indígena Arara — Aldeia Iterap',
+    nome: 'EEEFM Indígena Arara, Aldeia Iterap',
     municipio: 'Ji-Paraná',
     tipo: 'indígena',
     turmas: 2,
@@ -558,7 +558,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Terra Indígena Igarapé Lourdes',
     distanciaKm: 420,
-    statusSinal: 'Sincronizado • 99.6%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'ji-parana',
     lat: '-10.70° S',
     lon: '-61.75° W'
@@ -567,7 +567,7 @@ export const escolasData: Escola[] = [
   // --- CACOAL ---
   {
     id: 22,
-    nome: 'EEEFM Indígena Paiter Suruí — Linha 09',
+    nome: 'EEEFM Indígena Paiter Suruí, Linha 09',
     municipio: 'Cacoal',
     tipo: 'indígena',
     turmas: 3,
@@ -576,14 +576,14 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Terra Indígena Sete de Setembro',
     distanciaKm: 510,
-    statusSinal: 'Sincronizado • 99.9%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'paiter-surui',
     lat: '-11.10° S',
     lon: '-61.20° W'
   },
   {
     id: 23,
-    nome: 'EEEFM Carlos Drummond de Andrade — Polo Urbano',
+    nome: 'EEEFM Carlos Drummond de Andrade, Polo Urbano',
     municipio: 'Cacoal',
     tipo: 'urbana',
     turmas: 3,
@@ -592,7 +592,7 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra Óptica',
     comunidade: 'Bairro Teixeirão / Polo do Café',
     distanciaKm: 480,
-    statusSinal: 'Sincronizado • 100%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'cacoal',
     lat: '-11.43° S',
     lon: '-61.44° W'
@@ -608,7 +608,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Linha 11 / Setor Prosperidade',
     distanciaKm: 505,
-    statusSinal: 'Sincronizado • 99.7%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'cacoal',
     lat: '-11.35° S',
     lon: '-61.35° W'
@@ -624,7 +624,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Aldeia Lapetanha (T.I. Rio Branco)',
     distanciaKm: 495,
-    statusSinal: 'Sincronizado • 99.6%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'cacoal',
     lat: '-11.25° S',
     lon: '-61.50° W'
@@ -640,7 +640,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Encontro dos Rios / Linha 06',
     distanciaKm: 490,
-    statusSinal: 'Sincronizado • 99.5%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'cacoal',
     lat: '-11.48° S',
     lon: '-61.40° W'
@@ -649,7 +649,7 @@ export const escolasData: Escola[] = [
   // --- VILHENA ---
   {
     id: 27,
-    nome: 'EEEFM Marechal Rondon — Linha 184',
+    nome: 'EEEFM Marechal Rondon, Linha 184',
     municipio: 'Vilhena',
     tipo: 'rural',
     turmas: 4,
@@ -658,14 +658,14 @@ export const escolasData: Escola[] = [
     conexao: 'Rádio Digital',
     comunidade: 'Gleba Corumbiara / Linha 184',
     distanciaKm: 700,
-    statusSinal: 'Sincronizado • 99.8%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'vilhena',
     lat: '-12.74° S',
     lon: '-60.14° W'
   },
   {
     id: 28,
-    nome: 'EEEFM Castelo Branco — Anexo Vila Nova',
+    nome: 'EEEFM Castelo Branco, Anexo Vila Nova',
     municipio: 'Vilhena',
     tipo: 'urbana',
     turmas: 3,
@@ -674,7 +674,7 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra Óptica',
     comunidade: 'Setor Jardim Eldorado / Portal da Amazônia',
     distanciaKm: 700,
-    statusSinal: 'Sincronizado • 100%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'vilhena',
     lat: '-12.75° S',
     lon: '-60.12° W'
@@ -690,7 +690,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Assentamento Águas Claras',
     distanciaKm: 730,
-    statusSinal: 'Sincronizado • 99.6%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'vilhena',
     lat: '-12.90° S',
     lon: '-60.30° W'
@@ -706,14 +706,14 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Terra Indígena Vale do Guaporé',
     distanciaKm: 750,
-    statusSinal: 'Sincronizado • 99.4%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'vilhena',
     lat: '-13.10° S',
     lon: '-60.45° W'
   },
   {
     id: 31,
-    nome: 'EEEFM Ribeirinha Cabixi — Bacia do Guaporé',
+    nome: 'EEEFM Ribeirinha Cabixi, Bacia do Guaporé',
     municipio: 'Vilhena',
     tipo: 'ribeirinha',
     turmas: 2,
@@ -722,7 +722,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Foz do Rio Cabixi',
     distanciaKm: 780,
-    statusSinal: 'Sincronizado • 99.5%',
+    statusSinal: 'Sinal Síncrono Ativo',
     nodeId: 'cabixi',
     lat: '-13.50° S',
     lon: '-60.55° W'
@@ -750,7 +750,7 @@ export const geoPositions: Record<string, [number, number]> = {
 export const fontesOficiais = {
   seduc: { nome: 'SEDUC/RO', url: 'https://rondonia.ro.gov.br/seduc/' },
   doe: { nome: 'Diário Oficial do Estado de RO', url: 'https://diof.ro.gov.br/' },
-  pncp: { nome: 'PNCP — Portal Nacional de Contratações', url: 'https://pncp.gov.br/' },
+  pncp: { nome: 'PNCP, Portal Nacional de Contratações', url: 'https://pncp.gov.br/' },
   transp: { nome: 'Portal da Transparência RO', url: 'https://transparencia.ro.gov.br/' },
   inep: { nome: 'INEP / Censo Escolar', url: 'https://www.gov.br/inep/' }
 };
@@ -769,9 +769,9 @@ export const indicadoresData: Indicador[] = [
 export const contratosData: Contrato[] = [
   { item: 'Contrato de conectividade via satélite (lote 1)', valor: 'R$ 8.420.000,00', ano: 2026, data: '12/01/2026', fonte: fontesOficiais.pncp, status: 'Em execução' },
   { item: 'Aquisição de kits de transmissão e TVs 65"', valor: 'R$ 2.135.400,00', ano: 2025, data: '03/09/2025', fonte: fontesOficiais.pncp, status: 'Concluído' },
-  { item: 'Folha de pagamento — professores mediadores', valor: 'R$ 31.780.000,00', ano: 2025, data: '31/12/2025', fonte: fontesOficiais.transp, status: 'Executado' },
+  { item: 'Folha de pagamento, professores mediadores', valor: 'R$ 31.780.000,00', ano: 2025, data: '31/12/2025', fonte: fontesOficiais.transp, status: 'Executado' },
   { item: 'Manutenção do estúdio de produção de aulas', valor: 'R$ 640.000,00', ano: 2026, data: '20/02/2026', fonte: fontesOficiais.doe, status: 'Em execução' },
-  { item: 'Transporte escolar fluvial — Baixo Madeira', valor: 'R$ 1.912.300,00', ano: 2024, data: '15/03/2024', fonte: fontesOficiais.transp, status: 'Executado' }
+  { item: 'Transporte escolar fluvial, Baixo Madeira', valor: 'R$ 1.912.300,00', ano: 2024, data: '15/03/2024', fonte: fontesOficiais.transp, status: 'Executado' }
 ];
 
 export const noticiasData: Noticia[] = [
@@ -841,7 +841,7 @@ export const etapasEditoriais: EtapaEditorial[] = [
 export const itensEditoriaisIniciais: ItemEditorial[] = [
   {
     id: 1,
-    titulo: 'Perfil: Larissa Gomes — aprovada em Medicina',
+    titulo: 'Perfil: Larissa Gomes, aprovada em Medicina',
     tipo: 'Perfil de aluno',
     autor: 'Ascom SEDUC',
     etapa: 'Revisão Jurídica/LGPD',
@@ -877,7 +877,7 @@ export const itensEditoriaisIniciais: ItemEditorial[] = [
   },
   {
     id: 5,
-    titulo: 'Extrato do contrato de conectividade — lote 1',
+    titulo: 'Extrato do contrato de conectividade, lote 1',
     tipo: 'Documento oficial',
     autor: 'Gerência Administrativa',
     etapa: 'Revisão Jurídica/LGPD',

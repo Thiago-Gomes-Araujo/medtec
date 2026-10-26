@@ -43,7 +43,7 @@ export default function TeacherProfiles({ filterRole = 'Todas' }: TeacherProfile
 
             <div className="mt-4 flex flex-wrap gap-2">
               <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold ${
                   p.funcao === 'Ministrante'
                     ? 'bg-sky-100 text-[#05549D] dark:bg-cyan-400/15 dark:text-cyan-300'
                     : 'bg-slate-100 text-slate-700 dark:bg-[#061224] dark:text-slate-300'
@@ -51,7 +51,7 @@ export default function TeacherProfiles({ filterRole = 'Todas' }: TeacherProfile
               >
                 {p.funcao}
               </span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 dark:border-[#1A365D] px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-[#061224]">
+              <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-[#1A365D] px-2.5 py-0.5 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-[#061224]">
                 <MapPin className="h-3 w-3 text-slate-400 dark:text-slate-500" />
                 {p.municipio}
               </span>

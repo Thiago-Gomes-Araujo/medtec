@@ -71,13 +71,13 @@ export default function NewsGrid({ news = [], limit, filter = false }: NewsGridP
                       src={item.coverImage || '/hero.jpg'}
                       alt={item.title}
                       loading="lazy"
-                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+                      className="h-full w-full object-cover transition-opacity duration-300"
                     />
                   </div>
 
                   <div className="p-5">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 dark:bg-sky-950/60 text-[#004A99] dark:text-[#00D8FF] border border-sky-200 dark:border-cyan-500/20">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-sky-50 dark:bg-sky-950/60 text-[#004A99] dark:text-[#00D8FF] border border-sky-200 dark:border-cyan-500/20">
                         {item.category}
                       </span>
                       <span className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 font-medium tabular-nums">

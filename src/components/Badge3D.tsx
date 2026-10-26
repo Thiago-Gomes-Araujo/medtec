@@ -43,9 +43,9 @@ export default function Badge3D({
       'shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_1px_3px_rgba(0,74,153,0.08)] ' +
       'dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_2px_8px_rgba(0,0,0,0.4)] font-medium',
 
-    // Cápsula 3D arredondada
+    // Cápsula 3D técnica
     pill:
-      'rounded-full bg-gradient-to-r from-sky-50 via-blue-50 to-sky-100 text-[#004A99] ' +
+      'rounded-lg bg-gradient-to-r from-sky-50 via-blue-50 to-sky-100 text-[#004A99] ' +
       'dark:from-[#061C38] dark:via-[#0A2850] dark:to-[#071F3F] dark:text-cyan-200 ' +
       'border border-sky-200 dark:border-cyan-400/40 ' +
       'shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_1px_2px_rgba(0,74,153,0.1)] ' +

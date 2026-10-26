@@ -61,8 +61,8 @@ export default function HomeProjectsAccordionSection() {
                   src={proj.image}
                   alt={proj.title}
                   loading="lazy"
-                  className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out pointer-events-none ${
-                    isHovered ? 'scale-105 filter-none' : 'scale-100 brightness-60'
+                  className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 pointer-events-none ${
+                    isHovered ? 'opacity-100 filter-none' : 'opacity-80 brightness-75'
                   }`}
                 />
 
@@ -75,7 +75,7 @@ export default function HomeProjectsAccordionSection() {
                     
                     {/* Topo da Lâmina (1 Tag despoluída) */}
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[#00D8FF] border border-[#00D8FF]/40 tabular-nums">
+                      <span className="font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[#00D8FF] border border-[#00D8FF]/40 tabular-nums">
                         {proj.missionCode} • {proj.typology}
                       </span>
                     </div>
@@ -92,9 +92,9 @@ export default function HomeProjectsAccordionSection() {
                         </h3>
                       </div>
 
-                      {/* Citação do Professor Mediador */}
-                      <p className="text-xs italic text-slate-100 leading-relaxed bg-black/50 backdrop-blur-md p-3 rounded-lg border border-white/10 line-clamp-2">
-                        &ldquo;{proj.quote}&rdquo;
+                      {/* Orientação Pedagógica */}
+                      <p className="text-xs text-slate-200 leading-relaxed bg-black/50 backdrop-blur-md p-3 rounded-lg border border-white/10 line-clamp-2">
+                        {proj.quote}
                       </p>
 
                       {/* Ações e Identificação */}

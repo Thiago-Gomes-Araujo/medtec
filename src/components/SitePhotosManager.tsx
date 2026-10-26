@@ -297,7 +297,7 @@ function PhotoSlot({
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="relative h-52 bg-slate-900">
         <img src={src} alt={label} className="h-full w-full object-cover" />
-        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-slate-950/80 px-2.5 py-1 text-[11px] font-bold text-white">
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-md bg-slate-950/80 px-2.5 py-1 text-[11px] font-bold text-white">
           <ImageIcon className="h-3.5 w-3.5" />
           {label}
         </span>

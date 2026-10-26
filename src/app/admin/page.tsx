@@ -135,7 +135,10 @@ export default function AdminDashboardPage() {
   }, [router]);
 
   useEffect(() => {
-    void loadData();
+    const timer = setTimeout(() => {
+      void loadData();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [loadData]);
 
   const handleLogout = async () => {
@@ -384,7 +387,7 @@ export default function AdminDashboardPage() {
   const canAccessGallery = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col text-slate-800">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col text-slate-800 overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
 
       <PageHeader
@@ -510,7 +513,7 @@ export default function AdminDashboardPage() {
                         ? 'Painel de Publicação de Avisos'
                         : 'Painel do Operador CMS'}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono text-[10px] font-bold">
+                    <span className="px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 font-mono text-[10px] font-bold">
                       MEDTEC RO
                     </span>
                   </div>
@@ -753,8 +756,8 @@ export default function AdminDashboardPage() {
                       onChange={(e) => setNewsForm({ ...newsForm, published: e.target.value === 'publicado' })}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-white"
                     >
-                      <option value="publicado">Publicada — aparece no site</option>
-                      <option value="rascunho">Rascunho — só no painel</option>
+                      <option value="publicado">Publicada (visível no site)</option>
+                      <option value="rascunho">Rascunho (apenas no painel)</option>
                     </select>
                   </div>
                 </div>
@@ -924,7 +927,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setNewsFolder('Todas')}
-                  className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                  className={`rounded-md px-3 py-1.5 text-xs font-bold ${
                     newsFolder === 'Todas' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
                   }`}
                 >
@@ -940,7 +943,7 @@ export default function AdminDashboardPage() {
                       key={folder}
                       type="button"
                       onClick={() => setNewsFolder(folder)}
-                      className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                      className={`rounded-md px-3 py-1.5 text-xs font-bold ${
                         newsFolder === folder ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'
                       }`}
                     >

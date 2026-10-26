@@ -82,7 +82,7 @@ const FAQ_DATA: FaqItem[] = [
     category: 'Infraestrutura & Satélite',
     personas: ['estudantes', 'gestores'],
     answer:
-      'Para vencer os desafios geográficos dos rios e florestas de Rondônia, a SEDUC implementou um sistema robusto de conectividade via satélite operando na Banda Ku de alta disponibilidade. Cada unidade escolar recebe antena receptora parabólica profissional, receptor digital síncrono e Smart TV interativa de 65 polegadas. Mesmo em locais sem cobertura de telefonia móvel ou fibra óptica terrestre, a recepção opera com taxa de sincronismo superior a 99.8%. Há ainda nobreaks dedicados e redundância para garantir que as aulas ocorram sem interrupções.',
+      'Para vencer os desafios geográficos dos rios e florestas de Rondônia, a SEDUC implementou um sistema robusto de conectividade via satélite operando na Banda Ku de alta disponibilidade. Cada unidade escolar recebe antena receptora parabólica profissional, receptor digital síncrono e Smart TV interativa de 65 polegadas. Mesmo em locais sem cobertura de telefonia móvel ou fibra óptica terrestre, a recepção opera com elevada taxa de sincronismo técnico e disponibilidade contínua. Há ainda nobreaks dedicados e redundância para garantir que as aulas ocorram sem interrupções.',
     actionLink: {
       label: 'VER DETALHES DE INFRAESTRUTURA',
       href: '/noticias',
@@ -273,9 +273,6 @@ export default function FaqCentralSection() {
       {/* Grade Cartesiana Sutil de Fundo (Hero Grid) */}
       <div className="hero-grid pointer-events-none absolute inset-0 opacity-40 dark:opacity-40" />
 
-      {/* Glow Sutil de Horizonte Ciano */}
-      <div className="pointer-events-none absolute -top-24 left-1/2 h-80 w-3/4 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[130px]" />
-
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-10">
 
         {/* ========================================================
@@ -323,7 +320,7 @@ export default function FaqCentralSection() {
               <button
                 key={tag}
                 onClick={() => handleTagClick(tag)}
-                className="rounded-full border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] px-3 py-1 font-mono text-[11px] uppercase text-slate-700 dark:text-[#E6F4FF]/75 hover:border-[#05549D] dark:hover:border-[#00D8FF] hover:text-[#05549D] dark:hover:text-[#00D8FF] transition-all cursor-pointer"
+                className="rounded-md border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] px-3 py-1 font-mono text-[11px] uppercase text-slate-700 dark:text-[#E6F4FF]/75 hover:border-[#05549D] dark:hover:border-[#00D8FF] hover:text-[#05549D] dark:hover:text-[#00D8FF] transition-all cursor-pointer"
               >
                 {tag}
               </button>
@@ -435,7 +432,7 @@ export default function FaqCentralSection() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* ========================================================
-              A. COLUNA ESQUERDA FIXA (4 COLS — PERSONAS E ÍNDICE)
+              A. COLUNA ESQUERDA FIXA (4 COLS: PERSONAS E ÍNDICE)
           ======================================================== */}
           <aside className="lg:col-span-4 sticky top-28 space-y-6">
             
@@ -499,7 +496,7 @@ export default function FaqCentralSection() {
                     <button
                       key={cat.label}
                       onClick={() => setSelectedCategory(cat.label)}
-                      className={`w-full text-left rounded-full px-4 py-2 text-xs font-mono transition-all flex items-center justify-between cursor-pointer ${
+                      className={`w-full text-left rounded-lg px-4 py-2 text-xs font-mono transition-all flex items-center justify-between cursor-pointer ${
                         isSelected
                           ? 'border border-[#0284C7] dark:border-[#00D8FF] bg-sky-50 dark:bg-[#061224] text-slate-900 dark:text-[#E6F4FF] font-semibold shadow-sm dark:shadow-[0_0_14px_rgba(0,216,255,0.22)]'
                           : 'border border-dashed border-slate-200 dark:border-[#1A365D] bg-transparent text-slate-600 dark:text-[#6482A6] hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -538,7 +535,7 @@ export default function FaqCentralSection() {
           </aside>
 
           {/* ========================================================
-              B. COLUNA DIREITA (8 COLS — ACORDEÕES "RICH ANSWER")
+              B. COLUNA DIREITA (8 COLS: ACORDEÕES "RICH ANSWER")
           ======================================================== */}
           <main className="lg:col-span-8 space-y-4">
             
@@ -597,7 +594,7 @@ export default function FaqCentralSection() {
                           <span className="font-mono text-xs font-bold text-[#0284C7] dark:text-[#00D8FF]">
                             {item.index} {'//'}
                           </span>
-                          <span className="rounded-full border border-sky-300 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2 py-0.5 text-[10px] font-mono uppercase text-[#05549D] dark:text-[#00D8FF] font-semibold">
+                          <span className="rounded-md border border-sky-300 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2 py-0.5 text-[10px] font-mono uppercase text-[#05549D] dark:text-[#00D8FF] font-semibold">
                             {item.category}
                           </span>
                         </div>
@@ -714,7 +711,7 @@ export default function FaqCentralSection() {
               <div className="flex items-center gap-2 font-mono text-xs text-[#0284C7] dark:text-[#00D8FF]">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
                 <span className="font-bold tracking-wider uppercase">
-                  ● SUPORTE ATIVO {'//'} COORDENADORIA DE MÍDIAS EDUCACIONAIS
+                  SUPORTE ATIVO {'//'} COORDENADORIA DE MÍDIAS EDUCACIONAIS
                 </span>
               </div>
 
