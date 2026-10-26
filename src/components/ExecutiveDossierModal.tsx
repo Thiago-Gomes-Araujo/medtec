@@ -115,7 +115,7 @@ export default function ExecutiveDossierModal({
 
               {/* Direita: Badge Documento Oficial + Botão ESC */}
               <div className="flex items-center gap-2.5 shrink-0">
-                <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider text-emerald-400">
+                <span className="hidden sm:inline-flex items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider text-emerald-400">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10B981] animate-pulse" />
                   DOCUMENTO OFICIAL
                 </span>
@@ -186,7 +186,7 @@ export default function ExecutiveDossierModal({
                 {activeTab === 0 && (
                   <div className="space-y-6 animate-in fade-in duration-200">
                     <div>
-                      <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[10px] text-cyan-300 mb-2 font-semibold">
+                      <div className="inline-flex items-center gap-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[10px] text-cyan-300 mb-2 font-semibold">
                         SÍNTESE INSTITUCIONAL
                       </div>
                       <h3 className="font-display text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug">
@@ -262,7 +262,7 @@ export default function ExecutiveDossierModal({
                 {activeTab === 1 && (
                   <div className="space-y-6 animate-in fade-in duration-200">
                     <div>
-                      <div className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/30 bg-sky-500/10 px-2.5 py-0.5 font-mono text-[10px] text-sky-300 mb-2 font-semibold">
+                      <div className="inline-flex items-center gap-1.5 rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-0.5 font-mono text-[10px] text-sky-300 mb-2 font-semibold">
                         FLUXO TECNOLÓGICO SÍNCRONO
                       </div>
                       <h3 className="font-display text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug">
@@ -297,7 +297,7 @@ export default function ExecutiveDossierModal({
 
                       {/* Conector Seta */}
                       <div className="flex justify-center -my-1">
-                        <span className="flex items-center gap-1.5 font-mono text-[10px] text-cyan-400/80 bg-[#0C1E38] px-3 py-0.5 rounded-full border border-cyan-500/20">
+                        <span className="flex items-center gap-1.5 font-mono text-[10px] text-cyan-400/80 bg-[#0C1E38] px-3 py-0.5 rounded-md border border-cyan-500/20">
                           <ArrowDown className="h-2.5 w-2.5 text-cyan-400" /> Uplink de Telemetria Criptografado
                         </span>
                       </div>
@@ -316,7 +316,7 @@ export default function ExecutiveDossierModal({
                               2. Uplink Satélite Banda Ku
                             </h4>
                             <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                              Sinal transmitido para satélite geoestacionário com cobertura contínua sobre a Amazônia Ocidental. Garantia de 99.8% de estabilidade imune a rompimentos de cabos de fibra ótica.
+                              Sinal transmitido para satélite geoestacionário com cobertura contínua sobre a Amazônia Ocidental, garantindo estabilidade e disponibilidade técnica imune a rompimentos terrestres de fibra óptica.
                             </p>
                           </div>
                         </div>
@@ -324,7 +324,7 @@ export default function ExecutiveDossierModal({
 
                       {/* Conector Seta */}
                       <div className="flex justify-center -my-1">
-                        <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-400/80 bg-[#0C1E38] px-3 py-0.5 rounded-full border border-emerald-500/20">
+                        <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-400/80 bg-[#0C1E38] px-3 py-0.5 rounded-md border border-emerald-500/20">
                           <ArrowDown className="h-2.5 w-2.5 text-emerald-400" /> Downlink e Mediação Humana
                         </span>
                       </div>
@@ -356,7 +356,7 @@ export default function ExecutiveDossierModal({
                 {activeTab === 2 && (
                   <div className="space-y-6 animate-in fade-in duration-200">
                     <div>
-                      <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[10px] text-cyan-300 mb-2 font-semibold">
+                      <div className="inline-flex items-center gap-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[10px] text-cyan-300 mb-2 font-semibold">
                         MAPEAMENTO TERRITORIAL RONDONIENSE
                       </div>
                       <h3 className="font-display text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug">
@@ -429,7 +429,7 @@ export default function ExecutiveDossierModal({
                 {activeTab === 3 && (
                   <div className="space-y-6 animate-in fade-in duration-200">
                     <div>
-                      <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[10px] text-cyan-300 mb-2 font-semibold">
+                      <div className="inline-flex items-center gap-1.5 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[10px] text-cyan-300 mb-2 font-semibold">
                         SEGURANÇA JURÍDICA E MARCO LEGAL
                       </div>
                       <h3 className="font-display text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug">

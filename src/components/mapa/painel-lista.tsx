@@ -158,7 +158,7 @@ export function PainelLista({
 
                     {/* 1 BADGE DA TIPOLOGIA NO TOPO */}
                     <span
-                      className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}
+                      className={`shrink-0 rounded-md border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}
                     >
                       {ponto.tipo}
                     </span>

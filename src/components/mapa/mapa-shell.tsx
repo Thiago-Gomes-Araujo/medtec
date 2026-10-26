@@ -14,7 +14,7 @@ const MapaCanvas = dynamic(
     ssr: false,
     loading: () => (
       <div className="relative flex h-full min-h-[520px] w-full flex-col items-center justify-center rounded-xl border border-[#1A365D] bg-[#020710] p-8 text-center font-mono">
-        <div className="relative flex h-12 w-12 items-center justify-center rounded-full border border-[#00D8FF] bg-[#0C1E38] shadow-[0_0_24px_rgba(0,216,255,0.3)]">
+        <div className="relative flex h-12 w-12 items-center justify-center rounded-xl border border-[#00D8FF] bg-[#0C1E38] shadow-[0_0_24px_rgba(0,216,255,0.3)]">
           <Satellite className="h-6 w-6 animate-spin text-[#00D8FF]" />
         </div>
         <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-[#00D8FF]">

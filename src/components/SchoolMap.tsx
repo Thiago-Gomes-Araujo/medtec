@@ -796,7 +796,7 @@ export default function SchoolMap() {
                     COORD: {activeTargetNode.lat} • {activeTargetNode.lon}
                   </text>
                   <text x="12" y="60" fill="#10B981" fontSize="9" fontFamily="monospace" fontWeight="semibold">
-                    STATUS: 99.8% SÍNCRONO • LATÊNCIA: 18ms
+                    STATUS: SINAL SATELITAL ATIVO // SEDUC-RO
                   </text>
                 </g>
               )}
@@ -968,7 +968,7 @@ export default function SchoolMap() {
                         </div>
 
                         {/* 1 BADGE DA TIPOLOGIA NO TOPO */}
-                        <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}>
+                        <span className={`shrink-0 rounded-md border px-2.5 py-0.5 text-[10px] font-mono uppercase tracking-wider font-semibold ${modalidadeBadge}`}>
                           {escola.tipo}
                         </span>
                       </div>

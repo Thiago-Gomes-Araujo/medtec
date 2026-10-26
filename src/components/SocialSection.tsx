@@ -25,7 +25,7 @@ export default function SocialSection({ socials, showHeader = false }: SocialSec
         {/* Cabeçalho Opcional (Omitido por padrão para evitar duplicação com PageHeader) */}
         {showHeader && (
           <div className="text-center max-w-3xl mx-auto space-y-3 mb-10">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 dark:bg-blue-900/60 border border-sky-300 dark:border-sky-500/30 text-[#004A99] dark:text-[#00D8FF] text-xs font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-sky-100 dark:bg-blue-900/60 border border-sky-300 dark:border-sky-500/30 text-[#004A99] dark:text-[#00D8FF] text-xs font-bold uppercase tracking-wider">
               <Share2 size={13} />
               <span>Canais Oficiais &amp; Comunidade Digital</span>
             </div>
@@ -47,10 +47,10 @@ export default function SocialSection({ socials, showHeader = false }: SocialSec
           <div className="bg-white dark:bg-[#0C1E38] hover:bg-slate-50 dark:hover:bg-[#0E2444] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-red-600/10 dark:bg-red-600/20 text-red-600 dark:text-red-500 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 ease-out">
+                <div className="w-10 h-10 rounded-xl bg-red-600/10 dark:bg-red-600/20 text-red-600 dark:text-red-500 flex items-center justify-center transition-colors">
                   <YoutubeIcon size={22} />
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[11px] font-bold border border-red-200 dark:border-transparent">
+                <span className="px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[11px] font-bold border border-red-200 dark:border-transparent">
                   Ao Vivo
                 </span>
               </div>
@@ -78,10 +78,10 @@ export default function SocialSection({ socials, showHeader = false }: SocialSec
           <div className="bg-white dark:bg-[#0C1E38] hover:bg-slate-50 dark:hover:bg-[#0E2444] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-pink-500/10 dark:bg-pink-500/20 text-pink-600 dark:text-pink-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 ease-out">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 dark:bg-sky-500/20 text-[#004A99] dark:text-[#00D8FF] flex items-center justify-center transition-colors">
                   <InstagramIcon size={22} />
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400 text-[11px] font-bold border border-pink-200 dark:border-transparent">
+                <span className="px-2 py-0.5 rounded-md bg-sky-50 dark:bg-sky-500/10 text-[#004A99] dark:text-[#00D8FF] text-[11px] font-bold border border-sky-200 dark:border-transparent">
                   @governoro
                 </span>
               </div>
@@ -98,7 +98,7 @@ export default function SocialSection({ socials, showHeader = false }: SocialSec
               href={socials.instagram || 'https://www.instagram.com/governoro/'}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all duration-150 ease-out shadow-xs active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-pink-500"
+              className="w-full py-2 px-3 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all duration-150 ease-out shadow-xs active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               <span>Seguir no Instagram</span>
               <ExternalLink size={13} />
@@ -109,10 +109,10 @@ export default function SocialSection({ socials, showHeader = false }: SocialSec
           <div className="bg-white dark:bg-[#0C1E38] hover:bg-slate-50 dark:hover:bg-[#0E2444] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600/10 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 ease-out">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/10 dark:bg-blue-600/20 text-blue-600 dark:text-blue-400 flex items-center justify-center transition-colors">
                   <FacebookIcon size={22} />
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[11px] font-bold border border-blue-200 dark:border-transparent">
+                <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[11px] font-bold border border-blue-200 dark:border-transparent">
                   Comunidade
                 </span>
               </div>
@@ -140,10 +140,10 @@ export default function SocialSection({ socials, showHeader = false }: SocialSec
           <div className="bg-white dark:bg-[#0C1E38] hover:bg-slate-50 dark:hover:bg-[#0E2444] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-600/10 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 ease-out">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600/10 dark:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center transition-colors">
                   <WhatsAppIcon size={22} />
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold border border-emerald-200 dark:border-transparent">
+                <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold border border-emerald-200 dark:border-transparent">
                   Suporte Escolar
                 </span>
               </div>

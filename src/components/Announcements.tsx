@@ -77,7 +77,7 @@ export default function Announcements({ announcements }: AnnouncementsProps) {
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${style.bg}`}>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${style.bg}`}>
                       {style.icon}
                       {style.label}
                     </span>

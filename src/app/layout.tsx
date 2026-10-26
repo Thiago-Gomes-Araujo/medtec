@@ -22,9 +22,12 @@ const jetbrains = JetBrains_Mono({
   display: 'swap',
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://medtec.seduc.ro.gov.br';
+
 export const metadata: Metadata = {
-  title: 'MEDTEC em Foco — Ensino Médio com Mediação Tecnológica de Rondônia',
-  description: 'Histórias, escolas, dados e transparência do Ensino Médio com Mediação Tecnológica da SEDUC-RO. Lei Estadual nº 3.846/2016.',
+  metadataBase: new URL(siteUrl),
+  title: 'MEDTEC: Ensino Médio com Mediação Tecnológica de Rondônia',
+  description: 'Portal oficial do Ensino Médio com Mediação Tecnológica da SEDUC-RO. Lei Estadual nº 3.846/2016 e Portaria SEDUC nº 928/2025.',
   keywords: [
     'MEDTEC',
     'SEDUC Rondônia',
@@ -37,12 +40,15 @@ export const metadata: Metadata = {
     'Transparência SEDUC'
   ],
   authors: [{ name: 'SEDUC - Secretaria de Estado da Educação de Rondônia' }],
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
-    title: 'MEDTEC em Foco — Rondônia',
-    description: 'A educação que chega a todos os cantos de Rondônia. Histórias, escolas e transparência oficial.',
+    title: 'MEDTEC - Governo de Rondônia',
+    description: 'Ensino Médio com Mediação Tecnológica na Rede Estadual de Rondônia. SEDUC-RO.',
     type: 'website',
     locale: 'pt_BR',
-    siteName: 'MEDTEC em Foco · SEDUC-RO',
+    siteName: 'MEDTEC - SEDUC-RO',
   },
 };
 

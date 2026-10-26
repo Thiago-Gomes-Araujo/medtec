@@ -99,7 +99,7 @@ export function criarClusterIcone(cluster: { getChildCount: () => number }): L.D
   }
 
   const html = `
-    <div class="flex items-center justify-center rounded-full border-2 font-mono font-bold shadow-lg transition-transform hover:scale-110 ${bgClass}" 
+    <div class="flex items-center justify-center rounded-full border-2 font-mono font-bold shadow-lg transition-colors ${bgClass}"
          style="width: ${size}px; height: ${size}px; box-shadow: 0 0 16px rgba(0, 216, 255, 0.45); backdrop-filter: blur(4px);">
       <span class="text-xs">${count}</span>
     </div>

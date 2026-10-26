@@ -170,7 +170,7 @@ export default function EditorialKanban() {
                     </td>
                     <td className="p-3">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold ${
                           item.etapa === 'Publicado'
                             ? 'bg-emerald-100 text-emerald-800'
                             : item.etapa === 'Revisão Jurídica/LGPD'
@@ -197,7 +197,7 @@ export default function EditorialKanban() {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-slate-400">-</span>
                       )}
                     </td>
                   </tr>

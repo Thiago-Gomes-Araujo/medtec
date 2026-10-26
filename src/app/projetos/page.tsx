@@ -5,7 +5,7 @@ import SiteFooter from '@/components/SiteFooter';
 import ProjectsInteractiveStage from '@/components/ProjectsInteractiveStage';
 
 export const metadata: Metadata = {
-  title: 'Missões & Projetos Pedagógicos | MEDTEC Rondônia (SEDUC • Sinal Ativo)',
+  title: 'Missões e Projetos Pedagógicos | MEDTEC Rondônia - SEDUC-RO',
   description:
     'Laboratório Vivo de Inovação Aplicada da Mediação Tecnológica em Rondônia. Conheça as missões agroecológicas, científicas, indígenas e tecnológicas desenvolvidas nas salas conectadas dos 52 municípios.',
 };

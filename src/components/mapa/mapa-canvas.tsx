@@ -191,7 +191,7 @@ export function MapaCanvas({
                 Estúdio Principal de Transmissão de Aulas ao Vivo via Satélite (Banda Ku).
               </p>
               <div className="text-[10px] text-[#6482A6]">
-                Porto Velho — Rondônia • Lat: -8.7619, Lon: -63.9039
+                Porto Velho, Rondônia • Lat: -8.7619, Lon: -63.9039
               </div>
             </div>
           </Popup>
@@ -269,7 +269,7 @@ export function MapaCanvas({
                     <div className="text-[11px] space-y-1">
                       <div className="flex items-center gap-1.5 text-emerald-400">
                         <Signal className="h-3 w-3" />
-                        <span>{ponto.statusSinal || 'Sinal Ativo • 99.8%'}</span>
+                        <span>{ponto.statusSinal || 'Sinal Síncrono Ativo'}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-slate-300 truncate">
                         <GraduationCap className="h-3 w-3 text-[#6482A6]" />

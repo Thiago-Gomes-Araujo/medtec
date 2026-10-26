@@ -105,7 +105,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
               >
                 <span>{cat.label}</span>
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold tabular-nums ${
+                  className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold tabular-nums ${
                     isSelected 
                       ? 'bg-sky-200 text-slate-950 dark:bg-slate-950 dark:text-[#00D8FF]' 
                       : 'bg-slate-100 dark:bg-[#061224] text-slate-600 dark:text-slate-400'
@@ -152,7 +152,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2.5">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${style.badge}`}>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${style.badge}`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
                       {style.label}
                     </span>

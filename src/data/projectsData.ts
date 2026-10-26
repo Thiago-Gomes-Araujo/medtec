@@ -74,11 +74,11 @@ export const PROJECTS_DATA: ProjectMission[] = [
     },
     impactoGerado: {
       title: 'Segurança Alimentar Escolar e Multiplicação Familiar',
-      metric: '+65% na merenda',
-      description: 'Abastecimento contínuo de couve, coentro e chicória o ano inteiro para 100% dos alunos e adoção do modelo de jirau por 42 famílias ribeirinhas do distrito.'
+      metric: 'Horta Escolar Ativa',
+      description: 'Cultivo sustentável de hortaliças para complemento pedagógico e nutricional da comunidade escolar do distrito de Nazaré.'
     },
     competencias: ['Itinerário NBAZ', 'Lei Estadual nº 3.846/2016', 'Agroecologia Fluvial', 'Sustentabilidade Amazônica'],
-    quote: 'A mediação tecnológica permitiu que a ciência das transmissões em alta definição do estúdio descesse diretamente para as mãos e canteiros dos nossos jovens ribeirinhos.',
+    quote: 'Prática pedagógica de campo alinhada ao Itinerário de Agroecologia, articulando conceitos de fisiologia vegetal com a realidade ribeirinha do Baixo Madeira (Lei Estadual nº 3.846/2016 e Portaria SEDUC nº 928/2025).',
     replicationGuide: {
       materials: [
         'Madeira de manejo ou sobras certificadas para estrutura do jirau (altura de 1,60m)',
@@ -147,7 +147,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
       description: '140 espécies catalogadas com nome científico, uso medicinal tradicional e áudio bilíngue, servindo de material didático próprio para todas as escolas indígenas de Rondônia.'
     },
     competencias: ['Educação Escolar Indígena', 'Cartografia Social', 'Preservação Linguística Tupi-Mondé', 'Tecnologias Geoespaciais'],
-    quote: 'O MEDTEC nos deu a antena de satélite para olhar o mundo, e nós usamos a tecnologia para registrar as raízes sagradas que sustentam a nossa floresta.',
+    quote: 'Metodologia de cartografia social e valorização da etnobotânica tradicional indígena integrada às competências de Geografia e Linguagens da BNCC.',
     replicationGuide: {
       materials: [
         'Smartphones ou tablets escolares com app de GPS offline instalado (OpenDataKit / OsmAnd)',
@@ -211,12 +211,12 @@ export const PROJECTS_DATA: ProjectMission[] = [
       description: 'O professor ministrante em Porto Velho ensinou reações indicadoras com extrato de repolho roxo e kits de teste colorimétrico. A turma do Iata monitorou 12 nascentes no entorno da escola quinzenalmente.'
     },
     impactoGerado: {
-      title: 'Rede de Sentinela Hídrica e Ações com a Defesa Civil',
-      metric: '12 nascentes protegidas',
-      description: 'Criação de um painel de telemetria hídrica comunitária, com reflorestamento de 2.000m² de mata ciliar e eliminação de pontos críticos de assoreamento.'
+      title: 'Rede de Sentinela Hídrica e Ações de Preservação',
+      metric: '12 nascentes monitoradas',
+      description: 'Criação de um painel de monitoramento hídrico comunitário, com reflorestamento de mata ciliar e proteção contra assoreamento.'
     },
     competencias: ['Química Ambiental', 'Educação para o Clima', 'Gestão de Recursos Hídricos', 'Iniciação Científica Escolar'],
-    quote: 'Os alunos deixaram de ser apenas receptores de fórmulas químicas abstratas para se tornarem cientistas ambientais que defendem a água da sua própria comunidade.',
+    quote: 'Atividade de iniciação científica e química ambiental aplicada à preservação de mananciais hídricos na faixa de fronteira do Mamoré.',
     replicationGuide: {
       materials: [
         'Frascos de vidro âmbar esterilizados para coleta de água de superfície',
@@ -280,12 +280,12 @@ export const PROJECTS_DATA: ProjectMission[] = [
       description: 'O professor do estúdio transmitiu lógica de programação e circuitos elétricos em corrente contínua. Com placas solares de 50W e placas Arduino, a turma construiu um sistema automatizado de gotejamento acionado por umidade.'
     },
     impactoGerado: {
-      title: 'Independência Fóssil e Irrigação Automática 24 Horas',
-      metric: '-80L diesel/mês',
-      description: 'Economia comprovada de combustível para a escola, funcionamento 100% autônomo com energia solar e certificação de 32 jovens em manutenção básica fotovoltaica.'
+      title: 'Independência Energética e Irrigação Automatizada',
+      metric: 'Autonomia Solar',
+      description: 'Operação autônoma de bombeamento hídrico com energia solar fotovoltaica e capacitação técnica de estudantes em manutenção básica de circuitos.'
     },
     competencias: ['Eletrodinâmica & Física Aplicada', 'Programação de Microcontroladores', 'Transição Energética Justa', 'Robótica Sustentável'],
-    quote: 'Quando o aluno de Calama vê uma placa de silício gerando água para o canteiro sem queimar uma gota de diesel, ele compreende na prática que o futuro da Amazônia é solar.',
+    quote: 'Desenvolvimento de competências em física aplicada, eletrodinâmica e transição energética sustentável por meio de circuitos solares em comunidades isoladas.',
     replicationGuide: {
       materials: [
         'Painel solar fotovoltaico monocristalino de 50W ou 100W',
@@ -349,12 +349,12 @@ export const PROJECTS_DATA: ProjectMission[] = [
       description: 'Aulas interativas ensinaram cálculo de biomassa e horários ideais de arraçoamento. A turma instalou tanque-rede didático na represa da escola para biometria semanal com ictiômetro e balança digital.'
     },
     impactoGerado: {
-      title: 'Aumento de Sobrevivência e Cooperativismo Juvenil',
-      metric: '-35% mortalidade',
-      description: 'Redução expressiva na perda de peixes, produção de 1,8 tonelada na safra escolar e repasse de metodologia técnica para 5 cooperativas de piscicultores de Ji-Paraná.'
+      title: 'Aumento de Produtividade e Cooperativismo Juvenil',
+      metric: 'Tanque-Rede Didático',
+      description: 'Manejo técnico e monitoramento biométrico de peixes nativos com transferência de conhecimento para associações de piscicultores locais.'
     },
     competencias: ['Piscicultura de Água Doce', 'Biometria Animal', 'Matemática Financeira Rural', 'NBAZ Sustentável'],
-    quote: 'Ver os filhos de agricultores calculando a conversão alimentar com precisão milimétrica uniu a sabedoria do campo à ciência zootécnica mais moderna.',
+    quote: 'Aplicação prática de zootecnia básica e matemática aplicada à agricultura familiar, capacitando estudantes para o arranjo produtivo regional.',
     replicationGuide: {
       materials: [
         'Tanque-rede flutuante de malha 15mm para confinamento didático de alevinos',
@@ -419,11 +419,11 @@ export const PROJECTS_DATA: ProjectMission[] = [
     },
     impactoGerado: {
       title: 'Acervo Sonoro Público e Tombamento Imaterial Escolar',
-      metric: '18 podcasts gravados',
-      description: '18 episódios de podcasts históricos editados pelos próprios alunos, disponibilizados na plataforma pública da SEDUC e incorporados ao acervo permanente da Fundação Cultural de Rondônia.'
+      metric: '18 episódios produzidos',
+      description: 'Episódios históricos editados pelos próprios alunos, disponibilizados na plataforma pública da SEDUC e incorporados ao acervo permanente da Fundação Cultural de Rondônia.'
     },
     competencias: ['História de Rondônia & Amazônia', 'Metodologia de História Oral', 'Comunicação Multimídia Escolar', 'Preservação Patrimonial'],
-    quote: 'Quando os estudantes colocam os fones e gravam a voz trêmula de quem ajudou a erguer nossa história nos trilhos, a disciplina de História ganha vida e pulso real.',
+    quote: 'Metodologia de história oral e preservação de patrimônio imaterial para valorização da identidade regional e formação cidadã.',
     replicationGuide: {
       materials: [
         'Gravadores digitais portáteis ou smartphones com microfones de lapela conectados',

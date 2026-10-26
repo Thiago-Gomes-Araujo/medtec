@@ -28,7 +28,7 @@ export default function StudentStories({ filterCategory = 'Todas' }: StudentStor
           className="flex flex-col rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 shadow-xs hover:border-sky-400 dark:hover:border-cyan-400/50 hover:shadow-md transition-all"
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-[#05549D] dark:bg-cyan-400/15 dark:text-cyan-300">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-sky-100 text-[#05549D] dark:bg-cyan-400/15 dark:text-cyan-300">
               {aluno.categoria}
             </span>
             <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 font-mono">

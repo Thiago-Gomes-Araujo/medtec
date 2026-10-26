@@ -34,7 +34,7 @@ interface PhotoMetadata {
 const CATALOG_INFO: Record<string, PhotoMetadata> = {
   'gal-1': {
     regCode: 'REG_01 // RO',
-    location: 'Porto Velho, RO — Estúdios SEDUC',
+    location: 'Porto Velho, RO, Estúdios SEDUC',
     municipio: 'Porto Velho',
     coords: 'LAT -8.76° S • LON -63.90° W',
     infra: 'Estúdio Central SEDUC • 4K UHD Broadcast • Fibra Óptica',
@@ -44,7 +44,7 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
   },
   'gal-3': {
     regCode: 'REG_02 // RO',
-    location: 'Cacoal, RO — Terra Indígena Paiter Suruí',
+    location: 'Cacoal, RO, Terra Indígena Paiter Suruí',
     municipio: 'Cacoal',
     coords: 'LAT -11.10° S • LON -61.20° W',
     infra: 'Transmissão Satelital Banda Ku • Painel Solar Fotovoltaico',
@@ -54,7 +54,7 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
   },
   'gal-2': {
     regCode: 'REG_03 // RO',
-    location: 'Ji-Paraná, RO — Zona Rural (Setor Riachuelo)',
+    location: 'Ji-Paraná, RO, Zona Rural (Setor Riachuelo)',
     municipio: 'Ji-Paraná',
     coords: 'LAT -10.88° S • LON -61.94° W',
     infra: 'Receptor Satelital Ku • Smart TV 65" Interativa',
@@ -64,7 +64,7 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
   },
   'gal-4': {
     regCode: 'REG_04 // RO',
-    location: 'Porto Velho, RO — Palácio Rio Madeira',
+    location: 'Porto Velho, RO, Palácio Rio Madeira',
     municipio: 'Porto Velho',
     coords: 'LAT -8.74° S • LON -63.89° W',
     infra: 'Auditório Multimídia • Transmissão Síncrona IP',
@@ -74,7 +74,7 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
   },
   'gal-5': {
     regCode: 'REG_05 // RO',
-    location: 'Ariquemes, RO — Vale do Jamari',
+    location: 'Ariquemes, RO, Vale do Jamari',
     municipio: 'Ariquemes',
     coords: 'LAT -9.91° S • LON -63.04° W',
     infra: 'Estande Tecnológico • Conexão Redundante Satélite/Rádio',
@@ -84,7 +84,7 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
   },
   'gal-6': {
     regCode: 'REG_06 // RO',
-    location: 'Porto Velho, RO — Complexo de Mídias',
+    location: 'Porto Velho, RO, Complexo de Mídias',
     municipio: 'Porto Velho',
     coords: 'LAT -8.76° S • LON -63.90° W',
     infra: 'Switch de Produção Blackmagic • Teleprompter e Iluminação LED',
@@ -201,9 +201,6 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
       
       {/* Grade Cartesiana Sutil de Fundo (Hero Grid) */}
       <div className="hero-grid pointer-events-none absolute inset-0 opacity-40 dark:opacity-40" />
-
-      {/* Glow Sutil de Horizonte Ciano */}
-      <div className="pointer-events-none absolute -top-24 left-1/2 h-80 w-3/4 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[120px]" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-8">
 
@@ -324,11 +321,11 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     onClick={() => setSelectedIndex(index)}
                     className={`group relative overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-slate-900 hover:border-[#00D8FF] transition-all duration-200 ease-out cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-between active:scale-[0.99] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#00D8FF] ${gridSpanClass} ${meta.aspectRatio}`}
                   >
-                    {/* Imagem de Fundo com Zoom Suave no Hover */}
+                    {/* Imagem de Fundo */}
                     <img
                       src={photo.imageUrl}
                       alt={photo.title}
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                      className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
                       loading="lazy"
                     />
 
@@ -337,11 +334,11 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
 
                     {/* TOPO DO CARD: BADGE TÉCNICA E CÓDIGO CATALOGRÁFICO */}
                     <div className="relative z-10 flex items-center justify-between p-3 sm:p-3.5">
-                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-[#00D8FF] text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full font-semibold shadow-xs">
+                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-[#00D8FF] text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-md font-semibold shadow-xs">
                         {photo.category}
                       </span>
 
-                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-slate-300 group-hover:text-white text-[10px] font-mono px-2 py-0.5 rounded-full transition-colors tabular-nums">
+                      <span className="backdrop-blur-md bg-black/75 border border-white/20 text-slate-300 group-hover:text-white text-[10px] font-mono px-2 py-0.5 rounded-md transition-colors tabular-nums">
                         {meta.regCode}
                       </span>
                     </div>
@@ -423,7 +420,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                         <img
                           src={photo.imageUrl}
                           alt={photo.title}
-                          className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+                          className="h-full w-full object-cover transition-opacity duration-300"
                           loading="lazy"
                         />
                       </div>
@@ -432,7 +429,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                     {/* Título e Descrição */}
                     <div className="flex-1 min-w-0 pr-2">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="rounded-full border border-sky-300 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2 py-0.5 text-[10px] font-mono uppercase text-[#05549D] dark:text-[#00D8FF] font-semibold">
+                        <span className="rounded-md border border-sky-300 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2 py-0.5 text-[10px] font-mono uppercase text-[#05549D] dark:text-[#00D8FF] font-semibold">
                           {photo.category}
                         </span>
                         <span className="text-xs font-mono text-slate-500 dark:text-[#6482A6] tabular-nums">
@@ -484,7 +481,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
               {/* Botão Fechar no Canto Superior Direito (Mobile) */}
               <button
                 onClick={() => setSelectedIndex(null)}
-                className="lg:hidden absolute top-3 right-3 z-30 rounded-full border border-white/20 bg-black/70 p-2 text-white hover:bg-white hover:text-black transition-colors"
+                className="lg:hidden absolute top-3 right-3 z-30 rounded-lg border border-white/20 bg-black/70 p-2 text-white hover:bg-white hover:text-black transition-colors"
                 aria-label="Fechar inspetor"
               >
                 <X className="h-5 w-5" />

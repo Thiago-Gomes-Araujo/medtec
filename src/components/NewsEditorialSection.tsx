@@ -102,7 +102,7 @@ function getEditorialDetails(item: NewsItem, index: number): EditorialDetails {
     { label: 'Salas Conectadas', value: `${12 + (index % 8)} Unidades` },
     { label: 'Estudantes Atendidos', value: `${380 + (index * 45)} Jovens` },
     { label: 'Municípios Cobertos', value: '52 Cidades' },
-    { label: 'Disponibilidade Satélite', value: '99.8% Sinal Ativo' },
+    { label: 'Transmissão Satelital', value: 'Banda Ku Ativa' },
   ];
 
   return {
@@ -268,7 +268,9 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
     if (!activeArticleId) return;
 
     // Reseta barra de progresso e scroll ao trocar de notícia
-    setReadingProgress(0);
+    queueMicrotask(() => {
+      setReadingProgress(0);
+    });
     if (articleScrollRef.current) {
       articleScrollRef.current.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -313,8 +315,6 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
       {/* Grade Cartesiana Sutil de Fundo */}
       <div className="hero-grid pointer-events-none absolute inset-0 opacity-40 dark:opacity-40" />
 
-      {/* Glow Sutil de Horizonte Ciano */}
-      <div className="pointer-events-none absolute -top-24 left-1/2 h-80 w-3/4 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-[120px]" />
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-10">
 
@@ -458,7 +458,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                         onError={(e) => {
                           (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
                         }}
-                        className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover/img:scale-105"
+                        className="h-full w-full object-cover transition-opacity duration-300"
                         loading="eager"
                       />
 
@@ -467,7 +467,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
 
                       {/* Badge de Destaque no Topo da Imagem */}
                       <div className="absolute top-3 left-3 z-10">
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-slate-950/85 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-xs">
+                        <span className="inline-flex items-center gap-1.5 rounded-md border border-white/20 bg-slate-950/85 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-xs">
                           <Star className="h-2.5 w-2.5 text-cyan-300 fill-cyan-300" />
                           <span>Destaque Editorial</span>
                         </span>
@@ -495,7 +495,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                           </div>
 
                           {/* Indicador Numérico 01 / 04 */}
-                          <div className="shrink-0 flex items-center gap-1 font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 tabular-nums bg-slate-100 dark:bg-[#061224] px-2 py-0.5 rounded-full border border-slate-200 dark:border-[#1A365D]">
+                          <div className="shrink-0 flex items-center gap-1 font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400 tabular-nums bg-slate-100 dark:bg-[#061224] px-2 py-0.5 rounded-md border border-slate-200 dark:border-[#1A365D]">
                             <span className="text-[#004A99] dark:text-[#00D8FF]">
                               {String(activeSlide + 1).padStart(2, '0')}
                             </span>
@@ -628,13 +628,13 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                               onError={(e) => {
                                 (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
                               }}
-                              className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                              className="h-full w-full object-cover transition-opacity duration-300"
                               loading="lazy"
                             />
 
                             {/* Tag de Categoria no Topo Esquerdo */}
                             <div className="absolute top-2.5 left-2.5 z-10">
-                              <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-slate-950/80 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+                              <span className="inline-flex items-center gap-1 rounded-md border border-white/20 bg-slate-950/80 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
                                 {item.category || 'Geral'}
                               </span>
                             </div>
@@ -727,11 +727,11 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src = FALLBACK_NEWS_COVER;
                       }}
-                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="h-full w-full object-cover transition-opacity duration-300"
                       loading="lazy"
                     />
                     <div className="absolute top-2 left-2">
-                      <span className="rounded-full bg-slate-950/80 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white backdrop-blur-sm">
+                      <span className="rounded-md bg-slate-950/80 px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-white backdrop-blur-sm">
                         {item.category || 'Geral'}
                       </span>
                     </div>
@@ -813,7 +813,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                 
                 {/* Esquerda: Identificação Editorial e Categoria */}
                 <div className="flex items-center gap-2 text-xs font-mono">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold uppercase text-[10px]">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-bold uppercase text-[10px]">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     SINAL ATIVO
                   </span>
@@ -988,7 +988,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                       &ldquo;{activeEditorial.quote.text}&rdquo;
                     </p>
                     <footer className="mt-3 font-mono text-xs not-italic text-[#004A99] dark:text-cyan-300 font-bold">
-                      — {activeEditorial.quote.author}, <span className="font-normal opacity-80">{activeEditorial.quote.role}</span>
+                      {activeEditorial.quote.author}, <span className="font-normal opacity-80">{activeEditorial.quote.role}</span>
                     </footer>
                   </blockquote>
 

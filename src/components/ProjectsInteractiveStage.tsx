@@ -26,21 +26,12 @@ import {
   FlaskConical,
   Landmark,
   Cpu,
-  Trophy,
-  ThumbsUp
+  Trophy
 } from 'lucide-react';
 
 export default function ProjectsInteractiveStage() {
   const [selectedTrack, setSelectedTrack] = useState<string>(TRACK_OPTIONS[0]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>(PROJECTS_DATA[0].id);
-  const [applauseCounts, setApplauseCounts] = useState<{ [id: string]: number }>(() => {
-    const initial: { [id: string]: number } = {};
-    PROJECTS_DATA.forEach((p) => {
-      initial[p.id] = p.initialApplause;
-    });
-    return initial;
-  });
-  const [applauseAnimationId, setApplauseAnimationId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Filtragem de projetos pelo dock de trilhas
@@ -70,17 +61,6 @@ export default function ProjectsInteractiveStage() {
     setSelectedProjectId(nextProject.id);
   };
 
-  // Incrementa aplausos com micro-feedback
-  const handleApplause = (id: string) => {
-    setApplauseCounts((prev) => ({
-      ...prev,
-      [id]: (prev[id] || 0) + 1
-    }));
-    setApplauseAnimationId(id);
-    setTimeout(() => {
-      setApplauseAnimationId(null);
-    }, 900);
-  };
 
   // Ícones representativos para cada trilha
   const getTrackIcon = (track: string) => {
@@ -202,7 +182,7 @@ export default function ProjectsInteractiveStage() {
                     }
                   }
                 }}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-150 ease-out cursor-pointer border touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
+                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 ease-out cursor-pointer border touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                   isSelected
                     ? 'bg-[#004A99] text-white border-[#004A99] shadow-sm dark:bg-[#00D8FF] dark:text-slate-950 dark:border-[#00D8FF]'
                     : 'bg-white dark:bg-[#0C1E38] text-slate-700 dark:text-slate-300 border-slate-200/90 dark:border-[#1A365D] hover:border-slate-300 dark:hover:border-cyan-400/40 hover:bg-slate-50 dark:hover:bg-[#0F2647]'
@@ -235,7 +215,7 @@ export default function ProjectsInteractiveStage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           
           {/* ======================================================== */}
-          {/* COLUNA ESQUERDA (lg:col-span-4 — ÍNDICE DE MISSÕES)     */}
+          {/* COLUNA ESQUERDA (lg:col-span-4: ÍNDICE DE MISSÕES)       */}
           {/* ======================================================== */}
           <div className="lg:col-span-4 flex flex-col gap-2">
             <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-slate-50/70 dark:bg-[#08182E]/50 p-2 space-y-1.5">
@@ -294,7 +274,7 @@ export default function ProjectsInteractiveStage() {
           </div>
 
           {/* ======================================================== */}
-          {/* COLUNA DIREITA (lg:col-span-8 — PALCO DE RAIO-X VIVO)   */}
+          {/* COLUNA DIREITA (lg:col-span-8: PALCO DE RAIO-X VIVO)     */}
           {/* ======================================================== */}
           <div className="lg:col-span-8">
             <AnimatePresence mode="wait">
@@ -325,31 +305,8 @@ export default function ProjectsInteractiveStage() {
                       </span>
                     </div>
 
-                    {/* Botão Interativo "Aplaudir Turma" com microanimação e Badge 3D */}
-                    <div className="relative">
-                      <button
-                        onClick={() => handleApplause(currentProject.id)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-sky-200 dark:border-cyan-500/30 bg-sky-50 dark:bg-[#07162C] px-3 py-1 text-xs font-bold text-[#004A99] dark:text-[#00D8FF] hover:bg-sky-100 dark:hover:bg-[#0A2242] active:scale-[0.93] transition-all duration-150 ease-out cursor-pointer shadow-xs touch-manipulation select-none"
-                        title="Enviar aplauso oficial para a turma"
-                      >
-                        <Badge3D size="xs" variant="solid" icon={<ThumbsUp className="w-2.5 h-2.5" />} />
-                        <span>Aplaudir Turma</span>
-                        <span className="font-mono font-black tabular-nums">
-                          {applauseCounts[currentProject.id]}
-                        </span>
-                      </button>
-
-                      {applauseAnimationId === currentProject.id && (
-                        <motion.div
-                          initial={{ opacity: 1, y: 0, scale: 0.8 }}
-                          animate={{ opacity: 0, y: -24, scale: 1.2 }}
-                          transition={{ duration: 0.8 }}
-                          className="pointer-events-none absolute -top-4 right-2 inline-flex items-center gap-1 font-mono text-xs font-black text-[#004A99] dark:text-[#00D8FF]"
-                        >
-                          <span>+1</span>
-                          <Sparkles className="w-3.5 h-3.5" />
-                        </motion.div>
-                      )}
+                    <div className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#07162C] px-2.5 py-1 text-xs font-mono font-medium text-slate-700 dark:text-slate-300">
+                      <span>Prática Pedagógica Registrada</span>
                     </div>
                   </div>
 
@@ -361,7 +318,7 @@ export default function ProjectsInteractiveStage() {
                   {/* Subtítulo com Escola, Município e Professor Mediador */}
                   <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-300 pt-0.5">
                     <div className="flex items-center gap-2">
-                      <div className="h-5 w-5 rounded-full bg-gradient-to-br from-sky-400 to-[#004A99] dark:from-cyan-400 dark:to-blue-600 flex items-center justify-center font-bold text-[9px] text-white shrink-0 shadow-xs">
+                      <div className="h-5 w-5 rounded-md bg-[#004A99] dark:bg-blue-600 flex items-center justify-center font-bold text-[9px] text-white shrink-0 shadow-xs">
                         {currentProject.mediatorInitials}
                       </div>
                       <span className="font-semibold text-slate-900 dark:text-white">
@@ -386,7 +343,7 @@ export default function ProjectsInteractiveStage() {
                       src={currentProject.image}
                       alt={currentProject.title}
                       loading="lazy"
-                      className="absolute inset-0 h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                      className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent pointer-events-none" />
                     
@@ -430,7 +387,7 @@ export default function ProjectsInteractiveStage() {
                           <TrendingUp className="h-3.5 w-3.5 shrink-0" />
                           <span>03. Impacto Gerado</span>
                         </div>
-                        <span className="font-mono text-[11px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-400/20 text-emerald-800 dark:text-emerald-200 tabular-nums">
+                        <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-400/20 text-emerald-800 dark:text-emerald-200 tabular-nums">
                           {currentProject.impactoGerado.metric}
                         </span>
                       </div>

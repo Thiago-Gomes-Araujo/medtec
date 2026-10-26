@@ -73,7 +73,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
           {/* Categoria e Título */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-sky-300 dark:border-cyan-400/30 bg-sky-50 dark:bg-[#0C1E38] text-[#05549D] dark:text-[#00D8FF] text-xs font-mono font-semibold uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md border border-sky-300 dark:border-cyan-400/30 bg-sky-50 dark:bg-[#0C1E38] text-[#05549D] dark:text-[#00D8FF] text-xs font-mono font-semibold uppercase tracking-wider">
                 <Radio className="h-3 w-3 text-emerald-500 dark:text-emerald-400 animate-pulse" />
                 {newsItem.category || 'Geral'}
               </span>

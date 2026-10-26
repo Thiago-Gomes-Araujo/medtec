@@ -68,7 +68,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                className={`px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
                   selectedCategory === cat 
                     ? 'bg-primary text-white shadow-xs' 
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
@@ -111,7 +111,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
                   <img
                     src={item.coverImage}
                     alt={item.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover transition-opacity duration-300"
                   />
                   <div className="absolute top-3 left-3">
                     <span className="px-2.5 py-1 rounded-md bg-primary/90 text-white text-[11px] font-bold backdrop-blur-xs">
