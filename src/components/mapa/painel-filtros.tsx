@@ -4,6 +4,7 @@ import React from 'react';
 import { municipiosList } from '@/data/medtecData';
 import { FiltrosMapa } from './types';
 import { Search, X } from 'lucide-react';
+import { sanitizeSearchInput } from '@/lib/security';
 
 interface PainelFiltrosProps {
   filtros: FiltrosMapa;
@@ -46,7 +47,8 @@ export function PainelFiltros({
           <input
             type="text"
             value={filtros.busca || ''}
-            onChange={(e) => setBusca(e.target.value)}
+            onChange={(e) => setBusca(sanitizeSearchInput(e.target.value))}
+            maxLength={100}
             placeholder="Buscar por escola, comunidade ou polo..."
             className="w-full rounded-lg border border-[#1A365D] bg-[#061224]/90 pl-9 pr-8 py-1.5 text-xs font-mono text-[#E6F4FF] placeholder-[#6482A6] focus:border-[#00D8FF] focus:outline-none transition-colors"
           />

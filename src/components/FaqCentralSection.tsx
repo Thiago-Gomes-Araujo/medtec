@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import { sanitizeSearchInput } from '@/lib/security';
 import {
   Search,
   X,
@@ -286,7 +287,8 @@ export default function FaqCentralSection() {
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
+              maxLength={100}
               placeholder="Digite sua dúvida, componente curricular (ex: NBAZ) ou palavra-chave..."
               className="w-full bg-transparent font-mono text-sm sm:text-base text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:outline-none"
             />

@@ -532,6 +532,7 @@ export default function AdminDashboardPage() {
                 <Link
                   href="/"
                   target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 text-xs font-semibold border border-slate-700 transition"
                 >
                   <Eye size={14} />
