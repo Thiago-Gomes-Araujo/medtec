@@ -160,6 +160,10 @@ export function authenticateUser(loginAttempt: string, passwordAttempt: string):
         return { authenticated: false, error: 'Conta de operador inativa. Contate o gestor.' };
       }
 
+      if (!matchedUser.passwordHash) {
+        return { authenticated: false, error: 'Usuário sem credencial local cadastrada' };
+      }
+
       const isPassValid = verifyPassword(passwordAttempt, matchedUser.passwordHash);
       if (isPassValid) {
         return {
