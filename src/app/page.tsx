@@ -27,7 +27,7 @@ export default function HomePage() {
   const [pitchModalOpen, setPitchModalOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#F0F4F8] dark:bg-[#040D1A] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors duration-200">
+    <div className="flex min-h-screen flex-col bg-[#F0F4F8] dark:bg-[#040D1A] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
       {/* CABEÇALHO FLUTUANTE EM GLASSMORPHISM */}
       <SiteHeader onOpenPitchModal={() => setPitchModalOpen(true)} />
 
@@ -41,6 +41,8 @@ export default function HomePage() {
             alt="Transmissão das aulas do MEDTEC Rondônia"
             width={1600}
             height={912}
+            decoding="async"
+            fetchPriority="high"
             className="absolute inset-0 h-full w-full object-cover opacity-25 mix-blend-luminosity pointer-events-none"
           />
 
@@ -203,6 +205,8 @@ export default function HomePage() {
                     src="/hero.jpg"
                     alt="Transmissão das aulas ao vivo no estúdio MEDTEC Porto Velho"
                     className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                   
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20" />

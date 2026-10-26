@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
@@ -7,6 +8,17 @@ import { getDatabase } from '@/lib/db';
 import initialData from '@/data/initialData.json';
 import { GalleryItem } from '@/types';
 
+export const metadata: Metadata = {
+  title: 'Galeria de Fotos e Acervo | MEDTEC Rondônia - SEDUC-RO',
+  description:
+    'Registros visuais das salas de aula conectadas no interior de Rondônia, estúdios de transmissão em Porto Velho e práticas pedagógicas nas comunidades.',
+  openGraph: {
+    title: 'Galeria de Fotos e Acervo | MEDTEC Rondônia - SEDUC-RO',
+    description:
+      'Registros visuais das salas de aula conectadas e dos estúdios do MEDTEC Rondônia.',
+  },
+};
+
 export default async function GaleriaPage() {
   const db = getDatabase();
   const gallery = (db.gallery && db.gallery.length > 0) 
@@ -14,7 +26,7 @@ export default async function GaleriaPage() {
     : (initialData.gallery as GalleryItem[]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF]">
+    <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
 
       <main className="flex-1 pb-16">

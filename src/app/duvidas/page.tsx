@@ -1,12 +1,24 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import FaqCentralSection from '@/components/FaqCentralSection';
 
+export const metadata: Metadata = {
+  title: 'Dúvidas Frequentes (FAQ) | MEDTEC Rondônia - SEDUC-RO',
+  description:
+    'Respostas para dúvidas sobre aulas síncronas via satélite, professores mediadores, matriz curricular e certificação do Ensino Médio pela SEDUC-RO.',
+  openGraph: {
+    title: 'Dúvidas Frequentes (FAQ) | MEDTEC Rondônia - SEDUC-RO',
+    description:
+      'Perguntas e respostas sobre o funcionamento do Ensino Médio com Mediação Tecnológica em Rondônia.',
+  },
+};
+
 export default function DuvidasPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF]">
+    <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
 
       <main className="flex-1 pb-16">

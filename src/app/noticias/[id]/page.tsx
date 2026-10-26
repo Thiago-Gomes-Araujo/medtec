@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import { getDatabase } from '@/lib/db';
@@ -14,6 +15,33 @@ interface Props {
 }
 
 export const instant = false;
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const data = getDatabase();
+  const allNews: NewsItem[] = (data.news && data.news.length > 0)
+    ? data.news
+    : (initialData.news as NewsItem[]);
+
+  const newsItem = allNews.find((n) => n.id === id || n.slug === id);
+
+  if (!newsItem) {
+    return {
+      title: 'Notícia não encontrada | MEDTEC Rondônia',
+    };
+  }
+
+  return {
+    title: `${newsItem.title} | MEDTEC Rondônia - SEDUC-RO`,
+    description: newsItem.excerpt || 'Notícia oficial do Ensino Médio com Mediação Tecnológica da SEDUC-RO.',
+    openGraph: {
+      title: newsItem.title,
+      description: newsItem.excerpt,
+      images: newsItem.coverImage ? [newsItem.coverImage] : [],
+      type: 'article',
+    },
+  };
+}
 
 const FALLBACK_COVER =
   'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80';
@@ -33,7 +61,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF]">
+    <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
 
       {/* Breadcrumb Técnico */}

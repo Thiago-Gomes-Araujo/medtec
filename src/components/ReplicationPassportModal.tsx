@@ -14,7 +14,6 @@ import {
   School,
   FileText,
   Lightbulb,
-  Check,
   Package
 } from 'lucide-react';
 import { ProjectMission } from '@/data/projectsData';

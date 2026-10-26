@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
@@ -7,6 +8,17 @@ import { getDatabase } from '@/lib/db';
 import initialData from '@/data/initialData.json';
 import { NewsItem } from '@/types';
 
+export const metadata: Metadata = {
+  title: 'Notícias e Coberturas | MEDTEC Rondônia - SEDUC-RO',
+  description:
+    'Acompanhe as reportagens oficiais, entregas de infraestrutura satelital e ações pedagógicas do Ensino Médio com Mediação Tecnológica nos 52 municípios de Rondônia.',
+  openGraph: {
+    title: 'Notícias e Coberturas | MEDTEC Rondônia - SEDUC-RO',
+    description:
+      'Acompanhe as reportagens oficiais, entregas de infraestrutura satelital e ações pedagógicas do MEDTEC Rondônia.',
+  },
+};
+
 export default async function NoticiasPage() {
   const data = getDatabase();
   const newsList = (data.news && data.news.length > 0)
@@ -14,7 +26,7 @@ export default async function NoticiasPage() {
     : (initialData.news as NewsItem[]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF]">
+    <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
 
       <main className="flex-1 pb-16">

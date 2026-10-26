@@ -11,12 +11,18 @@ export default function SiteFooter() {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 text-sm">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-3 lg:col-span-2">
-            <p className="font-mono text-xs font-semibold uppercase tracking-wider text-cyan-300 dark:text-cyan-300">
-              Rede Estadual de Rondônia
-            </p>
-            <p className="font-display text-2xl font-bold tracking-tight text-white dark:text-[#E6F4FF] text-balance">
-              MEDTEC Rondônia · SEDUC-RO
-            </p>
+            <Link
+              href="/"
+              aria-label="Voltar para a página inicial do MEDTEC Rondônia"
+              className="group inline-block cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-300 rounded-lg p-1 -ml-1 transition-opacity hover:opacity-95"
+            >
+              <p className="font-mono text-xs font-semibold uppercase tracking-wider text-cyan-300 dark:text-cyan-300">
+                Rede Estadual de Rondônia
+              </p>
+              <p className="font-display text-2xl font-bold tracking-tight text-white dark:text-[#E6F4FF] text-balance group-hover:text-cyan-200 transition-colors">
+                MEDTEC Rondônia · SEDUC-RO
+              </p>
+            </Link>
             <p className="max-w-xl text-sm leading-relaxed text-sky-100/90 dark:text-slate-400 text-pretty [overflow-wrap:anywhere]">
               Ensino Médio com Mediação Tecnológica, Lei Estadual nº 3.846/2016 e Portaria SEDUC nº 928/2025.
               Garantindo o direito universal à educação básica de excelência no campo, nas águas e nas florestas de todo o estado de Rondônia.

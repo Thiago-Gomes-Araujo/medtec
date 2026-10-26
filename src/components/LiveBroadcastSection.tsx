@@ -74,6 +74,7 @@ export default function LiveBroadcastSection({
     >
       {/* Âncoras para links de navegação profunda */}
       <div id="transmissoes" className="absolute -top-20" aria-hidden="true" />
+      <div id="transmissao" className="absolute -top-20" aria-hidden="true" />
       <div id="redes" className="absolute -top-20" aria-hidden="true" />
 
       {/* Grid de Fundo Técnico */}

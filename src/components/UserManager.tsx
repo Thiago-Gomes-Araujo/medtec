@@ -12,8 +12,6 @@ import {
   EyeOff, 
   CheckCircle2, 
   AlertCircle, 
-  Clock, 
-  Lock, 
   FileText, 
   Image as ImageIcon, 
   Bell, 

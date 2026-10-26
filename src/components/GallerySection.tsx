@@ -327,6 +327,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                       alt={photo.title}
                       className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
                       loading="lazy"
+                      decoding="async"
                     />
 
                     {/* Gradiente Escuro de Proteção e Contraste Tipográfico */}
@@ -422,6 +423,7 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
                           alt={photo.title}
                           className="h-full w-full object-cover transition-opacity duration-300"
                           loading="lazy"
+                          decoding="async"
                         />
                       </div>
                     </div>

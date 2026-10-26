@@ -1,0 +1,46 @@
+'use client';
+
+import React, { useState } from 'react';
+import StudentStories from '@/components/StudentStories';
+import { ShieldCheck } from 'lucide-react';
+
+export default function AlunosView() {
+  const [filterCategory, setFilterCategory] = useState<string>('Todas');
+  const categories = ['Todas', 'Vestibular', 'Olimpíada', 'Robótica', 'Feira de Ciências'];
+
+  return (
+    <div>
+      {/* LGPD Banner */}
+      <div className="mb-6 rounded-xl border border-sky-200 dark:border-sky-500/30 bg-sky-50/80 dark:bg-sky-950/20 p-3.5 flex items-center justify-between gap-3 text-xs text-sky-950 dark:text-sky-200 transition-colors">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-sky-600 dark:text-cyan-400 shrink-0" />
+          <span>
+            <strong>Garantia de Proteção de Dados:</strong> Todos os perfis possuem termo de consentimento livre e esclarecido assinado pelos responsáveis legais.
+          </span>
+        </div>
+        <span className="hidden sm:inline font-semibold text-sky-800 dark:text-cyan-300">
+          Conformidade Lei nº 13.709/2018 (LGPD)
+        </span>
+      </div>
+
+      {/* Categories */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setFilterCategory(cat)}
+            className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+              filterCategory === cat
+                ? 'bg-slate-900 text-white dark:bg-[#00D8FF] dark:text-slate-950 shadow-xs'
+                : 'border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#0F2647]'
+            }`}
+          >
+            {cat === 'Todas' ? 'Todas as Conquistas' : cat}
+          </button>
+        ))}
+      </div>
+
+      <StudentStories filterCategory={filterCategory} />
+    </div>
+  );
+}

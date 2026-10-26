@@ -11,9 +11,6 @@ import {
   Sparkles,
   CheckCircle2,
   BookOpen,
-  Compass,
-  Cpu,
-  Sprout,
   ShieldCheck,
   Check,
   ArrowLeftRight
@@ -80,6 +77,7 @@ export default function TechAdvantages() {
 
   return (
     <section id="tecnologia" className="relative scroll-mt-20 py-20 sm:py-28 bg-[#F0F4F8] dark:bg-[#040B16] transition-colors duration-200">
+      <div id="pilares" className="absolute -top-24 pointer-events-none" aria-hidden="true" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         

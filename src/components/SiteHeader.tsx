@@ -15,9 +15,7 @@ import {
   Radio,
   Building2,
   Users,
-  ScrollText,
   Satellite,
-  Sparkles,
   ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -128,6 +126,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         setInicioDropdownOpen(false);
+        setMobileMenuOpen(false);
       }
     }
 
@@ -140,6 +139,18 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
       if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     };
   }, []);
+
+  // Trava a rolagem do body quando o menu mobile está aberto
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mobileMenuOpen]);
+
 
   const handleMouseEnter = () => {
     if (hoverTimeoutRef.current) {
@@ -258,7 +269,11 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
           
           {/* ================= ZONA 1 (ESQUERDA: IDENTIDADE FIXA À ESQUERDA) ================= */}
           <div className="flex items-center justify-start flex-1 min-w-0">
-            <Link href="/" className="flex min-w-0 items-center gap-3 group shrink-0">
+            <Link
+              href="/"
+              aria-label="Voltar para a página inicial do MEDTEC Rondônia"
+              className="flex min-w-0 items-center gap-3 group shrink-0 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-cyan-400 rounded-lg p-1"
+            >
               <span className="relative grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 text-slate-950 shadow-md transition-colors">
                 <GraduationCap className="h-5 w-5" />
                 <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-cyan-300">
@@ -506,7 +521,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             <button
               onClick={toggleTheme}
               aria-label="Alternar tema"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 dark:border-cyan-500/20 bg-slate-100 dark:bg-[#0C1E38]/60 text-slate-700 dark:text-cyan-300 active:scale-[0.92] transition-transform duration-150 ease-out touch-manipulation"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-slate-300 dark:border-cyan-500/20 bg-slate-100 dark:bg-[#0C1E38]/60 text-slate-700 dark:text-cyan-300 active:scale-[0.92] transition-transform duration-150 ease-out touch-manipulation cursor-pointer"
             >
               {isDarkMode ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-[#004A99]" />}
             </button>
@@ -514,7 +529,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             <Link
               href="/ao-vivo"
               onClick={(e) => handleNavClick('/ao-vivo', e)}
-              className="inline-flex items-center gap-1.5 min-h-[36px] rounded-lg border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 text-xs font-bold text-rose-600 dark:text-rose-300 active:scale-[0.96] transition-all duration-150 ease-out touch-manipulation select-none"
+              className="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-rose-500/30 bg-rose-500/10 text-xs font-bold text-rose-600 dark:text-rose-300 active:scale-[0.96] transition-all duration-150 ease-out touch-manipulation select-none"
             >
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-500 opacity-75" />
@@ -525,8 +540,8 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Abrir menu de navegação"
-              className="rounded-xl border border-slate-300 dark:border-cyan-500/20 bg-slate-100 dark:bg-slate-900/60 p-2 text-slate-700 dark:text-cyan-200 hover:bg-slate-200 dark:hover:bg-white/5 active:scale-[0.94] transition-all duration-150 ease-out touch-manipulation"
+              aria-label={mobileMenuOpen ? "Fechar menu de navegação" : "Abrir menu de navegação"}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg border border-slate-300 dark:border-cyan-500/20 bg-slate-100 dark:bg-slate-900/60 text-slate-700 dark:text-cyan-200 hover:bg-slate-200 dark:hover:bg-white/5 active:scale-[0.94] transition-all duration-150 ease-out touch-manipulation cursor-pointer"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -572,6 +587,18 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
               <p className="px-3 pt-1 font-mono text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
                 Navegação Geral
               </p>
+              <Link
+                href="/"
+                onClick={(e) => {
+                  handleNavClick('/', e);
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center min-h-[44px] gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all duration-150 ease-out active:scale-[0.98] touch-manipulation select-none ${
+                  pathname === '/' ? 'bg-sky-100 dark:bg-cyan-400/15 text-[#004A99] dark:text-cyan-200 font-bold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5'
+                }`}
+              >
+                <span>Início</span>
+              </Link>
               {dockLinks.map((item) => {
                 const active = isLinkActive(item.to);
                 return (
