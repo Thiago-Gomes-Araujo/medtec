@@ -46,8 +46,38 @@ function isValidDatabaseSchema(body: unknown): body is DatabaseSchema {
 }
 
 export async function GET() {
+  // 1. Validação rigorosa de autenticação de sessão administrativa
+  const auth = await verifyAdminSession();
+  if (!auth.valid) {
+    return NextResponse.json(
+      { error: 'Acesso não autorizado. Autentique-se para acessar os dados administrativos.' },
+      { status: 401 }
+    );
+  }
+
   const data = getDatabase();
-  return NextResponse.json(data);
+
+  // 2. Nunca envia passwordHash ao cliente
+  // Se for Gestor Geral, envia apenas os campos públicos necessários dos operadores para o UserManager
+  // Se for operador restrito, envia users como array vazio
+  const sanitizedUsers = auth.isGestor
+    ? (data.users || []).map((user) => ({
+        id: user.id,
+        name: user.name,
+        cpf: user.cpf,
+        profileType: user.profileType,
+        role: user.role,
+        active: user.active !== false,
+        createdAt: user.createdAt,
+      }))
+    : [];
+
+  const responseData: DatabaseSchema = {
+    ...data,
+    users: sanitizedUsers as unknown as DatabaseSchema['users'],
+  };
+
+  return NextResponse.json(responseData);
 }
 
 export async function PUT(request: Request) {
@@ -82,9 +112,13 @@ export async function PUT(request: Request) {
       views: viewsById.get(item.id) ?? item.views ?? 0,
     }));
 
+    // Preserva SEMPRE os usuários existentes no servidor a partir do banco atual,
+    // garantindo que nenhum passwordHash seja sobrescrito ou apagado por dados vindos da requisição.
+    // O gerenciamento de operadores é exclusivo do endpoint dedicado /api/admin/users.
+    body.users = current.users;
+
     // Se o usuário autenticado não for Gestor Geral, preserva configurações críticas e restringe ao escopo do seu perfil
     if (!auth.isGestor) {
-      body.users = current.users;
       body.siteInfo = current.siteInfo;
       body.stats = current.stats;
       body.socials = current.socials;
@@ -112,7 +146,25 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Erro ao salvar os dados no disco' }, { status: 500 });
     }
 
-    return NextResponse.json({ message: 'Dados salvos com sucesso', data: body });
+    // Prepara payload de resposta sem expor passwordHash ao cliente
+    const responseUsers = auth.isGestor
+      ? (current.users || []).map((user) => ({
+          id: user.id,
+          name: user.name,
+          cpf: user.cpf,
+          profileType: user.profileType,
+          role: user.role,
+          active: user.active !== false,
+          createdAt: user.createdAt,
+        }))
+      : [];
+
+    const responsePayload: DatabaseSchema = {
+      ...body,
+      users: responseUsers as unknown as DatabaseSchema['users'],
+    };
+
+    return NextResponse.json({ message: 'Dados salvos com sucesso', data: responsePayload });
   } catch (error) {
     console.error('Erro no endpoint PUT /api/data:', error);
     return NextResponse.json({ error: 'Falha ao processar requisição' }, { status: 400 });

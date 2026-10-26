@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { AnnouncementItem, AnnouncementType } from '@/types';
+import { sanitizeSearchInput } from '@/lib/security';
 import { 
   AlertCircle, 
   Info, 
@@ -127,7 +128,8 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
             type="text"
             placeholder="Buscar avisos..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
+            maxLength={100}
             className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-[#004A99]/20 dark:focus:ring-cyan-500/20 focus:border-[#004A99] dark:focus:border-[#00D8FF] transition-all duration-150"
           />
           <Search size={14} className="absolute left-2.5 top-2 text-slate-400 dark:text-slate-500" />

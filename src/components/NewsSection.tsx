@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { NewsItem } from '@/types';
+import { sanitizeSearchInput } from '@/lib/security';
 import { 
   Newspaper, 
   Calendar, 
@@ -84,7 +85,8 @@ export default function NewsSection({ news }: NewsSectionProps) {
               type="text"
               placeholder="Buscar notícia..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
+              maxLength={100}
               className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary bg-slate-50/50"
             />
             <Search size={15} className="absolute left-3 top-2.5 text-slate-400" />

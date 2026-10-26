@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  poweredByHeader: false,
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 86400,
@@ -9,10 +10,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'plus.unsplash.com',
+        pathname: '/**',
       },
       {
         protocol: 'https',
@@ -52,6 +55,14 @@ const nextConfig: NextConfig = {
       {
         source: '/:path*',
         headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
           {
             key: 'X-Frame-Options',
             value: 'DENY',

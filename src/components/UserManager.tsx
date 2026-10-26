@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { UserAccount, UserProfileType } from '@/types';
 import Badge3D from '@/components/Badge3D';
+import { sanitizeSearchInput } from '@/lib/security';
 
 interface UserManagerProps {
   users: UserAccount[];
@@ -456,7 +457,8 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
+              maxLength={100}
               placeholder="Buscar por nome ou CPF..."
               className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] pl-9 pr-3 py-1.5 text-xs font-mono text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-[#004A99] dark:focus:ring-[#00D8FF]"
             />

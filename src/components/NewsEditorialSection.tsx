@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { NewsItem } from '@/types';
+import { sanitizeSearchInput } from '@/lib/security';
 import {
   Newspaper,
   LayoutGrid,
@@ -357,7 +358,8 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
+                maxLength={100}
                 placeholder="Pesquisar reportagem..."
                 className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] pl-9 pr-8 py-2 text-xs font-mono text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-[#004A99] dark:focus:border-[#00D8FF] focus:outline-hidden focus:ring-1 focus:ring-[#004A99] dark:focus:ring-[#00D8FF] transition-all duration-150"
               />
