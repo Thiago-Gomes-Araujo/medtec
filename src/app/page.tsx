@@ -15,6 +15,7 @@ import SiteFooter from '@/components/SiteFooter';
 import TechAdvantages from '@/components/TechAdvantages';
 import Methodology from '@/components/Methodology';
 import HomeProjectsAccordionSection from '@/components/HomeProjectsAccordionSection';
+import CommunityMuralSection from '@/components/CommunityMuralSection';
 
 const PresentationPitchModal = dynamic(
   () => import('@/components/PresentationPitchModal'),
@@ -214,6 +215,9 @@ export default function HomePage() {
 
         {/* ================= SEÇÃO 4: PANORAMA DOS 6 ECOSSISTEMAS PEDAGÓGICOS ================= */}
         <HomeProjectsAccordionSection />
+
+        {/* ================= SEÇÃO 5: MURAL LADO A LADO: CORPO DOCENTE & PROTAGONISMO ESTUDANTIL ================= */}
+        <CommunityMuralSection />
       </main>
 
       {/* RODAPÉ DO SISTEMA */}
