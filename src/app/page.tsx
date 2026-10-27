@@ -8,16 +8,13 @@ import {
   ArrowDown,
   Satellite,
   Signal,
-  CheckCircle2,
-  Play,
-  Video
+  CheckCircle2
 } from 'lucide-react';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import TechAdvantages from '@/components/TechAdvantages';
 import Methodology from '@/components/Methodology';
 import HomeProjectsAccordionSection from '@/components/HomeProjectsAccordionSection';
-import LiveBroadcastSection from '@/components/LiveBroadcastSection';
 
 const PresentationPitchModal = dynamic(
   () => import('@/components/PresentationPitchModal'),
@@ -66,7 +63,7 @@ export default function HomePage() {
               </h1>
 
               <p className="max-w-2xl text-base leading-relaxed text-slate-200 sm:text-lg text-pretty font-normal">
-                Aulas transmitidas ao vivo dos estúdios da SEDUC em Porto Velho para estudantes do 1º ao 3º ano em comunidades rurais, ribeirinhas, indígenas e quilombolas nos 52 municípios.
+                Educação pública de qualidade conectando estudantes do 1º ao 3º ano do Ensino Médio em comunidades rurais, ribeirinhas, indígenas e quilombolas nos 52 municípios de Rondônia.
               </p>
 
               {/* 4. LINHA EDITORIAL DE PÚBLICO INTEGRADA */}
@@ -97,14 +94,6 @@ export default function HomePage() {
                   <ArrowRight className="h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" />
                 </a>
 
-                <a
-                  href="#ao-vivo"
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 hover:bg-white/15 text-white px-5 py-3 text-sm font-semibold backdrop-blur-md active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer shadow-xs touch-manipulation select-none"
-                >
-                  <Play className="h-4 w-4 text-cyan-300 fill-cyan-300/40" />
-                  <span>Vídeo-Aulas</span>
-                </a>
-
                 <Link
                   href="/avisos"
                   className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer group touch-manipulation select-none"
@@ -124,14 +113,14 @@ export default function HomePage() {
                 <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-sky-300">
-                      Estúdio Central SEDUC • Porto Velho/RO
+                      SEDUC-RO • Governo de Rondônia
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-300 font-medium">Gravação e Distribuição de Aulas</p>
+                    <p className="mt-0.5 text-xs text-slate-300 font-medium">Mediação Tecnológica em Rede</p>
                   </div>
 
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-sky-500/20 border border-sky-400/30 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-sky-200">
-                    <Video className="h-3.5 w-3.5 text-sky-300" />
-                    Estúdio SEDUC
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-emerald-200">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-300" />
+                    Rede Oficial
                   </span>
                 </div>
 
@@ -139,7 +128,7 @@ export default function HomePage() {
                 <div className="relative h-48 sm:h-52 overflow-hidden bg-slate-950">
                   <img
                     src="/hero.jpg"
-                    alt="Transmissão das aulas ao vivo no estúdio MEDTEC Porto Velho"
+                    alt="Estudantes em sala de aula conectada do MEDTEC Rondônia"
                     className="h-full w-full object-cover"
                     loading="lazy"
                     decoding="async"
@@ -225,9 +214,6 @@ export default function HomePage() {
 
         {/* ================= SEÇÃO 4: PANORAMA DOS 6 ECOSSISTEMAS PEDAGÓGICOS ================= */}
         <HomeProjectsAccordionSection />
-
-        {/* ================= SEÇÃO 5: PULSO EM TEMPO REAL, GRADE DO DIA & CONEXÃO OFICIAL ================= */}
-        <LiveBroadcastSection />
       </main>
 
       {/* RODAPÉ DO SISTEMA */}
