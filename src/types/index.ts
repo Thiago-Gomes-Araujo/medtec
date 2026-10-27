@@ -235,6 +235,29 @@ export interface ProjectMission {
   };
 }
 
+export type FaqCategory =
+  | 'Todas as Dúvidas'
+  | 'Metodologia & Aulas ao Vivo'
+  | 'Infraestrutura & Satélite'
+  | 'Comunidades & Matrículas'
+  | 'Legislação & Diretrizes';
+
+export type FaqPersona = 'todos' | 'estudantes' | 'mediadores' | 'gestores';
+
+export interface FaqItem {
+  id: string;
+  index: string;
+  question: string;
+  answer: string;
+  category: Exclude<FaqCategory, 'Todas as Dúvidas'>;
+  personas: ('estudantes' | 'mediadores' | 'gestores')[];
+  actionLink?: {
+    label: string;
+    href: string;
+  };
+  tags: string[];
+}
+
 export interface DatabaseSchema {
   siteInfo: SiteInfo;
   stats: Stats;
@@ -248,6 +271,7 @@ export interface DatabaseSchema {
   teachers?: Professor[];
   students?: Aluno[];
   projects?: ProjectMission[];
+  faqs?: FaqItem[];
   transparency?: {
     indicadores: Indicador[];
     contratos: Contrato[];

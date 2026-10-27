@@ -47,6 +47,10 @@ function isValidDatabaseSchema(body: unknown): body is DatabaseSchema {
     return false;
   }
 
+  if (candidate.faqs !== undefined && !Array.isArray(candidate.faqs)) {
+    return false;
+  }
+
   return true;
 }
 
@@ -151,6 +155,9 @@ export async function PUT(request: Request) {
     if (body.projects === undefined) {
       body.projects = current.projects || [];
     }
+    if (body.faqs === undefined) {
+      body.faqs = current.faqs || [];
+    }
 
     // Se o usuário autenticado não for Gestor Geral, preserva configurações críticas e restringe ao escopo do seu perfil
     if (!auth.isGestor) {
@@ -158,6 +165,7 @@ export async function PUT(request: Request) {
       body.stats = current.stats;
       body.socials = current.socials;
       body.projects = current.projects;
+      body.faqs = current.faqs;
 
       const profile = auth.profileType;
       if (profile === 'Editor de Notícias') {

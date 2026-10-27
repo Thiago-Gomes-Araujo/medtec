@@ -3,6 +3,7 @@ import path from 'path';
 import { BannerItem, DatabaseSchema } from '@/types';
 import initialData from '@/data/initialData.json';
 import { PROJECTS_DATA } from '@/data/projectsData';
+import { FAQS_DATA } from '@/data/faqsData';
 
 const DATA_DIR = path.join(process.cwd(), 'src', 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
@@ -41,6 +42,7 @@ export function getDatabase(): DatabaseSchema {
       teachers: parsed.teachers ?? defaults.teachers ?? [],
       students: parsed.students ?? defaults.students ?? [],
       projects: (parsed.projects && parsed.projects.length > 0) ? parsed.projects : PROJECTS_DATA,
+      faqs: (parsed.faqs && parsed.faqs.length > 0) ? parsed.faqs : FAQS_DATA,
       transparency: parsed.transparency ?? defaults.transparency ?? { indicadores: [], contratos: [] },
     };
   } catch (error) {

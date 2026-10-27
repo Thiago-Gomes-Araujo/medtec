@@ -30,10 +30,13 @@ interface LiveBroadcastSectionProps {
   news?: NewsItem[];
 }
 
+const EMPTY_ANNOUNCEMENTS: AnnouncementItem[] = [];
+const EMPTY_NEWS: NewsItem[] = [];
+
 export default function LiveBroadcastSection({ 
   socials: propSocials,
-  announcements: propAnnouncements = [],
-  news: propNews = [],
+  announcements: propAnnouncements = EMPTY_ANNOUNCEMENTS,
+  news: propNews = EMPTY_NEWS,
 }: LiveBroadcastSectionProps) {
   const [dynamicData, setDynamicData] = React.useState<{
     socials?: SocialLinks;
@@ -45,16 +48,30 @@ export default function LiveBroadcastSection({
     news: propNews,
   });
 
+  const hasFetchedRef = React.useRef(false);
+
   React.useEffect(() => {
-    if (!propSocials || propAnnouncements.length === 0 || propNews.length === 0) {
+    // Se foram passadas props completas, atualiza o estado
+    if (propSocials && propAnnouncements.length > 0 && propNews.length > 0) {
+      setDynamicData({
+        socials: propSocials,
+        announcements: propAnnouncements,
+        news: propNews,
+      });
+      return;
+    }
+
+    // Se faltam dados e ainda não buscou da API, busca exatamente uma vez
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       fetch('/api/data')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (data) {
             setDynamicData({
               socials: propSocials || data.socials,
-              announcements: propAnnouncements.length > 0 ? propAnnouncements : data.announcements || [],
-              news: propNews.length > 0 ? propNews : data.news || [],
+              announcements: propAnnouncements.length > 0 ? propAnnouncements : data.announcements || EMPTY_ANNOUNCEMENTS,
+              news: propNews.length > 0 ? propNews : data.news || EMPTY_NEWS,
             });
           }
         })
