@@ -4,14 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { ProjectMission } from '@/types';
 import ReplicationPassportModal from './ReplicationPassportModal';
 import { 
-  MapPin, 
   School, 
   BookOpen,
   FileText,
-  User,
-  ExternalLink,
-  Sparkles,
-  Download
+  User
 } from 'lucide-react';
 
 const DEFAULT_TRACKS = [

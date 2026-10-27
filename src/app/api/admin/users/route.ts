@@ -17,6 +17,22 @@ function isValidCpfFormat(cpf: string): boolean {
   return true;
 }
 
+interface RailsUserApiItem {
+  id: string | number;
+  nome: string;
+  cpf: string;
+  perfil_nome?: string;
+  perfil_id?: number;
+  ativo?: boolean;
+  created_at?: string;
+}
+
+interface RailsPerfilApiItem {
+  id: number;
+  nome: string;
+  descricao?: string;
+}
+
 // GET: Lista todos os usuários cadastrados e perfis disponíveis via API Rails v1
 export async function GET() {
   const auth = await verifyAdminSession();
@@ -31,12 +47,12 @@ export async function GET() {
   // 1. Tenta buscar da API Rails v1
   try {
     const [resUsers, resPerfis] = await Promise.all([
-      railsApiFetch<{ success: boolean; data: { items: any[] } }>('/usuarios?page=all'),
-      railsApiFetch<{ success: boolean; data: { items: any[] } }>('/perfis?page=all'),
+      railsApiFetch<{ success: boolean; data: { items: RailsUserApiItem[] } }>('/usuarios?page=all'),
+      railsApiFetch<{ success: boolean; data: { items: RailsPerfilApiItem[] } }>('/perfis?page=all'),
     ]);
 
     if (resUsers.ok && resUsers.data?.data?.items) {
-      const users: UserAccount[] = resUsers.data.data.items.map((u: any) => ({
+      const users: UserAccount[] = resUsers.data.data.items.map((u: RailsUserApiItem) => ({
         id: String(u.id),
         name: u.nome,
         cpf: formatCpf(u.cpf),
@@ -108,7 +124,7 @@ export async function POST(request: Request) {
     }
 
     // 1. Tenta criar na API Rails v1
-    const railsRes = await railsApiFetch<any>('/usuarios', {
+    const railsRes = await railsApiFetch<RailsUserApiItem>('/usuarios', {
       method: 'POST',
       body: JSON.stringify({
         nome: name,
@@ -202,7 +218,7 @@ export async function PATCH(request: Request) {
 
     // Se é ID numérico do Rails, executa PATCH no Rails
     if (isNumericId) {
-      const patchData: Record<string, any> = {};
+      const patchData: Record<string, string | number | boolean> = {};
       if (typeof body.active === 'boolean') {
         patchData.ativo = body.active;
       }

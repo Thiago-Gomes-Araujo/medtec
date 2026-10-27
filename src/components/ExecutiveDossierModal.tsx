@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   X,
   ShieldCheck,
-  Printer,
   Satellite,
   Users,
   Building2,

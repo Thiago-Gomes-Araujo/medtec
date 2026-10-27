@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Award, BadgeCheck, Users, Loader2 } from 'lucide-react';
+import { Award, BadgeCheck, Users } from 'lucide-react';
 import { Aluno } from '@/types';
 
 function getInitials(name: string) {

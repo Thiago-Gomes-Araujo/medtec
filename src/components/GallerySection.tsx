@@ -10,7 +10,6 @@ import {
   X, 
   ChevronLeft, 
   ChevronRight, 
-  Radio,
   MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

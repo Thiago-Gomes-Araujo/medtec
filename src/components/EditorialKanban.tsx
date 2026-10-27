@@ -8,8 +8,7 @@ import {
   Paperclip,
   Clock,
   FileCheck,
-  Loader2,
-  Sparkles
+  Loader2
 } from 'lucide-react';
 import { ItemEditorial, EtapaEditorial } from '@/types';
 
@@ -93,6 +92,15 @@ export default function EditorialKanban() {
       })
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-slate-400 gap-2">
+        <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+        <span className="text-sm font-medium">Carregando fluxo editorial...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10">

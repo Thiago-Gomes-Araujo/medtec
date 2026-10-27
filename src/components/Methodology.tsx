@@ -9,12 +9,8 @@ import {
   GraduationCap, 
   Layers,
   ChevronDown,
-  Sparkles,
   MapPin,
   ArrowRight,
-  School,
-  CheckCircle2,
-  HeartHandshake,
   Compass
 } from 'lucide-react';
 

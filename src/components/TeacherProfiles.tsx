@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, School, X, Quote, Sparkles, Loader2, Users } from 'lucide-react';
+import { MapPin, School, X, Quote, Sparkles, Users } from 'lucide-react';
 import { Professor } from '@/types';
 
 function getInitials(name: string) {

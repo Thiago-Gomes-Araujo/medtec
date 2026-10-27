@@ -56,7 +56,7 @@ import EditorialKanban from '@/components/EditorialKanban';
 import SitePhotosManager from '@/components/SitePhotosManager';
 import AdminLiveSimulator, { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
 import UserManager from '@/components/UserManager';
-import { FaqItem, FaqCategory, FaqPersona } from '@/types';
+import { FaqItem, FaqCategory } from '@/types';
 
 type AdminSection = 'visaoGeral' | 'kanban' | 'fotos' | 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo' | 'usuarios' | 'projetos' | 'duvidas';
 type CmsSubTab = 'fotos' | 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo' | 'projetos' | 'duvidas';
@@ -558,9 +558,71 @@ export default function AdminDashboardPage() {
   }, [router]);
 
   useEffect(() => {
-    void loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let ignore = false;
+
+    async function initializeSessionAndData() {
+      try {
+        const authRes = await fetch('/api/auth');
+        if (ignore) return;
+
+        if (authRes.ok) {
+          const authJson = await authRes.json();
+          if (ignore) return;
+
+          const isGestor = authJson.isGestor !== false;
+          const profileType = authJson.profileType;
+
+          setIsLoggedIn(true);
+          setUserSession({
+            isGestor,
+            username: authJson.user,
+            role: authJson.role,
+            name: authJson.name,
+            profileType,
+          });
+
+          // Configura a seção inicial de acordo com a atribuição do perfil
+          if (!isGestor) {
+            if (profileType === 'Editor de Notícias') {
+              setCurrentSection('noticias');
+            } else if (profileType === 'Curador de Fotos') {
+              setCurrentSection('fotos');
+            } else if (profileType === 'Publicador de Avisos') {
+              setCurrentSection('avisos');
+            } else {
+              setCurrentSection('noticias');
+            }
+          } else {
+            setCurrentSection('visaoGeral');
+          }
+
+          const res = await fetch('/api/data');
+          if (ignore) return;
+
+          if (res.ok) {
+            const json = await res.json();
+            if (!ignore) {
+              setData(json);
+            }
+          }
+        } else {
+          setIsLoggedIn(false);
+          router.push('/admin/login');
+        }
+      } catch (err) {
+        if (!ignore) {
+          console.error(err);
+          router.push('/admin/login');
+        }
+      }
+    }
+
+    void initializeSessionAndData();
+
+    return () => {
+      ignore = true;
+    };
+  }, [router]);
 
   const handleLogout = async () => {
     await fetch('/api/auth', { method: 'DELETE' });

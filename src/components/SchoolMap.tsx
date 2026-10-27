@@ -9,8 +9,7 @@ import {
   MapPin, 
   Signal, 
   CheckCircle2, 
-  ArrowRight,
-  Loader2
+  ArrowRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Escola } from '@/types';
@@ -199,12 +198,10 @@ export default function SchoolMap() {
   const [hoveredSchoolId, setHoveredSchoolId] = useState<number | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [schools, setSchools] = useState<Escola[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     async function loadSchools() {
-      setLoading(true);
       try {
         const res = await fetch('/api/schools');
         if (res.ok) {
@@ -215,8 +212,6 @@ export default function SchoolMap() {
         }
       } catch (err) {
         console.error('Falha ao carregar escolas da API:', err);
-      } finally {
-        if (isMounted) setLoading(false);
       }
     }
     loadSchools();

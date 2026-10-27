@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ProjectMission } from '@/types';
-import { MapPin, ArrowUpRight, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { MapPin, ArrowUpRight, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function HomeProjectsAccordionSection() {
   const [projects, setProjects] = useState<ProjectMission[]>([]);

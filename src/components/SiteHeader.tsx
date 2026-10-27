@@ -368,13 +368,26 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                                 <span>Ver Transmissão</span>
                                 <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform duration-150 ease-out" />
                               </Link>
-                              <Link
-                                href="/transparencia"
-                                onClick={(e) => handleNavClick('/transparencia', e)}
-                                className="text-[11px] font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white cursor-pointer active:scale-[0.96] transition-transform duration-150 ease-out"
-                              >
-                                Transparência
-                              </Link>
+                              {onOpenPitchModal ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setInicioDropdownOpen(false);
+                                    onOpenPitchModal();
+                                  }}
+                                  className="text-[11px] font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white cursor-pointer active:scale-[0.96] transition-transform duration-150 ease-out"
+                                >
+                                  Apresentação
+                                </button>
+                              ) : (
+                                <Link
+                                  href="/transparencia"
+                                  onClick={(e) => handleNavClick('/transparencia', e)}
+                                  className="text-[11px] font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white cursor-pointer active:scale-[0.96] transition-transform duration-150 ease-out"
+                                >
+                                  Transparência
+                                </Link>
+                              )}
                             </div>
                           </div>
 

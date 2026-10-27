@@ -13,8 +13,6 @@ import {
   CheckCircle2, 
   AlertCircle, 
   FileText, 
-  Image as ImageIcon, 
-  Bell, 
   X
 } from 'lucide-react';
 import { UserAccount, UserProfileType } from '@/types';

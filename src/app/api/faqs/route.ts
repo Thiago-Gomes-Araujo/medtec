@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDatabase } from '@/lib/db';
 import { FAQS_DATA } from '@/data/faqsData';
-import { FaqItem } from '@/types';
+import { FaqItem, FaqPersona } from '@/types';
 
 export async function GET(request: Request) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     }
 
     if (persona && persona !== 'todos') {
-      items = items.filter((f) => f.personas.includes(persona as any));
+      items = items.filter((f) => f.personas.includes(persona as Exclude<FaqPersona, 'todos'>));
     }
 
     if (busca) {

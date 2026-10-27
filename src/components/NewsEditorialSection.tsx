@@ -5,7 +5,6 @@ import { NewsItem } from '@/types';
 import { sanitizeSearchInput } from '@/lib/security';
 import {
   Newspaper,
-  LayoutGrid,
   List,
   X,
   ChevronLeft,
@@ -16,17 +15,10 @@ import {
   Clock,
   ArrowRight,
   ArrowUpRight,
-  User,
   Share2,
-  Bookmark,
   Check,
-  Eye,
-  Calendar,
-  Sparkles,
   MapPin,
-  ExternalLink,
   BookOpen,
-  Star,
   Zap,
   BarChart3
 } from 'lucide-react';
@@ -1030,16 +1022,14 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {relatedNews.map((relItem) => {
-                        const relIndex = publishedNews.findIndex((n) => n.id === relItem.id);
-                        return (
-                          <div
-                            key={relItem.id}
-                            onClick={() => {
-                              setActiveArticleId(relItem.id);
-                            }}
-                            className="group/rel rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] p-3.5 flex gap-3.5 items-center hover:border-[#004A99] dark:hover:border-[#00D8FF] transition-all cursor-pointer"
-                          >
+                      {relatedNews.map((relItem) => (
+                        <div
+                          key={relItem.id}
+                          onClick={() => {
+                            setActiveArticleId(relItem.id);
+                          }}
+                          className="group/rel rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] p-3.5 flex gap-3.5 items-center hover:border-[#004A99] dark:hover:border-[#00D8FF] transition-all cursor-pointer"
+                        >
                             <img
                               src={relItem.coverImage || FALLBACK_NEWS_COVER}
                               alt={relItem.title}
@@ -1056,8 +1046,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                               </p>
                             </div>
                           </div>
-                        );
-                      })}
+                        ))}
                     </div>
                   </div>
                 )}

@@ -193,7 +193,6 @@ export default function FaqCentralSection({ initialFaqs }: FaqCentralSectionProp
 
   useEffect(() => {
     if (initialFaqs && initialFaqs.length > 0) {
-      setFaqs(initialFaqs);
       return;
     }
     let isMounted = true;
