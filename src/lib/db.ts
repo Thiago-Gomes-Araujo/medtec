@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { BannerItem, DatabaseSchema } from '@/types';
 import initialData from '@/data/initialData.json';
+import { PROJECTS_DATA } from '@/data/projectsData';
 
 const DATA_DIR = path.join(process.cwd(), 'src', 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
@@ -39,7 +40,7 @@ export function getDatabase(): DatabaseSchema {
       schools: parsed.schools ?? defaults.schools ?? [],
       teachers: parsed.teachers ?? defaults.teachers ?? [],
       students: parsed.students ?? defaults.students ?? [],
-      projects: parsed.projects ?? defaults.projects ?? [],
+      projects: (parsed.projects && parsed.projects.length > 0) ? parsed.projects : PROJECTS_DATA,
       transparency: parsed.transparency ?? defaults.transparency ?? { indicadores: [], contratos: [] },
     };
   } catch (error) {

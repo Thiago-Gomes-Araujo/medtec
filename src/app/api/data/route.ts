@@ -43,6 +43,10 @@ function isValidDatabaseSchema(body: unknown): body is DatabaseSchema {
     return false;
   }
 
+  if (candidate.projects !== undefined && !Array.isArray(candidate.projects)) {
+    return false;
+  }
+
   return true;
 }
 
@@ -144,12 +148,16 @@ export async function PUT(request: Request) {
     // garantindo que nenhum passwordHash seja sobrescrito ou apagado por dados vindos da requisição.
     // O gerenciamento de operadores é exclusivo do endpoint dedicado /api/admin/users.
     body.users = current.users;
+    if (body.projects === undefined) {
+      body.projects = current.projects || [];
+    }
 
     // Se o usuário autenticado não for Gestor Geral, preserva configurações críticas e restringe ao escopo do seu perfil
     if (!auth.isGestor) {
       body.siteInfo = current.siteInfo;
       body.stats = current.stats;
       body.socials = current.socials;
+      body.projects = current.projects;
 
       const profile = auth.profileType;
       if (profile === 'Editor de Notícias') {
