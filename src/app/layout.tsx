@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import FloatingSocialRotator from '@/components/FloatingSocialRotator';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -106,6 +107,7 @@ export default function RootLayout({
       </head>
       <body className="bg-[#F8FAFC] dark:bg-[#0B1528] min-h-screen text-[#0F172A] dark:text-[#F8FAFC] font-sans antialiased selection:bg-[#004A99] selection:text-white dark:selection:bg-[#38BDF8] dark:selection:text-slate-900 flex flex-col transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
         {children}
+        <FloatingSocialRotator />
       </body>
     </html>
   );
