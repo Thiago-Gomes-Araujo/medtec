@@ -10,10 +10,8 @@ import {
   Calendar, 
   ArrowUpRight, 
   Search, 
-  ShieldAlert, 
   Megaphone, 
   X, 
-  CheckCircle2,
   FileText
 } from 'lucide-react';
 

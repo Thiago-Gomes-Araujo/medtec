@@ -23,28 +23,8 @@ import {
 import Badge3D from '@/components/Badge3D';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export type FaqCategory =
-  | 'Todas as Dúvidas'
-  | 'Metodologia & Aulas ao Vivo'
-  | 'Infraestrutura & Satélite'
-  | 'Comunidades & Matrículas'
-  | 'Legislação & Diretrizes';
-
-export type FaqPersona = 'todos' | 'estudantes' | 'mediadores' | 'gestores';
-
-export interface FaqItem {
-  id: string;
-  index: string;
-  question: string;
-  answer: string;
-  category: Exclude<FaqCategory, 'Todas as Dúvidas'>;
-  personas: ('estudantes' | 'mediadores' | 'gestores')[];
-  actionLink: {
-    label: string;
-    href: string;
-  };
-  tags: string[];
-}
+import { FaqItem, FaqCategory, FaqPersona } from '@/types';
+export type { FaqItem, FaqCategory, FaqPersona };
 
 const FAQ_DATA: FaqItem[] = [
   {
@@ -197,12 +177,37 @@ const CATEGORIES: { label: FaqCategory }[] = [
   { label: 'Legislação & Diretrizes' },
 ];
 
-export default function FaqCentralSection() {
+interface FaqCentralSectionProps {
+  initialFaqs?: FaqItem[];
+}
+
+export default function FaqCentralSection({ initialFaqs }: FaqCentralSectionProps) {
+  const [faqs, setFaqs] = useState<FaqItem[]>(
+    initialFaqs && initialFaqs.length > 0 ? initialFaqs : FAQ_DATA
+  );
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedPersona, setSelectedPersona] = useState<FaqPersona>('todos');
   const [selectedCategory, setSelectedCategory] = useState<FaqCategory>('Todas as Dúvidas');
   const [openFaqId, setOpenFaqId] = useState<string | null>('faq-1');
   const [feedbackGiven, setFeedbackGiven] = useState<Record<string, 'sim' | 'nao'>>({});
+
+  useEffect(() => {
+    if (initialFaqs && initialFaqs.length > 0) {
+      return;
+    }
+    let isMounted = true;
+    fetch('/api/faqs')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.items && isMounted && data.items.length > 0) {
+          setFaqs(data.items);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [initialFaqs]);
 
   // Atalho de teclado ESC para limpar a busca
   useEffect(() => {
@@ -217,7 +222,7 @@ export default function FaqCentralSection() {
 
   // Filtro de persona e busca
   const filteredFaqs = useMemo(() => {
-    return FAQ_DATA.filter((item) => {
+    return faqs.filter((item) => {
       // Filtro de persona
       const matchPersona =
         selectedPersona === 'todos' || item.personas.includes(selectedPersona);
@@ -236,19 +241,19 @@ export default function FaqCentralSection() {
 
       return matchPersona && matchCategory && matchSearch;
     });
-  }, [selectedPersona, selectedCategory, searchTerm]);
+  }, [faqs, selectedPersona, selectedCategory, searchTerm]);
 
   // Contagem dinâmica por categoria respeitando persona e busca
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {
-      'Todas as Dúvidas': FAQ_DATA.filter(
+      'Todas as Dúvidas': faqs.filter(
         (item) => selectedPersona === 'todos' || item.personas.includes(selectedPersona)
       ).length,
     };
 
     CATEGORIES.forEach((cat) => {
       if (cat.label === 'Todas as Dúvidas') return;
-      const count = FAQ_DATA.filter((item) => {
+      const count = faqs.filter((item) => {
         const matchPersona =
           selectedPersona === 'todos' || item.personas.includes(selectedPersona);
         return matchPersona && item.category === cat.label;
@@ -257,7 +262,7 @@ export default function FaqCentralSection() {
     });
 
     return counts;
-  }, [selectedPersona]);
+  }, [faqs, selectedPersona]);
 
   const handleFeedback = (faqId: string, tipo: 'sim' | 'nao') => {
     setFeedbackGiven((prev) => ({ ...prev, [faqId]: tipo }));
@@ -619,13 +624,15 @@ export default function FaqCentralSection() {
                             {/* BARRA DE AÇÃO CONTEXTUAL & FEEDBACK */}
                             <div className="pt-3 border-t border-dashed border-slate-200 dark:border-[#1A365D] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                               {/* Atalho direto para a página do sistema */}
-                              <Link
-                                href={item.actionLink.href}
-                                className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-[#0284C7] dark:text-[#00D8FF] hover:underline transition-colors"
-                              >
-                                <span>{item.actionLink.label}</span>
-                                <ArrowUpRight className="h-3.5 w-3.5" />
-                              </Link>
+                              {item.actionLink?.href && item.actionLink?.label ? (
+                                <Link
+                                  href={item.actionLink.href}
+                                  className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-[#0284C7] dark:text-[#00D8FF] hover:underline transition-colors"
+                                >
+                                  <span>{item.actionLink.label}</span>
+                                  <ArrowUpRight className="h-3.5 w-3.5" />
+                                </Link>
+                              ) : <div />}
 
                               {/* Mini-botão de Feedback */}
                               <div className="flex items-center gap-2 font-mono text-xs">

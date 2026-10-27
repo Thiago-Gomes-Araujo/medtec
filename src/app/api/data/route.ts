@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import { getDatabase, saveDatabase } from '@/lib/db';
-import { DatabaseSchema } from '@/types';
+import { DatabaseSchema, UserAccount } from '@/types';
 import { verifyAdminSession, validateCsrfOrigin } from '@/lib/auth';
 import { railsApiFetch } from '@/lib/rails-backend';
+
+interface RailsUserApiItem {
+  id: string | number;
+  nome: string;
+  cpf?: string;
+  perfil_nome?: string;
+  perfil_id?: number;
+  ativo?: boolean;
+  created_at?: string;
+}
 
 function isValidDatabaseSchema(body: unknown): body is DatabaseSchema {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -47,6 +57,10 @@ function isValidDatabaseSchema(body: unknown): body is DatabaseSchema {
     return false;
   }
 
+  if (candidate.faqs !== undefined && !Array.isArray(candidate.faqs)) {
+    return false;
+  }
+
   return true;
 }
 
@@ -63,23 +77,23 @@ export async function GET() {
   const data = getDatabase();
 
   // 2. Se for Gestor Geral, busca os usuários reais da API Rails v1
-  let sanitizedUsers: any[] = [];
+  let sanitizedUsers: UserAccount[] = [];
   if (auth.isGestor) {
     try {
-      const railsRes = await railsApiFetch<{ success: boolean; data: { items: any[] } }>('/usuarios?page=all');
+      const railsRes = await railsApiFetch<{ success: boolean; data: { items: RailsUserApiItem[] } }>('/usuarios?page=all');
       if (railsRes.ok && railsRes.data?.data?.items) {
-        sanitizedUsers = railsRes.data.data.items.map((u: any) => {
+        sanitizedUsers = railsRes.data.data.items.map((u: RailsUserApiItem) => {
           const clean = (u.cpf || '').replace(/\D/g, '').slice(0, 11);
           const formattedCpf = clean.length === 11
             ? `${clean.slice(0, 3)}.${clean.slice(3, 6)}.${clean.slice(6, 9)}-${clean.slice(9, 11)}`
-            : u.cpf;
+            : u.cpf || '';
           return {
             id: String(u.id),
             name: u.nome,
             cpf: formattedCpf,
             profileType: u.perfil_nome || 'Operador',
             profileId: u.perfil_id,
-            role: u.perfil_nome === 'Administrador' ? 'gestor' : 'operador',
+            role: (u.perfil_nome === 'Administrador' ? 'gestor' : 'operador') as 'gestor' | 'operador',
             active: u.ativo !== false,
             createdAt: u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '',
           };
@@ -106,7 +120,7 @@ export async function GET() {
 
   const responseData: DatabaseSchema = {
     ...data,
-    users: sanitizedUsers as unknown as DatabaseSchema['users'],
+    users: sanitizedUsers,
   };
 
   return NextResponse.json(responseData);
@@ -151,6 +165,9 @@ export async function PUT(request: Request) {
     if (body.projects === undefined) {
       body.projects = current.projects || [];
     }
+    if (body.faqs === undefined) {
+      body.faqs = current.faqs || [];
+    }
 
     // Se o usuário autenticado não for Gestor Geral, preserva configurações críticas e restringe ao escopo do seu perfil
     if (!auth.isGestor) {
@@ -158,6 +175,7 @@ export async function PUT(request: Request) {
       body.stats = current.stats;
       body.socials = current.socials;
       body.projects = current.projects;
+      body.faqs = current.faqs;
 
       const profile = auth.profileType;
       if (profile === 'Editor de Notícias') {

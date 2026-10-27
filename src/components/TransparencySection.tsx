@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, ExternalLink, ShieldCheck, CheckCircle2, Loader2, FileText } from 'lucide-react';
+import { Search, ExternalLink, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { Indicador, Contrato } from '@/types';
 import { sanitizeSearchInput } from '@/lib/security';
 

@@ -30,37 +30,57 @@ interface LiveBroadcastSectionProps {
   news?: NewsItem[];
 }
 
+const EMPTY_ANNOUNCEMENTS: AnnouncementItem[] = [];
+const EMPTY_NEWS: NewsItem[] = [];
+
 export default function LiveBroadcastSection({ 
   socials: propSocials,
-  announcements: propAnnouncements = [],
-  news: propNews = [],
+  announcements: propAnnouncements = EMPTY_ANNOUNCEMENTS,
+  news: propNews = EMPTY_NEWS,
 }: LiveBroadcastSectionProps) {
-  const [dynamicData, setDynamicData] = React.useState<{
+  const [fetchedData, setFetchedData] = React.useState<{
     socials?: SocialLinks;
-    announcements: AnnouncementItem[];
-    news: NewsItem[];
-  }>({
-    socials: propSocials,
-    announcements: propAnnouncements,
-    news: propNews,
-  });
+    announcements?: AnnouncementItem[];
+    news?: NewsItem[];
+  } | null>(null);
+
+  const hasFetchedRef = React.useRef(false);
+
+  // Derivação de dados: prioriza props passadas pelo servidor (SSR); senão, dados buscados da API
+  const effectiveSocials = propSocials || fetchedData?.socials;
+  const effectiveAnnouncements = propAnnouncements.length > 0 
+    ? propAnnouncements 
+    : (fetchedData?.announcements || EMPTY_ANNOUNCEMENTS);
+  const effectiveNews = propNews.length > 0 
+    ? propNews 
+    : (fetchedData?.news || EMPTY_NEWS);
+
+  const needsFetch = !propSocials || propAnnouncements.length === 0 || propNews.length === 0;
 
   React.useEffect(() => {
-    if (!propSocials || propAnnouncements.length === 0 || propNews.length === 0) {
-      fetch('/api/data')
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data) {
-            setDynamicData({
-              socials: propSocials || data.socials,
-              announcements: propAnnouncements.length > 0 ? propAnnouncements : data.announcements || [],
-              news: propNews.length > 0 ? propNews : data.news || [],
-            });
-          }
-        })
-        .catch(() => {});
-    }
-  }, [propSocials, propAnnouncements, propNews]);
+    // Se faltam dados e ainda não buscou da API, busca exatamente uma vez
+    if (!needsFetch || hasFetchedRef.current) return;
+
+    hasFetchedRef.current = true;
+    let ignore = false;
+
+    fetch('/api/data')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!ignore && data) {
+          setFetchedData({
+            socials: data.socials,
+            announcements: data.announcements || EMPTY_ANNOUNCEMENTS,
+            news: data.news || EMPTY_NEWS,
+          });
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      ignore = true;
+    };
+  }, [needsFetch]);
 
   const schedules = [
     {
@@ -85,11 +105,11 @@ export default function LiveBroadcastSection({
 
   // Dados com tratamento defensivo e resiliência vindos da API
   const urgentAnnouncement: AnnouncementItem | undefined = 
-    dynamicData.announcements.find((a) => a.active && a.type === 'urgente') || dynamicData.announcements[0];
+    effectiveAnnouncements.find((a) => a.active && a.type === 'urgente') || effectiveAnnouncements[0];
 
-  const recentNews: NewsItem[] = dynamicData.news.slice(0, 2);
+  const recentNews: NewsItem[] = effectiveNews.slice(0, 2);
 
-  const socials = dynamicData.socials;
+  const socials = effectiveSocials;
 
   const youtubeUrl = socials?.youtube?.trim() || 'https://www.youtube.com/@SeducRondonia';
   const whatsappUrl = socials?.whatsapp?.trim() || 'https://wa.me/5569999999999';
