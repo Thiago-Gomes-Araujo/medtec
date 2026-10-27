@@ -53,13 +53,13 @@ export async function POST(request: Request) {
     const auth = await verifyAdminSession();
     if (!auth.valid || !auth.isGestor) {
       return NextResponse.json(
-        { success: false, error: 'Apenas usuários com perfil de Gestor podem aprovar notícias.' },
+        { success: false, error: 'Apenas usuários com perfil de Gestor podem aprovar ou recusar notícias.' },
         { status: 403 }
       );
     }
 
     const body = await request.json();
-    const { newsId } = body;
+    const { newsId, action = 'approve', reason } = body;
 
     if (!newsId || typeof newsId !== 'string') {
       return NextResponse.json({ success: false, error: 'ID da notícia não fornecido ou inválido' }, { status: 400 });
@@ -73,10 +73,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Notícia não encontrada' }, { status: 404 });
     }
 
-    // Marca como aprovada/publicada
+    // Ação de recusar notícia
+    if (action === 'reject') {
+      news[index] = {
+        ...news[index],
+        published: false,
+        rejected: true,
+        rejectionReason: typeof reason === 'string' && reason.trim() ? reason.trim() : 'Recusada pelo gestor.',
+      };
+
+      const saved = saveDatabase({ ...db, news });
+      if (!saved) {
+        return NextResponse.json({ success: false, error: 'Falha ao persistir recusa no disco' }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Notícia recusada pelo gestor com sucesso.',
+        item: news[index],
+      });
+    }
+
+    // Ação de aprovar notícia
     news[index] = {
       ...news[index],
       published: true,
+      rejected: false,
       publishedAt: news[index].publishedAt || new Date().toLocaleDateString('pt-BR'),
     };
 
@@ -91,8 +113,8 @@ export async function POST(request: Request) {
       item: news[index],
     });
   } catch (error) {
-    console.error('Erro ao aprovar notícia no endpoint /api/editorial:', error);
-    return NextResponse.json({ success: false, error: 'Falha interna ao processar aprovação' }, { status: 500 });
+    console.error('Erro ao aprovar/recusar notícia no endpoint /api/editorial:', error);
+    return NextResponse.json({ success: false, error: 'Falha interna ao processar decisão editorial' }, { status: 500 });
   }
 }
 

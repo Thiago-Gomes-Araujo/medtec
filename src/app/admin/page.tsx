@@ -760,7 +760,32 @@ export default function AdminDashboardPage() {
         ? {
             ...item,
             published: true,
+            rejected: false,
             publishedAt: item.publishedAt || new Date().toLocaleDateString('pt-BR'),
+          }
+        : item
+    );
+
+    try {
+      await persistData({ ...data, news: updatedNews });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleRejectNews = async (id: string, reason?: string): Promise<boolean> => {
+    if (!data || !userSession.isGestor) return false;
+    const target = data.news.find((n) => n.id === id);
+    if (!target) return false;
+
+    const updatedNews = data.news.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            published: false,
+            rejected: true,
+            rejectionReason: reason || 'Recusada pelo gestor.',
           }
         : item
     );
@@ -5446,6 +5471,7 @@ export default function AdminDashboardPage() {
               <EditorialKanban
                 news={data?.news || []}
                 onApproveNews={handleApproveNews}
+                onRejectNews={handleRejectNews}
                 isGestor={userSession.isGestor}
               />
             </div>

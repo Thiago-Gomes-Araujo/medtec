@@ -14,6 +14,8 @@ export interface NewsItem {
   urgent?: boolean;
   folder?: string;
   published?: boolean;
+  rejected?: boolean;
+  rejectionReason?: string;
   views?: number;
   tags?: string[];
 }
