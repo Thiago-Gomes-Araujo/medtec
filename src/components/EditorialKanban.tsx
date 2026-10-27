@@ -13,6 +13,7 @@ import {
   Search,
   AlertCircle,
   X,
+  XCircle,
   Inbox
 } from 'lucide-react';
 import { NewsItem } from '@/types';
@@ -26,24 +27,32 @@ interface AuditLog {
 interface EditorialKanbanProps {
   news?: NewsItem[];
   onApproveNews?: (newsId: string) => Promise<boolean>;
+  onRejectNews?: (newsId: string, reason?: string) => Promise<boolean>;
   isGestor?: boolean;
 }
 
 export default function EditorialKanban({
   news: propNews,
   onApproveNews,
+  onRejectNews,
   isGestor = true,
 }: EditorialKanbanProps) {
   // Estado local para quando os dados não forem injetados via props
   const [internalNews, setInternalNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState<'pendentes' | 'publicadas' | 'todas' | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<'pendentes' | 'publicadas' | 'recusadas' | 'todas' | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; item: NewsItem | null }>({
     isOpen: false,
     item: null,
   });
+  const [rejectModal, setRejectModal] = useState<{ isOpen: boolean; item: NewsItem | null }>({
+    isOpen: false,
+    item: null,
+  });
+  const [rejectReason, setRejectReason] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [historico, setHistorico] = useState<AuditLog[]>([
     {
@@ -85,8 +94,9 @@ export default function EditorialKanban({
   const allNews: NewsItem[] = propNews && propNews.length > 0 ? propNews : internalNews;
 
   // Contagens para os filtros
-  const pendingNews = useMemo(() => allNews.filter((n) => n.published === false), [allNews]);
+  const pendingNews = useMemo(() => allNews.filter((n) => n.published === false && !n.rejected), [allNews]);
   const publishedNews = useMemo(() => allNews.filter((n) => n.published !== false), [allNews]);
+  const rejectedNews = useMemo(() => allNews.filter((n) => n.rejected === true), [allNews]);
 
   // Se o usuário ainda não escolheu um filtro manualmente, prioriza 'pendentes' se houver; senão 'todas'
   const activeFilter = selectedFilter ?? (pendingNews.length > 0 ? 'pendentes' : 'todas');
@@ -95,8 +105,9 @@ export default function EditorialKanban({
   const filteredNews = useMemo(() => {
     return allNews.filter((item) => {
       // Filtro de status
-      if (activeFilter === 'pendentes' && item.published !== false) return false;
+      if (activeFilter === 'pendentes' && (item.published !== false || item.rejected)) return false;
       if (activeFilter === 'publicadas' && item.published === false) return false;
+      if (activeFilter === 'recusadas' && !item.rejected) return false;
 
       // Filtro de busca textual
       if (searchQuery.trim()) {
@@ -141,7 +152,7 @@ export default function EditorialKanban({
           setInternalNews((prev) =>
             prev.map((n) =>
               n.id === item.id
-                ? { ...n, published: true, publishedAt: new Date().toLocaleDateString('pt-BR') }
+                ? { ...n, published: true, rejected: false, publishedAt: new Date().toLocaleDateString('pt-BR') }
                 : n
             )
           );
@@ -175,6 +186,70 @@ export default function EditorialKanban({
       });
     } finally {
       setApprovingId(null);
+      setTimeout(() => setFeedback(null), 5000);
+    }
+  };
+
+  // Execução da recusa com persistência
+  const handleConfirmReject = async () => {
+    const item = rejectModal.item;
+    if (!item) return;
+
+    setRejectingId(item.id);
+    setRejectModal({ isOpen: false, item: null });
+
+    try {
+      let success = false;
+      if (onRejectNews) {
+        success = await onRejectNews(item.id, rejectReason);
+      } else {
+        const res = await fetch('/api/editorial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newsId: item.id, action: 'reject', reason: rejectReason }),
+        });
+        success = res.ok;
+      }
+
+      if (success) {
+        if (!propNews || propNews.length === 0) {
+          setInternalNews((prev) =>
+            prev.map((n) =>
+              n.id === item.id
+                ? { ...n, published: false, rejected: true, rejectionReason: rejectReason || 'Recusada pelo gestor.' }
+                : n
+            )
+          );
+        }
+
+        setHistorico((prev) => [
+          {
+            data: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+            acao: 'Notícia Recusada',
+            titulo: item.title,
+          },
+          ...prev,
+        ]);
+
+        setFeedback({
+          type: 'success',
+          message: `A notícia "${item.title}" foi recusada com sucesso.`,
+        });
+      } else {
+        setFeedback({
+          type: 'error',
+          message: 'Não foi possível recusar a notícia. Verifique as permissões de gestor ou a conexão.',
+        });
+      }
+    } catch (err) {
+      console.error('Erro ao recusar notícia:', err);
+      setFeedback({
+        type: 'error',
+        message: 'Ocorreu um erro inesperado ao processar a recusa da notícia.',
+      });
+    } finally {
+      setRejectingId(null);
+      setRejectReason('');
       setTimeout(() => setFeedback(null), 5000);
     }
   };
@@ -272,6 +347,23 @@ export default function EditorialKanban({
 
             <button
               type="button"
+              onClick={() => setSelectedFilter('recusadas')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                activeFilter === 'recusadas'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>Recusadas</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                activeFilter === 'recusadas' ? 'bg-rose-800 text-white' : 'bg-slate-200 dark:bg-slate-800'
+              }`}>
+                {rejectedNews.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setSelectedFilter('todas')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                 activeFilter === 'todas'
@@ -352,6 +444,11 @@ export default function EditorialKanban({
                         <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                         <span>Aprovada e Publicada</span>
                       </span>
+                    ) : item.rejected ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                        <XCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                        <span>Recusada pelo Gestor</span>
+                      </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                         <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
@@ -394,28 +491,9 @@ export default function EditorialKanban({
                   </div>
                 </div>
 
-                {/* Área da Ação Única Explícita */}
-                <div className="flex items-center md:flex-col md:items-end justify-between md:justify-center gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800/80 shrink-0">
-                  {!isPublished ? (
-                    <button
-                      type="button"
-                      disabled={isCurrentlyApproving || !isGestor}
-                      onClick={() => setConfirmModal({ isOpen: true, item })}
-                      className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      {isCurrentlyApproving ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Aprovando...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-3.5 h-3.5" />
-                          <span>Aprovar notícia</span>
-                        </>
-                      )}
-                    </button>
-                  ) : (
+                {/* Área de Ação Editorial do Gestor */}
+                <div className="flex items-center md:flex-col md:items-end justify-between md:justify-center gap-2 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800/80 shrink-0">
+                  {isPublished ? (
                     <div className="text-right">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/60">
                         <CheckCircle2 className="w-3.5 h-3.5" />
@@ -424,6 +502,69 @@ export default function EditorialKanban({
                       <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
                         Aprovada pelo gestor
                       </p>
+                    </div>
+                  ) : item.rejected ? (
+                    <div className="flex flex-col items-end gap-1.5">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 px-3 py-1 rounded-lg border border-rose-200 dark:border-rose-800/60">
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>Recusada</span>
+                      </span>
+                      {isGestor && (
+                        <button
+                          type="button"
+                          onClick={() => setConfirmModal({ isOpen: true, item })}
+                          className="text-[11px] font-semibold text-[#004A99] dark:text-sky-400 hover:underline cursor-pointer"
+                        >
+                          Reavaliar e aprovar
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                      {/* Botão Recusar */}
+                      <button
+                        type="button"
+                        disabled={rejectingId === item.id || isCurrentlyApproving || !isGestor}
+                        onClick={() => {
+                          setRejectReason('');
+                          setRejectModal({ isOpen: true, item });
+                        }}
+                        className="flex-1 md:flex-initial inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-xs font-bold transition shadow-2xs hover:shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        title="Recusar notícia"
+                      >
+                        {rejectingId === item.id ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Recusando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <X className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                            <span>Recusar</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Botão Aprovar Notícia */}
+                      <button
+                        type="button"
+                        disabled={isCurrentlyApproving || rejectingId === item.id || !isGestor}
+                        onClick={() => setConfirmModal({ isOpen: true, item })}
+                        className="flex-1 md:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        title="Aprovar e publicar imediatamente no portal"
+                      >
+                        {isCurrentlyApproving ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>Aprovando...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Aprovar notícia</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -610,6 +751,85 @@ export default function EditorialKanban({
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>Sim, aprovar notícia</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ========================================================
+          5. MODAL DE CONFIRMAÇÃO EXPLÍCITA DE RECUSA
+      ======================================================== */}
+      {rejectModal.isOpen && rejectModal.item && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-[#0B1528] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                  <XCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                    Confirmar Recusa da Notícia
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Ação editorial do Gestor Geral
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRejectModal({ isOpen: false, item: null })}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800 space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Notícia a ser recusada:
+              </span>
+              <p className="font-semibold text-xs text-slate-800 dark:text-slate-200 leading-snug">
+                {rejectModal.item.title}
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Categoria: {rejectModal.item.category || 'Geral'} · Autor: {rejectModal.item.author || 'SEDUC'}
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="rejectReasonInput" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Motivo da recusa (opcional para orientar a equipe):
+              </label>
+              <textarea
+                id="rejectReasonInput"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Ex.: Necessita revisão do texto, verificar fontes ou adequar imagem..."
+                rows={3}
+                className="w-full text-xs p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-rose-500/50 resize-none"
+              />
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              A notícia <strong>não será veiculada</strong> no portal público e permanecerá registrada como recusada na gestão editorial.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setRejectModal({ isOpen: false, item: null })}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReject}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Sim, recusar notícia</span>
               </button>
             </div>
           </div>
