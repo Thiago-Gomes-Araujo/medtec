@@ -4298,13 +4298,13 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-[#060D1A] text-slate-800 dark:text-slate-100 overflow-x-hidden max-w-[100vw]">
+    <div className="h-screen h-[100dvh] w-full flex overflow-hidden bg-slate-50 dark:bg-[#060D1A] text-slate-800 dark:text-slate-100">
       
       {/* ========================================================
           1. SIDEBAR DESKTOP (FIXA E RETRÁTIL COM ACCORDION JOER)
       ======================================================== */}
       <aside
-        className={`hidden lg:flex flex-col shrink-0 transition-all duration-300 ease-in-out bg-[#07152B] text-slate-200 border-r border-slate-800 select-none z-30 sticky top-0 h-screen ${
+        className={`hidden lg:flex flex-col shrink-0 h-full bg-[#07152B] text-slate-200 border-r border-slate-800 select-none z-30 transition-all duration-300 ease-in-out ${
           isCollapsed ? 'w-20' : 'w-64'
         }`}
       >
@@ -4367,7 +4367,7 @@ export default function AdminDashboardPage() {
         )}
 
         {/* Corpo Navegável com Árvore Expansível (Accordion) */}
-        <div className="flex-1 overflow-y-auto py-3 px-3 space-y-3 scrollbar-thin">
+        <div className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-3 scrollbar-thin">
           {/* 1. Início (Resumo do Painel) - Item Direto no Topo */}
           {userSession.isGestor && homeMatchesSearch && (
             <div className="space-y-1">
@@ -4421,7 +4421,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Rodapé Fixo da Sidebar: Link Público + Usuário Autenticado */}
-        <div className="mt-auto border-t border-slate-800/80 p-3 space-y-2 bg-[#051021]">
+        <div className="shrink-0 border-t border-slate-800/80 p-3 space-y-2 bg-[#051021]">
           {/* Link para o Portal */}
           <Link
             href="/"
@@ -4475,7 +4475,7 @@ export default function AdminDashboardPage() {
             className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs"
             onClick={() => setIsMobileOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 w-72 bg-[#07152B] text-slate-200 border-r border-slate-800 flex flex-col z-50 shadow-2xl">
+          <div className="fixed inset-y-0 left-0 w-72 h-full h-[100dvh] bg-[#07152B] text-slate-200 border-r border-slate-800 flex flex-col z-50 shadow-2xl">
             <div className="h-16 px-4 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-[#004A99] flex items-center justify-center text-white font-bold">
@@ -4520,7 +4520,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Lista Mobile com Accordion */}
-            <div className="flex-1 overflow-y-auto py-3 px-3 space-y-3">
+            <div className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-3 scrollbar-thin">
               {userSession.isGestor && homeMatchesSearch && (
                 <div className="space-y-1">
                   <SidebarNavItem
@@ -4573,7 +4573,7 @@ export default function AdminDashboardPage() {
               )}
             </div>
 
-            <div className="border-t border-slate-800 p-3 space-y-2 bg-[#051021]">
+            <div className="shrink-0 border-t border-slate-800 p-3 space-y-2 bg-[#051021]">
               <Link
                 href="/"
                 target="_blank"
@@ -4609,10 +4609,10 @@ export default function AdminDashboardPage() {
       {/* ========================================================
           3. ÁREA DE TRABALHO PRINCIPAL
       ======================================================== */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden relative">
         
         {/* TOPBAR CONTEXTUAL STICKY */}
-        <header className="h-16 sticky top-0 z-20 bg-white/95 dark:bg-[#0B1528]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between gap-4">
+        <header className="h-16 sticky top-0 z-20 shrink-0 bg-white/95 dark:bg-[#0B1528]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between gap-4">
           
           {/* Esquerda: Botão Menu Mobile + Breadcrumb + Subtítulo */}
           <div className="flex items-center gap-3 min-w-0">
@@ -4689,7 +4689,7 @@ export default function AdminDashboardPage() {
         {/* ========================================================
             4. CORPO DO CONTEÚDO (MÓDULO ATIVO)
         ======================================================== */}
-        <main className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6">
+        <main className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
           
           {/* Barra de Topo do Módulo com Botão "← Voltar para o Início" */}
           {currentSection !== 'visaoGeral' && userSession.isGestor && (
