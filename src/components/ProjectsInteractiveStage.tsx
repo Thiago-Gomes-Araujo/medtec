@@ -1,33 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ProjectMission } from '@/types';
 import ReplicationPassportModal from './ReplicationPassportModal';
-import Badge3D from '@/components/Badge3D';
 import { 
-  Sparkles, 
-  ArrowRight, 
-  Package, 
   MapPin, 
   School, 
-  Radio, 
-  Award,
-  Layers,
-  ChevronRight,
-  TrendingUp,
-  AlertCircle,
-  Zap,
-  Sprout,
-  FlaskConical,
-  Landmark,
-  Cpu,
-  Trophy,
-  Loader2
+  BookOpen,
+  FileText,
+  User,
+  ExternalLink,
+  Sparkles,
+  Download
 } from 'lucide-react';
 
 const DEFAULT_TRACKS = [
-  'Todas as Missões',
+  'Todas as Áreas',
   'Agroecologia & NBAZ',
   'Ciência na Amazônia',
   'Saberes Indígenas & História',
@@ -38,7 +26,7 @@ export default function ProjectsInteractiveStage() {
   const [projects, setProjects] = useState<ProjectMission[]>([]);
   const [tracks, setTracks] = useState<string[]>(DEFAULT_TRACKS);
   const [selectedTrack, setSelectedTrack] = useState<string>(DEFAULT_TRACKS[0]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProject, setSelectedProject] = useState<ProjectMission | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -54,11 +42,7 @@ export default function ProjectsInteractiveStage() {
             const items: ProjectMission[] = data.items || [];
             setProjects(items);
             if (data.tracks && Array.isArray(data.tracks) && data.tracks.length > 0) {
-              setTracks(data.tracks);
-              setSelectedTrack(data.tracks[0]);
-            }
-            if (items.length > 0) {
-              setSelectedProjectId(items[0].id);
+              setTracks(['Todas as Áreas', ...data.tracks.filter((t: string) => !t.includes('Todas'))]);
             }
           }
         }
@@ -74,7 +58,6 @@ export default function ProjectsInteractiveStage() {
     };
   }, []);
 
-  // Filtragem de projetos pelo dock de trilhas
   const filteredProjects = selectedTrack.includes('Todas')
     ? projects
     : projects.filter((p) => {
@@ -85,434 +68,157 @@ export default function ProjectsInteractiveStage() {
         return p.track === selectedTrack;
       });
 
-  // Projeto selecionado atual
-  const currentProject = projects.find((p) => p.id === selectedProjectId) || projects[0] || null;
-
-  // Alterna o projeto e ajusta a trilha se necessário
-  const handleSelectProject = (project: ProjectMission) => {
-    setSelectedProjectId(project.id);
-  };
-
-  // Avança para a próxima missão circularmente
-  const handleNextMission = () => {
-    if (projects.length === 0) return;
-    const currentIndex = projects.findIndex((p) => p.id === selectedProjectId);
-    const nextIndex = (currentIndex + 1) % projects.length;
-    const nextProject = projects[nextIndex];
-    if (nextProject) {
-      setSelectedProjectId(nextProject.id);
-    }
-  };
-
-
-  // Ícones representativos para cada trilha
-  const getTrackIcon = (track: string) => {
-    if (track.includes('Todas')) return <Zap className="w-3.5 h-3.5 text-[#004A99] dark:text-[#00D8FF]" />;
-    if (track.includes('Agroecologia')) return <Sprout className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />;
-    if (track.includes('Ciência')) return <FlaskConical className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />;
-    if (track.includes('Indígenas')) return <Landmark className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />;
-    if (track.includes('Solar') || track.includes('Robótica')) return <Cpu className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />;
-    return <Layers className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />;
-  };
-
-  // Ícones temáticos para selos oficiais
-  const getSealIcon = (sealText: string) => {
-    if (sealText.includes('FEIRA') || sealText.includes('DESTAQUE')) return <Trophy className="w-3.5 h-3.5" />;
-    if (sealText.includes('BNCC') || sealText.includes('CERTIFICADA')) return <Award className="w-3.5 h-3.5" />;
-    if (sealText.includes('OLIMPÍADA') || sealText.includes('CIÊNCIAS')) return <FlaskConical className="w-3.5 h-3.5" />;
-    if (sealText.includes('ENERGÉTICA') || sealText.includes('INOVAÇÃO')) return <Zap className="w-3.5 h-3.5" />;
-    if (sealText.includes('AGROECOLÓGICA')) return <Sprout className="w-3.5 h-3.5" />;
-    if (sealText.includes('IMATERIAL') || sealText.includes('HISTÓRIA')) return <Radio className="w-3.5 h-3.5" />;
-    return <Sparkles className="w-3.5 h-3.5" />;
-  };
-
-  // Cores dinâmicas para os nós de trilha
-  const getTrackColorClasses = (track: ProjectMission['track']) => {
-    switch (track) {
-      case 'Agroecologia & NBAZ':
-        return {
-          dot: 'bg-emerald-500 shadow-[0_0_8px_#10B981]',
-          badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30'
-        };
-      case 'Ciência na Amazônia':
-        return {
-          dot: 'bg-cyan-400 shadow-[0_0_8px_#00D8FF]',
-          badge: 'bg-cyan-50 text-cyan-800 dark:bg-cyan-950/30 dark:text-cyan-300 border-cyan-200 dark:border-cyan-500/30'
-        };
-      case 'Saberes Indígenas & História':
-        return {
-          dot: 'bg-amber-500 shadow-[0_0_8px_#F59E0B]',
-          badge: 'bg-amber-50 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300 border-amber-200 dark:border-amber-500/30'
-        };
-      case 'Tecnologia Solar & Robótica':
-        return {
-          dot: 'bg-blue-500 shadow-[0_0_8px_#3B82F6]',
-          badge: 'bg-blue-50 text-blue-800 dark:bg-blue-950/30 dark:text-blue-300 border-blue-200 dark:border-blue-500/30'
-        };
-      default:
-        return {
-          dot: 'bg-sky-400',
-          badge: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200 border-slate-200'
-        };
-    }
+  const handleOpenPassport = (project: ProjectMission) => {
+    setSelectedProject(project);
+    setIsModalOpen(true);
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 space-y-8">
-      
-      {/* ========================================================================= */}
-      {/* 1. TOPO COMPACTO COM SELETOR DE TRILHAS EM CÁPSULAS                      */}
-      {/* ========================================================================= */}
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
+      {/* Header Institucional */}
       <section className="space-y-4">
-        
-        {/* Header Enxuto com Tag Técnica, Título Display e Placar Técnico */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-[#1A365D]">
-          
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
           <div className="space-y-1.5 max-w-3xl">
-            {/* Tag técnica */}
-            <div className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] font-semibold">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 dark:bg-cyan-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 dark:bg-cyan-400" />
-              </span>
-              <span>Laboratório Vivo de Inovação Aplicada • SEDUC-RO</span>
-            </div>
-
-            {/* Título Display */}
-            <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-[#E6F4FF] leading-tight text-balance">
-              Missões &amp; Projetos Pedagógicos
+            <p className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#004A99] dark:text-sky-400">
+              SEDUC-RO • Coordenadoria de Mídias Educacionais
+            </p>
+            <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
+              Projetos Escolares e Práticas Pedagógicas
             </h1>
-            
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 text-pretty max-w-2xl line-clamp-2">
-              Práticas territoriais reais desenvolvidas por turmas de Ensino Médio com Mediação Tecnológica nas florestas, águas e campos de Rondônia.
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+              Iniciativas de pesquisa, sustentabilidade e tecnologia desenvolvidas por turmas do Ensino Médio com Mediação Tecnológica em Rondônia.
             </p>
           </div>
 
-          {/* Placar Técnico Horizontal Compacto */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3 py-1.5 font-mono text-xs shadow-xs tabular-nums">
-              <span className="font-bold text-[#004A99] dark:text-[#00D8FF]">84+ Projetos</span>
-            </div>
-            <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3 py-1.5 font-mono text-xs shadow-xs tabular-nums">
-              <span className="font-bold text-[#004A99] dark:text-[#00D8FF]">30+ Municípios</span>
-            </div>
-            <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] px-3 py-1.5 font-mono text-xs shadow-xs tabular-nums">
-              <span className="font-bold text-emerald-600 dark:text-emerald-400">100% Prática Comunitária</span>
-            </div>
+            <span className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#132238] px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+              {projects.length} Projetos Catalogados
+            </span>
+            <span className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#132238] px-3.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              52 Municípios Atendidos
+            </span>
           </div>
-
         </div>
 
-        {/* Dock de Trilhas Temáticas (Filtros Horizontais em Cápsulas com Ícones 3D) */}
+        {/* Filtros de Trilhas */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
           {tracks.map((track) => {
             const isSelected = selectedTrack === track;
             return (
               <button
                 key={track}
-                onClick={() => {
-                  setSelectedTrack(track);
-                  if (!track.includes('Todas')) {
-                    const firstMatch = projects.find((p) => {
-                      if (track.includes('Agroecologia')) return p.track === 'Agroecologia & NBAZ';
-                      if (track.includes('Ciência')) return p.track === 'Ciência na Amazônia';
-                      if (track.includes('Indígenas')) return p.track === 'Saberes Indígenas & História';
-                      if (track.includes('Solar')) return p.track === 'Tecnologia Solar & Robótica';
-                      return p.track === track;
-                    });
-                    if (firstMatch) {
-                      setSelectedProjectId(firstMatch.id);
-                    }
-                  }
-                }}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 ease-out cursor-pointer border touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
+                onClick={() => setSelectedTrack(track)}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 ease-out cursor-pointer border active:scale-[0.98] ${
                   isSelected
-                    ? 'bg-[#004A99] text-white border-[#004A99] shadow-sm dark:bg-[#00D8FF] dark:text-slate-950 dark:border-[#00D8FF]'
-                    : 'bg-white dark:bg-[#0C1E38] text-slate-700 dark:text-slate-300 border-slate-200/90 dark:border-[#1A365D] hover:border-slate-300 dark:hover:border-cyan-400/40 hover:bg-slate-50 dark:hover:bg-[#0F2647]'
+                    ? 'bg-[#004A99] text-white border-[#004A99] shadow-xs dark:bg-sky-500 dark:text-slate-950 dark:border-sky-500'
+                    : 'bg-white dark:bg-[#132238] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
-                <span className="shrink-0">{getTrackIcon(track)}</span>
                 <span>{track}</span>
               </button>
             );
           })}
         </div>
-
       </section>
 
-      {/* ========================================================================= */}
-      {/* 2. SEÇÃO PRINCIPAL: PALCO INTERATIVO DE INSPEÇÃO (12 COLUNAS)            */}
-      {/* ========================================================================= */}
-      <section id="palco-inspecao" className="scroll-mt-24 space-y-4">
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            <Layers className="h-4 w-4 text-[#004A99] dark:text-[#00D8FF]" />
-            <span>Console de Inspeção • Missão Pedagógica em Detalhe</span>
-          </div>
-          <span className="text-xs font-mono text-slate-500 dark:text-slate-400 tabular-nums">
-            {currentProject ? projects.findIndex((p) => p.id === currentProject.id) + 1 : 0} de {projects.length}
-          </span>
+      {/* Grade Limpa de Projetos */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="rounded-xl bg-slate-200 dark:bg-slate-800 h-96" />
+          ))}
         </div>
+      ) : filteredProjects.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 p-12 text-center bg-white dark:bg-[#132238]">
+          <BookOpen className="mx-auto h-10 w-10 text-slate-400 mb-3" />
+          <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+            Nenhum projeto encontrado nesta área
+          </h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Selecione outra área temática para visualizar as práticas cadastradas.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProjects.map((project) => (
+            <div
+              key={project.id}
+              className="flex flex-col justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#132238] shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden"
+            >
+              {/* Fotografia Limpa (sem etiquetas sobrepostas nos cantos) */}
+              <div className="relative h-48 w-full overflow-hidden bg-slate-900">
+                <img
+                  src={project.image}
+                  alt={project.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                />
+              </div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch animate-pulse">
-            <div className="lg:col-span-4 rounded-2xl bg-slate-200 dark:bg-slate-800 h-96" />
-            <div className="lg:col-span-8 rounded-2xl bg-slate-200 dark:bg-slate-800 h-96" />
-          </div>
-        ) : !currentProject || projects.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 dark:border-[#1A365D] p-16 text-center">
-            <Sparkles className="mx-auto h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" />
-            <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-base">
-              Nenhuma missão pedagógica encontrada
-            </h4>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-              Não foram encontradas missões cadastradas para esta trilha na base oficial da API.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* ======================================================== */}
-            {/* COLUNA ESQUERDA (lg:col-span-4: ÍNDICE DE MISSÕES)       */}
-            {/* ======================================================== */}
-            <div className="lg:col-span-4 flex flex-col gap-2">
-            <div className="rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-slate-50/70 dark:bg-[#08182E]/50 p-2 space-y-1.5">
-              <span className="block px-2 pt-0.5 font-mono text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
-                Selecione uma missão para inspecionar
-              </span>
-
-              {filteredProjects.map((project) => {
-                const isCurrent = project.id === currentProject.id;
-                const colors = getTrackColorClasses(project.track);
-
-                return (
-                  <button
-                    key={project.id}
-                    onClick={() => handleSelectProject(project)}
-                    className={`w-full text-left rounded-xl p-3 transition-all duration-150 ease-out cursor-pointer border flex items-center justify-between gap-2.5 relative touch-manipulation select-none active:scale-[0.98] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
-                      isCurrent
-                        ? 'bg-[#004A99] text-white border-[#003B7A] shadow-md dark:bg-[#0C1E38] dark:border-[#00D8FF] dark:text-[#E6F4FF] dark:shadow-[0_0_20px_rgba(0,216,255,0.15)]'
-                        : 'bg-white dark:bg-[#0A1A30] text-slate-800 dark:text-slate-300 border-slate-200/80 dark:border-[#1A365D] hover:border-slate-300 dark:hover:border-cyan-400/40 hover:bg-slate-50 dark:hover:bg-[#0C2242]'
-                    }`}
-                  >
-                    <div className="min-w-0 space-y-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className={`h-2 w-2 rounded-full shrink-0 ${colors.dot}`} />
-                        <span className={`font-mono text-[10px] font-bold tracking-wider uppercase tabular-nums ${
-                          isCurrent ? 'text-cyan-200 dark:text-[#00D8FF]' : 'text-[#004A99] dark:text-cyan-300'
-                        }`}>
-                          {project.missionCode}
-                        </span>
-                        <span className={`text-[10px] truncate ${
-                          isCurrent ? 'text-white/80 dark:text-slate-400' : 'text-slate-500 dark:text-slate-400'
-                        }`}>
-                          • {project.track}
-                        </span>
-                      </div>
-
-                      <h4 className="font-display text-sm font-semibold truncate leading-snug">
-                        {project.shortTitle}
-                      </h4>
-
-                      <p className={`text-[11px] flex items-center gap-1 truncate ${
-                        isCurrent ? 'text-cyan-100 dark:text-slate-300' : 'text-slate-500 dark:text-slate-400'
-                      }`}>
-                        <MapPin className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{project.territory}</span>
-                      </p>
-                    </div>
-
-                    <ChevronRight className={`h-4 w-4 shrink-0 transition-transform duration-150 ${
-                      isCurrent ? 'text-cyan-200 dark:text-[#00D8FF] translate-x-0.5' : 'text-slate-400 opacity-60'
-                    }`} />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ======================================================== */}
-          {/* COLUNA DIREITA (lg:col-span-8: PALCO DE RAIO-X VIVO)     */}
-          {/* ======================================================== */}
-          <div className="lg:col-span-8">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentProject.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="h-full rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 shadow-xs dark:shadow-md flex flex-col justify-between transition-colors space-y-4"
-              >
-                
-                {/* 1. CABEÇALHO DO PALCO */}
-                <div className="space-y-2 pb-3 border-b border-slate-100 dark:border-white/5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* Selo Oficial em Badge 3D Volumétrico */}
-                      <Badge3D
-                        variant="glow"
-                        size="sm"
-                        icon={getSealIcon(currentProject.seal)}
-                      >
-                        {currentProject.seal}
-                      </Badge3D>
-
-                      <span className="font-mono text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                        {currentProject.missionCode} • Polo {currentProject.municipality.toUpperCase()}
-                      </span>
-                    </div>
-
-                    <div className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-[#07162C] px-2.5 py-1 text-xs font-mono font-medium text-slate-700 dark:text-slate-300">
-                      <span>Prática Pedagógica Registrada</span>
-                    </div>
+              {/* Corpo do Card */}
+              <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-[#004A99] dark:text-sky-400">
+                    <span>{project.track}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-normal">{project.municipality}</span>
                   </div>
 
-                  {/* Título */}
-                  <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-[#E6F4FF] leading-snug text-balance">
-                    {currentProject.title}
-                  </h2>
+                  <h3 className="font-display text-base font-bold text-slate-900 dark:text-white leading-snug">
+                    {project.title}
+                  </h3>
 
-                  {/* Subtítulo com Escola, Município e Professor Mediador */}
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-300 pt-0.5">
-                    <div className="flex items-center gap-2">
-                      <div className="h-5 w-5 rounded-md bg-[#004A99] dark:bg-blue-600 flex items-center justify-center font-bold text-[9px] text-white shrink-0 shadow-xs">
-                        {currentProject.mediatorInitials}
-                      </div>
-                      <span className="font-semibold text-slate-900 dark:text-white">
-                        {currentProject.mediatorName}
-                      </span>
-                      <span className="text-slate-500 dark:text-slate-400 text-[11px]">({currentProject.mediatorRole})</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
-                      <School className="h-3 w-3 text-sky-600 dark:text-cyan-400 shrink-0" />
-                      <span>{currentProject.school} • {currentProject.municipality} ({currentProject.typology})</span>
-                    </div>
+                  <div className="space-y-1 text-xs text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+                    <p className="flex items-center gap-1.5 font-medium text-slate-800 dark:text-slate-200">
+                      <School className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400 shrink-0" />
+                      <span>{project.school}</span>
+                    </p>
+                    <p className="flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span>{project.mediatorName} ({project.mediatorRole})</span>
+                    </p>
                   </div>
+
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pt-2 line-clamp-3">
+                    {project.praticaMedtec.description}
+                  </p>
                 </div>
 
-                {/* 2. VISUAL & PIPELINE DE EXECUÇÃO EM 3 NÓS ENXUTOS ALINHADOS À FOTO */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-stretch">
-                  
-                  {/* Fotografia Principal Emoldurada */}
-                  <div className="md:col-span-5 relative rounded-xl overflow-hidden border border-slate-200/90 dark:border-[#1A365D] group min-h-[220px] bg-slate-900 shadow-sm flex flex-col justify-end">
-                    <img
-                      src={currentProject.image}
-                      alt={currentProject.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent pointer-events-none" />
-                    
-                    {/* Badge da Turma Participante */}
-                    <div className="relative z-10 p-2.5 flex items-center justify-between text-xs text-white">
-                      <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md border border-white/20">
-                        {currentProject.studentCohort}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Linha de Transformação Conectada (3 Etapas Visuais Enxutas) */}
-                  <div className="md:col-span-7 flex flex-col justify-between gap-2.5">
-                    
-                    {/* Nó 01: Desafio Local */}
-                    <div className="rounded-xl border border-rose-200/80 dark:border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/15 p-3 space-y-0.5">
-                      <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400">
-                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                        <span>01. Desafio Local</span>
-                      </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium line-clamp-2">
-                        {currentProject.desafioLocal.description}
-                      </p>
-                    </div>
-
-                    {/* Nó 02: Prática MEDTEC */}
-                    <div className="rounded-xl border border-sky-200/80 dark:border-cyan-500/20 bg-sky-50/40 dark:bg-cyan-950/15 p-3 space-y-0.5">
-                      <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold text-[#004A99] dark:text-[#00D8FF]">
-                        <Radio className="h-3.5 w-3.5 shrink-0" />
-                        <span>02. Prática MEDTEC</span>
-                      </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-2">
-                        {currentProject.praticaMedtec.description}
-                      </p>
-                    </div>
-
-                    {/* Nó 03: Impacto Gerado com Métrica em Destaque */}
-                    <div className="rounded-xl border border-emerald-200/80 dark:border-emerald-500/25 bg-emerald-50/50 dark:bg-emerald-950/20 p-3 space-y-0.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">
-                          <TrendingUp className="h-3.5 w-3.5 shrink-0" />
-                          <span>03. Impacto Gerado</span>
-                        </div>
-                        <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-400/20 text-emerald-800 dark:text-emerald-200 tabular-nums">
-                          {currentProject.impactoGerado.metric}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-2">
-                        {currentProject.impactoGerado.description}
-                      </p>
-                    </div>
-
-                  </div>
-
-                </div>
-
-                {/* 3. BARRA INFERIOR DE AÇÃO E REPLICAÇÃO */}
-                <div className="pt-4 border-t border-slate-100 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  
-                  {/* Competências curriculares */}
-                  <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-                    {currentProject.competencias.map((comp) => (
+                {/* Ações e Tags */}
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                  <div className="flex flex-wrap gap-1.5">
+                    {project.competencias.slice(0, 2).map((comp) => (
                       <span
                         key={comp}
-                        className="font-mono text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-white/10"
+                        className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                       >
-                        #{comp}
+                        {comp}
                       </span>
                     ))}
                   </div>
 
-                  {/* Botões de Ação */}
-                  <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
+                  <div className="flex items-center gap-2 pt-1">
                     <button
-                      onClick={() => setIsModalOpen(true)}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-[#1A365D] bg-slate-100 dark:bg-[#0A1A30] px-4 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-[#122A4E] transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] min-h-[44px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF]"
+                      onClick={() => handleOpenPassport(project)}
+                      className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#004A99] hover:bg-[#003875] dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 px-3.5 py-2 text-xs font-bold transition-all duration-150 cursor-pointer shadow-xs active:scale-[0.98]"
                     >
-                      <Package className="h-3.5 w-3.5 text-[#004A99] dark:text-[#00D8FF]" />
-                      <span>Ver Roteiro de Replicação</span>
-                    </button>
-
-                    <button
-                      onClick={handleNextMission}
-                      className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-xl bg-[#004A99] dark:bg-[#00D8FF] px-4 py-2 text-xs font-bold text-white dark:text-slate-950 hover:bg-[#05549D] dark:hover:bg-cyan-300 transition-all duration-150 ease-out cursor-pointer shadow-xs touch-manipulation select-none active:scale-[0.97] min-h-[44px] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF]"
-                    >
-                      <span>Próxima Missão</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>Ver Roteiro Pedagógico</span>
                     </button>
                   </div>
-
                 </div>
-
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
+              </div>
+            </div>
+          ))}
         </div>
-        )}
+      )}
 
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 4. MODAL PASSAPORTE DE REPLICAÇÃO PEDAGÓGICA                              */}
-      {/* ========================================================================= */}
+      {/* Modal de Detalhes e Replicação */}
       <ReplicationPassportModal
-        mission={currentProject}
+        mission={selectedProject}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
-
     </div>
   );
 }

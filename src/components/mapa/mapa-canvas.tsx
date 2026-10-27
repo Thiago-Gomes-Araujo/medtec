@@ -107,26 +107,18 @@ export function MapaCanvas({
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-xl border border-[#1A365D] bg-[#020710] shadow-inner select-none">
+    <div className="relative h-full w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-900 shadow-inner select-none">
       
-      {/* Retículas HUD nos quatro cantos */}
-      <div className="pointer-events-none absolute left-3 top-3 z-[400] h-3.5 w-3.5 border-l-2 border-t-2 border-[#00D8FF]/70" />
-      <div className="pointer-events-none absolute right-3 top-3 z-[400] h-3.5 w-3.5 border-r-2 border-t-2 border-[#00D8FF]/70" />
-      <div className="pointer-events-none absolute bottom-3 left-3 z-[400] h-3.5 w-3.5 border-b-2 border-l-2 border-[#00D8FF]/70" />
-      <div className="pointer-events-none absolute bottom-3 right-3 z-[400] h-3.5 w-3.5 border-b-2 border-r-2 border-[#00D8FF]/70" />
-
-      {/* Régua e Telemetria Superior Flutuante */}
-      <div className="pointer-events-none absolute left-3 top-2.5 z-[400] flex items-center gap-2 font-mono text-[10px] text-[#00D8FF] bg-[#0C1E38]/85 px-2.5 py-1 rounded border border-[#1A365D] backdrop-blur-sm">
-        <Radio className="h-3 w-3 animate-pulse text-[#F43F5E]" />
-        <span className="font-bold tracking-wider">Canvas Cartográfico • Sinal Ativo</span>
-        <span className="text-[#1A365D]">|</span>
-        <span className="text-slate-300">RONDÔNIA</span>
+      {/* Indicador Superior Flutuante */}
+      <div className="pointer-events-none absolute left-3 top-2.5 z-[400] flex items-center gap-2 text-xs text-slate-800 dark:text-slate-100 bg-white/90 dark:bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-xs backdrop-blur-sm">
+        <Radio className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400" />
+        <span className="font-semibold">Mapa da Rede Estadual</span>
+        <span className="text-slate-300 dark:text-slate-600">|</span>
+        <span className="text-slate-600 dark:text-slate-300">Rondônia</span>
       </div>
 
-      <div className="pointer-events-none absolute right-3 top-2.5 z-[400] hidden sm:flex items-center gap-2 font-mono text-[9px] text-[#6482A6] bg-[#0C1E38]/85 px-2.5 py-1 rounded border border-[#1A365D] backdrop-blur-sm">
-        <span>DATUM: SIRGAS 2000</span>
-        <span className="text-[#1A365D]">•</span>
-        <span className="text-emerald-400">100% SÍNCRONO</span>
+      <div className="pointer-events-none absolute right-3 top-2.5 z-[400] hidden sm:flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-white/90 dark:bg-slate-900/90 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-xs backdrop-blur-sm">
+        <span className="text-emerald-600 dark:text-emerald-400 font-medium">Transmissão Ativa</span>
       </div>
 
       {/* CONTAINER PRINCIPAL DO LEAFLET */}
@@ -239,24 +231,24 @@ export function MapaCanvas({
                 <Popup className="medtec-popup">
                   <div className="p-3 space-y-2.5 font-mono text-xs text-[#E6F4FF] min-w-[240px]">
                     {/* Cabeçalho do Popup */}
-                    <div className="border-b border-[#1A365D] pb-1.5">
-                      <span className="text-[10px] uppercase tracking-wider text-[#00D8FF] font-bold">
-                        [ {ponto.tipo.toUpperCase()} • {ponto.conexao} ]
+                    <div className="border-b border-slate-700 pb-1.5">
+                      <span className="text-[11px] text-sky-400 font-semibold">
+                        {ponto.tipo} • {ponto.conexao}
                       </span>
-                      <h4 className="font-bold text-sm text-white mt-0.5 leading-snug">
+                      <h4 className="font-semibold text-sm text-white mt-0.5 leading-snug">
                         {ponto.nome}
                       </h4>
-                      <div className="flex items-center gap-1.5 text-[11px] text-[#6482A6] mt-0.5">
-                        <MapPin className="h-3 w-3 text-cyan-400" />
+                      <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
+                        <MapPin className="h-3 w-3 text-sky-400" />
                         <span>{ponto.municipio}</span>
                         {ponto.comunidade && <span>• {ponto.comunidade}</span>}
                       </div>
                     </div>
 
                     {/* Métricas rápidas */}
-                    <div className="grid grid-cols-2 gap-2 text-[11px] bg-[#061224]/80 p-2 rounded border border-[#1A365D]/60">
+                    <div className="grid grid-cols-2 gap-2 text-xs bg-slate-950/80 p-2 rounded border border-slate-800">
                       <div className="flex items-center gap-1.5 text-slate-300">
-                        <BookOpen className="h-3 w-3 text-[#00D8FF]" />
+                        <BookOpen className="h-3 w-3 text-sky-400" />
                         <span>{ponto.turmas} turmas</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-slate-300">
@@ -266,13 +258,13 @@ export function MapaCanvas({
                     </div>
 
                     {/* Mediador e Sinal */}
-                    <div className="text-[11px] space-y-1">
+                    <div className="text-xs space-y-1">
                       <div className="flex items-center gap-1.5 text-emerald-400">
                         <Signal className="h-3 w-3" />
-                        <span>{ponto.statusSinal || 'Sinal Síncrono Ativo'}</span>
+                        <span>{ponto.statusSinal || 'Conexão Ativa'}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-slate-300 truncate">
-                        <GraduationCap className="h-3 w-3 text-[#6482A6]" />
+                        <GraduationCap className="h-3 w-3 text-slate-400" />
                         <span>Mediador: {ponto.mediador}</span>
                       </div>
                     </div>
@@ -280,7 +272,7 @@ export function MapaCanvas({
                     {/* Botão de Centralizar / Foco */}
                     <button
                       onClick={() => onSelect(ponto.id)}
-                      className="w-full mt-2 rounded bg-[#0F2647] hover:bg-[#1A365D] py-1 text-center text-[10px] text-[#00D8FF] font-bold uppercase tracking-wider border border-[#00D8FF]/40 cursor-pointer"
+                      className="w-full mt-2 rounded bg-sky-900/60 hover:bg-sky-800 py-1.5 text-center text-xs text-sky-200 font-semibold border border-sky-700 cursor-pointer transition-colors"
                     >
                       Selecionar Unidade
                     </button>

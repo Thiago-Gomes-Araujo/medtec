@@ -2,16 +2,12 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { 
   ArrowRight, 
   ArrowDown,
-  Radio, 
   Satellite,
   Signal,
-  Users,
-  Building2,
-  Activity,
-  MapPin,
   CheckCircle2,
   Play
 } from 'lucide-react';
@@ -21,7 +17,11 @@ import TechAdvantages from '@/components/TechAdvantages';
 import Methodology from '@/components/Methodology';
 import HomeProjectsAccordionSection from '@/components/HomeProjectsAccordionSection';
 import LiveBroadcastSection from '@/components/LiveBroadcastSection';
-import PresentationPitchModal from '@/components/PresentationPitchModal';
+
+const PresentationPitchModal = dynamic(
+  () => import('@/components/PresentationPitchModal'),
+  { ssr: false }
+);
 
 export default function HomePage() {
   const [pitchModalOpen, setPitchModalOpen] = useState(false);
@@ -46,88 +46,25 @@ export default function HomePage() {
             className="absolute inset-0 h-full w-full object-cover opacity-25 mix-blend-luminosity pointer-events-none"
           />
 
-          {/* Grid Tecnológico em Perspectiva */}
-          <div className="hero-grid absolute inset-0 opacity-60 pointer-events-none" />
-
-          {/* Focos de Luz Radial (Glows Aeroespaciais) */}
-          <div className="pointer-events-none absolute -left-32 top-10 h-96 w-96 rounded-full bg-cyan-500/15 blur-[120px]" />
-          <div className="pointer-events-none absolute right-0 top-1/4 h-[450px] w-[450px] rounded-full bg-sky-600/20 blur-[140px]" />
-          <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-emerald-500/10 blur-[100px]" />
-
-          {/* ================= SVG: REDE DE NÓS LUMINOSOS / CONSTELAÇÃO RONDÔNIA ================= */}
-          <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-40">
-            <svg 
-              className="h-full w-full" 
-              xmlns="http://www.w3.org/2000/svg" 
-              viewBox="0 0 1440 800" 
-              fill="none"
-              preserveAspectRatio="xMidYMid slice"
-            >
-              <defs>
-                <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#00D8FF" stopOpacity="0.6" />
-                  <stop offset="100%" stopColor="#0284C7" stopOpacity="0.1" />
-                </linearGradient>
-                <filter id="glow">
-                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                  <feMerge>
-                    <feMergeNode in="coloredBlur"/>
-                    <feMergeNode in="SourceGraphic"/>
-                  </feMerge>
-                </filter>
-              </defs>
-
-              {/* Linhas de Conexão Satélite / Geodésicas */}
-              <path d="M720 120 L300 320 M720 120 L520 480 M720 120 L960 280 M720 120 L1150 420 M720 120 L780 620" stroke="url(#lineGrad)" strokeWidth="1" strokeDasharray="4 4" />
-              <path d="M300 320 L520 480 L780 620 L1150 420 L960 280 Z" stroke="rgba(0, 216, 255, 0.15)" strokeWidth="1" />
-              <path d="M300 320 Q 550 200 960 280" stroke="rgba(2, 132, 199, 0.25)" strokeWidth="1.5" />
-
-              {/* Nós Municipais Conectados (Polos) */}
-              {/* Polo Central: Porto Velho (Hub) */}
-              <circle cx="720" cy="120" r="7" fill="#00D8FF" filter="url(#glow)" />
-              <circle cx="720" cy="120" r="14" stroke="#00D8FF" strokeWidth="1" opacity="0.4" />
-              
-              {/* Nós Interiores */}
-              <circle cx="300" cy="320" r="4.5" fill="#38BDF8" />
-              <circle cx="520" cy="480" r="4" fill="#34D399" />
-              <circle cx="960" cy="280" r="4.5" fill="#38BDF8" />
-              <circle cx="1150" cy="420" r="4" fill="#38BDF8" />
-              <circle cx="780" cy="620" r="4" fill="#34D399" />
-              <circle cx="410" cy="240" r="3" fill="#00D8FF" opacity="0.6" />
-              <circle cx="880" cy="480" r="3" fill="#00D8FF" opacity="0.6" />
-            </svg>
-          </div>
-
-          {/* ================= CONTEÚDO PRINCIPAL (GRID 12 COLS) ================= */}
+          {/* Conteúdo Principal do Hero */}
           <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-12 lg:gap-10">
             
-            {/* ================= COLUNA DA ESQUERDA: TEXTO & CTAs ================= */}
+            {/* Coluna da Esquerda */}
             <div className="lg:col-span-7 space-y-6">
               
-              {/* 1. LINHA DE STATUS INSTITUCIONAL */}
-              <div className="inline-flex flex-wrap items-center gap-2 sm:gap-3 rounded-md border border-white/15 bg-white/10 dark:bg-slate-900/60 px-3.5 py-1.5 text-xs font-medium text-slate-200 backdrop-blur-md select-none">
-                <span className="flex items-center gap-2 text-emerald-400 font-semibold">
-                  <span className="relative flex h-2 w-2">
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                  </span>
-                  Sinal Satelital Ativo • 52 Municípios
-                </span>
-                <span className="text-white/20 hidden sm:inline">•</span>
-                <span className="text-slate-300 hidden sm:inline">Lei Estadual nº 3.846/2016</span>
-                <span className="text-white/20 hidden md:inline">•</span>
-                <span className="text-slate-300/80 hidden md:inline">Portaria SEDUC nº 928/2025</span>
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-sky-200">
+                <span>SEDUC-RO • 52 Municípios</span>
+                <span>•</span>
+                <span>Lei Estadual nº 3.846/2016</span>
+                <span>•</span>
+                <span>Portaria SEDUC nº 928/2025</span>
               </div>
 
-              {/* 2. TÍTULO PRINCIPAL INSTITUCIONAL */}
-              <h1 className="font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-[3.5rem] text-balance">
-                Ensino Médio com Mediação Tecnológica{' '}
-                <span className="text-[#00D8FF]">
-                  na Rede Estadual de Rondônia
-                </span>
+              <h1 className="font-display text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-[3.5rem] text-balance">
+                Ensino Médio com Mediação Tecnológica em Rondônia
               </h1>
 
-              {/* 3. SUBTÍTULO DIRETO E INSTITUCIONAL */}
-              <p className="max-w-2xl text-base leading-relaxed text-slate-200 sm:text-lg text-pretty">
+              <p className="max-w-2xl text-base leading-relaxed text-slate-200 sm:text-lg text-pretty font-normal">
                 Aulas transmitidas ao vivo dos estúdios da SEDUC em Porto Velho para estudantes do 1º ao 3º ano em comunidades rurais, ribeirinhas, indígenas e quilombolas nos 52 municípios.
               </p>
 
@@ -153,7 +90,7 @@ export default function HomePage() {
               <div className="pt-2 flex flex-wrap items-center gap-3.5">
                 <a
                   href="#como-funciona"
-                  className="group inline-flex items-center gap-2 rounded-lg bg-white text-slate-950 hover:bg-slate-100 dark:bg-[#00D8FF] dark:text-slate-950 dark:hover:bg-[#38BDF8] px-5 py-3 text-sm font-extrabold shadow-sm active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none"
+                  className="group inline-flex items-center gap-2 rounded-lg bg-white text-slate-950 hover:bg-slate-100 dark:bg-[#00D8FF] dark:text-slate-950 dark:hover:bg-[#38BDF8] px-5 py-3 text-sm font-bold shadow-sm active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none"
                 >
                   <span>Como funciona o MEDTEC</span>
                   <ArrowRight className="h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" />
@@ -185,10 +122,10 @@ export default function HomePage() {
                 {/* Cabeçalho Institucional do Painel */}
                 <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-cyan-300 font-mono">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-sky-300">
                       Estúdio Central SEDUC • Porto Velho/RO
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-300 font-medium">Transmissão Síncrona Estadual</p>
+                    <p className="mt-0.5 text-xs text-slate-300 font-medium">Transmissão Oficial de Aulas</p>
                   </div>
 
                   <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-500/20 border border-rose-500/40 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-rose-300">
@@ -212,12 +149,12 @@ export default function HomePage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20" />
 
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-slate-200">
-                    <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 font-mono text-[11px]">
-                      <Satellite className="h-3.5 w-3.5 text-cyan-400" />
-                      Sinal Satelital Banda Ku
+                    <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 text-[11px]">
+                      <Satellite className="h-3.5 w-3.5 text-sky-400" />
+                      Sinal via Satélite
                     </span>
 
-                    <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 font-mono text-[11px] font-bold text-white">
+                    <span className="inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md border border-white/10 text-[11px] font-bold text-white">
                       <Signal className="h-3.5 w-3.5 text-emerald-400" />
                       Alta Definição
                     </span>
@@ -243,7 +180,7 @@ export default function HomePage() {
                   <div className="p-4 sm:p-5">
                     <div className="flex items-baseline gap-2">
                       <p className="font-display text-2xl sm:text-3xl font-black text-white tabular-nums tracking-tight">330</p>
-                      <span className="text-[10px] text-emerald-400 font-semibold font-mono">Síncronas</span>
+                      <span className="text-[10px] text-emerald-400 font-semibold">Turmas</span>
                     </div>
                     <p className="text-xs text-slate-300 mt-1">Turmas ativas no ar</p>
                   </div>
@@ -252,7 +189,7 @@ export default function HomePage() {
                   <div className="p-4 sm:p-5">
                     <div className="flex items-baseline gap-2">
                       <p className="font-display text-2xl sm:text-3xl font-black text-white tabular-nums tracking-tight">52</p>
-                      <span className="text-[10px] text-cyan-300 font-semibold font-mono">100% Cobertura</span>
+                      <span className="text-[10px] text-sky-300 font-semibold">100% Cobertura</span>
                     </div>
                     <p className="text-xs text-slate-300 mt-1">Municípios de Rondônia</p>
                   </div>

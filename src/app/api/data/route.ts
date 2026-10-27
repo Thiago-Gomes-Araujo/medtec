@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDatabase, saveDatabase } from '@/lib/db';
 import { DatabaseSchema } from '@/types';
 import { verifyAdminSession, validateCsrfOrigin } from '@/lib/auth';
+import { railsApiFetch } from '@/lib/rails-backend';
 
 function isValidDatabaseSchema(body: unknown): body is DatabaseSchema {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -42,6 +43,10 @@ function isValidDatabaseSchema(body: unknown): body is DatabaseSchema {
     return false;
   }
 
+  if (candidate.projects !== undefined && !Array.isArray(candidate.projects)) {
+    return false;
+  }
+
   return true;
 }
 
@@ -57,20 +62,47 @@ export async function GET() {
 
   const data = getDatabase();
 
-  // 2. Nunca envia passwordHash ao cliente
-  // Se for Gestor Geral, envia apenas os campos públicos necessários dos operadores para o UserManager
-  // Se for operador restrito, envia users como array vazio
-  const sanitizedUsers = auth.isGestor
-    ? (data.users || []).map((user) => ({
+  // 2. Se for Gestor Geral, busca os usuários reais da API Rails v1
+  let sanitizedUsers: any[] = [];
+  if (auth.isGestor) {
+    try {
+      const railsRes = await railsApiFetch<{ success: boolean; data: { items: any[] } }>('/usuarios?page=all');
+      if (railsRes.ok && railsRes.data?.data?.items) {
+        sanitizedUsers = railsRes.data.data.items.map((u: any) => {
+          const clean = (u.cpf || '').replace(/\D/g, '').slice(0, 11);
+          const formattedCpf = clean.length === 11
+            ? `${clean.slice(0, 3)}.${clean.slice(3, 6)}.${clean.slice(6, 9)}-${clean.slice(9, 11)}`
+            : u.cpf;
+          return {
+            id: String(u.id),
+            name: u.nome,
+            cpf: formattedCpf,
+            profileType: u.perfil_nome || 'Operador',
+            profileId: u.perfil_id,
+            role: u.perfil_nome === 'Administrador' ? 'gestor' : 'operador',
+            active: u.ativo !== false,
+            createdAt: u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '',
+          };
+        });
+      }
+    } catch {
+      // fallback
+    }
+
+    // Se o Rails não retornou usuários, recorre ao banco local
+    if (sanitizedUsers.length === 0 && data.users) {
+      sanitizedUsers = (data.users || []).map((user) => ({
         id: user.id,
         name: user.name,
         cpf: user.cpf,
         profileType: user.profileType,
+        profileId: user.profileId,
         role: user.role,
         active: user.active !== false,
         createdAt: user.createdAt,
-      }))
-    : [];
+      }));
+    }
+  }
 
   const responseData: DatabaseSchema = {
     ...data,
@@ -116,12 +148,16 @@ export async function PUT(request: Request) {
     // garantindo que nenhum passwordHash seja sobrescrito ou apagado por dados vindos da requisição.
     // O gerenciamento de operadores é exclusivo do endpoint dedicado /api/admin/users.
     body.users = current.users;
+    if (body.projects === undefined) {
+      body.projects = current.projects || [];
+    }
 
     // Se o usuário autenticado não for Gestor Geral, preserva configurações críticas e restringe ao escopo do seu perfil
     if (!auth.isGestor) {
       body.siteInfo = current.siteInfo;
       body.stats = current.stats;
       body.socials = current.socials;
+      body.projects = current.projects;
 
       const profile = auth.profileType;
       if (profile === 'Editor de Notícias') {

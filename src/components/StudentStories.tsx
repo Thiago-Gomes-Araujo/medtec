@@ -95,7 +95,7 @@ export default function StudentStories({ filterCategory = 'Todas' }: StudentStor
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-sky-100 text-[#05549D] dark:bg-cyan-400/15 dark:text-cyan-300">
               {aluno.categoria}
             </span>
-            <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 font-mono">
+            <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <BadgeCheck className="h-4 w-4" />
               Imagem autorizada
             </span>

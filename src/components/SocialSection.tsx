@@ -189,7 +189,7 @@ export default function SocialSection({ socials, showHeader = false }: SocialSec
             href="https://rondonia.ro.gov.br/seduc/programas-e-projetos/projetos/conheca-o-projeto/"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 rounded-xl bg-[#004A99] hover:bg-[#003875] dark:bg-[#00D8FF] dark:hover:bg-[#38BDF8] text-white dark:text-slate-950 font-semibold text-xs flex items-center gap-1.5 shrink-0 transition-all duration-150 ease-out shadow-xs active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF]"
+            className="px-4 py-2 rounded-lg bg-[#004A99] hover:bg-[#003875] dark:bg-sky-600 dark:hover:bg-sky-500 text-white font-semibold text-xs flex items-center gap-1.5 shrink-0 transition-all shadow-xs"
           >
             <span>Ver no Portal SEDUC</span>
             <ExternalLink size={13} />

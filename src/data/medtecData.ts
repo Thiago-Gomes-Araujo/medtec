@@ -232,7 +232,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Distrito de Nazaré (Calha do Madeira)',
     distanciaKm: 135,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'calama-nazare',
     lat: '-8.03° S',
     lon: '-62.86° W'
@@ -248,7 +248,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Distrito de Calama (Foz do Rio Ji-Paraná)',
     distanciaKm: 178,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'calama-nazare',
     lat: '-8.01° S',
     lon: '-62.82° W'
@@ -264,7 +264,7 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra de Alta Densidade',
     comunidade: 'Zona Leste / Bairro Escola de Polícia',
     distanciaKm: 8,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'porto-velho',
     lat: '-8.76° S',
     lon: '-63.88° W'
@@ -280,7 +280,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Distrito de São Carlos do Jamari',
     distanciaKm: 90,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'sao-carlos',
     lat: '-8.45° S',
     lon: '-63.50° W'
@@ -296,7 +296,7 @@ export const escolasData: Escola[] = [
     conexao: 'Rádio Digital / Satélite',
     comunidade: 'Assentamento Rural Rio Pardo',
     distanciaKm: 140,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'porto-velho',
     lat: '-9.42° S',
     lon: '-64.12° W'
@@ -312,7 +312,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Terra Indígena Karitiana',
     distanciaKm: 95,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'porto-velho',
     lat: '-9.25° S',
     lon: '-64.20° W'
@@ -330,7 +330,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Distrito de Surpresa (Encontro Mamoré/Guaporé)',
     distanciaKm: 210,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'surpresa',
     lat: '-11.85° S',
     lon: '-65.35° W'
@@ -346,7 +346,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Comunidade Remanescente de Quilombo Pedras Negras',
     distanciaKm: 260,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'pedras-negras',
     lat: '-12.50° S',
     lon: '-64.30° W'
@@ -362,7 +362,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Terra Indígena Pacaas Novos',
     distanciaKm: 180,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'guajara-mirim',
     lat: '-10.95° S',
     lon: '-65.15° W'
@@ -378,7 +378,7 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra Óptica',
     comunidade: 'Centro Urbano / Calha Mamoré',
     distanciaKm: 330,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'guajara-mirim',
     lat: '-10.78° S',
     lon: '-65.32° W'
@@ -394,7 +394,7 @@ export const escolasData: Escola[] = [
     conexao: 'Rádio Digital',
     comunidade: 'Vila Iata (BR-425)',
     distanciaKm: 310,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'guajara-mirim',
     lat: '-10.60° S',
     lon: '-65.25° W'
@@ -412,7 +412,7 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra rural',
     comunidade: 'Setor de Assentamento Rural Rio Pardo',
     distanciaKm: 200,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'ariquemes',
     lat: '-9.91° S',
     lon: '-63.04° W'
@@ -428,7 +428,7 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra Óptica',
     comunidade: 'Setor 09 / Vale do Jamari',
     distanciaKm: 200,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'ariquemes',
     lat: '-9.93° S',
     lon: '-63.02° W'
@@ -444,7 +444,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Gleba Rio Branco',
     distanciaKm: 240,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'ariquemes',
     lat: '-9.80° S',
     lon: '-63.20° W'
@@ -460,7 +460,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Povoado Jamari das Águas',
     distanciaKm: 215,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'ariquemes',
     lat: '-9.85° S',
     lon: '-62.90° W'
@@ -476,7 +476,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Posto Indígena Alto Jamari',
     distanciaKm: 250,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'ariquemes',
     lat: '-10.15° S',
     lon: '-63.30° W'
@@ -494,7 +494,7 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra rural',
     comunidade: 'Linha 128 / Setor Riachuelo',
     distanciaKm: 375,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'ji-parana',
     lat: '-10.88° S',
     lon: '-61.94° W'
@@ -510,7 +510,7 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra Óptica',
     comunidade: '1º Distrito / Bairro Casa Preta',
     distanciaKm: 375,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'ji-parana',
     lat: '-10.87° S',
     lon: '-61.93° W'
@@ -526,7 +526,7 @@ export const escolasData: Escola[] = [
     conexao: 'Rádio Digital',
     comunidade: 'Distrito de Nova Londrina',
     distanciaKm: 405,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'ji-parana',
     lat: '-11.02° S',
     lon: '-62.10° W'
@@ -542,7 +542,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Comunidade das Balsas / Margem do Machado',
     distanciaKm: 390,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'ji-parana',
     lat: '-10.80° S',
     lon: '-61.98° W'
@@ -558,7 +558,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Terra Indígena Igarapé Lourdes',
     distanciaKm: 420,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'ji-parana',
     lat: '-10.70° S',
     lon: '-61.75° W'
@@ -576,7 +576,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Terra Indígena Sete de Setembro',
     distanciaKm: 510,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'paiter-surui',
     lat: '-11.10° S',
     lon: '-61.20° W'
@@ -592,7 +592,7 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra Óptica',
     comunidade: 'Bairro Teixeirão / Polo do Café',
     distanciaKm: 480,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'cacoal',
     lat: '-11.43° S',
     lon: '-61.44° W'
@@ -608,7 +608,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Linha 11 / Setor Prosperidade',
     distanciaKm: 505,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'cacoal',
     lat: '-11.35° S',
     lon: '-61.35° W'
@@ -624,7 +624,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Aldeia Lapetanha (T.I. Rio Branco)',
     distanciaKm: 495,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'cacoal',
     lat: '-11.25° S',
     lon: '-61.50° W'
@@ -640,7 +640,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Encontro dos Rios / Linha 06',
     distanciaKm: 490,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'cacoal',
     lat: '-11.48° S',
     lon: '-61.40° W'
@@ -658,7 +658,7 @@ export const escolasData: Escola[] = [
     conexao: 'Rádio Digital',
     comunidade: 'Gleba Corumbiara / Linha 184',
     distanciaKm: 700,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'vilhena',
     lat: '-12.74° S',
     lon: '-60.14° W'
@@ -674,7 +674,7 @@ export const escolasData: Escola[] = [
     conexao: 'Fibra Óptica',
     comunidade: 'Setor Jardim Eldorado / Portal da Amazônia',
     distanciaKm: 700,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'vilhena',
     lat: '-12.75° S',
     lon: '-60.12° W'
@@ -690,7 +690,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Assentamento Águas Claras',
     distanciaKm: 730,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'vilhena',
     lat: '-12.90° S',
     lon: '-60.30° W'
@@ -706,7 +706,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Terra Indígena Vale do Guaporé',
     distanciaKm: 750,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'vilhena',
     lat: '-13.10° S',
     lon: '-60.45° W'
@@ -722,7 +722,7 @@ export const escolasData: Escola[] = [
     conexao: 'Satélite Banda Ku',
     comunidade: 'Foz do Rio Cabixi',
     distanciaKm: 780,
-    statusSinal: 'Sinal Síncrono Ativo',
+    statusSinal: 'Conexão Ativa',
     nodeId: 'cabixi',
     lat: '-13.50° S',
     lon: '-60.55° W'

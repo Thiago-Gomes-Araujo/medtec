@@ -5,9 +5,22 @@ import SiteFooter from '@/components/SiteFooter';
 import ProjectsInteractiveStage from '@/components/ProjectsInteractiveStage';
 
 export const metadata: Metadata = {
-  title: 'Missões e Projetos Pedagógicos | MEDTEC Rondônia - SEDUC-RO',
+  title: 'Projetos Pedagógicos e Práticas Escolares | MEDTEC Rondônia - SEDUC-RO',
   description:
-    'Laboratório Vivo de Inovação Aplicada da Mediação Tecnológica em Rondônia. Conheça as missões agroecológicas, científicas, indígenas e tecnológicas desenvolvidas nas salas conectadas dos 52 municípios.',
+    'Projetos pedagógicos e práticas de campo desenvolvidas nas salas de aula do Ensino Médio com Mediação Tecnológica da SEDUC-RO nos 52 municípios de Rondônia.',
+  openGraph: {
+    title: 'Projetos Pedagógicos e Práticas Escolares | MEDTEC Rondônia - SEDUC-RO',
+    description:
+      'Projetos pedagógicos e práticas de campo desenvolvidas nas salas de aula do MEDTEC Rondônia.',
+    type: 'website',
+    locale: 'pt_BR',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Projetos Pedagógicos e Práticas Escolares | MEDTEC Rondônia - SEDUC-RO',
+    description:
+      'Projetos pedagógicos e práticas de campo desenvolvidas nas salas de aula do MEDTEC Rondônia.',
+  },
 };
 
 export default function ProjetosPage() {

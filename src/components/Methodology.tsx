@@ -89,12 +89,11 @@ export default function Methodology() {
         
         {/* ================= 1. CABEÇALHO DA SEÇÃO ================= */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-md bg-sky-50 dark:bg-cyan-950/60 text-[#004A99] dark:text-cyan-300 border border-sky-200 dark:border-cyan-500/20 text-xs sm:text-sm font-bold uppercase tracking-wider">
-            <Sparkles className="h-3.5 w-3.5 text-[#004A99] dark:text-[#00D8FF]" />
-            <span>Passo a Passo da Aula • Fluxo Integrado</span>
-          </div>
+          <p className="text-sm font-semibold text-[#004A99] dark:text-sky-400">
+            Passo a Passo da Aula • Fluxo Integrado
+          </p>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight font-display text-balance">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight font-display text-balance">
             Como funciona a dinâmica do <span className="text-[#004A99] dark:text-[#00D8FF]">MEDTEC Rondônia?</span>
           </h2>
 
@@ -103,27 +102,23 @@ export default function Methodology() {
           </p>
         </div>
 
-        {/* ================= 2. PIPELINE DOS 5 PASSOS COM LINHA ANIMADA ================= */}
+        {/* ================= 2. PIPELINE DOS 5 PASSOS COM LINHA INTEGRADA ================= */}
         <div className="relative">
           
-          {/* Linha tracejada horizontal com pulso luminoso no desktop */}
+          {/* Linha tracejada horizontal base no desktop */}
           <div className="pointer-events-none absolute left-8 right-8 top-[48px] z-0 hidden lg:block h-[2px]">
-            {/* Linha tracejada base */}
-            <div className="w-full h-full border-b border-dashed border-[#004A99]/30 dark:border-[#00D8FF]/30" />
-            
-            {/* Pulso luminoso animado percorrendo do Passo 01 ao Passo 05 */}
-            <div className="absolute top-[-3px] left-0 h-2 w-20 bg-gradient-to-r from-transparent via-[#004A99] dark:via-[#00D8FF] to-transparent rounded-full blur-[1px] animate-[pulseLine_4s_ease-in-out_infinite]" />
+            <div className="w-full h-full border-b border-dashed border-slate-300 dark:border-white/20" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-stretch relative z-10">
             {steps.map((item, idx) => (
               <div key={item.step} className="relative group h-full">
-                <div className="glow-card relative flex w-full flex-col justify-between rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-4.5 backdrop-blur-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:border-[#004A99] dark:hover:border-[#00D8FF] shadow-xs hover:shadow-md dark:shadow-md">
+                <div className="relative flex w-full flex-col justify-between rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4 sm:p-5 transition-all duration-200 ease-out hover:-translate-y-1 hover:border-[#004A99] dark:hover:border-[#00D8FF] shadow-xs hover:shadow-md dark:shadow-md">
                   
                   <div className="space-y-3">
                     {/* Topo: Número e Ícone Alinhados */}
                     <div className="flex items-center justify-between">
-                      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#004A99] to-[#0284C7] dark:from-[#00D8FF] dark:to-[#0284C7] flex items-center justify-center text-white dark:text-[#040B16] font-bold font-mono text-xs shadow-xs tabular-nums">
+                      <span className="w-8 h-8 rounded-lg bg-[#004A99] dark:bg-[#00D8FF] flex items-center justify-center text-white dark:text-[#040B16] font-bold text-xs shadow-xs tabular-nums">
                         {item.step}
                       </span>
 
@@ -165,10 +160,10 @@ export default function Methodology() {
             {/* Coluna da Esquerda (7 cols): Educadores em Destaque */}
             <div className="lg:col-span-7 space-y-4">
               <div>
-                <div className="inline-flex items-center gap-2 text-xs font-mono font-bold text-[#004A99] dark:text-[#00D8FF] uppercase tracking-wider mb-1">
+                <p className="text-xs font-semibold text-[#004A99] dark:text-sky-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                   <Users2 className="h-4 w-4" />
                   <span>Quem Faz Acontecer na Ponta • Da Capital às Comunidades</span>
-                </div>
+                </p>
                 <h3 className="font-display text-lg sm:text-xl font-bold text-slate-900 dark:text-white text-balance">
                   Corpo Docente Especialista &amp; Professores Mediadores
                 </h3>
@@ -187,10 +182,10 @@ export default function Methodology() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         {/* Avatar suave em azul institucional */}
-                        <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-cyan-950/80 border border-sky-300 dark:border-cyan-400/40 text-[#004A99] dark:text-[#00D8FF] flex items-center justify-center font-mono font-bold text-xs shadow-xs">
+                        <div className="w-8 h-8 rounded-lg bg-sky-100 dark:bg-cyan-950/80 border border-sky-300 dark:border-cyan-400/40 text-[#004A99] dark:text-[#00D8FF] flex items-center justify-center font-bold text-xs shadow-xs">
                           {edu.initials}
                         </div>
-                        <span className="text-[9px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-[#0C1E38] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 truncate max-w-[110px]">
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-[#0C1E38] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 truncate max-w-[110px]">
                           {edu.tag}
                         </span>
                       </div>
@@ -212,17 +207,17 @@ export default function Methodology() {
               </div>
             </div>
 
-            {/* Coluna da Direita (5 cols): Atalho para o Radar Territorial */}
+            {/* Coluna da Direita (5 cols): Atalho para o Mapa Escolar */}
             <div className="lg:col-span-5 h-full">
-              <div className="h-full rounded-xl bg-gradient-to-br from-[#004A99] via-[#053D7A] to-[#0A2540] dark:from-[#061224] dark:via-[#091E3A] dark:to-[#040D1A] text-white p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-sm border border-cyan-400/20">
+              <div className="h-full rounded-xl bg-gradient-to-br from-[#004A99] via-[#053D7A] to-[#0A2540] dark:from-[#061224] dark:via-[#091E3A] dark:to-[#040D1A] text-white p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-sm border border-sky-400/20">
                 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-cyan-400/20 text-cyan-200 border border-cyan-400/30">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-white/10 text-white border border-white/20">
                       <Compass className="h-3.5 w-3.5" />
-                      REDE ESTADUAL CONECTADA
+                      Rede Estadual Conectada
                     </span>
-                    <span className="text-[11px] font-mono text-emerald-400 font-bold tabular-nums">
+                    <span className="text-xs text-emerald-400 font-semibold tabular-nums">
                       100% Cobertura
                     </span>
                   </div>
@@ -238,13 +233,13 @@ export default function Methodology() {
 
                 <div className="space-y-4">
                   {/* Indicadores rápidos */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 font-mono text-xs">
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 text-xs">
                     <div>
-                      <p className="text-cyan-300 font-black text-lg tabular-nums">6.000+</p>
+                      <p className="text-sky-300 font-bold text-lg tabular-nums">6.000+</p>
                       <p className="text-[10px] text-slate-300">Jovens Atendidos</p>
                     </div>
                     <div>
-                      <p className="text-cyan-300 font-black text-lg tabular-nums">129 Polos</p>
+                      <p className="text-sky-300 font-bold text-lg tabular-nums">129 Polos</p>
                       <p className="text-[10px] text-slate-300">Salas Conectadas</p>
                     </div>
                   </div>
@@ -256,7 +251,7 @@ export default function Methodology() {
                   >
                     <span className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-[#004A99]" />
-                      <span>Explorar Radar de Escolas Conectadas</span>
+                      <span>Explorar Mapa das Escolas Conectadas</span>
                     </span>
                     <ArrowRight className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-1" />
                   </Link>

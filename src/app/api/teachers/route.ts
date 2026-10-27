@@ -27,7 +27,10 @@ export async function GET(request: Request) {
       total: items.length,
       items,
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'digest' in error && (error as { digest?: string }).digest === 'NEXT_PRERENDER_INTERRUPTED') {
+      throw error;
+    }
     console.error('Erro na rota /api/teachers:', error);
     return NextResponse.json({ success: false, error: 'Falha ao buscar professores' }, { status: 500 });
   }

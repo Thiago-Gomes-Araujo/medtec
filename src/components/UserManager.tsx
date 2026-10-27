@@ -15,11 +15,9 @@ import {
   FileText, 
   Image as ImageIcon, 
   Bell, 
-  Sparkles,
   X
 } from 'lucide-react';
 import { UserAccount, UserProfileType } from '@/types';
-import Badge3D from '@/components/Badge3D';
 import { sanitizeSearchInput } from '@/lib/security';
 
 interface UserManagerProps {
@@ -27,30 +25,27 @@ interface UserManagerProps {
   onRefreshUsers: () => Promise<void> | void;
 }
 
-const PROFILE_OPTIONS: { type: UserProfileType; label: string; desc: string; icon: React.ElementType }[] = [
+const PROFILE_OPTIONS: { id: number; type: UserProfileType; label: string; desc: string; icon: React.ElementType }[] = [
   {
-    type: 'Editor de Notícias',
-    label: 'Editor de Notícias',
-    desc: 'Publica e edita reportagens e coberturas de polos',
+    id: 1,
+    type: 'Jornalista',
+    label: 'Jornalista / Notícias',
+    desc: 'Publica e edita reportagens, comunicados e coberturas de polos',
     icon: FileText,
   },
   {
-    type: 'Curador de Fotos',
-    label: 'Curador de Fotos',
-    desc: 'Adiciona fotos da galeria e banners do site',
-    icon: ImageIcon,
+    id: 2,
+    type: 'Gestor',
+    label: 'Gestor Operacional',
+    desc: 'Supervisão pedagógica, acompanhamento de alunos e polos',
+    icon: Users,
   },
   {
-    type: 'Publicador de Avisos',
-    label: 'Publicador de Avisos',
-    desc: 'Publica e gerencia avisos urgentes e informativos',
-    icon: Bell,
-  },
-  {
-    type: 'Operador de Conteúdo',
-    label: 'Operador de Conteúdo',
-    desc: 'Acesso completo a notícias, fotos e avisos (sem gestão de usuários)',
-    icon: Sparkles,
+    id: 3,
+    type: 'Administrador',
+    label: 'Administrador do Sistema',
+    desc: 'Acesso completo ao painel administrativo e gestão de contas',
+    icon: ShieldCheck,
   },
 ];
 
@@ -66,7 +61,7 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
   // Estados do formulário de cadastro
   const [name, setName] = useState('');
   const [cpf, setCpf] = useState('');
-  const [profileType, setProfileType] = useState<UserProfileType>('Operador de Conteúdo');
+  const [selectedProfileId, setSelectedProfileId] = useState<number>(1);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -115,29 +110,31 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
 
     setSubmitting(true);
     try {
+      const selectedOption = PROFILE_OPTIONS.find((p) => p.id === selectedProfileId) || PROFILE_OPTIONS[0];
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
           cpf,
-          profileType,
+          profileId: selectedProfileId,
+          profileType: selectedOption.type,
           password,
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        setErrorMessage(data.error || 'Erro ao cadastrar operador');
+        setErrorMessage(data.error || 'Erro ao cadastrar usuário');
         return;
       }
 
-      setSuccessMessage('Operador cadastrado com sucesso!');
+      setSuccessMessage('Usuário cadastrado com sucesso!');
       setName('');
       setCpf('');
       setPassword('');
       setConfirmPassword('');
-      setProfileType('Operador de Conteúdo');
+      setSelectedProfileId(1);
       await onRefreshUsers();
 
       setTimeout(() => setSuccessMessage(''), 4000);
@@ -248,15 +245,10 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
       <div className="rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Badge3D variant="pill">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span>Controle de Acessos Operacionais</span>
-              </Badge3D>
-              <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">
-                • SEDUC-RO
-              </span>
-            </div>
+            <p className="text-xs font-semibold text-[#004A99] dark:text-sky-400 flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Controle de Acessos Operacionais • SEDUC-RO
+            </p>
             <h2 className="text-xl sm:text-2xl font-bold font-display text-slate-900 dark:text-white pt-1">
               Gestão de Usuários Operadores
             </h2>
@@ -349,15 +341,15 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
               Tipo de Perfil &amp; Atribuição <span className="text-rose-500">*</span>
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {PROFILE_OPTIONS.map((opt) => {
                 const Icon = opt.icon;
-                const isSelected = profileType === opt.type;
+                const isSelected = selectedProfileId === opt.id;
                 return (
                   <button
                     type="button"
-                    key={opt.type}
-                    onClick={() => setProfileType(opt.type)}
+                    key={opt.id}
+                    onClick={() => setSelectedProfileId(opt.id)}
                     className={`p-3.5 rounded-xl border text-left transition-all duration-150 ease-out cursor-pointer active:scale-[0.98] touch-manipulation select-none flex flex-col justify-between ${
                       isSelected
                         ? 'border-[#004A99] dark:border-[#00D8FF] bg-[#004A99]/5 dark:bg-[#00D8FF]/10 ring-1 ring-[#004A99] dark:ring-[#00D8FF]'
@@ -495,7 +487,7 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
                       {/* Nome e Avatar */}
                       <td className="py-3.5 px-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#004A99]/10 dark:bg-[#00D8FF]/10 text-[#004A99] dark:text-[#00D8FF] font-mono font-bold text-xs border border-[#004A99]/20">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#004A99]/10 dark:bg-[#00D8FF]/10 text-[#004A99] dark:text-[#00D8FF] font-mono font-bold text-xs border border-[#004A99]/20">
                             {user.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
@@ -534,7 +526,7 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
                         >
                           <span
                             className={`h-1.5 w-1.5 rounded-full ${
-                              isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                              isActive ? 'bg-emerald-500' : 'bg-slate-400'
                             }`}
                           />
                           <span>{isActive ? 'Ativo' : 'Inativo'}</span>

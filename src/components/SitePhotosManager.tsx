@@ -2,16 +2,17 @@
 
 import React, { useState } from 'react';
 import { DatabaseSchema } from '@/types';
-import { ChevronDown, ChevronUp, Image as ImageIcon, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, ChevronUp, Image as ImageIcon, Trash2, Upload, Eye } from 'lucide-react';
 import { BannerItem } from '@/types';
 
 interface SitePhotosManagerProps {
   data: DatabaseSchema;
   saving: boolean;
   onSave: (next: DatabaseSchema) => void;
+  onPreview?: (banner: BannerItem) => void;
 }
 
-export default function SitePhotosManager({ data, saving, onSave }: SitePhotosManagerProps) {
+export default function SitePhotosManager({ data, saving, onSave, onPreview }: SitePhotosManagerProps) {
   const [busy, setBusy] = useState<string | null>(null);
 
   const upload = async (file: File) => {
@@ -51,6 +52,7 @@ export default function SitePhotosManager({ data, saving, onSave }: SitePhotosMa
         banners={data.banners || []}
         busy={busy}
         saving={saving}
+        onPreview={onPreview}
         onChange={(banners) => onSave({ ...data, banners })}
         onUpload={(file) =>
           replace('banner-novo', file, (url) => ({
@@ -141,12 +143,14 @@ function BannerCarousel({
   saving,
   onChange,
   onUpload,
+  onPreview,
 }: {
   banners: BannerItem[];
   busy: string | null;
   saving: boolean;
   onChange: (banners: BannerItem[]) => void;
   onUpload: (file: File | undefined) => void;
+  onPreview?: (banner: BannerItem) => void;
 }) {
   const [link, setLink] = useState('');
 
@@ -196,6 +200,17 @@ function BannerCarousel({
                 </button>
               </form>
               <div className="flex items-center gap-1">
+                {onPreview && (
+                  <button
+                    type="button"
+                    aria-label="Ver prévia no site"
+                    onClick={() => onPreview(banner)}
+                    className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40 p-2 text-sky-700 dark:text-sky-300 hover:bg-sky-100 transition cursor-pointer"
+                    title="Ver como fica no Hero da Home"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   type="button"
                   aria-label="Subir banner"

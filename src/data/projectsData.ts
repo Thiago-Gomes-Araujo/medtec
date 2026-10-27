@@ -8,7 +8,7 @@ export interface ReplicationWeek {
 export interface ProjectMission {
   id: string;
   number: string; // '01', '02', etc.
-  missionCode: string; // 'MISSÃO #01'
+  missionCode: string; // 'Projeto 01'
   title: string;
   shortTitle: string;
   track: 'Agroecologia & NBAZ' | 'Ciência na Amazônia' | 'Saberes Indígenas & História' | 'Tecnologia Solar & Robótica';
@@ -49,7 +49,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
   {
     id: 'missao-01-agroflorestas-nazare',
     number: '01',
-    missionCode: 'MISSÃO #01',
+    missionCode: 'Projeto 01',
     title: 'Sistemas Agroflorestais & Hortas Suspensas em Jirau',
     shortTitle: 'Hortas em Jirau & Agrofloresta',
     track: 'Agroecologia & NBAZ',
@@ -118,7 +118,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
   {
     id: 'missao-02-etnoecologia-paiter-surui',
     number: '02',
-    missionCode: 'MISSÃO #02',
+    missionCode: 'Projeto 02',
     title: 'Etnoecologia & Cartografia Digital Paiter Suruí',
     shortTitle: 'Cartografia Digital & Saberes Suruí',
     track: 'Saberes Indígenas & História',
@@ -187,7 +187,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
   {
     id: 'missao-03-monitoramento-igarape-guajara',
     number: '03',
-    missionCode: 'MISSÃO #03',
+    missionCode: 'Projeto 03',
     title: 'Monitoramento Participativo de Igarapés e Bacia do Mamoré',
     shortTitle: 'Qualidade da Água & Bacia do Mamoré',
     track: 'Ciência na Amazônia',
@@ -256,7 +256,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
   {
     id: 'missao-04-estacao-solar-calama',
     number: '04',
-    missionCode: 'MISSÃO #04',
+    missionCode: 'Projeto 04',
     title: 'Estação Solar Fotovoltaica & Irrigação por Microcontrolador',
     shortTitle: 'Automação Solar & Robótica Verde',
     track: 'Tecnologia Solar & Robótica',
@@ -325,7 +325,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
   {
     id: 'missao-05-piscicultura-jiparana',
     number: '05',
-    missionCode: 'MISSÃO #05',
+    missionCode: 'Projeto 05',
     title: 'Piscicultura Sustentável e Biometria de Pirarucu e Tambaqui',
     shortTitle: 'Biometria de Peixes & Nutrição',
     track: 'Agroecologia & NBAZ',
@@ -394,7 +394,7 @@ export const PROJECTS_DATA: ProjectMission[] = [
   {
     id: 'missao-06-estrada-ferro-madeira-mamore',
     number: '06',
-    missionCode: 'MISSÃO #06',
+    missionCode: 'Projeto 06',
     title: 'Mapeamento Memória Viva da Estrada de Ferro Madeira-Mamoré',
     shortTitle: 'Memória Oral da Ferrovia do Diabo',
     track: 'Saberes Indígenas & História',

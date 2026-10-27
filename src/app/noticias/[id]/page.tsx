@@ -62,7 +62,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
       {/* Breadcrumb Técnico */}
       <div className="relative overflow-hidden bg-gradient-to-r from-[#05549D] via-[#072F5E] to-[#0A3D73] dark:from-[#040D1A] dark:via-[#07162C] dark:to-[#040D1A] py-3.5 border-b border-sky-400/30 dark:border-[#1A365D] text-white">
         <div className="hero-grid absolute inset-0 opacity-30 pointer-events-none" />
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-2 text-xs font-mono text-sky-100 dark:text-slate-300">
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-2 text-xs font-medium text-sky-100 dark:text-slate-300">
           <Link href="/" className="hover:text-white hover:underline transition-colors">
             Início
           </Link>
@@ -86,7 +86,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
           <div>
             <Link
               href="/noticias"
-              className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-[#05549D] dark:text-[#00D8FF] hover:underline group cursor-pointer active:scale-[0.97] transition-all duration-150 ease-out touch-manipulation select-none"
+              className="inline-flex items-center gap-2 text-xs font-semibold text-[#05549D] dark:text-[#00D8FF] hover:underline group cursor-pointer active:scale-[0.97] transition-all duration-150 ease-out touch-manipulation select-none"
             >
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
               <span>Voltar para todas as notícias</span>
@@ -96,16 +96,16 @@ export default async function NoticiaDetalhePage({ params }: Props) {
           {/* Categoria e Título */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md border border-sky-300 dark:border-cyan-400/30 bg-sky-50 dark:bg-[#0C1E38] text-[#05549D] dark:text-[#00D8FF] text-xs font-mono font-semibold uppercase tracking-wider">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md border border-sky-300 dark:border-cyan-400/30 bg-sky-50 dark:bg-[#0C1E38] text-[#05549D] dark:text-[#00D8FF] text-xs font-semibold uppercase tracking-wider">
                 <Radio className="h-3 w-3 text-emerald-500 dark:text-emerald-400 animate-pulse" />
                 {newsItem.category || 'Geral'}
               </span>
-              <span className="text-xs font-mono text-slate-500 dark:text-[#6482A6] font-semibold">
+              <span className="text-xs text-slate-500 dark:text-[#6482A6] font-semibold">
                 Cobertura Oficial • SEDUC-RO
               </span>
             </div>
 
-            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-[#E6F4FF] leading-tight tracking-tight text-balance">
+            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 dark:text-[#E6F4FF] leading-tight tracking-tight text-balance">
               {newsItem.title}
             </h1>
 
@@ -152,7 +152,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
               {newsItem.tags.map((tag, idx) => (
                 <span
                   key={idx}
-                  className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-400 text-xs font-mono font-semibold rounded-lg"
+                  className="px-3 py-1 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-400 text-xs font-semibold rounded-lg"
                 >
                   #{tag}
                 </span>

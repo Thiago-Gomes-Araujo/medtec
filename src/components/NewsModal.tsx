@@ -44,6 +44,8 @@ export default function NewsModal({ news, onClose }: NewsModalProps) {
           <img
             src={news.coverImage}
             alt={news.title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-4">

@@ -1,20 +1,21 @@
 import type { Metadata } from 'next';
-import { JetBrains_Mono, Manrope, Space_Grotesk } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-const manrope = Manrope({
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
   preload: true,
+  weight: ['400', '500', '600', '700', '800'],
 });
 
-const spaceGrotesk = Space_Grotesk({
+const interDisplay = Inter({
   subsets: ['latin'],
   variable: '--font-display',
-  weight: ['400', '500', '600', '700'],
   display: 'swap',
   preload: true,
+  weight: ['600', '700', '800'],
 });
 
 const jetbrains = JetBrains_Mono({
@@ -76,10 +77,12 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       suppressHydrationWarning
-      className={`${manrope.variable} ${spaceGrotesk.variable} ${jetbrains.variable} scroll-smooth overflow-x-hidden max-w-[100vw]`}
+      className={`${inter.variable} ${interDisplay.variable} ${jetbrains.variable} scroll-smooth overflow-x-hidden max-w-[100vw]`}
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="icon" href="/favicon.ico" />
         <script
           dangerouslySetInnerHTML={{
@@ -101,7 +104,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="site-mesh min-h-screen text-[#0B1B30] dark:text-[#E6F4FF] font-sans antialiased selection:bg-cyan-400 selection:text-slate-950 flex flex-col transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
+      <body className="bg-[#F8FAFC] dark:bg-[#0B1528] min-h-screen text-[#0F172A] dark:text-[#F8FAFC] font-sans antialiased selection:bg-[#004A99] selection:text-white dark:selection:bg-[#38BDF8] dark:selection:text-slate-900 flex flex-col transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
         {children}
       </body>
     </html>

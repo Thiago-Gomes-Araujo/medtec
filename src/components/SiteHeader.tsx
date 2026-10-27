@@ -7,7 +7,6 @@ import {
   GraduationCap, 
   Menu, 
   X, 
-  ShieldCheck, 
   ChevronDown, 
   ExternalLink,
   Moon,
@@ -19,7 +18,6 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import ExecutiveDossierModal from './ExecutiveDossierModal';
 
 interface SiteHeaderProps {
   onOpenPitchModal?: () => void;
@@ -28,9 +26,6 @@ interface SiteHeaderProps {
 export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inicioDropdownOpen, setInicioDropdownOpen] = useState(false);
-  const [dossieOpen, setDossieOpen] = useState(false);
-  const [dossieInitialTab, setDossieInitialTab] = useState(0);
-
   // Estado local reativo sincronizado com o DOM e localStorage (padrão Claro / SEDUC)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
@@ -166,16 +161,6 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
     }, 200);
   };
 
-  const handleOpenDossie = (tabIndex = 0) => {
-    setDossieInitialTab(tabIndex);
-    setInicioDropdownOpen(false);
-    setMobileMenuOpen(false);
-    if (onOpenPitchModal) {
-      onOpenPitchModal();
-    }
-    setDossieOpen(true);
-  };
-
   const handleNavClick = (to: string, e?: React.MouseEvent) => {
     setInicioDropdownOpen(false);
     setMobileMenuOpen(false);
@@ -272,20 +257,17 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             <Link
               href="/"
               aria-label="Voltar para a página inicial do MEDTEC Rondônia"
-              className="flex min-w-0 items-center gap-3 group shrink-0 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-cyan-400 rounded-lg p-1"
+              className="flex min-w-0 items-center gap-3 group shrink-0 cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-sky-400 rounded-lg p-1"
             >
-              <span className="relative grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-cyan-400 via-sky-500 to-blue-600 text-slate-950 shadow-md transition-colors">
+              <span className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-lg bg-[#004A99] text-white shadow-xs transition-colors">
                 <GraduationCap className="h-5 w-5" />
-                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-cyan-300">
-                  <span className="absolute inset-0 rounded-full bg-cyan-300 opacity-75" />
-                </span>
               </span>
               <span className="min-w-0 leading-tight select-none">
-                <span className="block truncate font-display text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-cyan-200 transition-colors whitespace-nowrap">
+                <span className="block truncate font-display text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-[#004A99] dark:group-hover:text-sky-300 transition-colors whitespace-nowrap">
                   MEDTEC Rondônia
                 </span>
-                <span className="block truncate font-mono text-[9px] sm:text-[10px] uppercase tracking-wider text-[#05549D] dark:text-cyan-300 font-bold whitespace-nowrap">
-                  SEDUC • SINAL ATIVO
+                <span className="block truncate text-[10px] sm:text-[11px] uppercase tracking-wider text-[#004A99] dark:text-sky-400 font-semibold whitespace-nowrap">
+                  SEDUC-RO • Governo de Rondônia
                 </span>
               </span>
             </Link>
@@ -359,7 +341,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                           <div className="col-span-5 flex flex-col justify-between rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/60 p-4 text-left transition-colors">
                             <div>
                               {/* Badge de Sinal */}
-                              <div className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 dark:border-cyan-400/20 bg-sky-100/60 dark:bg-cyan-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#004A99] dark:text-[#00D8FF]">
+                              <div className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 dark:border-cyan-400/20 bg-sky-100/60 dark:bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-[#004A99] dark:text-[#00D8FF]">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-cyan-400" />
                                 Sinal Satelital Ativo • Banda Ku
                               </div>
@@ -386,23 +368,23 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                                 <span>Ver Transmissão</span>
                                 <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform duration-150 ease-out" />
                               </Link>
-                              <button
-                                type="button"
-                                onClick={() => handleOpenDossie(1)}
+                              <Link
+                                href="/transparencia"
+                                onClick={(e) => handleNavClick('/transparencia', e)}
                                 className="text-[11px] font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white cursor-pointer active:scale-[0.96] transition-transform duration-150 ease-out"
                               >
-                                Dossiê Executivo
-                              </button>
+                                Transparência
+                              </Link>
                             </div>
                           </div>
 
                           {/* COLUNA DIREITA (ATALHOS RÁPIDOS: 60% / 7 colunas) */}
                           <div className="col-span-7 flex flex-col justify-between">
                             <div className="mb-2 flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
-                              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                                 Páginas &amp; Seções do Programa
                               </span>
-                              <span className="font-mono text-[10px] tabular-nums text-slate-500 dark:text-slate-400">{megaMenuShortcuts.length} itens</span>
+                              <span className="text-[10px] font-medium tabular-nums text-slate-500 dark:text-slate-400">{megaMenuShortcuts.length} itens</span>
                             </div>
 
                             <div className="grid gap-1.5">
@@ -462,16 +444,13 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
               <Link
                 href="/ao-vivo"
                 onClick={(e) => handleNavClick('/ao-vivo', e)}
-                className={`group inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition-all duration-150 ease-out whitespace-nowrap ml-0.5 touch-manipulation select-none active:scale-[0.96] ${
+                className={`group inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all duration-150 ease-out whitespace-nowrap ml-0.5 touch-manipulation select-none active:scale-[0.96] ${
                   pathname === '/ao-vivo' || pathname === '/redes'
-                    ? 'bg-rose-500/15 text-rose-600 dark:text-rose-300'
-                    : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10'
+                    ? 'bg-rose-600 text-white'
+                    : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
                 }`}
               >
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
-                </span>
+                <Radio className="h-3 w-3" />
                 <span>Ao Vivo</span>
               </Link>
 
@@ -495,19 +474,10 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
               )}
             </button>
 
-            {/* 2. BOTÃO DOSSIÊ EXECUTIVO */}
-            <button
-              onClick={() => handleOpenDossie(0)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-100/80 dark:bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-white/10 active:scale-[0.96] transition-all duration-150 ease-out cursor-pointer backdrop-blur-sm whitespace-nowrap touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-cyan-400"
-            >
-              <ShieldCheck className="h-3.5 w-3.5 text-[#004A99] dark:text-[#00D8FF]" />
-              <span>Dossiê</span>
-            </button>
-
-            {/* 3. CTA PAINEL GESTOR */}
+            {/* 2. CTA PAINEL GESTOR */}
             <Link
               href="/admin"
-              className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-[#004A99] hover:bg-[#003875] dark:bg-[#00D8FF] dark:hover:bg-[#38BDF8] text-white dark:text-slate-950 font-bold px-3.5 py-1.5 text-xs active:scale-[0.96] transition-all duration-150 ease-out shadow-xs whitespace-nowrap touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF]"
+              className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg bg-[#004A99] hover:bg-[#003875] dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-bold px-3.5 py-1.5 text-xs active:scale-[0.96] transition-all duration-150 ease-out shadow-xs whitespace-nowrap touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-sky-400"
             >
               <span>Painel Gestor</span>
               <ExternalLink className="h-3 w-3 opacity-75 group-hover:translate-x-0.5 transition-transform duration-150 ease-out" />
@@ -555,7 +525,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             
             {/* Submenu da Página Inicial */}
             <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/60 p-3 space-y-1">
-              <p className="px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] font-bold">
+              <p className="px-2 py-1 text-[10px] uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] font-bold">
                 Início &amp; Páginas Estruturantes
               </p>
               {megaMenuShortcuts.map((sec) => {
@@ -584,7 +554,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
 
             {/* Links Centrais Mobile */}
             <div className="grid gap-1 pt-1">
-              <p className="px-3 pt-1 font-mono text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+              <p className="px-3 pt-1 text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
                 Navegação Geral
               </p>
               <Link
@@ -618,18 +588,10 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
 
             {/* Ações Mobile */}
             <div className="pt-2 flex flex-col gap-2 border-t border-slate-200 dark:border-white/10">
-              <button
-                onClick={() => handleOpenDossie(0)}
-                className="flex w-full items-center justify-center min-h-[44px] gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-3.5 py-2.5 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation select-none"
-              >
-                <ShieldCheck className="h-4 w-4 text-[#004A99] dark:text-[#00D8FF]" />
-                <span>Dossiê Executivo</span>
-              </button>
-
               <Link
                 href="/admin"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex w-full items-center justify-center min-h-[44px] gap-2 rounded-xl bg-[#004A99] hover:bg-[#003875] dark:bg-[#00D8FF] dark:hover:bg-[#38BDF8] text-white dark:text-slate-950 font-bold px-3.5 py-2.5 text-xs uppercase tracking-wide shadow-xs active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation select-none"
+                className="flex w-full items-center justify-center min-h-[44px] gap-2 rounded-xl bg-[#004A99] hover:bg-[#003875] dark:bg-sky-500 dark:hover:bg-sky-400 text-white dark:text-slate-950 font-bold px-3.5 py-2.5 text-xs uppercase tracking-wide shadow-xs active:scale-[0.98] transition-all duration-150 ease-out touch-manipulation select-none"
               >
                 <span>Acessar Painel Gestor</span>
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -638,13 +600,6 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
           </nav>
         )}
       </header>
-
-      {/* ================= MODAL EXECUTIVO DOSSIÊ DO PROJETO ================= */}
-      <ExecutiveDossierModal
-        isOpen={dossieOpen}
-        onClose={() => setDossieOpen(false)}
-        initialTab={dossieInitialTab}
-      />
     </>
   );
 }

@@ -37,7 +37,7 @@ export default function NewsGrid({ news = [], limit, filter = false }: NewsGridP
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
+              className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                 selectedCategory === cat
                   ? 'bg-[#004A99] text-white shadow-xs dark:bg-[#00D8FF] dark:text-slate-950 font-bold'
                   : 'border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5'
@@ -71,6 +71,8 @@ export default function NewsGrid({ news = [], limit, filter = false }: NewsGridP
                       src={item.coverImage || '/hero.jpg'}
                       alt={item.title}
                       loading="lazy"
+                      decoding="async"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="h-full w-full object-cover transition-opacity duration-300"
                     />
                   </div>

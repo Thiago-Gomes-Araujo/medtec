@@ -298,7 +298,7 @@ export default function ExecutiveDossierModal({
                       {/* Conector Seta */}
                       <div className="flex justify-center -my-1">
                         <span className="flex items-center gap-1.5 font-mono text-[10px] text-cyan-400/80 bg-[#0C1E38] px-3 py-0.5 rounded-md border border-cyan-500/20">
-                          <ArrowDown className="h-2.5 w-2.5 text-cyan-400" /> Uplink de Telemetria Criptografado
+                          <ArrowDown className="h-2.5 w-2.5 text-cyan-400" /> Transmissão Direta de Estúdio
                         </span>
                       </div>
 
@@ -310,10 +310,10 @@ export default function ExecutiveDossierModal({
                           </div>
                           <div className="flex-1 min-w-0">
                             <span className="font-mono text-[10px] font-bold text-sky-300 uppercase tracking-wider">
-                              ETAPA 02 • DISTRIBUIÇÃO AEROESPACIAL
+                              ETAPA 02 • DISTRIBUIÇÃO VIA SATÉLITE
                             </span>
                             <h4 className="text-sm font-bold text-white mt-0.5">
-                              2. Uplink Satélite Banda Ku
+                              2. Transmissão Via Satélite Banda Ku
                             </h4>
                             <p className="text-xs text-slate-300 mt-1 leading-relaxed">
                               Sinal transmitido para satélite geoestacionário com cobertura contínua sobre a Amazônia Ocidental, garantindo estabilidade e disponibilidade técnica imune a rompimentos terrestres de fibra óptica.
@@ -410,15 +410,15 @@ export default function ExecutiveDossierModal({
                       </div>
                     </div>
 
-                    {/* Botão de radar cartográfico */}
+                    {/* Botão de mapa de escolas */}
                     <div className="pt-2">
                       <Link
                         href="/mapa"
                         onClick={onClose}
-                        className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-400 to-cyan-300 px-5 py-3 text-xs font-bold text-slate-950 shadow-[0_0_20px_rgba(0,216,255,0.4)] transition-all hover:brightness-110 active:scale-[0.97] touch-manipulation select-none"
+                        className="group inline-flex items-center gap-2 rounded-lg bg-[#004A99] dark:bg-sky-500 px-5 py-2.5 text-xs font-bold text-white dark:text-slate-950 shadow-sm transition-all hover:opacity-90 active:scale-[0.97] touch-manipulation select-none"
                       >
                         <MapPin className="h-4 w-4" />
-                        <span>Abrir Radar Cartográfico de Escolas</span>
+                        <span>Abrir Mapa de Escolas</span>
                         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                       </Link>
                     </div>

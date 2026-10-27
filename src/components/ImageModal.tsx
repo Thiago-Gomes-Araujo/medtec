@@ -49,10 +49,10 @@ export default function ImageModal({ photo, onClose }: ImageModalProps) {
 
         <div className="p-4 sm:p-5 bg-slate-900 text-white space-y-2 border-t border-slate-800">
           <div className="flex items-center justify-between gap-4">
-            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950">
+            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-semibold tracking-wide bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950">
               {photo.category}
             </span>
-            <span className="text-xs text-slate-400 flex items-center gap-1 font-medium font-mono tabular-nums">
+            <span className="text-xs text-slate-400 flex items-center gap-1 font-medium tabular-nums">
               <Calendar size={13} />
               {photo.date}
             </span>
