@@ -1,23 +1,21 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  ArrowRight,
   Check,
+  CheckCircle2,
   FileText,
   Paperclip,
   Clock,
   FileCheck,
-  Loader2
+  Loader2,
+  ExternalLink,
+  Search,
+  AlertCircle,
+  X,
+  Inbox
 } from 'lucide-react';
-import { ItemEditorial, EtapaEditorial } from '@/types';
-
-const ETAPAS_EDITORIAIS: EtapaEditorial[] = [
-  'Rascunho',
-  'Revisão Jurídica/LGPD',
-  'Aprovado',
-  'Publicado'
-];
+import { NewsItem } from '@/types';
 
 interface AuditLog {
   data: string;
@@ -25,31 +23,49 @@ interface AuditLog {
   titulo: string;
 }
 
-export default function EditorialKanban() {
-  const [itens, setItens] = useState<ItemEditorial[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [historico, setHistorico] = useState<AuditLog[]>([]);
+interface EditorialKanbanProps {
+  news?: NewsItem[];
+  onApproveNews?: (newsId: string) => Promise<boolean>;
+  isGestor?: boolean;
+}
 
+export default function EditorialKanban({
+  news: propNews,
+  onApproveNews,
+  isGestor = true,
+}: EditorialKanbanProps) {
+  // Estado local para quando os dados não forem injetados via props
+  const [internalNews, setInternalNews] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState<'pendentes' | 'publicadas' | 'todas' | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; item: NewsItem | null }>({
+    isOpen: false,
+    item: null,
+  });
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [historico, setHistorico] = useState<AuditLog[]>([
+    {
+      data: new Date().toLocaleDateString('pt-BR'),
+      acao: 'Painel Carregado',
+      titulo: 'Sincronização com o CMS Central',
+    },
+  ]);
+
+  // Se propNews não estiver definido, busca da API
   useEffect(() => {
+    if (propNews && propNews.length > 0) return;
+
     let isMounted = true;
-    async function loadEditorial() {
+    async function loadFromApi() {
       setLoading(true);
       try {
         const res = await fetch('/api/editorial');
         if (res.ok) {
           const data = await res.json();
-          if (isMounted) {
-            const list: ItemEditorial[] = data.items || [];
-            setItens(list);
-            if (list.length > 0) {
-              setHistorico([
-                {
-                  data: new Date().toLocaleDateString('pt-BR'),
-                  acao: 'Carregado do CMS Central',
-                  titulo: list[0]?.titulo || 'Registro de Pauta',
-                },
-              ]);
-            }
+          if (isMounted && data.news) {
+            setInternalNews(data.news);
           }
         }
       } catch (err) {
@@ -58,205 +74,548 @@ export default function EditorialKanban() {
         if (isMounted) setLoading(false);
       }
     }
-    loadEditorial();
+
+    loadFromApi();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [propNews]);
 
-  const avancarEtapa = (id: number) => {
-    setItens((prev) =>
-      prev.map((item) => {
-        if (item.id !== id) return item;
-        const currentIndex = ETAPAS_EDITORIAIS.indexOf(item.etapa);
-        const nextIndex = Math.min(currentIndex + 1, ETAPAS_EDITORIAIS.length - 1);
-        const proximaEtapa = ETAPAS_EDITORIAIS[nextIndex];
+  // Lista unificada de notícias
+  const allNews: NewsItem[] = propNews && propNews.length > 0 ? propNews : internalNews;
 
-        setHistorico((h) => [
+  // Contagens para os filtros
+  const pendingNews = useMemo(() => allNews.filter((n) => n.published === false), [allNews]);
+  const publishedNews = useMemo(() => allNews.filter((n) => n.published !== false), [allNews]);
+
+  // Se o usuário ainda não escolheu um filtro manualmente, prioriza 'pendentes' se houver; senão 'todas'
+  const activeFilter = selectedFilter ?? (pendingNews.length > 0 ? 'pendentes' : 'todas');
+
+  // Filtra as notícias conforme busca e aba ativa
+  const filteredNews = useMemo(() => {
+    return allNews.filter((item) => {
+      // Filtro de status
+      if (activeFilter === 'pendentes' && item.published !== false) return false;
+      if (activeFilter === 'publicadas' && item.published === false) return false;
+
+      // Filtro de busca textual
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchesTitle = item.title?.toLowerCase().includes(query);
+        const matchesCategory = item.category?.toLowerCase().includes(query);
+        const matchesAuthor = item.author?.toLowerCase().includes(query);
+        return matchesTitle || matchesCategory || matchesAuthor;
+      }
+
+      return true;
+    });
+  }, [allNews, activeFilter, searchQuery]);
+
+  // Execução da aprovação com persistência real
+  const handleConfirmApproval = async () => {
+    const item = confirmModal.item;
+    if (!item) return;
+
+    setApprovingId(item.id);
+    setConfirmModal({ isOpen: false, item: null });
+
+    try {
+      let success = false;
+
+      // 1. Prioriza a função de persistência central injetada pelo admin (PUT /api/data)
+      if (onApproveNews) {
+        success = await onApproveNews(item.id);
+      } else {
+        // 2. Fallback para rota dedicada POST /api/editorial
+        const res = await fetch('/api/editorial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ newsId: item.id }),
+        });
+        success = res.ok;
+      }
+
+      if (success) {
+        // Atualiza estado local se não estiver usando props
+        if (!propNews || propNews.length === 0) {
+          setInternalNews((prev) =>
+            prev.map((n) =>
+              n.id === item.id
+                ? { ...n, published: true, publishedAt: new Date().toLocaleDateString('pt-BR') }
+                : n
+            )
+          );
+        }
+
+        // Registra evento no histórico de auditoria
+        setHistorico((prev) => [
           {
-            data: new Date().toLocaleString('pt-BR', {
-              dateStyle: 'short',
-              timeStyle: 'short',
-            }),
-            acao: `Avançado para ${proximaEtapa}`,
-            titulo: item.titulo,
+            data: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+            acao: 'Notícia Aprovada e Publicada',
+            titulo: item.title,
           },
-          ...h,
+          ...prev,
         ]);
 
-        return {
-          ...item,
-          etapa: proximaEtapa,
-          atualizado: new Date().toLocaleDateString('pt-BR'),
-        };
-      })
-    );
+        setFeedback({
+          type: 'success',
+          message: `A notícia "${item.title}" foi aprovada e publicada oficialmente com sucesso!`,
+        });
+      } else {
+        setFeedback({
+          type: 'error',
+          message: 'Não foi possível aprovar a notícia. Verifique as permissões de gestor ou a conexão.',
+        });
+      }
+    } catch (err) {
+      console.error('Erro ao aprovar notícia:', err);
+      setFeedback({
+        type: 'error',
+        message: 'Ocorreu um erro inesperado ao processar a aprovação da notícia.',
+      });
+    } finally {
+      setApprovingId(null);
+      setTimeout(() => setFeedback(null), 5000);
+    }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-slate-400 gap-2">
-        <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
-        <span className="text-sm font-medium">Carregando fluxo editorial...</span>
+        <Loader2 className="w-5 h-5 animate-spin text-[#004A99] dark:text-sky-400" />
+        <span className="text-sm font-medium">Carregando notícias para aprovação...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-10">
-      {/* 4 Stages Kanban Grid */}
-      <div className="grid gap-4 md:grid-cols-4">
-        {ETAPAS_EDITORIAIS.map((etapaNome, idx) => {
-          const itensDestaEtapa = itens.filter((i) => i.etapa === etapaNome);
+    <div className="space-y-8">
+      {/* ========================================================
+          FEEDBACK TOAST / ALERTA
+      ======================================================== */}
+      {feedback && (
+        <div
+          className={`p-4 rounded-xl border flex items-center justify-between gap-3 shadow-sm transition-all ${
+            feedback.type === 'success'
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200'
+              : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-900 dark:text-rose-200'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            {feedback.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+            )}
+            <p className="text-xs sm:text-sm font-semibold truncate">{feedback.message}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFeedback(null)}
+            className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-500 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
-          return (
-            <div
-              key={etapaNome}
-              className="rounded-2xl border border-slate-200 bg-card p-4 shadow-card flex flex-col justify-between"
+      {/* ========================================================
+          1. FILTRO E BUSCA DE NOTÍCIAS PARA APROVAÇÃO
+      ======================================================== */}
+      <div className="bg-white dark:bg-[#0B1528] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-[#004A99] dark:text-sky-400" />
+              <span>Decisão Editorial do Gestor</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Analise as reportagens cadastradas pela equipe e decida pela aprovação direta para publicação no portal oficial.
+            </p>
+          </div>
+
+          {/* Abas Rápidas de Status */}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-[#071324] border border-slate-200/80 dark:border-slate-800 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('pendentes')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                activeFilter === 'pendentes'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
             >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Etapa {idx + 1}
-                  </span>
-                  <span className="font-display text-xl font-bold text-primary">
-                    {itensDestaEtapa.length}
-                  </span>
-                </div>
+              <span>Pendentes</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                activeFilter === 'pendentes' ? 'bg-amber-700/50 text-white' : 'bg-slate-200 dark:bg-slate-800'
+              }`}>
+                {pendingNews.length}
+              </span>
+            </button>
 
-                <p className="mt-1 font-semibold text-slate-900 text-sm">{etapaNome}</p>
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('publicadas')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                activeFilter === 'publicadas'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>Publicadas</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                activeFilter === 'publicadas' ? 'bg-emerald-800/50 text-white' : 'bg-slate-200 dark:bg-slate-800'
+              }`}>
+                {publishedNews.length}
+              </span>
+            </button>
 
-                <div className="mt-3 space-y-2">
-                  {itensDestaEtapa.length === 0 ? (
-                    <p className="text-xs text-slate-400 italic py-2">Nenhum item nesta etapa</p>
-                  ) : (
-                    itensDestaEtapa.map((item) => (
-                      <div
-                        key={item.id}
-                        className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-3 shadow-sm hover:border-slate-300 transition-colors"
-                      >
-                        <p className="text-xs font-semibold text-slate-800 leading-snug">
-                          {item.titulo}
-                        </p>
-                        <p className="mt-1 text-[11px] text-slate-500">
-                          {item.tipo} · {item.autor}
-                        </p>
-
-                        {item.anexos.length > 0 && (
-                          <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
-                            <Paperclip className="h-3 w-3 text-slate-400" />
-                            {item.anexos.length} anexo(s) verificado(s)
-                          </p>
-                        )}
-
-                        {etapaNome === 'Publicado' ? (
-                          <p className="mt-2.5 flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded px-2 py-0.5 w-fit">
-                            <Check className="h-3.5 w-3.5 text-emerald-600" />
-                            No ar / Aprovado
-                          </p>
-                        ) : (
-                          <button
-                            onClick={() => avancarEtapa(item.id)}
-                            className="mt-2.5 flex items-center justify-center gap-1 w-full rounded-lg bg-primary text-primary-foreground py-1.5 text-xs font-semibold shadow hover:opacity-90 transition-opacity"
-                          >
-                            Avançar
-                            <ArrowRight className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Two Columns: Attached Documents Table & Approval Audit History */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Table of Documents */}
-        <div>
-          <h2 className="mb-3 text-lg font-bold text-slate-900 flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Conteúdos e Documentos Anexados
-          </h2>
-
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-card shadow-card">
-            <table className="w-full min-w-[500px] text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500 border-b border-slate-200">
-                <tr>
-                  <th className="p-3">Conteúdo</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Anexos Auditados</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {itens.map((item) => (
-                  <tr key={item.id} className="align-top hover:bg-slate-50/50">
-                    <td className="p-3 font-medium text-slate-900">
-                      {item.titulo}
-                      <span className="block text-xs font-normal text-slate-500 mt-0.5">
-                        Atualizado em {item.atualizado}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold ${
-                          item.etapa === 'Publicado'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : item.etapa === 'Revisão Jurídica/LGPD'
-                            ? 'bg-amber-100 text-amber-800'
-                            : item.etapa === 'Aprovado'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {item.etapa}
-                      </span>
-                    </td>
-                    <td className="p-3 text-xs">
-                      {item.anexos.length ? (
-                        <div className="space-y-1">
-                          {item.anexos.map((anexo) => (
-                            <span
-                              key={anexo}
-                              className="flex items-center gap-1.5 text-slate-700 font-mono text-[11px]"
-                            >
-                              <FileCheck className="h-3.5 w-3.5 text-primary" />
-                              {anexo}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <button
+              type="button"
+              onClick={() => setSelectedFilter('todas')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                activeFilter === 'todas'
+                  ? 'bg-[#004A99] text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <span>Todas</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                activeFilter === 'todas' ? 'bg-blue-900/50 text-white' : 'bg-slate-200 dark:bg-slate-800'
+              }`}>
+                {allNews.length}
+              </span>
+            </button>
           </div>
         </div>
 
-        {/* Audit History Timeline */}
-        <div>
-          <h2 className="mb-3 text-lg font-bold text-slate-900 flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
-            Histórico de Aprovação e Auditoria
-          </h2>
-
-          <ol className="space-y-3 rounded-2xl border border-slate-200 bg-card p-5 shadow-card max-h-[380px] overflow-y-auto">
-            {historico.map((log, idx) => (
-              <li key={idx} className="border-l-2 border-primary pl-3 py-1">
-                <p className="text-[11px] text-slate-400 font-medium">{log.data}</p>
-                <p className="text-sm font-semibold text-slate-800">{log.acao}</p>
-                <p className="text-xs text-slate-500 truncate">{log.titulo}</p>
-              </li>
-            ))}
-          </ol>
+        {/* Campo de Busca Rápida */}
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Filtrar por título, autor ou categoria da reportagem..."
+            className="w-full pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#004A99]/30 dark:focus:ring-sky-500/30"
+          />
         </div>
       </div>
+
+      {/* ========================================================
+          2. LISTA COMPACTA DE NOTÍCIAS PARA DECISÃO DO GESTOR
+      ======================================================== */}
+      <div className="space-y-3">
+        {filteredNews.length === 0 ? (
+          <div className="bg-white dark:bg-[#0B1528] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-10 text-center flex flex-col items-center justify-center">
+            <Inbox className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+            <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
+              Nenhuma notícia encontrada
+            </h3>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-md">
+              {activeFilter === 'pendentes'
+                ? 'Excelente! Todas as reportagens cadastradas no sistema já foram avaliadas e aprovadas pelo gestor.'
+                : 'Nenhuma matéria corresponde aos filtros ou termos pesquisados.'}
+            </p>
+            {activeFilter === 'pendentes' && (
+              <button
+                type="button"
+                onClick={() => setSelectedFilter('todas')}
+                className="mt-4 px-4 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold text-slate-700 dark:text-slate-200 transition cursor-pointer"
+              >
+                Ver todas as notícias publicadas
+              </button>
+            )}
+          </div>
+        ) : (
+          filteredNews.map((item) => {
+            const isPublished = item.published !== false;
+            const isCurrentlyApproving = approvingId === item.id;
+            const hasAttachments = Boolean(item.coverImage);
+
+            return (
+              <div
+                key={item.id}
+                className="bg-white dark:bg-[#0B1528] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs hover:border-[#004A99]/40 dark:hover:border-sky-500/40 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                {/* Informações da Notícia */}
+                <div className="space-y-2 min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Badge de Categoria */}
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      {item.category || 'Notícia'}
+                    </span>
+
+                    {/* Situação Atual */}
+                    {isPublished ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                        <span>Aprovada e Publicada</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                        <Clock className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                        <span>Pendente de Aprovação</span>
+                      </span>
+                    )}
+
+                    {/* Data */}
+                    <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                      {item.publishedAt ? `Data: ${item.publishedAt}` : 'Data não informada'}
+                    </span>
+                  </div>
+
+                  {/* Título Principal */}
+                  <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white leading-snug">
+                    {item.title}
+                  </h3>
+
+                  {/* Resumo do Conteúdo */}
+                  {item.excerpt && (
+                    <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                      {item.excerpt}
+                    </p>
+                  )}
+
+                  {/* Metadados: Autor e Indicador de Anexo */}
+                  <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    <span>
+                      Responsável: <strong className="font-semibold text-slate-700 dark:text-slate-300">{item.author || 'Redação SEDUC'}</strong>
+                    </span>
+
+                    {hasAttachments ? (
+                      <span className="inline-flex items-center gap-1 text-[#004A99] dark:text-sky-400 font-medium">
+                        <Paperclip className="w-3 h-3" />
+                        <span>1 imagem/documento anexado</span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 italic">Sem anexos</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Área da Ação Única Explícita */}
+                <div className="flex items-center md:flex-col md:items-end justify-between md:justify-center gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800/80 shrink-0">
+                  {!isPublished ? (
+                    <button
+                      type="button"
+                      disabled={isCurrentlyApproving || !isGestor}
+                      onClick={() => setConfirmModal({ isOpen: true, item })}
+                      className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {isCurrentlyApproving ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Aprovando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Aprovar notícia</span>
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="text-right">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/60">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Disponível no Portal</span>
+                      </span>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                        Aprovada pelo gestor
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ========================================================
+          3. SEÇÃO SECUNDÁRIA: DOCUMENTOS ANEXADOS & AUDITORIA
+      ======================================================== */}
+      <div className="grid gap-6 lg:grid-cols-2 items-start pt-4 border-t border-slate-200/80 dark:border-slate-800">
+        {/* TABELA COMPACTA DE DOCUMENTOS */}
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <FileText className="w-4 h-4 text-[#004A99] dark:text-sky-400" />
+              <span>Documentos e Anexos Auditados</span>
+            </h3>
+            <span className="text-xs text-slate-400 font-medium">
+              {allNews.filter((n) => n.coverImage).length} anexos
+            </span>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1528] shadow-xs">
+            <div className="overflow-x-auto max-h-[340px] overflow-y-auto scrollbar-thin">
+              <table className="w-full min-w-[500px] text-xs text-left">
+                <thead className="sticky top-0 bg-slate-50 dark:bg-[#071324] text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 z-10">
+                  <tr>
+                    <th className="py-2.5 px-3 font-semibold">Notícia</th>
+                    <th className="py-2.5 px-3 font-semibold">Status</th>
+                    <th className="py-2.5 px-3 font-semibold">Link do Anexo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                  {allNews.map((item) => {
+                    const anexo = item.coverImage;
+                    const isUrl = anexo?.startsWith('http://') || anexo?.startsWith('https://');
+                    const displayName = anexo && anexo.length > 26
+                      ? `${anexo.substring(0, 14)}...${anexo.substring(anexo.length - 8)}`
+                      : anexo;
+
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-900/30">
+                        <td className="py-2 px-3 font-medium text-slate-900 dark:text-slate-100 max-w-[180px] truncate">
+                          {item.title}
+                        </td>
+                        <td className="py-2 px-3 whitespace-nowrap">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                            item.published !== false
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                              : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
+                          }`}>
+                            {item.published !== false ? 'Publicada' : 'Pendente'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3">
+                          {anexo ? (
+                            isUrl ? (
+                              <a
+                                href={anexo}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={`Abrir anexo original: ${anexo}`}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 hover:bg-blue-50 dark:bg-slate-800 dark:hover:bg-blue-950/40 text-slate-700 hover:text-[#004A99] dark:text-slate-300 font-mono text-[10px] max-w-[200px]"
+                              >
+                                <Paperclip className="w-2.5 h-2.5 shrink-0 text-slate-400" />
+                                <span className="truncate">{displayName}</span>
+                                <ExternalLink className="w-2.5 h-2.5 shrink-0 text-slate-400" />
+                              </a>
+                            ) : (
+                              <span
+                                title={anexo}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono text-[10px] max-w-[200px]"
+                              >
+                                <FileCheck className="w-2.5 h-2.5 shrink-0 text-[#004A99]" />
+                                <span className="truncate">{displayName}</span>
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-slate-400 italic">Sem anexo</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* TIMELINE DE AUDITORIA */}
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Clock className="w-4 h-4 text-[#004A99] dark:text-sky-400" />
+              <span>Histórico de Aprovação e Auditoria</span>
+            </h3>
+            <span className="text-xs text-slate-400 font-medium">
+              {historico.length} registros
+            </span>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1528] p-4 shadow-xs">
+            <ol className="space-y-3 max-h-[308px] overflow-y-auto scrollbar-thin pr-1">
+              {historico.map((log, idx) => (
+                <li
+                  key={idx}
+                  className="border-l-2 border-[#004A99] dark:border-sky-400 pl-3 py-1 hover:bg-slate-50/50 dark:hover:bg-slate-900/20 rounded-r-lg"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{log.acao}</p>
+                    <span className="text-[10px] text-slate-400 font-mono shrink-0">{log.data}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5" title={log.titulo}>
+                    {log.titulo}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================
+          4. MODAL DE CONFIRMAÇÃO EXPLÍCITA ANTES DE APROVAR
+      ======================================================== */}
+      {confirmModal.isOpen && confirmModal.item && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-[#0B1528] rounded-2xl border border-slate-200 dark:border-slate-800 p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#004A99] dark:text-sky-400 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                    Confirmar Aprovação
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Ação restrita ao Gestor Geral
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmModal({ isOpen: false, item: null })}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800 space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Notícia a ser aprovada:
+              </span>
+              <p className="font-semibold text-xs text-slate-800 dark:text-slate-200 leading-snug">
+                {confirmModal.item.title}
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Categoria: {confirmModal.item.category || 'Geral'} · Autor: {confirmModal.item.author || 'SEDUC'}
+              </p>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Ao confirmar a aprovação, a notícia será <strong>veiculada oficialmente no portal público</strong> do MEDTEC Rondônia e ficará visível para toda a rede de ensino.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal({ isOpen: false, item: null })}
+                className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmApproval}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Sim, aprovar notícia</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

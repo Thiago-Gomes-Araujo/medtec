@@ -750,6 +750,29 @@ export default function AdminDashboardPage() {
     persistData({ ...data, news: updatedNews });
   };
 
+  const handleApproveNews = async (id: string): Promise<boolean> => {
+    if (!data || !userSession.isGestor) return false;
+    const target = data.news.find((n) => n.id === id);
+    if (!target) return false;
+
+    const updatedNews = data.news.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            published: true,
+            publishedAt: item.publishedAt || new Date().toLocaleDateString('pt-BR'),
+          }
+        : item
+    );
+
+    try {
+      await persistData({ ...data, news: updatedNews });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleDeleteNews = (id: string) => {
     if (!data) return;
     if (!confirm('Deseja realmente excluir esta notícia?')) return;
@@ -5420,7 +5443,11 @@ export default function AdminDashboardPage() {
           {/* VISÃO 2: PIPELINE KANBAN (EXCLUSIVO GESTOR) */}
           {currentSection === 'kanban' && canAccessKanban && (
             <div className="w-full">
-              <EditorialKanban />
+              <EditorialKanban
+                news={data?.news || []}
+                onApproveNews={handleApproveNews}
+                isGestor={userSession.isGestor}
+              />
             </div>
           )}
 

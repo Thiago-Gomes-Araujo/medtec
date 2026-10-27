@@ -270,7 +270,7 @@
         "Infraestrutura"
       ],
       "folder": "Infraestrutura",
-      "published": true,
+      "published": false,
       "views": 0
     },
     {
@@ -291,7 +291,7 @@
         "Olimpíada"
       ],
       "folder": "Eventos",
-      "published": true,
+      "published": false,
       "views": 0
     }
   ],
