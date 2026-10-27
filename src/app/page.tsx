@@ -9,7 +9,8 @@ import {
   Satellite,
   Signal,
   CheckCircle2,
-  Play
+  Play,
+  Video
 } from 'lucide-react';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
@@ -100,8 +101,8 @@ export default function HomePage() {
                   href="#ao-vivo"
                   className="inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 hover:bg-white/15 text-white px-5 py-3 text-sm font-semibold backdrop-blur-md active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer shadow-xs touch-manipulation select-none"
                 >
-                  <Play className="h-4 w-4 text-rose-400 fill-rose-400/40" />
-                  <span>Canal ao vivo</span>
+                  <Play className="h-4 w-4 text-cyan-300 fill-cyan-300/40" />
+                  <span>Vídeo-Aulas</span>
                 </a>
 
                 <Link
@@ -125,14 +126,12 @@ export default function HomePage() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-sky-300">
                       Estúdio Central SEDUC • Porto Velho/RO
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-300 font-medium">Transmissão Oficial de Aulas</p>
+                    <p className="mt-0.5 text-xs text-slate-300 font-medium">Gravação e Distribuição de Aulas</p>
                   </div>
 
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-500/20 border border-rose-500/40 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-rose-300">
-                    <span className="relative flex h-2 w-2">
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-rose-500" />
-                    </span>
-                    Ao Vivo
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-sky-500/20 border border-sky-400/30 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-sky-200">
+                    <Video className="h-3.5 w-3.5 text-sky-300" />
+                    Estúdio SEDUC
                   </span>
                 </div>
 

@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { SocialLinks, AnnouncementItem, NewsItem } from '@/types';
 import { 
-  Radio, 
   Satellite, 
   Clock, 
   ExternalLink,
@@ -14,7 +13,8 @@ import {
   ArrowRight,
   AlertCircle,
   Calendar,
-  Sparkles
+  Sparkles,
+  Video
 } from 'lucide-react';
 import { 
   YoutubeIcon, 
@@ -131,18 +131,18 @@ export default function LiveBroadcastSection({
         {/* ================= 1. CABEÇALHO DA SEÇÃO ================= */}
         <header className="text-center max-w-3xl mx-auto space-y-3">
           <p className="text-sm font-semibold text-[#004A99] dark:text-sky-400">
-            Transmissão e Comunicação Oficial • SEDUC Rondônia
+            Aulas &amp; Comunicação Oficial • SEDUC Rondônia
           </p>
 
           <h2 
             id="live-section-heading"
             className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 dark:text-white font-display text-balance leading-tight"
           >
-            Transmissões ao Vivo e <span className="text-[#004A99] dark:text-[#00D8FF]">Comunicação Oficial</span>
+            Vídeo-Aulas e <span className="text-[#004A99] dark:text-[#00D8FF]">Comunicação Oficial</span>
           </h2>
 
           <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed text-pretty max-w-2xl mx-auto">
-            Acompanhe o sinal das aulas nos 52 municípios de Rondônia, consulte os turnos de transmissão e acesse comunicados do programa.
+            Acompanhe o acervo de aulas e conteúdos pedagógicos nos 52 municípios de Rondônia, consulte a grade e acesse os canais oficiais da SEDUC.
           </p>
         </header>
 
@@ -157,9 +157,9 @@ export default function LiveBroadcastSection({
               {/* Barra de Status do Estúdio */}
               <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-slate-100 dark:border-white/10">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-2xs">
-                    <Radio className="h-3.5 w-3.5 animate-pulse shrink-0" aria-hidden="true" />
-                    Transmissão ao Vivo • PVH
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#004A99] dark:bg-sky-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-2xs">
+                    <Video className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    Aulas Gravadas • Estúdio PVH
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-md border border-sky-200 dark:border-cyan-500/30 bg-sky-50 dark:bg-cyan-950/40 px-2.5 py-1 text-xs text-[#004A99] dark:text-cyan-200 font-semibold">
                     <Satellite className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -176,10 +176,10 @@ export default function LiveBroadcastSection({
               {/* Informações Centrais do Estúdio */}
               <div className="space-y-3">
                 <h3 className="font-display text-xl sm:text-2xl font-bold text-slate-900 dark:text-white text-balance leading-snug">
-                  Estúdio Central de Gravação &amp; Transmissão SEDUC
+                  Estúdio Central de Gravação &amp; Produção SEDUC
                 </h3>
                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed text-pretty">
-                  Aulas ao vivo simultâneas geradas diretamente da capital para 129 unidades escolares em aldeias, assentamentos agrícolas e comunidades ribeirinhas.
+                  Aulas gravadas e conteúdos pedagógicos produzidos diretamente da capital para 129 unidades escolares em aldeias, assentamentos agrícolas e comunidades ribeirinhas.
                 </p>
 
                 {/* Ações de Transmissão */}

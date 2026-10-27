@@ -8,13 +8,13 @@ import { getDatabase } from '@/lib/db';
 import { SocialLinks } from '@/types';
 
 export const metadata: Metadata = {
-  title: 'Transmissões Ao Vivo | MEDTEC Rondônia - SEDUC-RO',
+  title: 'Vídeo-Aulas & Conteúdos | MEDTEC Rondônia - SEDUC-RO',
   description:
-    'Aulas ao vivo transmitidas dos estúdios centrais de TV da SEDUC em Porto Velho para salas conectadas via satélite nos 52 municípios de Rondônia.',
+    'Acervo de vídeo-aulas gravadas e conteúdos pedagógicos produzidos pela SEDUC em Porto Velho para os 52 municípios de Rondônia.',
   openGraph: {
-    title: 'Transmissões Ao Vivo | MEDTEC Rondônia - SEDUC-RO',
+    title: 'Vídeo-Aulas & Conteúdos | MEDTEC Rondônia - SEDUC-RO',
     description:
-      'Acompanhe as aulas síncronas ao vivo e a grade diária de transmissões do MEDTEC Rondônia.',
+      'Acesse as vídeo-aulas gravadas e a programação pedagógica do MEDTEC Rondônia.',
   },
 };
 
@@ -28,9 +28,9 @@ export default async function AoVivoPage() {
 
       <main className="flex-1 pb-16">
         <PageHeader
-          eyebrow="Transmissões & Mídias Digitais"
-          title="Transmissões Ao Vivo & Redes Oficiais"
-          text="Aulas ao vivo transmitidas dos estúdios centrais de TV da SEDUC em Porto Velho para centenas de salas conectadas em todo o estado de Rondônia, acompanhadas diariamente por professores mediadores presenciais."
+          eyebrow="Vídeo-Aulas &amp; Mídias Digitais"
+          title="Vídeo-Aulas &amp; Canais Oficiais"
+          text="Aulas gravadas e conteúdos pedagógicos produzidos pela SEDUC em Porto Velho para centenas de salas conectadas em todo o estado de Rondônia, acompanhadas diariamente por professores mediadores presenciais."
         />
 
         <LiveBroadcastSection

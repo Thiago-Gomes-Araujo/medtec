@@ -15,7 +15,8 @@ import {
   Building2,
   Users,
   Satellite,
-  ArrowRight
+  ArrowRight,
+  Video
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -217,9 +218,9 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
       target: '/#tecnologia',
     },
     {
-      title: 'Transmissões Ao Vivo',
-      desc: 'Aulas ao vivo, estúdios centrais e redes oficiais.',
-      icon: Satellite,
+      title: 'Vídeo-Aulas & Conteúdos',
+      desc: 'Acervo de aulas gravadas, estúdios centrais e canais oficiais.',
+      icon: Video,
       target: '/ao-vivo',
     },
   ];
@@ -232,7 +233,6 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
     { to: '/galeria', label: 'Galeria' },
     { to: '/mapa', label: 'Mapa' },
     { to: '/duvidas', label: 'Dúvidas' },
-    { to: '/transparencia', label: 'Transparência' },
   ];
 
   const isLinkActive = (to: string) => {
@@ -246,7 +246,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-slate-200/80 dark:border-cyan-500/15 bg-white/85 dark:bg-[#040D1A]/90 backdrop-blur-xl transition-colors duration-200 shadow-xs dark:shadow-none">
+      <header className="fixed top-0 inset-x-0 z-50 border-b border-slate-200/80 dark:border-cyan-500/15 bg-white/85 dark:bg-[#040D1A]/90 backdrop-blur-xl transition-colors duration-200 shadow-xs dark:shadow-none">
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-sky-400/30 dark:via-cyan-400/40 to-transparent" />
         
         {/* ================= 3-ZONE LAYOUT CONTAINER (ESQUERDA / CENTRO / DIREITA) ================= */}
@@ -354,7 +354,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                                   Arquitetura MEDTEC RO
                                 </h4>
                                 <p className="mt-1.5 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed text-pretty">
-                                  Transmissão síncrona gerada nos estúdios centrais em Porto Velho e distribuída via satélite para os 52 municípios rondonienses.
+                                  Produção e gravação de aulas nos estúdios centrais em Porto Velho com distribuição para os 52 municípios rondonienses.
                                 </p>
                               </div>
                             </div>
@@ -365,7 +365,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                                 onClick={(e) => handleNavClick('/ao-vivo', e)}
                                 className="group flex items-center gap-1.5 text-[11px] font-semibold text-[#004A99] dark:text-[#00D8FF] hover:underline transition-all cursor-pointer active:scale-[0.98] duration-150 ease-out"
                               >
-                                <span>Ver Transmissão</span>
+                                <span>Ver Vídeo-Aulas</span>
                                 <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform duration-150 ease-out" />
                               </Link>
                               {onOpenPitchModal ? (
@@ -453,18 +453,18 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                 );
               })}
 
-              {/* LINK AO VIVO */}
+              {/* LINK VÍDEO-AULAS */}
               <Link
                 href="/ao-vivo"
                 onClick={(e) => handleNavClick('/ao-vivo', e)}
-                className={`group inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all duration-150 ease-out whitespace-nowrap ml-0.5 touch-manipulation select-none active:scale-[0.96] ${
+                className={`group inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition-all duration-150 ease-out whitespace-nowrap ml-0.5 touch-manipulation select-none active:scale-[0.96] ${
                   pathname === '/ao-vivo' || pathname === '/redes'
-                    ? 'bg-rose-600 text-white'
-                    : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40'
+                    ? 'bg-[#004A99] text-white dark:bg-[#00D8FF] dark:text-slate-950 shadow-xs'
+                    : 'text-[#004A99] dark:text-[#00D8FF] bg-[#004A99]/10 dark:bg-[#00D8FF]/10 hover:bg-[#004A99]/20 dark:hover:bg-[#00D8FF]/20'
                 }`}
               >
-                <Radio className="h-3 w-3" />
-                <span>Ao Vivo</span>
+                <Video className="h-3 w-3" />
+                <span>Vídeo-Aulas</span>
               </Link>
 
             </div>
@@ -512,13 +512,10 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             <Link
               href="/ao-vivo"
               onClick={(e) => handleNavClick('/ao-vivo', e)}
-              className="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-rose-500/30 bg-rose-500/10 text-xs font-bold text-rose-600 dark:text-rose-300 active:scale-[0.96] transition-all duration-150 ease-out touch-manipulation select-none"
+              className="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-[#004A99]/30 dark:border-cyan-500/30 bg-[#004A99]/10 dark:bg-cyan-500/10 text-xs font-bold text-[#004A99] dark:text-cyan-300 active:scale-[0.96] transition-all duration-150 ease-out touch-manipulation select-none"
             >
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-500 opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-rose-500" />
-              </span>
-              <span>Ao Vivo</span>
+              <Video className="h-3.5 w-3.5" />
+              <span>Vídeo-Aulas</span>
             </Link>
 
             <button
@@ -613,6 +610,8 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
           </nav>
         )}
       </header>
+      {/* Elemento de compensação de altura para o cabeçalho fixo estático */}
+      <div className="h-[65px] lg:h-[61px] w-full shrink-0" aria-hidden="true" />
     </>
   );
 }
