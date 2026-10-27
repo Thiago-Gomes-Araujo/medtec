@@ -13,10 +13,10 @@ export default function PageHeader({ eyebrow, title, text }: PageHeaderProps) {
         <p className="text-sm font-semibold text-sky-200 dark:text-sky-400">
           {eyebrow}
         </p>
-        <h1 className="mt-2 max-w-4xl font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight text-balance [overflow-wrap:anywhere]">
+        <h1 className="mt-2 max-w-4xl font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight text-balance [overflow-wrap:anywhere]">
           {title}
         </h1>
-        <p className="mt-3 max-w-2xl text-base sm:text-lg leading-relaxed text-sky-100/90 dark:text-slate-200 text-pretty [overflow-wrap:anywhere]">
+        <p className="mt-3 max-w-2xl text-base sm:text-lg leading-relaxed text-sky-100/90 dark:text-slate-200 font-normal text-pretty [overflow-wrap:anywhere]">
           {text}
         </p>
       </div>

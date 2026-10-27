@@ -121,7 +121,7 @@ export default function LiveBroadcastSection({
 
           <h2 
             id="live-section-heading"
-            className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white font-display text-balance leading-tight"
+            className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900 dark:text-white font-display text-balance leading-tight"
           >
             Transmissões ao Vivo e <span className="text-[#004A99] dark:text-[#00D8FF]">Comunicação Oficial</span>
           </h2>

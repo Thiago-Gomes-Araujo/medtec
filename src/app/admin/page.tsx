@@ -2679,12 +2679,12 @@ export default function AdminDashboardPage() {
             </button>
 
             <div className="min-w-0">
-              <nav className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <nav className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
                 <span className="hidden sm:inline">Painel Gestor</span>
                 <ChevronRight className="h-3.5 w-3.5 hidden sm:inline text-slate-400" />
                 <span className="hidden md:inline">{currentConfig.group}</span>
                 <ChevronRight className="h-3.5 w-3.5 hidden md:inline text-slate-400" />
-                <span className="font-bold text-slate-900 dark:text-white truncate">
+                <span className="font-semibold text-slate-900 dark:text-white truncate">
                   {currentConfig.title}
                 </span>
               </nav>

@@ -606,7 +606,7 @@ function BannerPreviewRenderer({
         </div>
 
         {/* Título Principal */}
-        <h2 className="font-display text-lg sm:text-2xl font-black leading-tight tracking-tight text-white text-balance">
+        <h2 className="font-display text-lg sm:text-2xl font-bold leading-tight tracking-tight text-white text-balance">
           {title}
         </h2>
 
@@ -616,7 +616,7 @@ function BannerPreviewRenderer({
 
         {/* Botões do Hero */}
         <div className="pt-1 flex flex-wrap items-center gap-2.5">
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-white text-slate-950 px-3.5 py-2 text-xs font-extrabold shadow-sm">
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-white text-slate-950 px-3.5 py-2 text-xs font-bold shadow-sm">
             <span>Como funciona o MEDTEC</span>
             <ArrowRight className="h-3 w-3" />
           </span>

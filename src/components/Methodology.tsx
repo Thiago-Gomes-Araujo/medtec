@@ -93,7 +93,7 @@ export default function Methodology() {
             Passo a Passo da Aula • Fluxo Integrado
           </p>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight font-display text-balance">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight font-display text-balance">
             Como funciona a dinâmica do <span className="text-[#004A99] dark:text-[#00D8FF]">MEDTEC Rondônia?</span>
           </h2>
 

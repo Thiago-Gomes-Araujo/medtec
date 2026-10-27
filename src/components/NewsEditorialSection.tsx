@@ -873,7 +873,7 @@ export default function NewsEditorialSection({ news = [] }: NewsEditorialSection
                   </div>
 
                   {/* Título Display Escultural */}
-                  <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight text-balance">
+                  <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight text-balance">
                     {activeNews.title}
                   </h1>
 

@@ -60,11 +60,11 @@ export default function HomePage() {
                 <span>Portaria SEDUC nº 928/2025</span>
               </div>
 
-              <h1 className="font-display text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-[3.5rem] text-balance">
+              <h1 className="font-display text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-[3.5rem] text-balance">
                 Ensino Médio com Mediação Tecnológica em Rondônia
               </h1>
 
-              <p className="max-w-2xl text-base leading-relaxed text-slate-200 sm:text-lg text-pretty">
+              <p className="max-w-2xl text-base leading-relaxed text-slate-200 sm:text-lg text-pretty font-normal">
                 Aulas transmitidas ao vivo dos estúdios da SEDUC em Porto Velho para estudantes do 1º ao 3º ano em comunidades rurais, ribeirinhas, indígenas e quilombolas nos 52 municípios.
               </p>
 
@@ -90,7 +90,7 @@ export default function HomePage() {
               <div className="pt-2 flex flex-wrap items-center gap-3.5">
                 <a
                   href="#como-funciona"
-                  className="group inline-flex items-center gap-2 rounded-lg bg-white text-slate-950 hover:bg-slate-100 dark:bg-[#00D8FF] dark:text-slate-950 dark:hover:bg-[#38BDF8] px-5 py-3 text-sm font-extrabold shadow-sm active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none"
+                  className="group inline-flex items-center gap-2 rounded-lg bg-white text-slate-950 hover:bg-slate-100 dark:bg-[#00D8FF] dark:text-slate-950 dark:hover:bg-[#38BDF8] px-5 py-3 text-sm font-bold shadow-sm active:scale-[0.98] transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none"
                 >
                   <span>Como funciona o MEDTEC</span>
                   <ArrowRight className="h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" />

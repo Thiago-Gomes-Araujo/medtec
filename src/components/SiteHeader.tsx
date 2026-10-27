@@ -341,7 +341,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                           <div className="col-span-5 flex flex-col justify-between rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/60 p-4 text-left transition-colors">
                             <div>
                               {/* Badge de Sinal */}
-                              <div className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 dark:border-cyan-400/20 bg-sky-100/60 dark:bg-cyan-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold text-[#004A99] dark:text-[#00D8FF]">
+                              <div className="inline-flex items-center gap-1.5 rounded-md border border-sky-400/30 dark:border-cyan-400/20 bg-sky-100/60 dark:bg-cyan-400/10 px-2 py-0.5 text-[10px] font-semibold text-[#004A99] dark:text-[#00D8FF]">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-cyan-400" />
                                 Sinal Satelital Ativo • Banda Ku
                               </div>
@@ -381,10 +381,10 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                           {/* COLUNA DIREITA (ATALHOS RÁPIDOS: 60% / 7 colunas) */}
                           <div className="col-span-7 flex flex-col justify-between">
                             <div className="mb-2 flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-2">
-                              <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                                 Páginas &amp; Seções do Programa
                               </span>
-                              <span className="font-mono text-[10px] tabular-nums text-slate-500 dark:text-slate-400">{megaMenuShortcuts.length} itens</span>
+                              <span className="text-[10px] font-medium tabular-nums text-slate-500 dark:text-slate-400">{megaMenuShortcuts.length} itens</span>
                             </div>
 
                             <div className="grid gap-1.5">
@@ -525,7 +525,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             
             {/* Submenu da Página Inicial */}
             <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-900/60 p-3 space-y-1">
-              <p className="px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] font-bold">
+              <p className="px-2 py-1 text-[10px] uppercase tracking-wider text-[#004A99] dark:text-[#00D8FF] font-bold">
                 Início &amp; Páginas Estruturantes
               </p>
               {megaMenuShortcuts.map((sec) => {
@@ -554,7 +554,7 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
 
             {/* Links Centrais Mobile */}
             <div className="grid gap-1 pt-1">
-              <p className="px-3 pt-1 font-mono text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+              <p className="px-3 pt-1 text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
                 Navegação Geral
               </p>
               <Link

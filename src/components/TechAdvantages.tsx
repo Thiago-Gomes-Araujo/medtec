@@ -87,7 +87,7 @@ export default function TechAdvantages() {
             Pilares da Mediação Tecnológica • Lei Estadual nº 3.846/2016
           </p>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight font-display text-balance">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight font-display text-balance">
             Por que o MEDTEC é um modelo <span className="text-[#004A99] dark:text-[#00D8FF]">inovador no Brasil?</span>
           </h2>
 

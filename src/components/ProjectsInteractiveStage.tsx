@@ -82,7 +82,7 @@ export default function ProjectsInteractiveStage() {
             <p className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[#004A99] dark:text-sky-400">
               SEDUC-RO • Coordenadoria de Mídias Educacionais
             </p>
-            <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+            <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-slate-900 dark:text-white leading-tight">
               Projetos Escolares e Práticas Pedagógicas
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">

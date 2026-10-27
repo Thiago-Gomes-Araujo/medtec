@@ -48,7 +48,7 @@ export default function HomeProjectsAccordionSection() {
             <p className="text-sm font-semibold text-[#004A99] dark:text-sky-400">
               Projetos Pedagógicos nas Escolas de Rondônia
             </p>
-            <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight text-balance">
+            <h2 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 dark:text-white tracking-tight text-balance">
               Panorama das Atividades Pedagógicas por Município
             </h2>
           </div>

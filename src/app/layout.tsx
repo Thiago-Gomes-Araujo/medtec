@@ -1,20 +1,21 @@
 import type { Metadata } from 'next';
-import { JetBrains_Mono, Manrope, Space_Grotesk } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-const manrope = Manrope({
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
   preload: true,
+  weight: ['400', '500', '600', '700', '800'],
 });
 
-const spaceGrotesk = Space_Grotesk({
+const interDisplay = Inter({
   subsets: ['latin'],
   variable: '--font-display',
-  weight: ['400', '500', '600', '700'],
   display: 'swap',
   preload: true,
+  weight: ['600', '700', '800'],
 });
 
 const jetbrains = JetBrains_Mono({
@@ -76,10 +77,12 @@ export default function RootLayout({
     <html
       lang="pt-BR"
       suppressHydrationWarning
-      className={`${manrope.variable} ${spaceGrotesk.variable} ${jetbrains.variable} scroll-smooth overflow-x-hidden max-w-[100vw]`}
+      className={`${inter.variable} ${interDisplay.variable} ${jetbrains.variable} scroll-smooth overflow-x-hidden max-w-[100vw]`}
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="icon" href="/favicon.ico" />
         <script
           dangerouslySetInnerHTML={{

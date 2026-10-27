@@ -102,7 +102,7 @@ export default function AdminLoginPage() {
           </div>
 
           {/* Título Principal */}
-          <h1 className="text-3xl xl:text-[40px] font-extrabold text-white leading-[1.18] tracking-tight text-center">
+          <h1 className="text-3xl xl:text-[40px] font-bold text-white leading-[1.18] tracking-tight text-center">
             Conectando pessoas.<br />
             Transformando futuros.
           </h1>
@@ -153,7 +153,7 @@ export default function AdminLoginPage() {
             </div>
 
             {/* Título */}
-            <h2 className="text-2xl sm:text-[26px] font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-2xl sm:text-[26px] font-bold text-slate-900 dark:text-white tracking-tight">
               Painel Gestor MEDTEC
             </h2>
 
