@@ -29,6 +29,17 @@ export interface AnnouncementItem {
   linkText?: string;
   linkUrl?: string;
   active: boolean;
+  typeColor?: string;
+  typeName?: string;
+  a_tipo_aviso_id?: number;
+  a_tipo_aviso?: {
+    id: number;
+    nome: string;
+    slug: string;
+    cor: string;
+    posicao: number;
+    ativo: boolean;
+  };
 }
 
 export interface BannerItem {
@@ -45,6 +56,16 @@ export interface GalleryItem {
   imageUrl: string;
   category: string;
   date: string;
+  categoria_galeria_id?: number;
+  imagem?: string | null;
+  imagem_url?: string | null;
+  categoria_galeria?: {
+    id: number;
+    nome: string;
+    slug: string;
+    posicao: number;
+    ativo: boolean;
+  };
 }
 
 export interface SocialLinks {

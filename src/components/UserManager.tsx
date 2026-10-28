@@ -1,51 +1,37 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { 
-  Users, 
-  UserPlus, 
-  ShieldCheck, 
-  Search, 
-  KeyRound, 
-  Trash2, 
-  Eye, 
-  EyeOff, 
-  CheckCircle2, 
-  AlertCircle, 
-  FileText, 
-  X
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  Users,
+  UserPlus,
+  ShieldCheck,
+  Search,
+  KeyRound,
+  Trash2,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  SlidersHorizontal,
+  Edit3,
+  Lock,
+  Plus,
+  Info
 } from 'lucide-react';
-import { UserAccount, UserProfileType } from '@/types';
-import { sanitizeSearchInput } from '@/lib/security';
+import { UserAccount } from '@/types';
+import {
+  medtecApi,
+  Usuario,
+  Perfil,
+  ModuloPermissoes,
+  ModuloPermissoesExtras
+} from '@/lib/api';
 
 interface UserManagerProps {
-  users: UserAccount[];
-  onRefreshUsers: () => Promise<void> | void;
+  users?: UserAccount[];
+  onRefreshUsers?: () => Promise<void> | void;
 }
-
-const PROFILE_OPTIONS: { id: number; type: UserProfileType; label: string; desc: string; icon: React.ElementType }[] = [
-  {
-    id: 1,
-    type: 'Jornalista',
-    label: 'Jornalista / Notícias',
-    desc: 'Publica e edita reportagens, comunicados e coberturas de polos',
-    icon: FileText,
-  },
-  {
-    id: 2,
-    type: 'Gestor',
-    label: 'Gestor Operacional',
-    desc: 'Supervisão pedagógica, acompanhamento de alunos e polos',
-    icon: Users,
-  },
-  {
-    id: 3,
-    type: 'Administrador',
-    label: 'Administrador do Sistema',
-    desc: 'Acesso completo ao painel administrativo e gestão de contas',
-    icon: ShieldCheck,
-  },
-];
 
 function formatCpfInput(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -55,185 +41,406 @@ function formatCpfInput(value: string): string {
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
 }
 
-export default function UserManager({ users = [], onRefreshUsers }: UserManagerProps) {
-  // Estados do formulário de cadastro
-  const [name, setName] = useState('');
-  const [cpf, setCpf] = useState('');
-  const [selectedProfileId, setSelectedProfileId] = useState<number>(1);
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+export default function UserManager({ users: fallbackUsers = [], onRefreshUsers }: UserManagerProps) {
+  // Aba ativa: 'usuarios' ou 'perfis'
+  const [activeTab, setActiveTab] = useState<'usuarios' | 'perfis'>('usuarios');
 
-  // Busca e filtro na listagem
+  // Estados de Usuários
+  const [apiUsers, setApiUsers] = useState<Usuario[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [onlyActive, setOnlyActive] = useState(false);
 
-  // Modal de alteração de senha
-  const [selectedUserForPassword, setSelectedUserForPassword] = useState<UserAccount | null>(null);
+  // Estados de Perfis
+  const [profiles, setProfiles] = useState<Perfil[]>([]);
+  const [loadingProfiles, setLoadingProfiles] = useState(false);
+
+  // Formulário de Cadastro de Usuário
+  const [userName, setUserName] = useState('');
+  const [userCpf, setUserCpf] = useState('');
+  const [userPassword, setUserPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [userProfileId, setUserProfileId] = useState<number>(1);
+  const [showPassword, setShowPassword] = useState(false);
+  const [submittingUser, setSubmittingUser] = useState(false);
+  const [userFormError, setUserFormError] = useState('');
+  const [userFormSuccess, setUserFormSuccess] = useState('');
+
+  // Formulário de Perfil
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<Perfil | null>(null);
+  const [profileName, setProfileName] = useState('');
+  const [profileDesc, setProfileDesc] = useState('');
+  const [profileActive, setProfileActive] = useState(true);
+  const [submittingProfile, setSubmittingProfile] = useState(false);
+  const [profileError, setProfileError] = useState('');
+
+  // Modal de Redefinição de Senha
+  const [selectedUserForPassword, setSelectedUserForPassword] = useState<{ id: number; nome: string; cpf: string } | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [updatingPassword, setUpdatingPassword] = useState(false);
-  const [modalError, setModalError] = useState('');
-  const [modalSuccess, setModalSuccess] = useState('');
+  const [passwordModalError, setPasswordModalError] = useState('');
+  const [passwordModalSuccess, setPasswordModalSuccess] = useState('');
 
-  // Usuários filtrados
-  const filteredUsers = useMemo(() => {
-    const term = searchTerm.toLowerCase().trim();
-    if (!term) return users;
-    return users.filter(
-      (u) =>
-        u.name.toLowerCase().includes(term) ||
-        u.cpf.includes(term) ||
-        u.profileType.toLowerCase().includes(term)
-    );
-  }, [users, searchTerm]);
+  // Modal de Permissões Extras por Usuário
+  const [selectedUserForExtras, setSelectedUserForExtras] = useState<Usuario | null>(null);
+  const [extraModules, setExtraModules] = useState<ModuloPermissoesExtras[]>([]);
+  const [selectedExtraIds, setSelectedExtraIds] = useState<number[]>([]);
+  const [loadingExtras, setLoadingExtras] = useState(false);
+  const [savingExtras, setSavingExtras] = useState(false);
+  const [extrasError, setExtrasError] = useState('');
+  const [extrasSuccess, setExtrasSuccess] = useState('');
 
-  // Submissão do cadastro
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage('');
-    setSuccessMessage('');
+  // Modal de Permissões do Perfil
+  const [selectedProfileForPerms, setSelectedProfileForPerms] = useState<Perfil | null>(null);
+  const [profileModules, setProfileModules] = useState<ModuloPermissoes[]>([]);
+  const [selectedProfileRegraIds, setSelectedProfileRegraIds] = useState<number[]>([]);
+  const [loadingProfilePerms, setLoadingProfilePerms] = useState(false);
+  const [savingProfilePerms, setSavingProfilePerms] = useState(false);
+  const [profilePermsError, setProfilePermsError] = useState('');
+  const [profilePermsSuccess, setProfilePermsSuccess] = useState('');
 
-    if (password !== confirmPassword) {
-      setErrorMessage('As senhas digitadas não coincidem');
-      return;
-    }
-
-    if (password.length < 6) {
-      setErrorMessage('A senha deve conter no mínimo 6 caracteres');
-      return;
-    }
-
-    setSubmitting(true);
+  // Carregar perfis
+  const loadProfiles = useCallback(async () => {
+    setLoadingProfiles(true);
     try {
-      const selectedOption = PROFILE_OPTIONS.find((p) => p.id === selectedProfileId) || PROFILE_OPTIONS[0];
-      const res = await fetch('/api/admin/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          cpf,
-          profileId: selectedProfileId,
-          profileType: selectedOption.type,
-          password,
-        }),
-      });
+      const res = await medtecApi.perfis.list({ page: 'all' });
+      if (res.success && res.data?.items) {
+        setProfiles(res.data.items);
+        if (res.data.items.length > 0 && !userProfileId) {
+          setUserProfileId(res.data.items[0].id);
+        }
+      }
+    } catch {
+      // Fallback básico se API offline
+      setProfiles([
+        { id: 1, nome: 'Jornalista', descricao: 'Acesso às matérias e notícias', ativo: true },
+        { id: 2, nome: 'Gestor', descricao: 'Supervisão pedagógica e polos', ativo: true },
+        { id: 3, nome: 'Administrador', descricao: 'Acesso completo ao sistema', ativo: true },
+      ]);
+    } finally {
+      setLoadingProfiles(false);
+    }
+  }, [userProfileId]);
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setErrorMessage(data.error || 'Erro ao cadastrar usuário');
-        return;
+  // Carregar usuários
+  const loadUsers = useCallback(async () => {
+    setLoadingUsers(true);
+    try {
+      const params: Record<string, string | number> = { page: 1, per_page: 50 };
+      if (searchTerm.trim()) {
+        params['q[nome_cont]'] = searchTerm.trim();
+      }
+      if (onlyActive) {
+        params['q[ativo_true]'] = 1;
       }
 
-      setSuccessMessage('Usuário cadastrado com sucesso!');
-      setName('');
-      setCpf('');
-      setPassword('');
-      setConfirmPassword('');
-      setSelectedProfileId(1);
-      await onRefreshUsers();
-
-      setTimeout(() => setSuccessMessage(''), 4000);
+      const res = await medtecApi.usuarios.list(params);
+      if (res.success && res.data?.items) {
+        setApiUsers(res.data.items);
+      }
     } catch {
-      setErrorMessage('Falha de conexão com o servidor ao cadastrar');
+      // Converte fallbackUsers para o formato Usuario
+      const mapped: Usuario[] = fallbackUsers.map((u, i) => ({
+        id: Number(u.id) || i + 1,
+        nome: u.name,
+        cpf: u.cpf,
+        ativo: u.active,
+        perfil_id: u.profileId || 1,
+        perfil_nome: u.profileType,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }));
+      setApiUsers(mapped);
     } finally {
-      setSubmitting(false);
+      setLoadingUsers(false);
+    }
+  }, [searchTerm, onlyActive, fallbackUsers]);
+
+  useEffect(() => {
+    loadProfiles();
+    loadUsers();
+  }, [loadProfiles, loadUsers]);
+
+  // Usuários exibidos com filtro de busca local se necessário
+  const displayUsers = useMemo(() => {
+    if (!searchTerm.trim()) return apiUsers;
+    const term = searchTerm.toLowerCase().trim();
+    return apiUsers.filter(
+      (u) =>
+        u.nome.toLowerCase().includes(term) ||
+        u.cpf.includes(term) ||
+        (u.perfil_nome && u.perfil_nome.toLowerCase().includes(term))
+    );
+  }, [apiUsers, searchTerm]);
+
+  // Criar Usuário
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUserFormError('');
+    setUserFormSuccess('');
+
+    if (userPassword !== confirmPassword) {
+      setUserFormError('As senhas digitadas não coincidem.');
+      return;
+    }
+
+    if (userPassword.length < 8) {
+      setUserFormError('A senha deve conter no mínimo 8 caracteres (exigência da API).');
+      return;
+    }
+
+    const cleanCpf = userCpf.replace(/\D/g, '');
+    if (cleanCpf.length !== 11) {
+      setUserFormError('O CPF deve conter exatamente 11 dígitos.');
+      return;
+    }
+
+    setSubmittingUser(true);
+    try {
+      await medtecApi.usuarios.create({
+        nome: userName,
+        cpf: cleanCpf,
+        password: userPassword,
+        perfil_id: userProfileId,
+        ativo: true,
+      });
+
+      setUserFormSuccess('Usuário cadastrado com sucesso no servidor oficial!');
+      setUserName('');
+      setUserCpf('');
+      setUserPassword('');
+      setConfirmPassword('');
+      await loadUsers();
+      if (onRefreshUsers) await onRefreshUsers();
+
+      setTimeout(() => setUserFormSuccess(''), 4000);
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      const msg = error?.errors?.join(', ') || error?.message || 'Falha ao cadastrar usuário na API.';
+      setUserFormError(msg);
+    } finally {
+      setSubmittingUser(false);
     }
   };
 
   // Alternar status ativo/inativo
-  const handleToggleStatus = async (user: UserAccount) => {
+  const handleToggleUserStatus = async (user: Usuario) => {
     try {
-      const res = await fetch('/api/admin/users', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: user.id,
-          active: !user.active,
-        }),
+      await medtecApi.usuarios.update(user.id, {
+        ativo: !user.ativo,
       });
-
-      if (res.ok) {
-        await onRefreshUsers();
-      } else {
-        const data = await res.json();
-        alert('Erro: ' + (data.error || 'Falha ao alterar status'));
-      }
-    } catch {
-      alert('Erro de conexão ao alterar status do operador');
+      await loadUsers();
+      if (onRefreshUsers) await onRefreshUsers();
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      alert('Erro: ' + (error?.errors?.join(', ') || error?.message || 'Falha ao alterar status.'));
     }
   };
 
-  // Excluir operador
-  const handleDeleteUser = async (user: UserAccount) => {
-    if (!confirm(`Deseja realmente remover o operador ${user.name} (${user.cpf})? Esta ação não pode ser desfeita.`)) {
+  // Excluir Usuário
+  const handleDeleteUser = async (user: Usuario) => {
+    if (!confirm(`Deseja realmente excluir o usuário ${user.nome} (${user.cpf})? Esta ação não pode ser desfeita.`)) {
       return;
     }
 
     try {
-      const res = await fetch(`/api/admin/users?id=${encodeURIComponent(user.id)}`, {
-        method: 'DELETE',
-      });
-
-      if (res.ok) {
-        await onRefreshUsers();
-      } else {
-        const data = await res.json();
-        alert('Erro: ' + (data.error || 'Falha ao remover operador'));
-      }
-    } catch {
-      alert('Erro de conexão ao remover operador');
+      await medtecApi.usuarios.delete(user.id);
+      await loadUsers();
+      if (onRefreshUsers) await onRefreshUsers();
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      alert('Não foi possível excluir: ' + (error?.errors?.join(', ') || error?.message || 'O usuário pode ter concedido permissões ou possuir vínculos no banco.'));
     }
   };
 
-  // Salvar nova senha
+  // Redefinir Senha
   const handleSaveNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUserForPassword) return;
 
-    setModalError('');
-    setModalSuccess('');
+    setPasswordModalError('');
+    setPasswordModalSuccess('');
 
     if (newPassword !== confirmNewPassword) {
-      setModalError('As senhas não coincidem');
+      setPasswordModalError('As senhas não coincidem.');
       return;
     }
 
-    if (newPassword.length < 6) {
-      setModalError('A senha deve ter no mínimo 6 caracteres');
+    if (newPassword.length < 8) {
+      setPasswordModalError('A nova senha deve ter no mínimo 8 caracteres.');
       return;
     }
 
     setUpdatingPassword(true);
     try {
-      const res = await fetch('/api/admin/users', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: selectedUserForPassword.id,
-          newPassword,
-        }),
+      await medtecApi.usuarios.update(selectedUserForPassword.id, {
+        password: newPassword,
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setModalError(data.error || 'Erro ao redefinir senha');
-        return;
-      }
-
-      setModalSuccess('Senha atualizada com sucesso!');
+      setPasswordModalSuccess('Senha atualizada com sucesso! Todas as sessões anteriores foram encerradas.');
       setNewPassword('');
       setConfirmNewPassword('');
       setTimeout(() => {
         setSelectedUserForPassword(null);
-        setModalSuccess('');
-      }, 1500);
-    } catch {
-      setModalError('Falha de conexão com o servidor');
+        setPasswordModalSuccess('');
+      }, 1800);
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      setPasswordModalError(error?.errors?.join(', ') || error?.message || 'Falha ao atualizar senha na API.');
     } finally {
       setUpdatingPassword(false);
+    }
+  };
+
+  // Abrir Modal de Permissões Extras por Usuário
+  const handleOpenExtrasModal = async (user: Usuario) => {
+    setSelectedUserForExtras(user);
+    setExtrasError('');
+    setExtrasSuccess('');
+    setLoadingExtras(true);
+
+    try {
+      const res = await medtecApi.usuarios.getPermissoesExtras(user.id);
+      if (res.success && res.data) {
+        setExtraModules(res.data);
+        // Coleta apenas os IDs das regras extras concedidas
+        const activeExtraIds: number[] = [];
+        res.data.forEach((mod) => {
+          mod.regras.forEach((r) => {
+            if (r.extra) activeExtraIds.push(r.id);
+          });
+        });
+        setSelectedExtraIds(activeExtraIds);
+      }
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      setExtrasError(error?.message || 'Não foi possível carregar as permissões do usuário.');
+    } finally {
+      setLoadingExtras(false);
+    }
+  };
+
+  // Salvar Permissões Extras do Usuário
+  const handleSaveExtras = async () => {
+    if (!selectedUserForExtras) return;
+    setSavingExtras(true);
+    setExtrasError('');
+    setExtrasSuccess('');
+
+    try {
+      await medtecApi.usuarios.savePermissoesExtras(selectedUserForExtras.id, selectedExtraIds);
+      setExtrasSuccess('Permissões extras salvas com sucesso!');
+      setTimeout(() => {
+        setSelectedUserForExtras(null);
+        setExtrasSuccess('');
+      }, 1500);
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      setExtrasError(error?.errors?.join(', ') || error?.message || 'Falha ao salvar permissões extras.');
+    } finally {
+      setSavingExtras(false);
+    }
+  };
+
+  // Abrir Modal de Permissões do Perfil
+  const handleOpenProfilePermsModal = async (perfil: Perfil) => {
+    setSelectedProfileForPerms(perfil);
+    setProfilePermsError('');
+    setProfilePermsSuccess('');
+    setLoadingProfilePerms(true);
+
+    try {
+      const res = await medtecApi.perfis.getPermissoes(perfil.id);
+      if (res.success && res.data) {
+        setProfileModules(res.data);
+        const markedIds: number[] = [];
+        res.data.forEach((mod) => {
+          mod.regras.forEach((r) => {
+            if (r.marcada) markedIds.push(r.id);
+          });
+        });
+        setSelectedProfileRegraIds(markedIds);
+      }
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      setProfilePermsError(error?.message || 'Não foi possível carregar as permissões do perfil.');
+    } finally {
+      setLoadingProfilePerms(false);
+    }
+  };
+
+  // Salvar Permissões do Perfil
+  const handleSaveProfilePerms = async () => {
+    if (!selectedProfileForPerms) return;
+    setSavingProfilePerms(true);
+    setProfilePermsError('');
+    setProfilePermsSuccess('');
+
+    try {
+      await medtecApi.perfis.savePermissoes(selectedProfileForPerms.id, selectedProfileRegraIds);
+      setProfilePermsSuccess('Permissões do perfil atualizadas com sucesso!');
+      setTimeout(() => {
+        setSelectedProfileForPerms(null);
+        setProfilePermsSuccess('');
+      }, 1500);
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string; erro_bruto?: string };
+      if (error?.erro_bruto === 'perfil_admin_imutavel') {
+        setProfilePermsError('O perfil Administrador sempre possui todas as permissões e não pode ser alterado.');
+      } else {
+        setProfilePermsError(error?.errors?.join(', ') || error?.message || 'Falha ao salvar permissões do perfil.');
+      }
+    } finally {
+      setSavingProfilePerms(false);
+    }
+  };
+
+  // Salvar Perfil (Criar ou Editar)
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileError('');
+    setSubmittingProfile(true);
+
+    try {
+      if (editingProfile) {
+        await medtecApi.perfis.update(editingProfile.id, {
+          nome: profileName,
+          descricao: profileDesc,
+          ativo: profileActive,
+        });
+      } else {
+        await medtecApi.perfis.create({
+          nome: profileName,
+          descricao: profileDesc,
+          ativo: profileActive,
+        });
+      }
+
+      setShowProfileModal(false);
+      setEditingProfile(null);
+      setProfileName('');
+      setProfileDesc('');
+      await loadProfiles();
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      setProfileError(error?.errors?.join(', ') || error?.message || 'Falha ao salvar perfil.');
+    } finally {
+      setSubmittingProfile(false);
+    }
+  };
+
+  // Excluir Perfil
+  const handleDeleteProfile = async (perfil: Perfil) => {
+    if (!confirm(`Deseja realmente excluir o perfil "${perfil.nome}"?`)) return;
+
+    try {
+      await medtecApi.perfis.delete(perfil.id);
+      await loadProfiles();
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      alert('Não foi possível excluir o perfil: ' + (error?.errors?.join(', ') || error?.message || 'Verifique se existem usuários vinculados ou se é o perfil Administrador.'));
     }
   };
 
@@ -248,389 +455,442 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
               Controle de Acessos Operacionais • SEDUC-RO
             </p>
             <h2 className="text-xl sm:text-2xl font-bold font-display text-slate-900 dark:text-white pt-1">
-              Gestão de Usuários Operadores
+              Gerenciamento de Equipe, Perfis e Permissões
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed text-pretty">
-              Cadastre comunicadores e operadores responsáveis por publicar notícias, gerenciar fotos do site e cadastrar avisos. Estes usuários possuem acesso restrito às suas atribuições e não têm privilégios de gestor.
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+              Gerencie operadores por CPF, perfis funcionais e matrizes de permissões integradas à API Backend oficial.
             </p>
           </div>
 
-          {/* Cards de Métricas Rápidas */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-center">
-              <span className="block text-lg font-bold font-mono text-[#004A99] dark:text-[#00D8FF] tabular-nums">
-                {users.length}
-              </span>
-              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-                Total
-              </span>
-            </div>
-            <div className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-center">
-              <span className="block text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 tabular-nums">
-                {users.filter((u) => u.active !== false).length}
-              </span>
-              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-                Ativos
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. FORMULÁRIO DE CADASTRO DE NOVO OPERADOR */}
-      <div className="rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 shadow-sm">
-        <div className="flex items-center gap-2 border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-3 mb-6">
-          <UserPlus className="h-5 w-5 text-[#004A99] dark:text-[#00D8FF]" />
-          <h3 className="font-display text-base font-bold text-slate-900 dark:text-white">
-            Cadastrar Novo Usuário Operador
-          </h3>
-        </div>
-
-        {errorMessage && (
-          <div className="mb-4 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 p-3.5 flex items-center gap-2.5 text-xs text-rose-800 dark:text-rose-300">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-
-        {successMessage && (
-          <div className="mb-4 rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/40 p-3.5 flex items-center gap-2.5 text-xs text-emerald-800 dark:text-emerald-300">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <span>{successMessage}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleCreateUser} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Nome Completo */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Nome Completo do Operador <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Ex: Carlos Eduardo de Oliveira"
-                className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] px-3.5 py-2.5 text-xs font-sans text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#004A99] dark:focus:ring-[#00D8FF] transition-all"
-              />
-            </div>
-
-            {/* CPF */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                CPF do Operador (Login) <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={cpf}
-                maxLength={14}
-                onChange={(e) => setCpf(formatCpfInput(e.target.value))}
-                placeholder="000.000.000-00"
-                className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] px-3.5 py-2.5 text-xs font-mono tabular-nums text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#004A99] dark:focus:ring-[#00D8FF] transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Tipo de Perfil */}
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Tipo de Perfil &amp; Atribuição <span className="text-rose-500">*</span>
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {PROFILE_OPTIONS.map((opt) => {
-                const Icon = opt.icon;
-                const isSelected = selectedProfileId === opt.id;
-                return (
-                  <button
-                    type="button"
-                    key={opt.id}
-                    onClick={() => setSelectedProfileId(opt.id)}
-                    className={`p-3.5 rounded-xl border text-left transition-all duration-150 ease-out cursor-pointer active:scale-[0.98] touch-manipulation select-none flex flex-col justify-between ${
-                      isSelected
-                        ? 'border-[#004A99] dark:border-[#00D8FF] bg-[#004A99]/5 dark:bg-[#00D8FF]/10 ring-1 ring-[#004A99] dark:ring-[#00D8FF]'
-                        : 'border-slate-200 dark:border-[#1A365D] bg-slate-50/50 dark:bg-[#061224]/50 hover:border-slate-300 dark:hover:border-slate-600'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div
-                        className={`p-1.5 rounded-lg ${
-                          isSelected
-                            ? 'bg-[#004A99] text-white dark:bg-[#00D8FF] dark:text-slate-950'
-                            : 'bg-slate-200 dark:bg-[#0C1E38] text-slate-600 dark:text-slate-300'
-                        }`}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                      </div>
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">
-                        {opt.label}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
-                      {opt.desc}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Senha e Confirmação de Senha */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Senha Inicial de Acesso <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo de 6 caracteres"
-                  className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] pl-3.5 pr-10 py-2.5 text-xs text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#004A99] dark:focus:ring-[#00D8FF] transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Confirmar Senha <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repita a senha digitada"
-                className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] px-3.5 py-2.5 text-xs text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-[#004A99] dark:focus:ring-[#00D8FF] transition-all"
-              />
-            </div>
-          </div>
-
-          {/* Botão de Envio */}
-          <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-white/5">
+          {/* Abas Superiores */}
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-[#061224] p-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D]">
             <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] dark:bg-[#00D8FF] dark:hover:bg-cyan-300 text-white dark:text-slate-950 font-mono text-xs font-bold transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none cursor-pointer shadow-sm disabled:opacity-50"
+              type="button"
+              onClick={() => setActiveTab('usuarios')}
+              className={`px-3.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'usuarios'
+                  ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
             >
-              <UserPlus className="h-4 w-4" />
-              <span>{submitting ? 'Cadastrando Operador...' : 'Cadastrar Usuário Operador'}</span>
+              Usuários e Senhas
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('perfis')}
+              className={`px-3.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'perfis'
+                  ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Perfis e Permissões
             </button>
           </div>
-        </form>
+        </div>
       </div>
 
-      {/* 3. LISTAGEM DE USUÁRIOS CADASTRADOS */}
-      <div className="rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-3">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-[#004A99] dark:text-[#00D8FF]" />
-            <h3 className="font-display text-base font-bold text-slate-900 dark:text-white">
-              Operadores Cadastrados ({filteredUsers.length})
-            </h3>
-          </div>
+      {/* ==================================================================== */}
+      {/* ABA 1: USUÁRIOS E SENHAS                                             */}
+      {/* ==================================================================== */}
+      {activeTab === 'usuarios' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Formulário de Cadastro */}
+          <div className="lg:col-span-5 bg-white dark:bg-[#0C1E38] border border-slate-200/90 dark:border-[#1A365D] rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center gap-2 pb-3 mb-5 border-b border-slate-100 dark:border-[#1A365D]">
+              <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-[#004A99] dark:text-cyan-400 flex items-center justify-center">
+                <UserPlus size={18} />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white">Cadastrar Novo Usuário</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Acesso via CPF e senha individual</p>
+              </div>
+            </div>
 
-          {/* Campo de Busca Rápida */}
-          <div className="relative min-w-[240px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
-              maxLength={100}
-              placeholder="Buscar por nome ou CPF..."
-              className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] pl-9 pr-3 py-1.5 text-xs font-mono text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-[#004A99] dark:focus:ring-[#00D8FF]"
-            />
-          </div>
-        </div>
+            {userFormError && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/40 rounded-lg text-xs flex items-center gap-2">
+                <AlertCircle size={15} className="shrink-0" />
+                <span>{userFormError}</span>
+              </div>
+            )}
 
-        {filteredUsers.length === 0 ? (
-          <div className="p-8 text-center rounded-xl border border-dashed border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224]/50">
-            <p className="text-xs font-mono text-slate-500">
-              Nenhum usuário operador cadastrado até o momento.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-[#1A365D] text-[11px] font-mono text-slate-500 dark:text-slate-400 uppercase">
-                  <th className="py-3 px-3">Operador</th>
-                  <th className="py-3 px-3">CPF (Login)</th>
-                  <th className="py-3 px-3">Perfil</th>
-                  <th className="py-3 px-3">Status</th>
-                  <th className="py-3 px-3">Cadastro</th>
-                  <th className="py-3 px-3 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                {filteredUsers.map((user) => {
-                  const isActive = user.active !== false;
-                  return (
-                    <tr
-                      key={user.id}
-                      className="hover:bg-slate-50/80 dark:hover:bg-[#061224]/50 transition-colors"
+            {userFormSuccess && (
+              <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40 rounded-lg text-xs flex items-center gap-2">
+                <CheckCircle2 size={15} className="shrink-0" />
+                <span>{userFormSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Nome Completo *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="Ex: João da Silva Santos"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-[#061224] focus:ring-2 focus:ring-[#004A99]/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  CPF do Usuário *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={userCpf}
+                  onChange={(e) => setUserCpf(formatCpfInput(e.target.value))}
+                  placeholder="000.000.000-00"
+                  maxLength={14}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-[#061224] focus:ring-2 focus:ring-[#004A99]/20 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Perfil de Acesso *
+                </label>
+                <select
+                  value={userProfileId}
+                  onChange={(e) => setUserProfileId(Number(e.target.value))}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-[#061224] focus:ring-2 focus:ring-[#004A99]/20"
+                >
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nome} {p.descricao ? `— ${p.descricao}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Senha (mín. 8 dígitos) *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={userPassword}
+                      onChange={(e) => setUserPassword(e.target.value)}
+                      placeholder="Mínimo 8 caracteres"
+                      className="w-full pl-3 pr-8 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-[#061224]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5"
                     >
-                      {/* Nome e Avatar */}
-                      <td className="py-3.5 px-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#004A99]/10 dark:bg-[#00D8FF]/10 text-[#004A99] dark:text-[#00D8FF] font-mono font-bold text-xs border border-[#004A99]/20">
-                            {user.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-slate-900 dark:text-white">
-                              {user.name}
-                            </p>
-                            <span className="text-[10px] font-mono text-slate-400">
-                              Acesso Operador
-                            </span>
-                          </div>
+                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Confirmar Senha *
+                  </label>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repita a senha"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-[#061224]"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingUser}
+                className="w-full mt-2 py-2.5 px-4 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white font-bold text-xs shadow-xs transition cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                <UserPlus size={16} />
+                <span>{submittingUser ? 'Cadastrando na API...' : 'Cadastrar Usuário'}</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Listagem de Usuários */}
+          <div className="lg:col-span-7 space-y-4">
+            <div className="bg-white dark:bg-[#0C1E38] border border-slate-200/90 dark:border-[#1A365D] rounded-2xl p-6 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-[#1A365D]">
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                    Equipe Cadastrada ({displayUsers.length})
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Contas sincronizadas com o banco oficial
+                  </p>
+                </div>
+
+                {/* Filtro e Busca */}
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Buscar por nome ou CPF..."
+                      className="pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-[#061224]"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setOnlyActive(!onlyActive)}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer transition ${
+                      onlyActive
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300'
+                        : 'border-slate-200 dark:border-[#1A365D] text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    Ativos
+                  </button>
+                </div>
+              </div>
+
+              {loadingUsers ? (
+                <div className="py-8 text-center text-xs text-slate-500">Carregando usuários da API...</div>
+              ) : displayUsers.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-500">Nenhum usuário encontrado.</div>
+              ) : (
+                <div className="divide-y divide-slate-100 dark:divide-[#1A365D]">
+                  {displayUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-[#061224] px-2 rounded-lg transition"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-xs text-slate-900 dark:text-white">
+                            {user.nome}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              user.ativo
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40'
+                                : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-800/40'
+                            }`}
+                          >
+                            {user.ativo ? 'Ativo' : 'Inativo'}
+                          </span>
                         </div>
-                      </td>
+                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                          <span>CPF: {user.cpf}</span>
+                          <span>•</span>
+                          <span>Perfil: {user.perfil_nome || `Perfil #${user.perfil_id}`}</span>
+                        </div>
+                      </div>
 
-                      {/* CPF */}
-                      <td className="py-3.5 px-3 font-mono text-slate-700 dark:text-slate-300 tabular-nums">
-                        {user.cpf}
-                      </td>
-
-                      {/* Tipo de Perfil */}
-                      <td className="py-3.5 px-3">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-500/20">
-                          {user.profileType}
-                        </span>
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-3.5 px-3">
+                      {/* Ações por Usuário */}
+                      <div className="flex items-center gap-1.5 self-end sm:self-center">
+                        {/* Permissões Extras */}
                         <button
                           type="button"
-                          onClick={() => handleToggleStatus(user)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                            isActive
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700'
+                          onClick={() => handleOpenExtrasModal(user)}
+                          title="Permissões Extras do Usuário"
+                          className="px-2.5 py-1.5 rounded-md border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-1"
+                        >
+                          <SlidersHorizontal size={13} />
+                          <span>Extras</span>
+                        </button>
+
+                        {/* Trocar Senha */}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedUserForPassword(user)}
+                          title="Redefinir Senha"
+                          className="p-1.5 rounded-md border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                        >
+                          <KeyRound size={14} />
+                        </button>
+
+                        {/* Alternar Ativo */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleUserStatus(user)}
+                          title={user.ativo ? 'Desativar usuário' : 'Ativar usuário'}
+                          className={`px-2 py-1 rounded-md text-xs font-bold cursor-pointer ${
+                            user.ativo
+                              ? 'text-amber-700 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100'
+                              : 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100'
                           }`}
                         >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              isActive ? 'bg-emerald-500' : 'bg-slate-400'
-                            }`}
-                          />
-                          <span>{isActive ? 'Ativo' : 'Inativo'}</span>
+                          {user.ativo ? 'Desativar' : 'Ativar'}
                         </button>
-                      </td>
 
-                      {/* Data de Cadastro */}
-                      <td className="py-3.5 px-3 font-mono text-slate-500 dark:text-slate-400 tabular-nums">
-                        {user.createdAt}
-                      </td>
-
-                      {/* Ações */}
-                      <td className="py-3.5 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Alterar Senha */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedUserForPassword(user);
-                              setModalError('');
-                              setModalSuccess('');
-                            }}
-                            title="Redefinir senha do operador"
-                            className="p-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] hover:border-slate-300 transition-all cursor-pointer active:scale-[0.92]"
-                          >
-                            <KeyRound className="h-3.5 w-3.5" />
-                          </button>
-
-                          {/* Excluir */}
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteUser(user)}
-                            title="Remover operador"
-                            className="p-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 transition-all cursor-pointer active:scale-[0.92]"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        {/* Excluir */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteUser(user)}
+                          title="Excluir Usuário"
+                          className="p-1.5 rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* 4. MODAL DE REDEFINIÇÃO DE SENHA */}
-      {selectedUserForPassword && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-dashed border-slate-200 dark:border-[#1A365D] pb-3">
-              <div className="flex items-center gap-2">
-                <KeyRound className="h-4 w-4 text-[#004A99] dark:text-[#00D8FF]" />
-                <h4 className="font-display text-sm font-bold text-slate-900 dark:text-white">
-                  Redefinir Senha do Operador
-                </h4>
+      {/* ==================================================================== */}
+      {/* ABA 2: PERFIS E PERMISSÕES                                            */}
+      {/* ==================================================================== */}
+      {activeTab === 'perfis' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#0C1E38] p-6 rounded-2xl border border-slate-200 dark:border-[#1A365D]">
+            <div>
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white">
+                Perfis de Acesso Cadastrados ({profiles.length})
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Cada perfil define o conjunto padrão de permissões atribuído aos usuários.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingProfile(null);
+                setProfileName('');
+                setProfileDesc('');
+                setProfileActive(true);
+                setShowProfileModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold shadow-xs cursor-pointer"
+            >
+              <Plus size={15} />
+              <span>Novo Perfil</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {profiles.map((p) => (
+              <div
+                key={p.id}
+                className="bg-white dark:bg-[#0C1E38] border border-slate-200 dark:border-[#1A365D] rounded-xl p-5 shadow-xs flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="font-bold text-sm text-slate-900 dark:text-white">{p.nome}</span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        p.ativo
+                          ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                          : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300'
+                      }`}
+                    >
+                      {p.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+                    {p.descricao || 'Sem descrição cadastrada'}
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-[#1A365D] flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenProfilePermsModal(p)}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#004A99] dark:text-[#00D8FF] hover:underline cursor-pointer"
+                  >
+                    <SlidersHorizontal size={13} />
+                    <span>Permissões</span>
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingProfile(p);
+                        setProfileName(p.nome);
+                        setProfileDesc(p.descricao || '');
+                        setProfileActive(p.ativo);
+                        setShowProfileModal(true);
+                      }}
+                      className="p-1 rounded text-slate-500 hover:text-slate-800 dark:hover:text-white cursor-pointer"
+                      title="Editar Perfil"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                    {p.nome !== 'Administrador' && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteProfile(p)}
+                        className="p-1 rounded text-red-500 hover:text-red-700 cursor-pointer"
+                        title="Excluir Perfil"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* MODAL: REDEFINIR SENHA DO USUÁRIO                                    */}
+      {/* ==================================================================== */}
+      {selectedUserForPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#0C1E38] rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-[#1A365D] space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <KeyRound size={16} className="text-[#004A99] dark:text-cyan-400" />
+                Redefinir Senha
+              </h3>
               <button
                 type="button"
                 onClick={() => setSelectedUserForPassword(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                className="text-slate-400 hover:text-slate-600"
               >
-                <X className="h-4 w-4" />
+                <X size={16} />
               </button>
             </div>
 
-            <div className="text-xs text-slate-600 dark:text-slate-300">
-              <p>
-                Operador: <strong>{selectedUserForPassword.name}</strong>
-              </p>
-              <p className="font-mono text-slate-500">
-                CPF: {selectedUserForPassword.cpf}
-              </p>
-            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Usuário: <strong>{selectedUserForPassword.nome}</strong> (CPF {selectedUserForPassword.cpf})
+            </p>
 
-            {modalError && (
-              <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 p-2.5 text-xs text-rose-800 dark:text-rose-300">
-                {modalError}
-              </div>
+            {passwordModalError && (
+              <div className="p-2.5 bg-red-50 text-red-700 rounded-lg text-xs">{passwordModalError}</div>
+            )}
+            {passwordModalSuccess && (
+              <div className="p-2.5 bg-emerald-50 text-emerald-800 rounded-lg text-xs">{passwordModalSuccess}</div>
             )}
 
-            {modalSuccess && (
-              <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/40 p-2.5 text-xs text-emerald-800 dark:text-emerald-300">
-                {modalSuccess}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveNewPassword} className="space-y-3.5">
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Nova Senha (mínimo 6 caracteres)
+            <form onSubmit={handleSaveNewPassword} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Nova Senha (mín. 8 caracteres)
                 </label>
                 <input
                   type="password"
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Digite a nova senha"
-                  className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] px-3 py-2 text-xs text-slate-900 dark:text-[#E6F4FF] focus:outline-hidden focus:ring-1 focus:ring-[#004A99]"
+                  placeholder="Nova senha segura"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-[#1A365D] text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-[#061224]"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Confirmar Nova Senha
                 </label>
                 <input
@@ -639,24 +899,351 @@ export default function UserManager({ users = [], onRefreshUsers }: UserManagerP
                   value={confirmNewPassword}
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
                   placeholder="Repita a nova senha"
-                  className="w-full rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] px-3 py-2 text-xs text-slate-900 dark:text-[#E6F4FF] focus:outline-hidden focus:ring-1 focus:ring-[#004A99]"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-[#1A365D] text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-[#061224]"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-white/5">
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setSelectedUserForPassword(null)}
-                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-[#1A365D] text-xs font-mono text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={updatingPassword}
-                  className="px-4 py-1.5 rounded-xl bg-[#004A99] dark:bg-[#00D8FF] text-white dark:text-slate-950 font-mono text-xs font-bold hover:opacity-90 disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold cursor-pointer disabled:opacity-60"
                 >
-                  {updatingPassword ? 'Atualizando...' : 'Salvar Nova Senha'}
+                  {updatingPassword ? 'Salvando...' : 'Salvar Senha'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* MODAL: PERMISSÕES EXTRAS POR USUÁRIO                                 */}
+      {/* ==================================================================== */}
+      {selectedUserForExtras && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#0C1E38] rounded-2xl p-6 max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-[#1A365D] space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#1A365D]">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <SlidersHorizontal size={16} className="text-[#004A99] dark:text-cyan-400" />
+                  Permissões Extras: {selectedUserForExtras.nome}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Conceda exceções específicas além das permissões já herdadas do perfil ({selectedUserForExtras.perfil_nome}).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedUserForExtras(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {extrasError && (
+              <div className="p-3 bg-red-50 text-red-700 rounded-lg text-xs">{extrasError}</div>
+            )}
+            {extrasSuccess && (
+              <div className="p-3 bg-emerald-50 text-emerald-800 rounded-lg text-xs">{extrasSuccess}</div>
+            )}
+
+            {loadingExtras ? (
+              <div className="py-12 text-center text-xs text-slate-500">Carregando permissões do usuário...</div>
+            ) : (
+              <div className="space-y-4">
+                {extraModules.map((mod) => (
+                  <div
+                    key={mod.id}
+                    className="p-4 rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] space-y-2.5"
+                  >
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      Módulo: {mod.nome}
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {mod.regras.map((regra) => {
+                        const isInherited = regra.do_perfil;
+                        const isExtraChecked = selectedExtraIds.includes(regra.id);
+
+                        return (
+                          <label
+                            key={regra.id}
+                            className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer select-none transition ${
+                              isInherited
+                                ? 'bg-slate-100 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 opacity-80 cursor-not-allowed'
+                                : isExtraChecked
+                                ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800'
+                                : 'bg-white dark:bg-[#0C1E38] border-slate-200 dark:border-[#1A365D]'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              disabled={isInherited}
+                              checked={isInherited || isExtraChecked}
+                              onChange={(e) => {
+                                if (isInherited) return;
+                                if (e.target.checked) {
+                                  setSelectedExtraIds([...selectedExtraIds, regra.id]);
+                                } else {
+                                  setSelectedExtraIds(selectedExtraIds.filter((id) => id !== regra.id));
+                                }
+                              }}
+                              className="mt-0.5 rounded border-slate-300 text-[#004A99] focus:ring-[#004A99]"
+                            />
+                            <div className="flex-1">
+                              <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                                {regra.descricao} ({regra.acao})
+                              </span>
+                              {isInherited && (
+                                <span className="text-[10px] text-slate-500 font-medium block">
+                                  Herdada do perfil ({selectedUserForExtras.perfil_nome})
+                                </span>
+                              )}
+                              {!isInherited && regra.extra && regra.concedido_por && (
+                                <span className="text-[10px] text-sky-700 dark:text-sky-300 font-medium block">
+                                  Concedido por: {regra.concedido_por}
+                                </span>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-[#1A365D]">
+              <span className="text-[11px] text-slate-500">
+                Regras marcadas do perfil não podem ser desativadas nesta tela.
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUserForExtras(null)}
+                  className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveExtras}
+                  disabled={savingExtras || loadingExtras}
+                  className="px-4 py-2 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold cursor-pointer disabled:opacity-60"
+                >
+                  {savingExtras ? 'Salvando...' : 'Salvar Permissões Extras'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* MODAL: MATRIZ DE PERMISSÕES DO PERFIL                                */}
+      {/* ==================================================================== */}
+      {selectedProfileForPerms && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#0C1E38] rounded-2xl p-6 max-w-2xl w-full shadow-2xl border border-slate-200 dark:border-[#1A365D] space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#1A365D]">
+              <div>
+                <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-[#004A99] dark:text-cyan-400" />
+                  Matriz de Permissões: {selectedProfileForPerms.nome}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Marque ou desmarque as ações autorizadas para todos os usuários com este perfil.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedProfileForPerms(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {profilePermsError && (
+              <div className="p-3 bg-red-50 text-red-700 rounded-lg text-xs">{profilePermsError}</div>
+            )}
+            {profilePermsSuccess && (
+              <div className="p-3 bg-emerald-50 text-emerald-800 rounded-lg text-xs">{profilePermsSuccess}</div>
+            )}
+
+            {selectedProfileForPerms.nome === 'Administrador' && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40 rounded-lg text-xs flex items-center gap-2">
+                <Info size={15} className="shrink-0" />
+                <span>O perfil Administrador possui todas as permissões do sistema de forma imutável.</span>
+              </div>
+            )}
+
+            {loadingProfilePerms ? (
+              <div className="py-12 text-center text-xs text-slate-500">Carregando permissões do perfil...</div>
+            ) : (
+              <div className="space-y-4">
+                {profileModules.map((mod) => (
+                  <div
+                    key={mod.id}
+                    className="p-4 rounded-xl border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] space-y-2.5"
+                  >
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                      Módulo: {mod.nome}
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {mod.regras.map((regra) => {
+                        const isChecked = selectedProfileRegraIds.includes(regra.id);
+                        const isAdmin = selectedProfileForPerms.nome === 'Administrador';
+
+                        return (
+                          <label
+                            key={regra.id}
+                            className={`flex items-center gap-2.5 p-2 rounded-lg border text-xs cursor-pointer select-none transition ${
+                              isChecked
+                                ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800'
+                                : 'bg-white dark:bg-[#0C1E38] border-slate-200 dark:border-[#1A365D]'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              disabled={isAdmin}
+                              checked={isChecked}
+                              onChange={(e) => {
+                                if (isAdmin) return;
+                                if (e.target.checked) {
+                                  setSelectedProfileRegraIds([...selectedProfileRegraIds, regra.id]);
+                                } else {
+                                  setSelectedProfileRegraIds(selectedProfileRegraIds.filter((id) => id !== regra.id));
+                                }
+                              }}
+                              className="rounded border-slate-300 text-[#004A99] focus:ring-[#004A99]"
+                            />
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">
+                              {regra.descricao} ({regra.acao})
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-[#1A365D]">
+              <span className="text-[11px] text-slate-500">
+                Alterações entram em vigor na próxima requisição dos usuários.
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedProfileForPerms(null)}
+                  className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveProfilePerms}
+                  disabled={savingProfilePerms || loadingProfilePerms || selectedProfileForPerms.nome === 'Administrador'}
+                  className="px-4 py-2 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold cursor-pointer disabled:opacity-50"
+                >
+                  {savingProfilePerms ? 'Salvando...' : 'Salvar Permissões'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================================== */}
+      {/* MODAL: CRIAR / EDITAR PERFIL                                         */}
+      {/* ==================================================================== */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-[#0C1E38] rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 dark:border-[#1A365D] space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                {editingProfile ? 'Editar Perfil' : 'Novo Perfil de Acesso'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowProfileModal(false)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {profileError && (
+              <div className="p-2.5 bg-red-50 text-red-700 rounded-lg text-xs">{profileError}</div>
+            )}
+
+            <form onSubmit={handleSaveProfile} className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Nome do Perfil *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  placeholder="Ex: Curador Pedagógico"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-[#1A365D] text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-[#061224]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Descrição das Atribuições
+                </label>
+                <textarea
+                  rows={2}
+                  value={profileDesc}
+                  onChange={(e) => setProfileDesc(e.target.value)}
+                  placeholder="Descreva as funções deste perfil..."
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-[#1A365D] text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-[#061224]"
+                />
+              </div>
+
+              <div className="pt-1">
+                <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-700 dark:text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={profileActive}
+                    onChange={(e) => setProfileActive(e.target.checked)}
+                    className="rounded border-slate-300 text-[#004A99]"
+                  />
+                  <span>Perfil Ativo no Sistema</span>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowProfileModal(false)}
+                  className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-800"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingProfile}
+                  className="px-4 py-2 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold cursor-pointer disabled:opacity-60"
+                >
+                  {submittingProfile ? 'Salvando...' : 'Salvar Perfil'}
                 </button>
               </div>
             </form>

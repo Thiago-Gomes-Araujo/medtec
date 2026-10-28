@@ -1,8 +1,31 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Phone, Mail, MapPin } from 'lucide-react';
+import { medtecApi } from '@/lib/api';
 
 export default function SiteFooter() {
+  const [canais, setCanais] = useState<Record<string, string>>({
+    telefone: '(69) 3216-5300',
+    email: 'mediacaotecnologica@seduc.ro.gov.br',
+    endereco: 'Palácio Rio Madeira, Porto Velho - RO',
+  });
+
+  useEffect(() => {
+    medtecApi.canaisContato.list({ 'q[ativo_true]': 1, page: 'all' })
+      .then((res) => {
+        if (res.success && res.data?.items?.length) {
+          const map: Record<string, string> = {};
+          res.data.items.forEach((c) => {
+            if (c.ativo && c.valor) map[c.rede] = c.valor;
+          });
+          setCanais((prev) => ({ ...prev, ...map }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <footer className="relative mt-20 border-t border-slate-200 dark:border-slate-800 bg-[#004A99] dark:bg-[#08152B] text-white transition-colors duration-200">
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 text-sm">
@@ -24,9 +47,26 @@ export default function SiteFooter() {
               Ensino Médio com Mediação Tecnológica, Lei Estadual nº 3.846/2016 e Portaria SEDUC nº 928/2025.
               Garantindo o direito universal à educação básica de excelência no campo, nas águas e nas florestas de todo o estado de Rondônia.
             </p>
-            <p className="text-xs text-sky-200/80 dark:text-slate-400 [overflow-wrap:anywhere]">
-              Governo do Estado de Rondônia | Secretaria de Estado da Educação (SEDUC-RO) - Coordenadoria de Mídias Educacionais. Palácio Rio Madeira, Porto Velho - RO.
-            </p>
+            <div className="space-y-1 text-xs text-sky-200/90 dark:text-slate-400 [overflow-wrap:anywhere]">
+              <p className="flex items-center gap-1.5">
+                <MapPin size={13} className="shrink-0 text-sky-300" />
+                <span>{canais.endereco || 'Governo do Estado de Rondônia | SEDUC-RO - Coordenadoria de Mídias Educacionais. Palácio Rio Madeira, Porto Velho - RO.'}</span>
+              </p>
+              <div className="flex flex-wrap items-center gap-4 pt-1">
+                {canais.telefone && (
+                  <p className="flex items-center gap-1.5">
+                    <Phone size={13} className="shrink-0 text-sky-300" />
+                    <span>{canais.telefone}</span>
+                  </p>
+                )}
+                {canais.email && (
+                  <p className="flex items-center gap-1.5">
+                    <Mail size={13} className="shrink-0 text-sky-300" />
+                    <span>{canais.email}</span>
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           <div>

@@ -47,6 +47,9 @@ export interface PreviewAnnouncementData {
   linkText?: string;
   linkUrl?: string;
   active?: boolean;
+  cor?: string;
+  typeColor?: string;
+  typeName?: string;
 }
 
 export interface PreviewBannerData {
@@ -531,16 +534,26 @@ function AnnouncementPreviewRenderer({
   };
 
   const style = getTypeStyle(type);
+  const hexColor = data.cor || data.typeColor;
+  const isHex = hexColor && /^#[0-9A-Fa-f]{6}$/.test(hexColor);
+  const displayLabel = data.typeName || style.label;
 
   return (
     <article
+      style={isHex ? { borderLeftColor: hexColor, borderLeftWidth: '4px' } : undefined}
       className={`bg-white dark:bg-[#0C1E38] rounded-xl p-4 sm:p-5 border shadow-xs flex flex-col justify-between ${style.cardBorder}`}
     >
       <div>
         <div className="flex items-center justify-between gap-2 mb-2.5">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${style.badge}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
-            {style.label}
+          <span
+            style={isHex ? { backgroundColor: `${hexColor}18`, borderColor: `${hexColor}40`, color: hexColor } : undefined}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${isHex ? '' : style.badge}`}
+          >
+            <span
+              style={isHex ? { backgroundColor: hexColor } : undefined}
+              className={`h-1.5 w-1.5 rounded-full ${isHex ? '' : style.dot}`}
+            />
+            {displayLabel}
           </span>
           <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
             <Calendar size={12} />
