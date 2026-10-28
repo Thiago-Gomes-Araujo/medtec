@@ -17,8 +17,10 @@ import {
   Info
 } from 'lucide-react';
 
+import { medtecApi, setStoredTokens } from '@/lib/api';
+
 export default function AdminLoginPage() {
-  const [username, setUsername] = useState('');
+  const [cpf, setCpf] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -32,28 +34,80 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError('');
 
+    const cleanCpf = cpf.trim();
+    if (!cleanCpf || !password) {
+      setError('Informe o CPF e a senha para acessar o painel.');
+      setLoading(false);
+      return;
+    }
+
     try {
+      let apiSuccess = false;
+
+      // 1. Tenta autenticar diretamente na API Backend v1
+      try {
+        const resApi = await medtecApi.auth.login(cleanCpf, password);
+        if (resApi.success && resApi.data) {
+          apiSuccess = true;
+          setStoredTokens(resApi.data);
+        }
+      } catch (apiErr: unknown) {
+        const err = apiErr as { errors?: string[]; message?: string };
+        const code = err?.errors?.[0];
+
+        if (code === 'cpf_senha_obrigatorios') {
+          setError('Informe o CPF e a senha para acessar o painel.');
+          setLoading(false);
+          return;
+        }
+        if (code === 'credenciais_invalidas') {
+          setError('CPF ou senha incorretos. Verifique suas credenciais.');
+          setLoading(false);
+          return;
+        }
+        if (code === 'usuario_inativo') {
+          setError('Este usuário está inativo. Entre em contato com a administração da SEDUC.');
+          setLoading(false);
+          return;
+        }
+        if (code === 'muitas_tentativas') {
+          setError('Muitas tentativas em pouco tempo. Aguarde 1 minuto e tente novamente.');
+          setLoading(false);
+          return;
+        }
+        // Se for erro de rede/conexão, tentará o fallback local
+      }
+
+      // 2. Sincroniza sessão local/cookies no Next.js
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: cleanCpf, password }),
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
         if (data.tokens) {
-          localStorage.setItem('medtec_access_token', data.tokens.access_token);
-          localStorage.setItem('medtec_refresh_token', data.tokens.refresh_token);
+          setStoredTokens(data.tokens);
         }
         const searchParams = new URLSearchParams(window.location.search);
         const redirectTarget = searchParams.get('redirect') || '/admin';
         router.push(redirectTarget);
         router.refresh();
-      } else {
-        setError(data.error || 'Credenciais inválidas. Verifique seu usuário e senha.');
+        return;
       }
+
+      if (apiSuccess) {
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectTarget = searchParams.get('redirect') || '/admin';
+        router.push(redirectTarget);
+        router.refresh();
+        return;
+      }
+
+      setError(data.error || 'Credenciais inválidas. Verifique seu CPF e senha.');
     } catch {
-      setError('Falha de conexão com o servidor.');
+      setError('Falha de conexão com o servidor de autenticação.');
     } finally {
       setLoading(false);
     }
@@ -173,24 +227,24 @@ export default function AdminLoginPage() {
           {/* Formulário de Login */}
           <form onSubmit={handleLogin} className="space-y-4">
             
-            {/* Campo Usuário ou CPF */}
+            {/* Campo CPF */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Usuário ou CPF
+                CPF do Operador ou Gestor
               </label>
               <div className="relative">
                 <input
                   type="text"
                   required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin ou 000.000.000-00"
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
+                  placeholder="000.000.000-00 (com ou sem pontuação)"
                   className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-sm text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#005ca9]/20 dark:focus:ring-cyan-500/20 focus:border-[#005ca9] dark:focus:border-cyan-400 transition-all bg-white dark:bg-[#0C1E38]"
                 />
                 <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-mono">
-                Gestor (admin) ou Operador (CPF cadastrado)
+                Informe o seu CPF cadastrado no sistema
               </p>
             </div>
 

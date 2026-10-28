@@ -15,8 +15,7 @@ import {
   Building2,
   Users,
   Satellite,
-  ArrowRight,
-  Video
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -217,12 +216,6 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
       icon: Building2,
       target: '/#tecnologia',
     },
-    {
-      title: 'Vídeo-Aulas & Conteúdos',
-      desc: 'Acervo de aulas gravadas, estúdios centrais e canais oficiais.',
-      icon: Video,
-      target: '/ao-vivo',
-    },
   ];
 
   // Links da Pílula Unificada Central (Zona 2)
@@ -354,18 +347,18 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                                   Arquitetura MEDTEC RO
                                 </h4>
                                 <p className="mt-1.5 text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed text-pretty">
-                                  Produção e gravação de aulas nos estúdios centrais em Porto Velho com distribuição para os 52 municípios rondonienses.
+                                  Mediação pedagógica e tecnologia educacional integrando docentes e estudantes nos 52 municípios rondonienses.
                                 </p>
                               </div>
                             </div>
 
                             <div className="mt-4 pt-3 border-t border-slate-200 dark:border-white/10 flex items-center justify-between gap-2">
                               <Link
-                                href="/ao-vivo"
-                                onClick={(e) => handleNavClick('/ao-vivo', e)}
+                                href="/noticias"
+                                onClick={(e) => handleNavClick('/noticias', e)}
                                 className="group flex items-center gap-1.5 text-[11px] font-semibold text-[#004A99] dark:text-[#00D8FF] hover:underline transition-all cursor-pointer active:scale-[0.98] duration-150 ease-out"
                               >
-                                <span>Ver Vídeo-Aulas</span>
+                                <span>Ver Notícias</span>
                                 <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform duration-150 ease-out" />
                               </Link>
                               {onOpenPitchModal ? (
@@ -453,20 +446,6 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                 );
               })}
 
-              {/* LINK VÍDEO-AULAS */}
-              <Link
-                href="/ao-vivo"
-                onClick={(e) => handleNavClick('/ao-vivo', e)}
-                className={`group inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition-all duration-150 ease-out whitespace-nowrap ml-0.5 touch-manipulation select-none active:scale-[0.96] ${
-                  pathname === '/ao-vivo' || pathname === '/redes'
-                    ? 'bg-[#004A99] text-white dark:bg-[#00D8FF] dark:text-slate-950 shadow-xs'
-                    : 'text-[#004A99] dark:text-[#00D8FF] bg-[#004A99]/10 dark:bg-[#00D8FF]/10 hover:bg-[#004A99]/20 dark:hover:bg-[#00D8FF]/20'
-                }`}
-              >
-                <Video className="h-3 w-3" />
-                <span>Vídeo-Aulas</span>
-              </Link>
-
             </div>
           </nav>
 
@@ -508,15 +487,6 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
             >
               {isDarkMode ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-[#004A99]" />}
             </button>
-
-            <Link
-              href="/ao-vivo"
-              onClick={(e) => handleNavClick('/ao-vivo', e)}
-              className="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-[#004A99]/30 dark:border-cyan-500/30 bg-[#004A99]/10 dark:bg-cyan-500/10 text-xs font-bold text-[#004A99] dark:text-cyan-300 active:scale-[0.96] transition-all duration-150 ease-out touch-manipulation select-none"
-            >
-              <Video className="h-3.5 w-3.5" />
-              <span>Vídeo-Aulas</span>
-            </Link>
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

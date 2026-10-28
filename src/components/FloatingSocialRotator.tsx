@@ -9,6 +9,7 @@ import {
   FacebookIcon,
   YoutubeIcon,
 } from '@/components/SocialIcons';
+import { medtecApi } from '@/lib/api';
 
 interface SocialItem {
   id: 'whatsapp' | 'instagram' | 'facebook' | 'youtube';
@@ -68,7 +69,27 @@ export default function FloatingSocialRotator() {
   const pathname = usePathname();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [socialNetworks, setSocialNetworks] = useState<SocialItem[]>(SOCIAL_NETWORKS);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    medtecApi.canaisContato.list({ 'q[ativo_true]': 1, page: 'all' })
+      .then((res) => {
+        if (res.success && res.data?.items?.length) {
+          const map: Record<string, string> = {};
+          res.data.items.forEach((c) => {
+            if (c.ativo && c.valor) {
+              map[c.rede.toLowerCase()] = c.valor;
+            }
+          });
+
+          setSocialNetworks((prev) =>
+            prev.map((item) => (map[item.id] ? { ...item, url: map[item.id] } : item))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // 1. Rotação automática a cada 4 segundos (4000ms)
   // Quando o mouse estiver sobre o botão (isHovered === true), o cronômetro pausa imediatamente
@@ -76,19 +97,19 @@ export default function FloatingSocialRotator() {
     if (isHovered) return;
 
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % SOCIAL_NETWORKS.length);
+      setCurrentIndex((prev) => (prev + 1) % socialNetworks.length);
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [isHovered]);
+  }, [isHovered, socialNetworks.length]);
 
   // Não renderiza nas rotas administrativas do painel (/admin)
   if (pathname?.startsWith('/admin')) {
     return null;
   }
 
-  const activeNetwork = SOCIAL_NETWORKS[currentIndex];
-  const otherNetworks = SOCIAL_NETWORKS.filter((_, idx) => idx !== currentIndex);
+  const activeNetwork = socialNetworks[currentIndex] || socialNetworks[0];
+  const otherNetworks = socialNetworks.filter((_, idx) => idx !== currentIndex);
 
   return (
     <div

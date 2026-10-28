@@ -55,6 +55,41 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
     }
   };
 
+  const getAnnouncementStyle = (item: AnnouncementItem) => {
+    const base = getTypeStyle(item.type);
+    const hexColor = item.a_tipo_aviso?.cor || item.typeColor;
+    const label = item.a_tipo_aviso?.nome || item.typeName || base.label;
+
+    if (hexColor && /^#[0-9A-Fa-f]{6}$/.test(hexColor)) {
+      return {
+        ...base,
+        label,
+        badgeClass: 'border',
+        badgeInlineStyle: {
+          backgroundColor: `${hexColor}18`,
+          borderColor: `${hexColor}40`,
+          color: hexColor,
+        },
+        dotInlineStyle: {
+          backgroundColor: hexColor,
+        },
+        cardInlineStyle: {
+          borderLeftColor: hexColor,
+          borderLeftWidth: '4px',
+        },
+      };
+    }
+
+    return {
+      ...base,
+      label,
+      badgeClass: `border ${base.badge}`,
+      badgeInlineStyle: undefined,
+      dotInlineStyle: undefined,
+      cardInlineStyle: undefined,
+    };
+  };
+
   const categories = [
     { key: 'Todas', label: 'Todos os Avisos' },
     { key: 'urgente', label: 'Urgentes' },
@@ -135,17 +170,24 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredItems.map((item) => {
-            const style = getTypeStyle(item.type);
+            const style = getAnnouncementStyle(item);
             return (
               <article
                 key={item.id}
                 onClick={() => setSelectedAviso(item)}
+                style={style.cardInlineStyle}
                 className={`bg-white dark:bg-[#0C1E38] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group active:scale-[0.99] touch-manipulation select-none cursor-pointer ${style.cardBorder}`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2.5">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold border ${style.badge}`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+                    <span
+                      style={style.badgeInlineStyle}
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold ${style.badgeClass}`}
+                    >
+                      <span
+                        style={style.dotInlineStyle}
+                        className={`h-1.5 w-1.5 rounded-full ${style.dotInlineStyle ? '' : style.dot}`}
+                      />
                       {style.label}
                     </span>
                     <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
@@ -196,10 +238,21 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
           >
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-white/10 pb-3">
               <div className="space-y-1">
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold border ${getTypeStyle(selectedAviso.type).badge}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${getTypeStyle(selectedAviso.type).dot}`} />
-                  {getTypeStyle(selectedAviso.type).label}
-                </span>
+                {(() => {
+                  const modalStyle = getAnnouncementStyle(selectedAviso);
+                  return (
+                    <span
+                      style={modalStyle.badgeInlineStyle}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold ${modalStyle.badgeClass}`}
+                    >
+                      <span
+                        style={modalStyle.dotInlineStyle}
+                        className={`h-1.5 w-1.5 rounded-full ${modalStyle.dotInlineStyle ? '' : modalStyle.dot}`}
+                      />
+                      {modalStyle.label}
+                    </span>
+                  );
+                })()}
                 <span className="block text-xs font-mono text-slate-500 dark:text-slate-400">
                   Publicado em: {selectedAviso.date} • SEDUC-RO
                 </span>
