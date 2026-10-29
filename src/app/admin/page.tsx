@@ -3,11 +3,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { DatabaseSchema, NewsItem, AnnouncementItem, GalleryItem, AnnouncementType, ProjectMission, ReplicationWeek } from '@/types';
+import { DatabaseSchema, NewsItem, ProjectMission, ReplicationWeek } from '@/types';
 import { 
   Tv, 
   Newspaper, 
-  Bell, 
   Share2, 
   LogOut, 
   Plus, 
@@ -51,8 +50,6 @@ import {
   Sparkles,
   BookOpen,
   HelpCircle,
-  Palette,
-  Layers,
   MessageSquare,
   Phone,
   Mail,
@@ -66,6 +63,10 @@ import SitePhotosManager from '@/components/SitePhotosManager';
 import AdminLiveSimulator, { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
 import UserManager from '@/components/UserManager';
 import SocialChannelsModule from '@/components/admin/SocialChannelsModule';
+import SiteInfoModule from '@/components/admin/SiteInfoModule';
+import EstadosCidadesModule from '@/components/admin/EstadosCidadesModule';
+import GalleryModule from '@/components/admin/GalleryModule';
+import AnnouncementsModule from '@/components/admin/AnnouncementsModule';
 import { FaqItem, FaqCategory } from '@/types';
 import {
   medtecApi,
@@ -77,7 +78,6 @@ import {
   FotoGaleria,
   CanalContato,
   Estado,
-  Cidade,
   NNoticia,
   NCategoriaNoticia,
 } from '@/lib/api';
@@ -337,8 +337,6 @@ export default function AdminDashboardPage() {
   const [currentSection, setCurrentSection] = useState<AdminSection>('visaoGeral');
   const [newsFolder, setNewsFolder] = useState('Todas');
   const [newsViewMode, setNewsViewMode] = useState<'lista' | 'editor'>('lista');
-  const [announcementViewMode, setAnnouncementViewMode] = useState<'lista' | 'editor'>('lista');
-  const [galleryViewMode, setGalleryViewMode] = useState<'lista' | 'editor'>('lista');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -370,6 +368,22 @@ export default function AdminDashboardPage() {
   };
 
   const handleSelectSection = (sec: AdminSection) => {
+    if (sec === 'avisos') {
+      router.push('/admin/avisos');
+      return;
+    }
+    if (sec === 'galeria') {
+      router.push('/admin/galeria');
+      return;
+    }
+    if (sec === 'estadosCidades') {
+      router.push('/admin/estados-cidades');
+      return;
+    }
+    if (sec === 'siteInfo') {
+      router.push('/admin/institucional');
+      return;
+    }
     setCurrentSection(sec);
     const activeFolder = getFolderIdForSection(sec);
     if (activeFolder) {
@@ -490,61 +504,19 @@ export default function AdminDashboardPage() {
     data: {},
   });
 
-  // Estado para formulário de Aviso
-  const [announcementForm, setAnnouncementForm] = useState<Partial<AnnouncementItem>>({
-    title: '',
-    content: '',
-    type: 'aviso',
-    date: '',
-    linkText: '',
-    linkUrl: '',
-    active: true,
-  });
-
-  // Estado para formulário de Foto da Galeria
-  const [galleryForm, setGalleryForm] = useState<Partial<GalleryItem>>({
-    title: '',
-    description: '',
-    imageUrl: '',
-    category: 'Salas de Aula',
-    date: 'Outubro 2026',
-  });
-
   // Upload status
   const [uploadingImage, setUploadingImage] = useState(false);
 
   // -------------------------------------------------------------
   // ESTADOS DA API v1 OFICIAL (/api/v1)
   // -------------------------------------------------------------
-  // Avisos e Tipos de Aviso (/a_avisos, /a_tipos_aviso)
+  // Avisos e Tipos de Aviso (/a_avisos, /a_tipos_aviso) - Compartilhado com Visão Geral e Sidebar
   const [apiAvisos, setApiAvisos] = useState<AAviso[]>([]);
   const [apiTiposAviso, setApiTiposAviso] = useState<ATipoAviso[]>([]);
-  const [selectedTipoAvisoId, setSelectedTipoAvisoId] = useState<number | null>(null);
-  const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null);
-  const [showTipoAvisoManager, setShowTipoAvisoManager] = useState(false);
-  const [editingTipoAviso, setEditingTipoAviso] = useState<ATipoAviso | null>(null);
-  const [tipoAvisoForm, setTipoAvisoForm] = useState({
-    nome: '',
-    slug: '',
-    cor: '#004A99',
-    posicao: 0,
-    ativo: true,
-  });
 
-  // Galeria e Categorias (/fotos_galeria, /categorias_galeria)
+  // Galeria e Categorias (/fotos_galeria, /categorias_galeria) - Compartilhado com Visão Geral e Sidebar
   const [apiFotos, setApiFotos] = useState<FotoGaleria[]>([]);
   const [apiCategorias, setApiCategorias] = useState<CategoriaGaleria[]>([]);
-  const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | null>(null);
-  const [editingPhotoId, setEditingPhotoId] = useState<number | null>(null);
-  const [galleryFile, setGalleryFile] = useState<File | null>(null);
-  const [showCategoriaManager, setShowCategoriaManager] = useState(false);
-  const [editingCategoria, setEditingCategoria] = useState<CategoriaGaleria | null>(null);
-  const [categoriaForm, setCategoriaForm] = useState({
-    nome: '',
-    slug: '',
-    posicao: 0,
-    ativo: true,
-  });
 
   // Canais de Contato (/canais_contato)
   const [apiCanais, setApiCanais] = useState<CanalContato[]>([]);
@@ -566,27 +538,9 @@ export default function AdminDashboardPage() {
   const [loadingNews, setLoadingNews] = useState(true);
   const [errorNews, setErrorNews] = useState<string | null>(null);
 
-  // Estados e Cidades (/g_estados, /g_cidades)
+  // Estados (/g_estados) - Compartilhado com a Sidebar
   const [apiEstados, setApiEstados] = useState<Estado[]>([]);
-  const [apiCidades, setApiCidades] = useState<Cidade[]>([]);
-  const [selectedEstadoId, setSelectedEstadoId] = useState<number | null>(null);
   const [loadingEstados, setLoadingEstados] = useState(false);
-  const [loadingCidades, setLoadingCidades] = useState(false);
-  const [cidadeSearch, setCidadeSearch] = useState('');
-
-  // Modal de Estado
-  const [showEstadoModal, setShowEstadoModal] = useState(false);
-  const [editingEstado, setEditingEstado] = useState<Estado | null>(null);
-  const [estadoForm, setEstadoForm] = useState({ nome: '', sigla_uf: '', codigo_ibge: '' });
-  const [savingEstado, setSavingEstado] = useState(false);
-  const [estadoError, setEstadoError] = useState('');
-
-  // Modal de Cidade
-  const [showCidadeModal, setShowCidadeModal] = useState(false);
-  const [editingCidade, setEditingCidade] = useState<Cidade | null>(null);
-  const [cidadeForm, setCidadeForm] = useState({ g_estado_id: 0, nome: '', codigo_ibge: '' });
-  const [savingCidade, setSavingCidade] = useState(false);
-  const [cidadeError, setCidadeError] = useState('');
 
   // Sincronização do tema escuro
   const isDark = useSyncExternalStore(
@@ -625,9 +579,6 @@ export default function AdminDashboardPage() {
       ]);
       if (tiposRes.success && tiposRes.data?.items) {
         setApiTiposAviso(tiposRes.data.items);
-        if (tiposRes.data.items.length > 0) {
-          setSelectedTipoAvisoId(prev => prev ?? tiposRes.data.items[0].id);
-        }
       }
       if (avisosRes.success && avisosRes.data?.items) {
         setApiAvisos(avisosRes.data.items);
@@ -649,9 +600,6 @@ export default function AdminDashboardPage() {
       ]);
       if (catsRes.success && catsRes.data?.items) {
         setApiCategorias(catsRes.data.items);
-        if (catsRes.data.items.length > 0) {
-          setSelectedCategoriaId(prev => prev ?? catsRes.data.items[0].id);
-        }
       }
       if (fotosRes.success && fotosRes.data?.items) {
         setApiFotos(fotosRes.data.items);
@@ -679,9 +627,6 @@ export default function AdminDashboardPage() {
       const estadosRes = await medtecApi.estados.list({ page: 'all' });
       if (estadosRes.success && estadosRes.data?.items) {
         setApiEstados(estadosRes.data.items);
-        if (estadosRes.data.items.length > 0) {
-          setSelectedEstadoId(prev => prev ?? estadosRes.data.items[0].id);
-        }
       }
     } catch (err) {
       console.warn('API v1: Erro ao listar estados:', err);
@@ -714,28 +659,6 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // Carrega cidades do estado selecionado
-  useEffect(() => {
-    if (!selectedEstadoId) return;
-    let isMounted = true;
-    const fetchCidades = async () => {
-      try {
-        const res = await medtecApi.cidades.list({ 'q[g_estado_id_eq]': selectedEstadoId, page: 'all' });
-        if (isMounted && res.success && res.data?.items) {
-          setApiCidades(res.data.items);
-        }
-      } catch (err) {
-        console.warn('API v1: Erro ao carregar cidades:', err);
-      } finally {
-        if (isMounted) setLoadingCidades(false);
-      }
-    };
-    void fetchCidades();
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedEstadoId]);
-
   // Carrega dados iniciais e verifica sessão
   const loadData = useCallback(async () => {
     await Promise.resolve();
@@ -764,7 +687,8 @@ export default function AdminDashboardPage() {
               } else if (meRes.data.perfil_nome === 'Curador de Fotos') {
                 setCurrentSection('fotos');
               } else if (meRes.data.perfil_nome === 'Publicador de Avisos') {
-                setCurrentSection('avisos');
+                router.push('/admin/avisos');
+                return;
               } else {
                 setCurrentSection('noticias');
               }
@@ -801,7 +725,8 @@ export default function AdminDashboardPage() {
             } else if (profileType === 'Curador de Fotos') {
               setCurrentSection('fotos');
             } else if (profileType === 'Publicador de Avisos') {
-              setCurrentSection('avisos');
+              router.push('/admin/avisos');
+              return;
             } else {
               setCurrentSection('noticias');
             }
@@ -851,6 +776,25 @@ export default function AdminDashboardPage() {
     };
   }, [loadData]);
 
+  // Sincroniza subrotas legadas ou transição de abas via query param ?tab= ou ?section=
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab') || params.get('section');
+      if (tabParam === 'avisos') {
+        router.push('/admin/avisos');
+      } else if (tabParam === 'galeria') {
+        router.push('/admin/galeria');
+      } else if (tabParam === 'estadosCidades') {
+        router.push('/admin/estados-cidades');
+      } else if (tabParam === 'siteInfo') {
+        router.push('/admin/institucional');
+      } else if (tabParam && tabParam in SECTION_CONFIG) {
+        handleSelectSection(tabParam as AdminSection);
+      }
+    }
+  }, [router]);
+
   const handleLogout = async () => {
     try {
       await medtecApi.auth.logout();
@@ -863,7 +807,7 @@ export default function AdminDashboardPage() {
   };
 
   // Upload genérico de arquivo de imagem
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetField: 'news' | 'gallery' | 'project') => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetField: 'news' | 'project') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -881,8 +825,6 @@ export default function AdminDashboardPage() {
       if (res.ok && resData.url) {
         if (targetField === 'news') {
           setNewsForm(prev => ({ ...prev, coverImage: resData.url }));
-        } else if (targetField === 'gallery') {
-          setGalleryForm(prev => ({ ...prev, imageUrl: resData.url }));
         } else if (targetField === 'project') {
           setProjectForm(prev => ({ ...prev, image: resData.url }));
         }
@@ -1114,329 +1056,6 @@ export default function AdminDashboardPage() {
   };
 
   // -------------------------------------------------------------
-  // FUNÇÕES DE AVISOS E TIPOS DE AVISO (API v1)
-  // -------------------------------------------------------------
-  const handleNewAnnouncement = () => {
-    setEditingAnnouncementId(null);
-    setAnnouncementForm({
-      title: '',
-      content: '',
-      type: 'aviso',
-      date: new Date().toLocaleDateString('pt-BR'),
-      linkText: '',
-      linkUrl: '',
-      active: true,
-    });
-    if (apiTiposAviso.length > 0) {
-      setSelectedTipoAvisoId(apiTiposAviso[0].id);
-    }
-    setAnnouncementViewMode('editor');
-  };
-
-  const handleEditAnnouncement = (aviso: AAviso | AnnouncementItem) => {
-    const isApi = 'a_tipo_aviso_id' in aviso;
-    const numId = Number(aviso.id);
-    setEditingAnnouncementId(isNaN(numId) ? null : numId);
-    setAnnouncementForm({
-      title: 'titulo' in aviso ? aviso.titulo : aviso.title,
-      content: 'conteudo' in aviso ? aviso.conteudo : aviso.content,
-      type: isApi && aviso.a_tipo_aviso ? (aviso.a_tipo_aviso.slug as AnnouncementType) : (aviso as AnnouncementItem).type || 'aviso',
-      date: 'created_at' in aviso ? new Date(aviso.created_at).toLocaleDateString('pt-BR') : (aviso as AnnouncementItem).date || new Date().toLocaleDateString('pt-BR'),
-      linkText: 'link_texto' in aviso ? (aviso.link_texto || '') : ((aviso as AnnouncementItem).linkText || ''),
-      linkUrl: 'link_url' in aviso ? (aviso.link_url || '') : ((aviso as AnnouncementItem).linkUrl || ''),
-      active: 'ativo' in aviso ? aviso.ativo !== false : (aviso as AnnouncementItem).active !== false,
-    });
-    if (isApi && aviso.a_tipo_aviso_id) {
-      setSelectedTipoAvisoId(aviso.a_tipo_aviso_id);
-    }
-    setAnnouncementViewMode('editor');
-  };
-
-  const handleSaveAnnouncement = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!announcementForm.title?.trim() || !announcementForm.content?.trim()) {
-      alert('Informe o título e o conteúdo do comunicado.');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const tipoId = selectedTipoAvisoId || (apiTiposAviso[0] ? apiTiposAviso[0].id : 1);
-
-      let savedAviso: AAviso | null = null;
-      try {
-        if (editingAnnouncementId) {
-          savedAviso = await medtecApi.avisos.update(editingAnnouncementId, {
-            titulo: announcementForm.title.trim(),
-            a_tipo_aviso_id: tipoId,
-            conteudo: announcementForm.content.trim(),
-            link_texto: announcementForm.linkText?.trim() || '',
-            link_url: announcementForm.linkUrl?.trim() || '',
-            ativo: announcementForm.active ?? true,
-          });
-        } else {
-          savedAviso = await medtecApi.avisos.create({
-            titulo: announcementForm.title.trim(),
-            a_tipo_aviso_id: tipoId,
-            conteudo: announcementForm.content.trim(),
-            link_texto: announcementForm.linkText?.trim() || '',
-            link_url: announcementForm.linkUrl?.trim() || '',
-            ativo: announcementForm.active ?? true,
-          });
-        }
-      } catch (apiErr: unknown) {
-        const err = apiErr as { message?: string; errors?: string[] };
-        console.warn('Erro ao salvar aviso na API v1:', err);
-        alert(`Erro na API oficial: ${err.message || err.errors?.join(', ') || 'Falha ao salvar comunicado'}`);
-        return; // Interrompe imediatamente; não prossegue com falso sucesso
-      }
-
-      if (savedAviso) {
-        setApiAvisos(prev => editingAnnouncementId ? prev.map(a => a.id === savedAviso!.id ? savedAviso! : a) : [savedAviso!, ...prev]);
-        alert(editingAnnouncementId ? 'Comunicado atualizado com sucesso na API oficial!' : 'Comunicado cadastrado com sucesso na API oficial!');
-      }
-
-      setEditingAnnouncementId(null);
-      setAnnouncementForm({
-        title: '',
-        content: '',
-        type: 'aviso',
-        date: new Date().toLocaleDateString('pt-BR'),
-        linkText: '',
-        linkUrl: '',
-        active: true,
-      });
-      setAnnouncementViewMode('lista');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDeleteAnnouncement = async (id: string) => {
-    if (!confirm('Deseja realmente excluir este comunicado oficial?')) return;
-    const numId = Number(id);
-    if (isNaN(numId)) return;
-
-    try {
-      await medtecApi.avisos.delete(numId);
-      setApiAvisos(prev => prev.filter(a => a.id !== numId));
-      alert('Comunicado oficial excluído com sucesso da API.');
-    } catch (err: unknown) {
-      const errorData = err as { message?: string; errors?: string[] };
-      alert(`Erro ao excluir na API oficial: ${errorData.message || errorData.errors?.join(', ') || 'Falha na exclusão'}`);
-    }
-  };
-
-  const handleToggleAnnouncementActive = async (id: string) => {
-    const numId = Number(id);
-    if (isNaN(numId)) return;
-    const existingApi = apiAvisos.find(a => a.id === numId);
-    const currentActive = existingApi ? existingApi.ativo : true;
-    const newActive = !currentActive;
-
-    try {
-      await medtecApi.avisos.update(numId, { ativo: newActive });
-      setApiAvisos(prev => prev.map(a => a.id === numId ? { ...a, ativo: newActive } : a));
-    } catch (err: unknown) {
-      const errorData = err as { message?: string };
-      console.warn('Erro ao atualizar ativo na API v1:', err);
-      alert(`Erro ao atualizar visibilidade na API: ${errorData?.message || 'Falha'}`);
-    }
-  };
-
-  // CRUD Tipos de Aviso
-  const handleSaveTipoAviso = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tipoAvisoForm.nome.trim() || !tipoAvisoForm.slug.trim()) {
-      alert('Informe o nome e o slug do tipo de aviso.');
-      return;
-    }
-    try {
-      if (editingTipoAviso) {
-        const updated = await medtecApi.tiposAviso.update(editingTipoAviso.id, tipoAvisoForm);
-        setApiTiposAviso(prev => prev.map(t => t.id === updated.id ? updated : t));
-      } else {
-        const created = await medtecApi.tiposAviso.create(tipoAvisoForm);
-        setApiTiposAviso(prev => [...prev, created]);
-      }
-      setEditingTipoAviso(null);
-      setTipoAvisoForm({ nome: '', slug: '', cor: '#004A99', posicao: 0, ativo: true });
-    } catch (err: unknown) {
-      const errorData = err as { message?: string; errors?: string[] };
-      alert(`Erro ao salvar Tipo de Aviso: ${errorData.message || errorData.errors?.join(', ') || 'Erro'}`);
-    }
-  };
-
-  const handleDeleteTipoAviso = async (id: number) => {
-    if (!confirm('Deseja excluir este tipo de aviso?')) return;
-    try {
-      await medtecApi.tiposAviso.delete(id);
-      setApiTiposAviso(prev => prev.filter(t => t.id !== id));
-    } catch (err: unknown) {
-      const errorData = err as { message?: string; errors?: string[] };
-      alert(`Não foi possível excluir: ${errorData.message || errorData.errors?.join(', ') || 'Existem avisos vinculados'}`);
-    }
-  };
-
-  // -------------------------------------------------------------
-  // FUNÇÕES DE GALERIA E CATEGORIAS (API v1)
-  // -------------------------------------------------------------
-  const handleNewPhoto = () => {
-    setEditingPhotoId(null);
-    setGalleryFile(null);
-    setGalleryForm({
-      title: '',
-      description: '',
-      imageUrl: '',
-      category: 'Salas de Aula',
-      date: 'Outubro 2026',
-    });
-    if (apiCategorias.length > 0) {
-      setSelectedCategoriaId(apiCategorias[0].id);
-    }
-    setGalleryViewMode('editor');
-  };
-
-  const handleEditPhoto = (foto: FotoGaleria | GalleryItem) => {
-    const isApi = 'categoria_galeria_id' in foto;
-    const numId = Number(foto.id);
-    setEditingPhotoId(isNaN(numId) ? null : numId);
-    setGalleryFile(null);
-    const displayImg = 'imagem' in foto && foto.imagem ? getMediaUrl(foto.imagem) : (foto as GalleryItem).imageUrl || ('imagem_url' in foto ? foto.imagem_url || '' : '');
-    setGalleryForm({
-      title: 'titulo' in foto ? foto.titulo : (foto as GalleryItem).title,
-      description: ('descricao' in foto ? foto.descricao : (foto as GalleryItem).description) || '',
-      imageUrl: displayImg,
-      category: isApi && foto.categoria_galeria ? foto.categoria_galeria.nome : (foto as GalleryItem).category || 'Salas de Aula',
-      date: 'Outubro 2026',
-    });
-    if (isApi && foto.categoria_galeria_id) {
-      setSelectedCategoriaId(foto.categoria_galeria_id);
-    }
-    setGalleryViewMode('editor');
-  };
-
-  const handleSavePhoto = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!galleryForm.title?.trim()) {
-      alert('Informe o título da foto.');
-      return;
-    }
-    if (!galleryFile && !galleryForm.imageUrl?.trim()) {
-      alert('Selecione um arquivo de foto do computador ou informe um link externo direto.');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const catId = selectedCategoriaId || (apiCategorias[0] ? apiCategorias[0].id : 1);
-
-      let savedFoto: FotoGaleria | null = null;
-      try {
-        if (galleryFile) {
-          const form = new FormData();
-          form.append('foto_galeria[titulo]', galleryForm.title.trim());
-          form.append('foto_galeria[categoria_galeria_id]', String(catId));
-          form.append('foto_galeria[descricao]', galleryForm.description?.trim() || '');
-          form.append('foto_galeria[imagem]', galleryFile);
-
-          if (editingPhotoId) {
-            savedFoto = await medtecApi.fotosGaleria.update(editingPhotoId, form);
-          } else {
-            savedFoto = await medtecApi.fotosGaleria.create(form);
-          }
-        } else if (galleryForm.imageUrl) {
-          const payload = {
-            foto_galeria: {
-              titulo: galleryForm.title.trim(),
-              categoria_galeria_id: catId,
-              descricao: galleryForm.description?.trim() || '',
-              imagem_url: galleryForm.imageUrl.trim(),
-            },
-          };
-          if (editingPhotoId) {
-            savedFoto = await medtecApi.fotosGaleria.update(editingPhotoId, payload);
-          } else {
-            savedFoto = await medtecApi.fotosGaleria.create(payload);
-          }
-        }
-      } catch (apiErr: unknown) {
-        const err = apiErr as { message?: string; errors?: string[] };
-        console.warn('Erro ao salvar foto na API v1:', err);
-        alert(`Erro na API oficial: ${err.message || err.errors?.join(', ') || 'Falha ao salvar foto'}`);
-        return; // Interrompe imediatamente; não prossegue com falso sucesso
-      }
-
-      if (savedFoto) {
-        setApiFotos(prev => editingPhotoId ? prev.map(f => f.id === savedFoto!.id ? savedFoto! : f) : [savedFoto!, ...prev]);
-        alert(editingPhotoId ? 'Foto atualizada com sucesso na API oficial!' : 'Foto cadastrada com sucesso na API oficial!');
-      }
-
-      setEditingPhotoId(null);
-      setGalleryFile(null);
-      setGalleryForm({
-        title: '',
-        description: '',
-        imageUrl: '',
-        category: 'Salas de Aula',
-        date: 'Outubro 2026',
-      });
-      setGalleryViewMode('lista');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDeletePhoto = async (id: string) => {
-    if (!confirm('Deseja excluir esta foto da galeria?')) return;
-    const numId = Number(id);
-    if (isNaN(numId)) return;
-
-    try {
-      await medtecApi.fotosGaleria.delete(numId);
-      setApiFotos(prev => prev.filter(f => f.id !== numId));
-      alert('Foto excluída com sucesso da API oficial.');
-    } catch (err: unknown) {
-      const errorData = err as { message?: string; errors?: string[] };
-      alert(`Erro ao excluir foto na API oficial: ${errorData.message || errorData.errors?.join(', ') || 'Falha'}`);
-    }
-  };
-
-  // CRUD Categorias da Galeria
-  const handleSaveCategoria = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!categoriaForm.nome.trim() || !categoriaForm.slug.trim()) {
-      alert('Informe o nome e o slug da categoria.');
-      return;
-    }
-    try {
-      if (editingCategoria) {
-        const updated = await medtecApi.categoriasGaleria.update(editingCategoria.id, categoriaForm);
-        setApiCategorias(prev => prev.map(c => c.id === updated.id ? updated : c));
-      } else {
-        const created = await medtecApi.categoriasGaleria.create(categoriaForm);
-        setApiCategorias(prev => [...prev, created]);
-      }
-      setEditingCategoria(null);
-      setCategoriaForm({ nome: '', slug: '', posicao: 0, ativo: true });
-    } catch (err: unknown) {
-      const errorData = err as { message?: string; errors?: string[] };
-      alert(`Erro ao salvar Categoria: ${errorData.message || errorData.errors?.join(', ') || 'Erro'}`);
-    }
-  };
-
-  const handleDeleteCategoria = async (id: number) => {
-    if (!confirm('Deseja excluir esta categoria de fotos?')) return;
-    try {
-      await medtecApi.categoriasGaleria.delete(id);
-      setApiCategorias(prev => prev.filter(c => c.id !== id));
-    } catch (err: unknown) {
-      const errorData = err as { message?: string; errors?: string[] };
-      alert(`Não foi possível excluir: ${errorData.message || errorData.errors?.join(', ') || 'Existem fotos nesta categoria'}`);
-    }
-  };
-
-  // -------------------------------------------------------------
   // FUNÇÕES DE REDES SOCIAIS E CANAIS DE CONTATO (/canais_contato)
   // -------------------------------------------------------------
   const handleSaveSocials = async (e: React.FormEvent) => {
@@ -1475,101 +1094,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // -------------------------------------------------------------
-  // FUNÇÕES DE ESTADOS E MUNICÍPIOS (/g_estados, /g_cidades)
-  // -------------------------------------------------------------
-  const handleSaveEstado = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingEstado(true);
-    setEstadoError('');
-    try {
-      if (editingEstado) {
-        const updated = await medtecApi.estados.update(editingEstado.id, {
-          nome: estadoForm.nome,
-          sigla_uf: estadoForm.sigla_uf.toUpperCase(),
-          codigo_ibge: estadoForm.codigo_ibge,
-        });
-        setApiEstados(prev => prev.map(est => est.id === updated.id ? updated : est));
-      } else {
-        const created = await medtecApi.estados.create({
-          nome: estadoForm.nome,
-          sigla_uf: estadoForm.sigla_uf.toUpperCase(),
-          codigo_ibge: estadoForm.codigo_ibge,
-        });
-        setApiEstados(prev => [...prev, created]);
-        if (!selectedEstadoId) setSelectedEstadoId(created.id);
-      }
-      setShowEstadoModal(false);
-      setEditingEstado(null);
-      setEstadoForm({ nome: '', sigla_uf: '', codigo_ibge: '' });
-    } catch (err: unknown) {
-      const errorData = err as { message?: string; errors?: string[] };
-      setEstadoError(errorData.message || errorData.errors?.join(', ') || 'Falha ao salvar estado.');
-    } finally {
-      setSavingEstado(false);
-    }
-  };
-
-  const handleDeleteEstado = async (id: number) => {
-    if (!confirm('Deseja excluir este estado?')) return;
-    try {
-      await medtecApi.estados.delete(id);
-      setApiEstados(prev => prev.filter(est => est.id !== id));
-      if (selectedEstadoId === id) {
-        const remaining = apiEstados.filter(est => est.id !== id);
-        setSelectedEstadoId(remaining[0] ? remaining[0].id : null);
-      }
-    } catch (err: unknown) {
-      const errorData = err as { message?: string; errors?: string[] };
-      alert(`Não foi possível excluir: ${errorData.message || errorData.errors?.join(', ') || 'O estado possui cidades vinculadas'}`);
-    }
-  };
-
-  const handleSaveCidade = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEstadoId) {
-      alert('Selecione um estado antes de cadastrar uma cidade.');
-      return;
-    }
-    setSavingCidade(true);
-    setCidadeError('');
-    try {
-      if (editingCidade) {
-        const updated = await medtecApi.cidades.update(editingCidade.id, {
-          g_estado_id: selectedEstadoId,
-          nome: cidadeForm.nome,
-          codigo_ibge: cidadeForm.codigo_ibge,
-        });
-        setApiCidades(prev => prev.map(c => c.id === updated.id ? updated : c));
-      } else {
-        const created = await medtecApi.cidades.create({
-          g_estado_id: selectedEstadoId,
-          nome: cidadeForm.nome,
-          codigo_ibge: cidadeForm.codigo_ibge,
-        });
-        setApiCidades(prev => [...prev, created]);
-      }
-      setShowCidadeModal(false);
-      setEditingCidade(null);
-      setCidadeForm({ g_estado_id: selectedEstadoId, nome: '', codigo_ibge: '' });
-    } catch (err: unknown) {
-      const errorData = err as { message?: string; errors?: string[] };
-      setCidadeError(errorData.message || errorData.errors?.join(', ') || 'Falha ao salvar município.');
-    } finally {
-      setSavingCidade(false);
-    }
-  };
-
-  const handleDeleteCidade = async (id: number) => {
-    if (!confirm('Deseja excluir este município?')) return;
-    try {
-      await medtecApi.cidades.delete(id);
-      setApiCidades(prev => prev.filter(c => c.id !== id));
-    } catch (err: unknown) {
-      const errorData = err as { message?: string };
-      alert(`Erro ao excluir município: ${errorData.message || 'Falha'}`);
-    }
-  };
 
   // Funções de Gestão de Projetos Pedagógicos
   const handleNewProject = () => {
@@ -1650,42 +1174,37 @@ export default function AdminDashboardPage() {
   };
 
   const effectiveNews: NewsItem[] = useMemo(() => {
-    if (apiNews.length > 0) {
-      return apiNews.map((n) => ({
-        id: String(n.id),
-        title: n.titulo,
-        slug: n.slug,
-        excerpt: n.resumo || '',
-        content: n.conteudo,
-        coverImage: getMediaUrl(n.imagem_capa),
-        author: n.autor_nome,
-        category: n.categoria_nome,
-        publishedAt: n.data_publicacao,
-        featured: false,
-        urgent: false,
-        folder: n.categoria_nome || 'Geral',
-        published: n.status === 'publicada',
-        rejected: n.status === 'reprovada',
-        rejectionReason: n.motivo_reprovacao || undefined,
-        views: 0,
-        tags: [],
-      }));
-    }
-    return data?.news || [];
-  }, [apiNews, data?.news]);
+    return apiNews.map((n) => ({
+      id: String(n.id),
+      title: n.titulo,
+      slug: n.slug,
+      excerpt: n.resumo || '',
+      content: n.conteudo,
+      coverImage: getMediaUrl(n.imagem_capa),
+      author: n.autor_nome,
+      category: n.categoria_nome,
+      publishedAt: n.data_publicacao,
+      featured: false,
+      urgent: false,
+      folder: n.categoria_nome || 'Geral',
+      published: n.status === 'publicada',
+      rejected: n.status === 'reprovada',
+      rejectionReason: n.motivo_reprovacao || undefined,
+      views: 0,
+      tags: [],
+    }));
+  }, [apiNews]);
 
   const newsFolders = Array.from(new Set(effectiveNews.map((item) => item.folder?.trim() || 'Geral'))).sort((a, b) =>
     a.localeCompare(b, 'pt-BR')
   );
-  const publishedCount = effectiveNews.filter((item) => item.published !== false).length;
-  const draftCount = effectiveNews.length - publishedCount;
-  const totalNewsViews = effectiveNews.reduce((acc, curr) => acc + (curr.views || 0), 0);
-  const urgentAnnouncementsCount = data ? data.announcements.filter(a => a.type === 'urgente').length : 0;
-  const activeAnnouncementsCount = data ? data.announcements.filter(a => a.active).length : 0;
-
   // Métricas oficiais dos módulos integrados à API Rails v1 (Fonte Única de Verdade)
   const apiNewsPublishedCount = apiNews.filter((n) => n.status === 'publicada').length;
   const apiNewsDraftCount = apiNews.filter((n) => n.status !== 'publicada').length;
+  const publishedCount = apiNewsPublishedCount;
+  const draftCount = apiNewsDraftCount;
+  const totalNewsViews = effectiveNews.reduce((acc, curr) => acc + (curr.views || 0), 0);
+
   const apiAvisosAtivosCount = apiAvisos.filter((a) => a.ativo).length;
   const apiAvisosUrgentesCount = apiAvisos.filter(
     (a) => a.ativo && (a.a_tipo_aviso?.slug === 'urgente' || a.a_tipo_aviso?.nome?.toLowerCase().includes('urgente'))
@@ -1773,7 +1292,7 @@ export default function AdminDashboardPage() {
           label: 'Fila de Aprovação (Passo a Passo)',
           tooltip: 'Abre o fluxo Rascunho > Revisão > Publicado',
           icon: CheckCircle2,
-          badge: draftCount > 0 ? draftCount : undefined,
+          badge: errorNews ? undefined : (loadingNews ? undefined : (draftCount > 0 ? draftCount : undefined)),
           visible: canAccessKanban,
         },
       ],
@@ -2494,1093 +2013,42 @@ export default function AdminDashboardPage() {
     }
 
     if (tab === 'avisos' && canAccessAnnouncements) {
-      const activeTipo = apiTiposAviso.find(t => t.id === selectedTipoAvisoId) || apiTiposAviso[0];
-      const displayAvisosCount = apiAvisos.length;
-
       return (
-        <div className="space-y-6">
-          {/* Sub-navegação Interna: Lista vs Editor vs Gerenciar Tipos */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setAnnouncementViewMode('lista');
-                  setShowTipoAvisoManager(false);
-                }}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  announcementViewMode === 'lista' && !showTipoAvisoManager
-                    ? 'bg-[#004A99] text-white shadow-xs'
-                    : 'bg-white dark:bg-[#0B1729] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Bell className="h-4 w-4" />
-                <span>Avisos Oficiais ({displayAvisosCount})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  handleNewAnnouncement();
-                  setShowTipoAvisoManager(false);
-                }}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  announcementViewMode === 'editor' && !showTipoAvisoManager
-                    ? 'bg-[#004A99] text-white shadow-xs'
-                    : 'bg-white dark:bg-[#0B1729] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Plus className="h-4 w-4" />
-                <span>{editingAnnouncementId ? 'Editar Aviso' : 'Novo Comunicado'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowTipoAvisoManager(!showTipoAvisoManager)}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  showTipoAvisoManager
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-[#0B1729] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Palette className="h-4 w-4 text-amber-500" />
-                <span>Tipos e Cores de Aviso ({apiTiposAviso.length})</span>
-              </button>
-            </div>
-
-            {announcementViewMode === 'lista' && !showTipoAvisoManager && (
-              <button
-                type="button"
-                onClick={handleNewAnnouncement}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer self-start sm:self-auto"
-              >
-                <Plus className="h-4 w-4" />
-                <span>+ Cadastrar Novo Aviso</span>
-              </button>
-            )}
-          </div>
-
-          {/* Gerenciador de Tipos de Aviso (CRUD /a_tipos_aviso) */}
-          {showTipoAvisoManager && (
-            <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-amber-200 dark:border-amber-900/40 space-y-6">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    <Palette className="text-amber-500 h-5 w-5" />
-                    <span>Gerenciar Tipos de Aviso e Cores (`/a_tipos_aviso`)</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Defina as categorias dinâmicas de avisos e a cor hexadecimal (#RRGGBB) aplicada no portal.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowTipoAvisoManager(false)}
-                  className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white font-semibold cursor-pointer"
-                >
-                  Fechar
-                </button>
-              </div>
-
-              {/* Formulário de Criar/Editar Tipo */}
-              <form onSubmit={handleSaveTipoAviso} className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  {editingTipoAviso ? `Editar Tipo: ${editingTipoAviso.nome}` : 'Cadastrar Novo Tipo de Aviso'}
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-end">
-                  <div className="md:col-span-2">
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Nome do Tipo *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={tipoAvisoForm.nome}
-                      onChange={e => {
-                        const val = e.target.value;
-                        const autoSlug = val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
-                        setTipoAvisoForm(prev => ({
-                          ...prev,
-                          nome: val,
-                          slug: editingTipoAviso ? prev.slug : autoSlug,
-                        }));
-                      }}
-                      placeholder="Ex: Urgente, Alerta, Informativo..."
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-xs text-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Slug Único *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={tipoAvisoForm.slug}
-                      onChange={e => setTipoAvisoForm({ ...tipoAvisoForm, slug: e.target.value.toLowerCase().trim() })}
-                      placeholder="ex: urgente"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-xs text-slate-900 dark:text-slate-100 font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Cor Hexadecimal *
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={tipoAvisoForm.cor}
-                        onChange={e => setTipoAvisoForm({ ...tipoAvisoForm, cor: e.target.value.toUpperCase() })}
-                        className="w-8 h-8 rounded border border-slate-300 dark:border-slate-700 cursor-pointer p-0.5 bg-transparent"
-                      />
-                      <input
-                        type="text"
-                        required
-                        value={tipoAvisoForm.cor}
-                        onChange={e => setTipoAvisoForm({ ...tipoAvisoForm, cor: e.target.value.toUpperCase() })}
-                        placeholder="#DC2626"
-                        maxLength={7}
-                        className="w-full px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-xs font-mono text-slate-900 dark:text-slate-100"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="submit"
-                      className="px-4 py-2 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer flex-1"
-                    >
-                      {editingTipoAviso ? 'Atualizar' : 'Salvar Tipo'}
-                    </button>
-                    {editingTipoAviso && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingTipoAviso(null);
-                          setTipoAvisoForm({ nome: '', slug: '', cor: '#004A99', posicao: 0, ativo: true });
-                        }}
-                        className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300"
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </form>
-
-              {/* Lista de Tipos Existentes */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {apiTiposAviso.map((tipo) => (
-                  <div
-                    key={tipo.id}
-                    className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#060D1A] flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className="w-5 h-5 rounded-md border border-black/10 shrink-0 shadow-xs"
-                        style={{ backgroundColor: tipo.cor }}
-                      />
-                      <div>
-                        <p className="text-xs font-bold text-slate-900 dark:text-white">{tipo.nome}</p>
-                        <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                          slug: {tipo.slug} • {tipo.cor}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingTipoAviso(tipo);
-                          setTipoAvisoForm({
-                            nome: tipo.nome,
-                            slug: tipo.slug,
-                            cor: tipo.cor,
-                            posicao: tipo.posicao || 0,
-                            ativo: tipo.ativo !== false,
-                          });
-                        }}
-                        className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
-                        title="Editar tipo"
-                      >
-                        <Edit3 size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteTipoAviso(tipo.id)}
-                        className="p-1.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600"
-                        title="Excluir tipo"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Criar / Editar Aviso */}
-          {announcementViewMode === 'editor' && (
-            <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800">
-              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <h2 className="text-xl font-black text-slate-900 dark:text-white mb-1">
-                    {editingAnnouncementId ? 'Editar Comunicado Oficial' : 'Adicionar Comunicado ou Aviso'}
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Aparecerá com destaque no topo do portal com a cor oficial configurada na API v1.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingAnnouncementId(null);
-                    setAnnouncementViewMode('lista');
-                  }}
-                  className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white font-semibold cursor-pointer"
-                >
-                  Cancelar e Voltar
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-                <div className="xl:col-span-7 min-w-0">
-                  <form onSubmit={handleSaveAnnouncement} className="space-y-5">
-                    {/* PASSO 1: TÍTULO E CLASSIFICAÇÃO */}
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-3">
-                      <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-                        <span className="w-5 h-5 rounded-full bg-[#004A99] text-white text-[11px] font-black flex items-center justify-center shrink-0">1</span>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                          Passo 1: Título e Classificação do Tipo
-                        </h3>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                            Título do Aviso *
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={announcementForm.title}
-                            onChange={e => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
-                            placeholder="Ex: Suspensão de transmissões na data..."
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                            Tipo de Aviso (API)
-                          </label>
-                          <div className="relative">
-                            <select
-                              value={selectedTipoAvisoId || ''}
-                              onChange={e => {
-                                const id = Number(e.target.value);
-                                setSelectedTipoAvisoId(id);
-                                const tipo = apiTiposAviso.find(t => t.id === id);
-                                if (tipo) {
-                                  setAnnouncementForm(prev => ({
-                                    ...prev,
-                                    type: (tipo.slug as AnnouncementType) || 'aviso',
-                                    typeColor: tipo.cor,
-                                    typeName: tipo.nome,
-                                    a_tipo_aviso_id: tipo.id,
-                                  }));
-                                }
-                              }}
-                              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
-                            >
-                              {apiTiposAviso.length === 0 ? (
-                                <option value="1">Padrão Oficial (Azul)</option>
-                              ) : (
-                                apiTiposAviso.map(t => (
-                                  <option key={t.id} value={t.id}>
-                                    {t.nome} ({t.slug})
-                                  </option>
-                                ))
-                              )}
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* PASSO 2: MENSAGEM */}
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-3">
-                      <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-                        <span className="w-5 h-5 rounded-full bg-[#004A99] text-white text-[11px] font-black flex items-center justify-center shrink-0">2</span>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                          Passo 2: Mensagem e Orientações
-                        </h3>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Conteúdo do Comunicado *
-                        </label>
-                        <textarea
-                          rows={4}
-                          required
-                          value={announcementForm.content}
-                          onChange={e => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
-                          placeholder="Detalhes e orientações para as escolas, professores e estudantes..."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
-                        />
-                      </div>
-                    </div>
-
-                    {/* PASSO 3: BOTÃO DE AÇÃO */}
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-3">
-                      <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-                        <span className="w-5 h-5 rounded-full bg-[#004A99] text-white text-[11px] font-black flex items-center justify-center shrink-0">3</span>
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                          Passo 3: Link de Destino e Publicação
-                        </h3>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                            Texto do Botão / Link (Opcional)
-                          </label>
-                          <input
-                            type="text"
-                            value={announcementForm.linkText}
-                            onChange={e => setAnnouncementForm({ ...announcementForm, linkText: e.target.value })}
-                            placeholder="Ex: Baixar Edital Oficial"
-                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                            URL de Destino
-                          </label>
-                          <input
-                            type="text"
-                            value={announcementForm.linkUrl}
-                            onChange={e => setAnnouncementForm({ ...announcementForm, linkUrl: e.target.value })}
-                            placeholder="Ex: #secao ou https://..."
-                            className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="pt-2 flex items-center gap-2">
-                        <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={announcementForm.active ?? true}
-                            onChange={e => setAnnouncementForm({ ...announcementForm, active: e.target.checked })}
-                            className="rounded border-slate-300 text-[#004A99] focus:ring-[#004A99]"
-                          />
-                          <span>Publicar e manter ativo no mural</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingAnnouncementId(null);
-                          setAnnouncementViewMode('lista');
-                        }}
-                        className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={saving}
-                        className="px-6 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition cursor-pointer"
-                      >
-                        <Save size={16} />
-                        <span>{editingAnnouncementId ? 'Salvar Alterações' : 'Cadastrar Aviso Oficial'}</span>
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                <div className="xl:col-span-5 min-w-0">
-                  <AdminLiveSimulator
-                    type="aviso"
-                    data={{
-                      title: announcementForm.title || '',
-                      content: announcementForm.content || '',
-                      type: announcementForm.type || 'aviso',
-                      date: new Date().toLocaleDateString('pt-BR'),
-                      linkText: announcementForm.linkText || '',
-                      linkUrl: announcementForm.linkUrl || '',
-                      active: announcementForm.active ?? true,
-                      cor: activeTipo?.cor,
-                      typeName: activeTipo?.nome,
-                    }}
-                    hasUnsavedChanges={
-                      !!(
-                        (announcementForm.title && announcementForm.title.trim() !== '') ||
-                        (announcementForm.content && announcementForm.content.trim() !== '')
-                      )
-                    }
-                    onOpenFullscreen={() => setPreviewModal({
-                      isOpen: true,
-                      type: 'aviso',
-                      data: {
-                        title: announcementForm.title || '',
-                        content: announcementForm.content || '',
-                        type: announcementForm.type || 'aviso',
-                        date: new Date().toLocaleDateString('pt-BR'),
-                        linkText: announcementForm.linkText || '',
-                        linkUrl: announcementForm.linkUrl || '',
-                        active: announcementForm.active ?? true,
-                        cor: activeTipo?.cor,
-                        typeName: activeTipo?.nome,
-                      },
-                    })}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Lista de Avisos */}
-          {announcementViewMode === 'lista' && (
-            <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                Avisos Atuais ({displayAvisosCount})
-              </h3>
-
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {apiAvisos.length === 0 ? (
-                  <div className="p-8 text-center text-slate-500 dark:text-slate-400 text-xs">
-                    Nenhum aviso cadastrado na base oficial da API.
-                  </div>
-                ) : (
-                  apiAvisos.map((item) => {
-                    const itemTitle = item.titulo;
-                    const itemContent = item.conteudo;
-                    const itemDate = new Date(item.created_at).toLocaleDateString('pt-BR');
-                    const itemActive = item.ativo !== false;
-                    const itemColor = item.a_tipo_aviso?.cor;
-                    const itemTypeName = item.a_tipo_aviso?.nome || 'Aviso';
-
-                    return (
-                      <div key={item.id} className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span
-                              style={itemColor ? { backgroundColor: `${itemColor}20`, color: itemColor, borderColor: `${itemColor}50` } : undefined}
-                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase border"
-                            >
-                              {itemTypeName}
-                            </span>
-                            <span className="text-xs text-slate-400">{itemDate}</span>
-                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                              itemActive
-                                ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300'
-                                : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                            }`}>
-                              {itemActive ? 'Ativo na Home' : 'Oculto'}
-                            </span>
-                          </div>
-                          <h4 className="font-bold text-sm text-slate-900 dark:text-white">{itemTitle}</h4>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl">{itemContent}</p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setPreviewModal({
-                              isOpen: true,
-                              type: 'aviso',
-                              data: {
-                                title: itemTitle,
-                                content: itemContent,
-                                date: itemDate,
-                                cor: itemColor,
-                                typeName: itemTypeName,
-                                active: itemActive,
-                              }
-                            })}
-                            className="px-2.5 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-[#004A99] dark:text-[#00D8FF] text-xs font-bold transition cursor-pointer flex items-center gap-1 border border-sky-200 dark:border-sky-800/60"
-                            title="Ver prévia deste aviso no mural oficial"
-                          >
-                            <Eye size={13} />
-                            <span className="hidden md:inline">Ver Prévia</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleEditAnnouncement(item)}
-                            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300"
-                            title="Editar"
-                          >
-                            <Edit3 size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleAnnouncementActive(String(item.id))}
-                            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition cursor-pointer"
-                          >
-                            {itemActive ? 'Ocultar' : 'Exibir'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteAnnouncement(String(item.id))}
-                            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-600 dark:text-slate-300 hover:text-rose-600 transition cursor-pointer"
-                            title="Excluir"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        <AnnouncementsModule
+          apiAvisos={apiAvisos}
+          setApiAvisos={setApiAvisos}
+          apiTiposAviso={apiTiposAviso}
+          setApiTiposAviso={setApiTiposAviso}
+          loadingAvisos={loadingAvisos}
+          errorAvisos={errorAvisos}
+          onPreview={(avisoData) =>
+            setPreviewModal({
+              isOpen: true,
+              type: 'aviso',
+              data: avisoData,
+            })
+          }
+        />
       );
     }
 
     if (tab === 'galeria' && canAccessGallery) {
-      const displayFotosCount = apiFotos.length;
-      const selectedCatObj = apiCategorias.find(c => c.id === selectedCategoriaId) || apiCategorias[0];
-
       return (
-        <div className="space-y-6">
-          {/* Sub-navegação Interna: Lista vs Editor vs Categorias */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setGalleryViewMode('lista');
-                  setShowCategoriaManager(false);
-                }}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  galleryViewMode === 'lista' && !showCategoriaManager
-                    ? 'bg-[#004A99] text-white shadow-xs'
-                    : 'bg-white dark:bg-[#0B1729] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Camera className="h-4 w-4" />
-                <span>Fotos no Acervo ({displayFotosCount})</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  handleNewPhoto();
-                  setShowCategoriaManager(false);
-                }}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  galleryViewMode === 'editor' && !showCategoriaManager
-                    ? 'bg-[#004A99] text-white shadow-xs'
-                    : 'bg-white dark:bg-[#0B1729] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Plus className="h-4 w-4" />
-                <span>{editingPhotoId ? 'Editar Foto' : 'Adicionar Foto'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowCategoriaManager(!showCategoriaManager)}
-                className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                  showCategoriaManager
-                    ? 'bg-sky-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-[#0B1729] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Layers className="h-4 w-4 text-sky-500" />
-                <span>Categorias da Galeria ({apiCategorias.length})</span>
-              </button>
-            </div>
-
-            {galleryViewMode === 'lista' && !showCategoriaManager && (
-              <button
-                type="button"
-                onClick={handleNewPhoto}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer self-start sm:self-auto"
-              >
-                <Plus className="h-4 w-4" />
-                <span>+ Cadastrar Nova Foto</span>
-              </button>
-            )}
-          </div>
-
-          {/* Gerenciador de Categorias da Galeria (/categorias_galeria) */}
-          {showCategoriaManager && (
-            <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-sky-200 dark:border-sky-900/40 space-y-6">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    <Layers className="text-sky-500 h-5 w-5" />
-                    <span>Categorias da Galeria Oficial (`/categorias_galeria`)</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Cadastre, organize e edite as categorias de fotos dos projetos, estúdios e salas de aula.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowCategoriaManager(false)}
-                  className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white font-semibold cursor-pointer"
-                >
-                  Fechar
-                </button>
-              </div>
-
-              {/* Form de Categoria */}
-              <form onSubmit={handleSaveCategoria} className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  {editingCategoria ? `Editar Categoria: ${editingCategoria.nome}` : 'Nova Categoria'}
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 items-end">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Nome da Categoria *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={categoriaForm.nome}
-                      onChange={e => {
-                        const val = e.target.value;
-                        const autoSlug = val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/(^_|_$)/g, '');
-                        setCategoriaForm(prev => ({
-                          ...prev,
-                          nome: val,
-                          slug: editingCategoria ? prev.slug : autoSlug,
-                        }));
-                      }}
-                      placeholder="Ex: Salas de Aula, Eventos..."
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-xs text-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Slug Único *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={categoriaForm.slug}
-                      onChange={e => setCategoriaForm({ ...categoriaForm, slug: e.target.value.toLowerCase().trim() })}
-                      placeholder="ex: salas_de_aula"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-xs font-mono text-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Posição / Ordem
-                    </label>
-                    <input
-                      type="number"
-                      value={categoriaForm.posicao}
-                      onChange={e => setCategoriaForm({ ...categoriaForm, posicao: Number(e.target.value) })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-xs text-slate-900 dark:text-slate-100"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="submit"
-                      className="px-4 py-2 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer flex-1"
-                    >
-                      {editingCategoria ? 'Atualizar' : 'Salvar Categoria'}
-                    </button>
-                    {editingCategoria && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingCategoria(null);
-                          setCategoriaForm({ nome: '', slug: '', posicao: 0, ativo: true });
-                        }}
-                        className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300"
-                      >
-                        Cancelar
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </form>
-
-              {/* Lista de Categorias */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {apiCategorias.map((cat) => (
-                  <div
-                    key={cat.id}
-                    className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#060D1A] flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="text-xs font-bold text-slate-900 dark:text-white">{cat.nome}</p>
-                      <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                        slug: {cat.slug} • ordem: {cat.posicao}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingCategoria(cat);
-                          setCategoriaForm({
-                            nome: cat.nome,
-                            slug: cat.slug,
-                            posicao: cat.posicao || 0,
-                            ativo: cat.ativo !== false,
-                          });
-                        }}
-                        className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300"
-                        title="Editar categoria"
-                      >
-                        <Edit3 size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCategoria(cat.id)}
-                        className="p-1.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600"
-                        title="Excluir categoria"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Upload / Edição de Foto */}
-          {galleryViewMode === 'editor' && (
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-              <div className="xl:col-span-7 bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800">
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
-                  <div>
-                    <h2 className="text-xl font-black text-slate-900 dark:text-white mb-1">
-                      {editingPhotoId ? 'Editar Fotografia do Acervo' : 'Adicionar Foto à Galeria'}
-                    </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Suporte duplo da API: Envie arquivos via upload (`multipart/form-data`) ou informe links externos (`imagem_url`).
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingPhotoId(null);
-                      setGalleryViewMode('lista');
-                    }}
-                    className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-white font-semibold cursor-pointer"
-                  >
-                    Cancelar e Voltar
-                  </button>
-                </div>
-
-                <form onSubmit={handleSavePhoto} className="space-y-5">
-                  {/* PASSO 1: IDENTIFICAÇÃO E CATEGORIA */}
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-                      <span className="w-5 h-5 rounded-full bg-[#004A99] text-white text-[11px] font-black flex items-center justify-center shrink-0">1</span>
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                        Passo 1: Identificação e Categoria Oficial
-                      </h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Título / Legenda da Foto *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={galleryForm.title}
-                          onChange={e => setGalleryForm({ ...galleryForm, title: e.target.value })}
-                          placeholder="Ex: Turma da E.E.E.F.M no Rio Madeira acompanhando aula"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Categoria da Galeria (API)
-                        </label>
-                        <select
-                          value={selectedCategoriaId || ''}
-                          onChange={e => {
-                            const id = Number(e.target.value);
-                            setSelectedCategoriaId(id);
-                            const cat = apiCategorias.find(c => c.id === id);
-                            if (cat) {
-                              setGalleryForm(prev => ({
-                                ...prev,
-                                category: cat.nome,
-                                categoria_galeria_id: cat.id,
-                              }));
-                            }
-                          }}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
-                        >
-                          {apiCategorias.length === 0 ? (
-                            <option value="1">Salas de Aula (Padrão)</option>
-                          ) : (
-                            apiCategorias.map(c => (
-                              <option key={c.id} value={c.id}>
-                                {c.nome} ({c.slug})
-                              </option>
-                            ))
-                          )}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* PASSO 2: ENVIO DUPLO DA IMAGEM */}
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-                      <span className="w-5 h-5 rounded-full bg-[#004A99] text-white text-[11px] font-black flex items-center justify-center shrink-0">2</span>
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                        Passo 2: Envio da Fotografia (Upload ou Link Direto)
-                      </h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                      <div>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
-                          Opção A: Upload de arquivo do computador (`File`)
-                        </span>
-                        <label className="flex flex-col items-center justify-center gap-1.5 px-4 py-3 bg-white dark:bg-[#060D1A] border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#004A99] rounded-xl cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-[#004A99] transition">
-                          <Upload size={18} />
-                          <span>{galleryFile ? `Arquivo: ${galleryFile.name}` : 'Selecionar Imagem do Computador'}</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={e => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setGalleryFile(file);
-                                setGalleryForm(prev => ({ ...prev, imageUrl: URL.createObjectURL(file) }));
-                              }
-                            }}
-                            className="hidden"
-                          />
-                        </label>
-                        {galleryFile && (
-                          <div className="mt-1 flex items-center justify-between text-[11px] text-emerald-600 dark:text-emerald-400">
-                            <span>Pronto para upload em multipart/form-data</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setGalleryFile(null);
-                                setGalleryForm(prev => ({ ...prev, imageUrl: '' }));
-                              }}
-                              className="text-rose-500 hover:underline cursor-pointer"
-                            >
-                              Remover
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div>
-                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
-                          Opção B: Ou informar Link Externo (`imagem_url`)
-                        </span>
-                        <input
-                          type="url"
-                          value={galleryForm.imageUrl && !galleryFile ? galleryForm.imageUrl : ''}
-                          onChange={e => {
-                            setGalleryFile(null);
-                            setGalleryForm({ ...galleryForm, imageUrl: e.target.value });
-                          }}
-                          placeholder="https://images.unsplash.com/..."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
-                        />
-                      </div>
-                    </div>
-
-                    {galleryForm.imageUrl && (
-                      <div className="pt-2 flex items-center gap-3">
-                        <img
-                          src={galleryForm.imageUrl}
-                          alt="Preview"
-                          className="w-24 h-16 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs"
-                        />
-                        <span className="text-xs text-[#004A99] dark:text-sky-400 font-semibold truncate max-w-sm">
-                          Foto pronta para o acervo oficial da mediação tecnológica!
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* PASSO 3: DESCRIÇÃO */}
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
-                      <span className="w-5 h-5 rounded-full bg-[#004A99] text-white text-[11px] font-black flex items-center justify-center shrink-0">3</span>
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                        Passo 3: Descrição e Contextualização
-                      </h3>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Descrição Breve ou Detalhes da Localidade
-                      </label>
-                      <input
-                        type="text"
-                        value={galleryForm.description || ''}
-                        onChange={e => setGalleryForm({ ...galleryForm, description: e.target.value })}
-                        placeholder="Breve contextualização da imagem, escola ou município..."
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingPhotoId(null);
-                        setGalleryViewMode('lista');
-                      }}
-                      className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={saving}
-                      className="px-6 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition cursor-pointer"
-                    >
-                      <Save size={16} />
-                      <span>{editingPhotoId ? 'Salvar Alterações' : 'Inserir Foto no Acervo'}</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Coluna Direita: Simulador de Galeria Fiel ao Vivo */}
-              <div className="xl:col-span-5 xl:sticky xl:top-24">
-                <AdminLiveSimulator
-                  type="galeria"
-                  data={{
-                    title: galleryForm.title || '',
-                    description: galleryForm.description || '',
-                    category: selectedCatObj?.nome || galleryForm.category || 'Salas de Aula',
-                    imageUrl: galleryForm.imageUrl,
-                    date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
-                  }}
-                  hasUnsavedChanges={Boolean(galleryForm.title || galleryForm.imageUrl || galleryForm.description)}
-                  onOpenFullscreen={() => setPreviewModal({
-                    isOpen: true,
-                    type: 'galeria',
-                    data: {
-                      title: galleryForm.title || 'Título da Fotografia no Acervo',
-                      description: galleryForm.description || 'Breve contextualização da imagem da sala de aula ou comunidade atendida.',
-                      category: selectedCatObj?.nome || galleryForm.category || 'Salas de Aula',
-                      imageUrl: galleryForm.imageUrl,
-                      date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
-                    }
-                  })}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Grid de Fotos Existentes */}
-          {galleryViewMode === 'lista' && (
-            <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                Fotos no Acervo da Galeria ({displayFotosCount})
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {apiFotos.length === 0 ? (
-                  <div className="col-span-full p-8 text-center text-slate-500 dark:text-slate-400 text-xs">
-                    Nenhuma foto cadastrada no acervo oficial da API.
-                  </div>
-                ) : (
-                  apiFotos.map((photo) => {
-                    const photoTitle = photo.titulo;
-                    const photoDesc = photo.descricao || '';
-                    const photoCat = photo.categoria_galeria?.nome || 'Galeria';
-                    const photoImg = photo.imagem ? getMediaUrl(photo.imagem) : '';
-                    const photoDate = new Date(photo.created_at).toLocaleDateString('pt-BR');
-
-                    return (
-                      <div key={photo.id} className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-[#060D1A] flex flex-col justify-between group">
-                      <div className="relative h-40 bg-slate-200 dark:bg-slate-900">
-                        <img
-                          src={photoImg}
-                          alt={photoTitle}
-                          className="w-full h-full object-cover"
-                        />
-                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-slate-900/80 text-white text-[10px] font-bold backdrop-blur-xs">
-                          {photoCat}
-                        </span>
-                      </div>
-
-                      <div className="p-3">
-                        <h4 className="font-bold text-xs text-slate-900 dark:text-white line-clamp-1">{photoTitle}</h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{photoDesc}</p>
-                        
-                        <div className="pt-2 mt-2 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400">{photoDate}</span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => setPreviewModal({
-                                isOpen: true,
-                                type: 'galeria',
-                                data: {
-                                  title: photoTitle,
-                                  description: photoDesc,
-                                  category: photoCat,
-                                  imageUrl: photoImg,
-                                  date: photoDate,
-                                }
-                              })}
-                              className="text-slate-500 hover:text-[#004A99] dark:hover:text-sky-400 p-1 cursor-pointer transition"
-                              title="Pré-visualizar no site"
-                            >
-                              <Eye size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleEditPhoto(photo)}
-                              className="text-slate-500 hover:text-[#004A99] p-1 cursor-pointer"
-                              title="Editar foto"
-                            >
-                              <Edit3 size={14} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeletePhoto(String(photo.id))}
-                              className="text-rose-600 hover:text-rose-800 dark:text-rose-400 p-1 cursor-pointer"
-                              title="Excluir foto"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-            </div>
-          )}
-        </div>
+        <GalleryModule
+          apiFotos={apiFotos}
+          setApiFotos={setApiFotos}
+          apiCategorias={apiCategorias}
+          setApiCategorias={setApiCategorias}
+          loadingFotos={loadingFotos}
+          errorFotos={errorFotos}
+          onPreview={(photoData) =>
+            setPreviewModal({
+              isOpen: true,
+              type: 'galeria',
+              data: photoData,
+            })
+          }
+        />
       );
     }
 
@@ -3598,145 +2066,15 @@ export default function AdminDashboardPage() {
 
     if (tab === 'siteInfo' && canAccessSiteInfo) {
       return (
-        <div className="space-y-6">
-          <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-900 dark:text-blue-200 text-xs flex items-center gap-2.5">
-            <Info className="h-4 w-4 shrink-0 text-[#004A99] dark:text-sky-400" />
-            <span>
-              <strong>Configurações Institucionais e Métricas:</strong> Conforme a diretriz de fonte única de dados, os indicadores oficiais de alcance (estudantes, salas, municípios, horas) serão sincronizados diretamente via API assim que o endpoint de estatísticas for disponibilizado pelo backend. A gravação em disco local foi desativada para prevenir inconsistências.
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-            <div className="xl:col-span-7 bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 space-y-6">
-              <div>
-                <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                  Textos Institucionais & Métricas
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Altere os títulos, slogans e números exibidos na página inicial do MEDTEC em tempo real.
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                {/* Métricas */}
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-4">
-                  <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">
-                    Números e Métricas de Alcance (Hero)
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                        Estudantes Formados/Atendidos
-                      </label>
-                      <input
-                        type="text"
-                        value={data.stats.studentsCount}
-                        onChange={e => setData({ ...data, stats: { ...data.stats, studentsCount: e.target.value } })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                        Salas Conectadas
-                      </label>
-                      <input
-                        type="text"
-                        value={data.stats.schoolsCount}
-                        onChange={e => setData({ ...data, stats: { ...data.stats, schoolsCount: e.target.value } })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                        Municípios Atendidos
-                      </label>
-                      <input
-                        type="text"
-                        value={data.stats.citiesCount}
-                        onChange={e => setData({ ...data, stats: { ...data.stats, citiesCount: e.target.value } })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                        Horas de Transmissão
-                      </label>
-                      <input
-                        type="text"
-                        value={data.stats.liveHoursCount}
-                        onChange={e => setData({ ...data, stats: { ...data.stats, liveHoursCount: e.target.value } })}
-                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Textos */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Título do Hero
-                    </label>
-                    <input
-                      type="text"
-                      value={data.siteInfo.heroTitle}
-                      onChange={e => setData({ ...data, siteInfo: { ...data.siteInfo, heroTitle: e.target.value } })}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Descrição do Hero
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={data.siteInfo.heroDescription}
-                      onChange={e => setData({ ...data, siteInfo: { ...data.siteInfo, heroDescription: e.target.value } })}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Referência Legal / Legislação
-                    </label>
-                    <input
-                      type="text"
-                      value={data.siteInfo.lawText}
-                      onChange={e => setData({ ...data, siteInfo: { ...data.siteInfo, lawText: e.target.value } })}
-                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  disabled={true}
-                  title="Aguardando disponibilização de endpoint de estatísticas no backend Rails"
-                  className="px-6 py-2.5 rounded-xl bg-slate-400 text-white font-bold text-xs flex items-center gap-2 shadow-xs cursor-not-allowed opacity-60"
-                >
-                  <Lock size={16} />
-                  <span>Gravação Aguardando Endpoint da API</span>
-                </button>
-              </div>
-            </div>
-
-          {/* Coluna Direita: Simulador de Métricas Fiel ao Vivo */}
-          <div className="xl:col-span-5 xl:sticky xl:top-24">
-            <AdminLiveSimulator
-              type="siteInfo"
-              data={data}
-              hasUnsavedChanges={false}
-              onOpenFullscreen={() => setPreviewModal({
-                isOpen: true,
-                type: 'siteInfo',
-                data: data,
-              })}
-            />
-          </div>
-        </div>
-        </div>
+        <SiteInfoModule
+          data={data}
+          setData={setData}
+          onPreview={(siteData) => setPreviewModal({
+            isOpen: true,
+            type: 'siteInfo',
+            data: siteData,
+          })}
+        />
       );
     }
 
@@ -5304,419 +3642,12 @@ export default function AdminDashboardPage() {
     }
 
     if (tab === 'estadosCidades' && canAccessEstados) {
-      const selectedEstado = apiEstados.find(e => e.id === selectedEstadoId);
-      const filteredCidades = apiCidades.filter(c =>
-        c.nome.toLowerCase().includes(cidadeSearch.toLowerCase()) ||
-        (c.codigo_ibge && c.codigo_ibge.includes(cidadeSearch))
-      );
-
       return (
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold">
-                  <MapPin size={18} />
-                </div>
-                <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                  Estados e Municípios Oficiais (/g_estados e /g_cidades)
-                </h2>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Gerencie as Unidades Federativas e seus respectivos municípios cadastrados na base de dados oficial da SEDUC-RO.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingEstado(null);
-                  setEstadoForm({ nome: '', sigla_uf: '', codigo_ibge: '' });
-                  setEstadoError('');
-                  setShowEstadoModal(true);
-                }}
-                className="px-4 py-2 rounded-xl bg-primary hover:bg-[#003875] text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-              >
-                <Plus size={16} />
-                <span>Novo Estado (UF)</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Grid de 2 Colunas: Estados na esquerda, Cidades na direita */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Coluna 1: Estados */}
-            <div className="lg:col-span-5 bg-white dark:bg-[#0B1729] rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>Estados Cadastrados</span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
-                    {apiEstados.length}
-                  </span>
-                </h3>
-              </div>
-
-              {loadingEstados ? (
-                <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2">
-                  <Loader2 size={24} className="animate-spin text-primary" />
-                  <span className="text-xs">Carregando estados...</span>
-                </div>
-              ) : apiEstados.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                  Nenhum estado cadastrado. Clique em &quot;Novo Estado&quot;.
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
-                  {apiEstados.map(est => {
-                    const isSelected = est.id === selectedEstadoId;
-                    return (
-                      <div
-                        key={est.id}
-                        onClick={() => setSelectedEstadoId(est.id)}
-                        className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isSelected
-                            ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-400 dark:border-blue-700 shadow-sm'
-                            : 'bg-white dark:bg-[#060D1A] border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className={`w-9 h-9 rounded-lg flex items-center justify-center font-black text-xs ${
-                            isSelected
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                          }`}>
-                            {est.sigla_uf}
-                          </span>
-                          <div className="min-w-0">
-                            <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">
-                              {est.nome}
-                            </h4>
-                            <p className="text-[10px] text-slate-400">
-                              IBGE: {est.codigo_ibge || 'Não inf.'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingEstado(est);
-                              setEstadoForm({
-                                nome: est.nome,
-                                sigla_uf: est.sigla_uf,
-                                codigo_ibge: est.codigo_ibge || '',
-                              });
-                              setEstadoError('');
-                              setShowEstadoModal(true);
-                            }}
-                            title="Editar Estado"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition cursor-pointer"
-                          >
-                            <Edit3 size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteEstado(est.id)}
-                            title="Excluir Estado"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition cursor-pointer"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Coluna 2: Cidades do Estado Selecionado */}
-            <div className="lg:col-span-7 bg-white dark:bg-[#0B1729] rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div>
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Municípios</span>
-                    {selectedEstado && (
-                      <span className="text-xs text-blue-600 dark:text-blue-400 font-bold">
-                        de {selectedEstado.nome} ({selectedEstado.sigla_uf})
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">
-                    {apiCidades.length} município(s) registrado(s)
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={!selectedEstadoId}
-                    onClick={() => {
-                      if (!selectedEstadoId) return;
-                      setEditingCidade(null);
-                      setCidadeForm({ g_estado_id: selectedEstadoId, nome: '', codigo_ibge: '' });
-                      setCidadeError('');
-                      setShowCidadeModal(true);
-                    }}
-                    className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-                  >
-                    <Plus size={14} />
-                    <span>Novo Município</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Filtro de Busca de Municípios */}
-              <div className="relative">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Filtrar municípios por nome ou código IBGE..."
-                  value={cidadeSearch}
-                  onChange={e => setCidadeSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-[#060D1A] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-
-              {loadingCidades ? (
-                <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2">
-                  <Loader2 size={24} className="animate-spin text-blue-600" />
-                  <span className="text-xs">Carregando municípios...</span>
-                </div>
-              ) : !selectedEstadoId ? (
-                <div className="py-12 text-center text-xs text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                  Selecione um estado na coluna ao lado para visualizar os municípios.
-                </div>
-              ) : filteredCidades.length === 0 ? (
-                <div className="py-12 text-center text-xs text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                  {cidadeSearch ? 'Nenhum município encontrado com este filtro.' : 'Nenhum município cadastrado neste estado.'}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[500px] overflow-y-auto pr-1">
-                  {filteredCidades.map(cid => (
-                    <div
-                      key={cid.id}
-                      className="p-3 rounded-xl bg-slate-50 dark:bg-[#060D1A] border border-slate-200 dark:border-slate-800/80 flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate">
-                          {cid.nome}
-                        </h4>
-                        <p className="text-[10px] text-slate-400">
-                          IBGE: {cid.codigo_ibge || 'Não cadastrado'}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingCidade(cid);
-                            setCidadeForm({
-                              g_estado_id: cid.g_estado_id,
-                              nome: cid.nome,
-                              codigo_ibge: cid.codigo_ibge || '',
-                            });
-                            setCidadeError('');
-                            setShowCidadeModal(true);
-                          }}
-                          title="Editar Município"
-                          className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 transition cursor-pointer"
-                        >
-                          <Edit3 size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteCidade(cid.id)}
-                          title="Excluir Município"
-                          className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-white dark:hover:bg-slate-800 transition cursor-pointer"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Modal Estado */}
-          {showEstadoModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <div className="bg-white dark:bg-[#0B1729] rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    {editingEstado ? 'Editar Estado (UF)' : 'Novo Estado (UF)'}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowEstadoModal(false)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-
-                {estadoError && (
-                  <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 text-xs border border-red-200 dark:border-red-900">
-                    {estadoError}
-                  </div>
-                )}
-
-                <form onSubmit={handleSaveEstado} className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Nome do Estado *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Rondônia"
-                      value={estadoForm.nome}
-                      onChange={e => setEstadoForm({ ...estadoForm, nome: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-xs"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Sigla (UF) *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        maxLength={2}
-                        placeholder="RO"
-                        value={estadoForm.sigla_uf}
-                        onChange={e => setEstadoForm({ ...estadoForm, sigla_uf: e.target.value.toUpperCase() })}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-xs uppercase"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Código IBGE
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="11"
-                        value={estadoForm.codigo_ibge}
-                        onChange={e => setEstadoForm({ ...estadoForm, codigo_ibge: e.target.value })}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-xs"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowEstadoModal(false)}
-                      className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={savingEstado}
-                      className="px-4 py-2 rounded-xl bg-primary hover:bg-[#003875] text-white text-xs font-bold flex items-center gap-1.5 transition disabled:opacity-50"
-                    >
-                      {savingEstado ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                      <span>{editingEstado ? 'Salvar Alterações' : 'Cadastrar Estado'}</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* Modal Cidade */}
-          {showCidadeModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <div className="bg-white dark:bg-[#0B1729] rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    {editingCidade ? 'Editar Município' : 'Novo Município'}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowCidadeModal(false)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-
-                {cidadeError && (
-                  <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 text-xs border border-red-200 dark:border-red-900">
-                    {cidadeError}
-                  </div>
-                )}
-
-                <form onSubmit={handleSaveCidade} className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Estado Pertencente
-                    </label>
-                    <input
-                      type="text"
-                      disabled
-                      value={`${selectedEstado?.nome || ''} (${selectedEstado?.sigla_uf || ''})`}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-[#060D1A] text-slate-500 dark:text-slate-400 text-xs font-bold cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Nome do Município *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ex: Porto Velho, Ji-Paraná..."
-                      value={cidadeForm.nome}
-                      onChange={e => setCidadeForm({ ...cidadeForm, nome: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-xs"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Código IBGE do Município
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ex: 1100205"
-                      value={cidadeForm.codigo_ibge}
-                      onChange={e => setCidadeForm({ ...cidadeForm, codigo_ibge: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-xs"
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowCidadeModal(false)}
-                      className="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold transition"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={savingCidade}
-                      className="px-4 py-2 rounded-xl bg-primary hover:bg-[#003875] text-white text-xs font-bold flex items-center gap-1.5 transition disabled:opacity-50"
-                    >
-                      {savingCidade ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                      <span>{editingCidade ? 'Salvar Município' : 'Cadastrar Município'}</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-        </div>
+        <EstadosCidadesModule
+          apiEstados={apiEstados}
+          setApiEstados={setApiEstados}
+          loadingEstados={loadingEstados}
+        />
       );
     }
 
@@ -6309,27 +4240,23 @@ export default function AdminDashboardPage() {
                       </>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentSection('avisos');
-                      setAnnouncementViewMode('lista');
-                    }}
+                  <Link
+                    href="/admin/avisos"
                     className="inline-flex items-center gap-1 text-xs font-bold text-[#004A99] dark:text-sky-400 hover:text-[#003875] dark:hover:text-sky-300 hover:underline pt-2 border-t border-slate-100 dark:border-slate-800 cursor-pointer"
                   >
                     <span>Gerenciar Avisos</span>
                     <ArrowRight className="h-3 w-3" />
-                  </button>
+                  </Link>
                 </div>
 
-                {/* KPI 3: Banners e Fotos */}
+                {/* KPI: Galeria de Fotos */}
                 <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1729] p-4 shadow-xs flex flex-col justify-between space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Banners da Home & Fotos
+                      Galeria de Fotos
                     </span>
                     <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-[#004A99] dark:text-sky-400 border border-blue-100/60 dark:border-blue-900/40 flex items-center justify-center">
-                      <Presentation className="h-3.5 w-3.5" />
+                      <Images className="h-3.5 w-3.5" />
                     </div>
                   </div>
                   <div>
@@ -6349,25 +4276,24 @@ export default function AdminDashboardPage() {
                     ) : (
                       <>
                         <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-                          {(data.banners?.length || 0) + apiFotos.length}
+                          {apiFotos.length}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          {data.banners?.length || 0} banners rotativos no topo
+                          {apiCategorias.length} categoria{apiCategorias.length === 1 ? '' : 's'} de acervo escolar
                         </p>
                         <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                          {apiFotos.length} fotos públicas no acervo oficial
+                          {apiFotos.length === 0 ? 'Nenhuma fotografia catalogada' : 'Acervo oficial sincronizado com a API Rails'}
                         </p>
                       </>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentSection('fotos')}
+                  <Link
+                    href="/admin/galeria"
                     className="inline-flex items-center gap-1 text-xs font-bold text-[#004A99] dark:text-sky-400 hover:text-[#003875] dark:hover:text-sky-300 hover:underline pt-2 border-t border-slate-100 dark:border-slate-800 cursor-pointer"
                   >
-                    <span>Trocar Banners da Home</span>
+                    <span>Gerenciar Galeria de Fotos</span>
                     <ArrowRight className="h-3 w-3" />
-                  </button>
+                  </Link>
                 </div>
 
                 {/* KPI 4: Equipe e Operadores */}
@@ -6592,17 +4518,13 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentSection('avisos');
-                        setAnnouncementViewMode('lista');
-                      }}
+                    <Link
+                      href="/admin/avisos"
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
                     >
                       <span>Abrir Avisos e Comunicados</span>
                       <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
+                    </Link>
                   </div>
 
                   {/* Módulo 03: Banners da Página Inicial */}
@@ -6683,17 +4605,13 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentSection('galeria');
-                        setGalleryViewMode('lista');
-                      }}
+                    <Link
+                      href="/admin/galeria"
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
                     >
                       <span>Abrir Galeria de Fotos</span>
                       <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
+                    </Link>
                   </div>
 
                   {/* Módulo 05: Fila de Aprovação (Passo a Passo) */}
@@ -6762,9 +4680,8 @@ export default function AdminDashboardPage() {
                       </p>
 
                       <div className="space-y-1.5 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => setCurrentSection('siteInfo')}
+                        <Link
+                          href="/admin/institucional"
                           className="w-full text-left px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#071324] hover:bg-blue-50/60 dark:hover:bg-blue-950/30 border border-slate-100 dark:border-slate-800/80 hover:border-blue-200/60 dark:hover:border-blue-900/40 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between transition cursor-pointer group"
                         >
                           <span className="flex items-center gap-2">
@@ -6772,7 +4689,7 @@ export default function AdminDashboardPage() {
                             <span>Números de Alunos e Escolas</span>
                           </span>
                           <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition" />
-                        </button>
+                        </Link>
                         <button
                           type="button"
                           onClick={() => setCurrentSection('redes')}
@@ -6798,14 +4715,13 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setCurrentSection('siteInfo')}
+                    <Link
+                      href="/admin/institucional"
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
                     >
                       <span>Gerenciar Dados e Configurações</span>
                       <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
+                    </Link>
                   </div>
 
                   {/* Módulo: Central de Dúvidas Frequentes (FAQ) */}
