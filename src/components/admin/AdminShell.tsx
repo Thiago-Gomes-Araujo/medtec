@@ -115,7 +115,7 @@ export const SECTION_CONFIG: Record<
     group: 'Dados e Contatos do Site',
     title: 'Redes Sociais e WhatsApp',
     subtitle: 'Atualize os links oficiais de transmissão, redes sociais e canais de atendimento.',
-    href: '/admin?tab=redes',
+    href: '/admin/redes',
   },
   usuarios: {
     group: 'Usuários e Acessos',

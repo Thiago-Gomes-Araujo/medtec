@@ -384,6 +384,10 @@ export default function AdminDashboardPage() {
       router.push('/admin/institucional');
       return;
     }
+    if (sec === 'redes') {
+      router.push('/admin/redes');
+      return;
+    }
     setCurrentSection(sec);
     const activeFolder = getFolderIdForSection(sec);
     if (activeFolder) {
@@ -789,6 +793,8 @@ export default function AdminDashboardPage() {
         router.push('/admin/estados-cidades');
       } else if (tabParam === 'siteInfo') {
         router.push('/admin/institucional');
+      } else if (tabParam === 'redes') {
+        router.push('/admin/redes');
       } else if (tabParam && tabParam in SECTION_CONFIG) {
         handleSelectSection(tabParam as AdminSection);
       }
@@ -4690,9 +4696,8 @@ export default function AdminDashboardPage() {
                           </span>
                           <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition" />
                         </Link>
-                        <button
-                          type="button"
-                          onClick={() => setCurrentSection('redes')}
+                        <Link
+                          href="/admin/redes"
                           className="w-full text-left px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#071324] hover:bg-blue-50/60 dark:hover:bg-blue-950/30 border border-slate-100 dark:border-slate-800/80 hover:border-blue-200/60 dark:hover:border-blue-900/40 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between transition cursor-pointer group"
                         >
                           <span className="flex items-center gap-2">
@@ -4700,7 +4705,7 @@ export default function AdminDashboardPage() {
                             <span>Redes Sociais e WhatsApp</span>
                           </span>
                           <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition" />
-                        </button>
+                        </Link>
                         <button
                           type="button"
                           onClick={() => setCurrentSection('usuarios')}
