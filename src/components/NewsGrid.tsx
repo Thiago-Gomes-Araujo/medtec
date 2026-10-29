@@ -62,7 +62,7 @@ export default function NewsGrid({ news = [], limit, filter = false }: NewsGridP
               className="group overflow-hidden rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-sm hover:border-[#004A99]/50 dark:hover:border-cyan-400/50 hover:shadow-lg transition-all duration-200 ease-out flex flex-col justify-between active:scale-[0.99] touch-manipulation select-none"
             >
               <Link
-                href={`/noticias/${item.id}`}
+                href={`/noticias/${item.slug || item.id}`}
                 className="flex-1 flex flex-col justify-between h-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] rounded-2xl"
               >
                 <div>

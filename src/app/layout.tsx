@@ -29,6 +29,8 @@ const jetbrains = JetBrains_Mono({
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://medtec.seduc.ro.gov.br';
 
+export const instant = false;
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {

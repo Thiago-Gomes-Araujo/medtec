@@ -15,5 +15,9 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <div translate="no" className="notranslate w-full h-full">
+      {children}
+    </div>
+  );
 }

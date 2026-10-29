@@ -17,6 +17,7 @@ import {
   Inbox
 } from 'lucide-react';
 import { NewsItem } from '@/types';
+import { medtecApi, getMediaUrl } from '@/lib/api';
 
 interface AuditLog {
   data: string;
@@ -70,15 +71,33 @@ export default function EditorialKanban({
     async function loadFromApi() {
       setLoading(true);
       try {
-        const res = await fetch('/api/editorial');
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted && data.news) {
-            setInternalNews(data.news);
+        const res = await medtecApi.noticias.list({ page: 1, per_page: 50 });
+        if (res.success && Array.isArray(res.data?.items)) {
+          const mapped: NewsItem[] = res.data.items.map((n) => ({
+            id: String(n.id),
+            title: n.titulo,
+            slug: n.slug,
+            excerpt: n.resumo || '',
+            content: n.conteudo,
+            coverImage: getMediaUrl(n.imagem_capa),
+            author: n.autor_nome,
+            category: n.categoria_nome,
+            publishedAt: n.data_publicacao,
+            featured: false,
+            urgent: false,
+            folder: 'Geral',
+            published: n.status === 'publicada',
+            rejected: n.status === 'reprovada',
+            rejectionReason: n.motivo_reprovacao || undefined,
+            views: 0,
+            tags: [],
+          }));
+          if (isMounted) {
+            setInternalNews(mapped);
           }
         }
       } catch (err) {
-        console.error('Falha ao carregar editorial da API:', err);
+        console.error('Falha ao carregar editorial da API oficial:', err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -98,8 +117,9 @@ export default function EditorialKanban({
   const publishedNews = useMemo(() => allNews.filter((n) => n.published !== false), [allNews]);
   const rejectedNews = useMemo(() => allNews.filter((n) => n.rejected === true), [allNews]);
 
-  // Se o usuário ainda não escolheu um filtro manualmente, prioriza 'pendentes' se houver; senão 'todas'
-  const activeFilter = selectedFilter ?? (pendingNews.length > 0 ? 'pendentes' : 'todas');
+  // Por padrão exibe 'todas' para que nenhuma notícia pareça ter desaparecido,
+  // mantendo os contadores destacados em cada aba
+  const activeFilter = selectedFilter ?? 'todas';
 
   // Filtra as notícias conforme busca e aba ativa
   const filteredNews = useMemo(() => {
@@ -133,17 +153,14 @@ export default function EditorialKanban({
     try {
       let success = false;
 
-      // 1. Prioriza a função de persistência central injetada pelo admin (PUT /api/data)
       if (onApproveNews) {
         success = await onApproveNews(item.id);
       } else {
-        // 2. Fallback para rota dedicada POST /api/editorial
-        const res = await fetch('/api/editorial', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ newsId: item.id }),
-        });
-        success = res.ok;
+        const numId = Number(item.id);
+        if (numId) {
+          const res = await medtecApi.noticias.publicar(numId);
+          success = !!res;
+        }
       }
 
       if (success) {
@@ -195,20 +212,27 @@ export default function EditorialKanban({
     const item = rejectModal.item;
     if (!item) return;
 
+    if (!rejectReason || !rejectReason.trim()) {
+      setFeedback({
+        type: 'error',
+        message: 'É obrigatório informar o motivo da reprovação da notícia.',
+      });
+      return;
+    }
+
     setRejectingId(item.id);
     setRejectModal({ isOpen: false, item: null });
 
     try {
       let success = false;
       if (onRejectNews) {
-        success = await onRejectNews(item.id, rejectReason);
+        success = await onRejectNews(item.id, rejectReason.trim());
       } else {
-        const res = await fetch('/api/editorial', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ newsId: item.id, action: 'reject', reason: rejectReason }),
-        });
-        success = res.ok;
+        const numId = Number(item.id);
+        if (numId) {
+          const res = await medtecApi.noticias.reprovar(numId, rejectReason.trim());
+          success = !!res;
+        }
       }
 
       if (success) {
@@ -399,35 +423,39 @@ export default function EditorialKanban({
       ======================================================== */}
       <div className="space-y-3">
         {filteredNews.length === 0 ? (
-          <div className="bg-white dark:bg-[#0B1528] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-10 text-center flex flex-col items-center justify-center">
+          <div key="empty-state" className="bg-white dark:bg-[#0B1528] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-10 text-center flex flex-col items-center justify-center">
             <Inbox className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
-              Nenhuma notícia encontrada
+              <span>{allNews.length === 0 ? 'Fila editorial aguardando matérias' : 'Nenhuma notícia encontrada'}</span>
             </h3>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-md">
-              {activeFilter === 'pendentes'
-                ? 'Excelente! Todas as reportagens cadastradas no sistema já foram avaliadas e aprovadas pelo gestor.'
-                : 'Nenhuma matéria corresponde aos filtros ou termos pesquisados.'}
+              <span>
+                {allNews.length === 0
+                  ? 'A fila editorial exibirá as matérias enviadas para avaliação pelo CMS.'
+                  : activeFilter === 'pendentes'
+                  ? 'Não há matérias pendentes de avaliação no momento.'
+                  : 'Nenhuma matéria corresponde aos filtros ou termos pesquisados.'}
+              </span>
             </p>
-            {activeFilter === 'pendentes' && (
+            {allNews.length > 0 && activeFilter === 'pendentes' && (
               <button
                 type="button"
                 onClick={() => setSelectedFilter('todas')}
                 className="mt-4 px-4 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold text-slate-700 dark:text-slate-200 transition cursor-pointer"
               >
-                Ver todas as notícias publicadas
+                <span>Ver todas as notícias publicadas</span>
               </button>
             )}
           </div>
         ) : (
-          filteredNews.map((item) => {
+          filteredNews.map((item, idx) => {
             const isPublished = item.published !== false;
             const isCurrentlyApproving = approvingId === item.id;
             const hasAttachments = Boolean(item.coverImage);
 
             return (
               <div
-                key={item.id}
+                key={item.id ? `news-item-${item.id}` : `news-item-idx-${idx}`}
                 className="bg-white dark:bg-[#0B1528] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs hover:border-[#004A99]/40 dark:hover:border-sky-500/40 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
                 {/* Informações da Notícia */}
@@ -601,15 +629,22 @@ export default function EditorialKanban({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                  {allNews.map((item) => {
-                    const anexo = item.coverImage;
-                    const isUrl = anexo?.startsWith('http://') || anexo?.startsWith('https://');
-                    const displayName = anexo && anexo.length > 26
-                      ? `${anexo.substring(0, 14)}...${anexo.substring(anexo.length - 8)}`
-                      : anexo;
+                  {allNews.length === 0 ? (
+                    <tr key="empty-anexos">
+                      <td colSpan={3} className="py-4 px-3 text-center text-slate-400 italic">
+                        <span>Nenhum anexo encontrado.</span>
+                      </td>
+                    </tr>
+                  ) : (
+                    allNews.map((item, idx) => {
+                      const anexo = item.coverImage;
+                      const isUrl = anexo?.startsWith('http://') || anexo?.startsWith('https://');
+                      const displayName = anexo && anexo.length > 26
+                        ? `${anexo.substring(0, 14)}...${anexo.substring(anexo.length - 8)}`
+                        : anexo;
 
-                    return (
-                      <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-900/30">
+                      return (
+                        <tr key={item.id ? `anexo-${item.id}` : `anexo-idx-${idx}`} className="hover:bg-slate-50/70 dark:hover:bg-slate-900/30">
                         <td className="py-2 px-3 font-medium text-slate-900 dark:text-slate-100 max-w-[180px] truncate">
                           {item.title}
                         </td>
@@ -651,7 +686,7 @@ export default function EditorialKanban({
                         </td>
                       </tr>
                     );
-                  })}
+                  }))}
                 </tbody>
               </table>
             </div>

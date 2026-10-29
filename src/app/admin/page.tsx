@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { DatabaseSchema, NewsItem, AnnouncementItem, GalleryItem, AnnouncementType, ProjectMission, ReplicationWeek } from '@/types';
@@ -51,19 +51,21 @@ import {
   Sparkles,
   BookOpen,
   HelpCircle,
-  Building2,
   Palette,
-  Globe,
   Layers,
   MessageSquare,
   Phone,
   Mail,
+  Lock,
+  AlertCircle,
+  Clock,
 } from 'lucide-react';
 import { YoutubeIcon, InstagramIcon, FacebookIcon } from '@/components/SocialIcons';
 import EditorialKanban from '@/components/EditorialKanban';
 import SitePhotosManager from '@/components/SitePhotosManager';
 import AdminLiveSimulator, { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
 import UserManager from '@/components/UserManager';
+import SocialChannelsModule from '@/components/admin/SocialChannelsModule';
 import { FaqItem, FaqCategory } from '@/types';
 import {
   medtecApi,
@@ -76,6 +78,8 @@ import {
   CanalContato,
   Estado,
   Cidade,
+  NNoticia,
+  NCategoriaNoticia,
 } from '@/lib/api';
 
 type AdminSection = 'visaoGeral' | 'kanban' | 'fotos' | 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo' | 'usuarios' | 'projetos' | 'duvidas' | 'estadosCidades';
@@ -546,6 +550,22 @@ export default function AdminDashboardPage() {
   const [apiCanais, setApiCanais] = useState<CanalContato[]>([]);
   const [savingCanais, setSavingCanais] = useState(false);
 
+  // Notícias e Categorias (/n_noticias, /n_categorias_noticia)
+  const [apiNews, setApiNews] = useState<NNoticia[]>([]);
+  const [apiNewsCategories, setApiNewsCategories] = useState<NCategoriaNoticia[]>([]);
+  const [selectedNewsCategoriaId, setSelectedNewsCategoriaId] = useState<number | null>(null);
+  const [newsCoverFile, setNewsCoverFile] = useState<File | null>(null);
+
+  // Estados de Carregamento e Erro da API v1 Oficial (para KPIs e Auditoria)
+  const [loadingAvisos, setLoadingAvisos] = useState(true);
+  const [errorAvisos, setErrorAvisos] = useState<string | null>(null);
+
+  const [loadingFotos, setLoadingFotos] = useState(true);
+  const [errorFotos, setErrorFotos] = useState<string | null>(null);
+
+  const [loadingNews, setLoadingNews] = useState(true);
+  const [errorNews, setErrorNews] = useState<string | null>(null);
+
   // Estados e Cidades (/g_estados, /g_cidades)
   const [apiEstados, setApiEstados] = useState<Estado[]>([]);
   const [apiCidades, setApiCidades] = useState<Cidade[]>([]);
@@ -596,6 +616,8 @@ export default function AdminDashboardPage() {
   // Carregamento de dados da API v1 oficial
   const loadApiData = useCallback(async () => {
     // 1. Avisos e Tipos
+    setLoadingAvisos(true);
+    setErrorAvisos(null);
     try {
       const [tiposRes, avisosRes] = await Promise.all([
         medtecApi.tiposAviso.list({ page: 'all' }),
@@ -612,9 +634,14 @@ export default function AdminDashboardPage() {
       }
     } catch (err) {
       console.warn('API v1: Erro ao listar avisos/tipos:', err);
+      setErrorAvisos('Falha ao comunicar com a API de Avisos');
+    } finally {
+      setLoadingAvisos(false);
     }
 
     // 2. Galeria e Categorias
+    setLoadingFotos(true);
+    setErrorFotos(null);
     try {
       const [catsRes, fotosRes] = await Promise.all([
         medtecApi.categoriasGaleria.list({ page: 'all' }),
@@ -631,6 +658,9 @@ export default function AdminDashboardPage() {
       }
     } catch (err) {
       console.warn('API v1: Erro ao listar galeria/categorias:', err);
+      setErrorFotos('Falha ao comunicar com a API da Galeria');
+    } finally {
+      setLoadingFotos(false);
     }
 
     // 3. Canais de Contato
@@ -658,24 +688,57 @@ export default function AdminDashboardPage() {
     } finally {
       setLoadingEstados(false);
     }
+
+    // 5. Notícias e Categorias do CMS
+    setLoadingNews(true);
+    setErrorNews(null);
+    try {
+      const [catsRes, newsRes] = await Promise.all([
+        medtecApi.noticias.listCategorias({ page: 'all', 'q[ativo_true]': 1 }),
+        medtecApi.noticias.list({ page: 'all' }),
+      ]);
+      if (catsRes.success && catsRes.data?.items) {
+        setApiNewsCategories(catsRes.data.items);
+        if (catsRes.data.items.length > 0) {
+          setSelectedNewsCategoriaId(prev => prev ?? catsRes.data.items[0].id);
+        }
+      }
+      if (newsRes.success && newsRes.data?.items) {
+        setApiNews(newsRes.data.items);
+      }
+    } catch (err) {
+      console.warn('API v1: Erro ao listar notícias/categorias do backend:', err);
+      setErrorNews('Falha ao comunicar com a API de Notícias');
+    } finally {
+      setLoadingNews(false);
+    }
   }, []);
 
   // Carrega cidades do estado selecionado
   useEffect(() => {
     if (!selectedEstadoId) return;
-    setLoadingCidades(true);
-    medtecApi.cidades.list({ 'q[g_estado_id_eq]': selectedEstadoId, page: 'all' })
-      .then((res) => {
-        if (res.success && res.data?.items) {
+    let isMounted = true;
+    const fetchCidades = async () => {
+      try {
+        const res = await medtecApi.cidades.list({ 'q[g_estado_id_eq]': selectedEstadoId, page: 'all' });
+        if (isMounted && res.success && res.data?.items) {
           setApiCidades(res.data.items);
         }
-      })
-      .catch((err) => console.warn('API v1: Erro ao carregar cidades:', err))
-      .finally(() => setLoadingCidades(false));
+      } catch (err) {
+        console.warn('API v1: Erro ao carregar cidades:', err);
+      } finally {
+        if (isMounted) setLoadingCidades(false);
+      }
+    };
+    void fetchCidades();
+    return () => {
+      isMounted = false;
+    };
   }, [selectedEstadoId]);
 
   // Carrega dados iniciais e verifica sessão
   const loadData = useCallback(async () => {
+    await Promise.resolve();
     try {
       let authenticated = false;
 
@@ -754,18 +817,22 @@ export default function AdminDashboardPage() {
         return;
       }
 
-      // Carrega dados locais (fallback / noticias / banners / faq)
-      const res = await fetch('/api/data');
-      if (res.ok) {
-        const json = await res.json();
-        setData(json);
-      }
-
-      // Carrega dados da API Backend v1 oficial (se falhar, mantém os dados locais)
+      // Carrega dados da API Backend v1 oficial (avisos, fotos, canais, estados, cidades)
       try {
         await loadApiData();
       } catch (apiErr) {
-        console.warn('API v1: Aviso ao carregar dados oficiais, mantendo dados locais de fallback:', apiErr);
+        console.warn('API v1: Aviso ao carregar dados oficiais do backend:', apiErr);
+      }
+
+      // Carrega configurações institucionais do portal (siteInfo, stats, socials, banners)
+      try {
+        const res = await fetch('/api/data');
+        if (res.ok) {
+          const json = await res.json();
+          setData(json);
+        }
+      } catch {
+        // fallback silencioso
       }
     } catch (err) {
       console.error(err);
@@ -774,7 +841,14 @@ export default function AdminDashboardPage() {
   }, [router, loadApiData]);
 
   useEffect(() => {
-    void loadData();
+    let isMounted = true;
+    const run = async () => {
+      await loadData();
+    };
+    void run();
+    return () => {
+      isMounted = false;
+    };
   }, [loadData]);
 
   const handleLogout = async () => {
@@ -847,145 +921,195 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Funções de Gestão de Notícias
-  const handleSaveNews = (e: React.FormEvent) => {
+  // Funções de Gestão de Notícias (/n_noticias)
+  const handleSaveNews = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!data || !newsForm.title || !newsForm.content) return;
-
-    let updatedNews = [...data.news];
-    if (editingNews) {
-      updatedNews = updatedNews.map(item => 
-        item.id === editingNews.id 
-          ? ({ ...item, ...newsForm } as NewsItem)
-          : item
-      );
-    } else {
-      const newId = `noticia-${Date.now()}`;
-      const slug = newsForm.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-      const newItem: NewsItem = {
-        id: newId,
-        title: newsForm.title || '',
-        slug: slug || newId,
-        excerpt: newsForm.excerpt || newsForm.title.substring(0, 120),
-        content: newsForm.content || '',
-        coverImage: newsForm.coverImage || 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=1200&q=80',
-        author: newsForm.author || 'Assessoria SEDUC',
-        category: newsForm.category || 'Institucional',
-        publishedAt: newsForm.publishedAt || new Date().toLocaleDateString('pt-BR'),
-        featured: newsForm.featured || false,
-        urgent: newsForm.urgent || false,
-        folder: newsForm.folder?.trim() || 'Geral',
-        published: newsForm.published !== false,
-        tags: ['MEDTEC', 'SEDUC-RO'],
-      };
-      updatedNews.unshift(newItem);
+    if (!newsForm.title?.trim()) {
+      alert('Informe o título da notícia.');
+      return;
+    }
+    if (!newsForm.content?.trim()) {
+      alert('Informe o conteúdo da notícia.');
+      return;
     }
 
-    const newData: DatabaseSchema = { ...data, news: updatedNews };
-    persistData(newData);
+    const catId = selectedNewsCategoriaId || (apiNewsCategories.length > 0 ? apiNewsCategories[0].id : 1);
 
-    setEditingNews(null);
-    setNewsForm({
-      title: '',
-      category: 'Pedagógico',
-      author: 'Equipe MEDTEC / SEDUC',
-      coverImage: '',
-      excerpt: '',
-      content: '',
-      featured: false,
-      urgent: false,
-      folder: 'Geral',
-      published: true,
-      publishedAt: '',
-    });
-    setNewsViewMode('lista');
+    setSaving(true);
+    try {
+      if (newsCoverFile) {
+        const formData = new FormData();
+        formData.append('n_noticia[titulo]', newsForm.title.trim());
+        formData.append('n_noticia[n_categoria_noticia_id]', String(catId));
+        formData.append('n_noticia[conteudo]', newsForm.content.trim());
+        if (newsForm.excerpt?.trim()) {
+          formData.append('n_noticia[resumo]', newsForm.excerpt.trim());
+        }
+        if (newsForm.publishedAt?.trim()) {
+          formData.append('n_noticia[data_publicacao]', newsForm.publishedAt.trim());
+        }
+        formData.append('n_noticia[imagem_capa]', newsCoverFile);
+
+        if (editingNews && Number(editingNews.id)) {
+          await medtecApi.noticias.update(Number(editingNews.id), formData);
+        } else {
+          await medtecApi.noticias.create(formData);
+        }
+      } else {
+        const payload = {
+          n_noticia: {
+            titulo: newsForm.title.trim(),
+            conteudo: newsForm.content.trim(),
+            n_categoria_noticia_id: catId,
+            resumo: newsForm.excerpt?.trim() || undefined,
+            data_publicacao: newsForm.publishedAt?.trim() || undefined,
+            imagem_capa_url: newsForm.coverImage?.trim() || undefined,
+          },
+        };
+
+        if (editingNews && Number(editingNews.id)) {
+          await medtecApi.noticias.update(Number(editingNews.id), payload);
+        } else {
+          await medtecApi.noticias.create(payload);
+        }
+      }
+
+      const successMessage = editingNews
+        ? 'Notícia atualizada com sucesso no backend!'
+        : 'Notícia cadastrada com sucesso! Ela foi enviada para a fila de aprovação.';
+
+      setEditingNews(null);
+      setNewsCoverFile(null);
+      setNewsForm({
+        title: '',
+        category: 'Pedagógico',
+        author: userSession.name || 'SEDUC-RO',
+        coverImage: '',
+        excerpt: '',
+        content: '',
+        featured: false,
+        urgent: false,
+        folder: 'Geral',
+        published: false,
+        publishedAt: '',
+      });
+      setNewsFolder('Todas');
+      setNewsViewMode('lista');
+      await loadApiData();
+
+      setTimeout(() => {
+        alert(successMessage);
+      }, 50);
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      alert('Erro ao salvar notícia: ' + (error?.errors?.join(', ') || error?.message || 'Falha na comunicação com o backend.'));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleTogglePublished = (id: string) => {
-    if (!data) return;
-    const updatedNews = data.news.map((item) =>
-      item.id === id ? { ...item, published: item.published === false } : item
-    );
-    persistData({ ...data, news: updatedNews });
+  const handleTogglePublished = async (id: string) => {
+    const numId = Number(id);
+    if (!numId) return;
+
+    try {
+      const current = apiNews.find(n => n.id === numId);
+      if (current?.status === 'publicada') {
+        await medtecApi.noticias.despublicar(numId);
+        alert('Notícia despublicada com sucesso. Ela retornou à fila de aprovação.');
+      } else {
+        await medtecApi.noticias.publicar(numId);
+        alert('Notícia publicada com sucesso!');
+      }
+      await loadApiData();
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      alert('Erro ao alterar status da notícia: ' + (error?.errors?.join(', ') || error?.message || 'Falha na operação.'));
+    }
   };
 
   const handleApproveNews = async (id: string): Promise<boolean> => {
-    if (!data || !userSession.isGestor) return false;
-    const target = data.news.find((n) => n.id === id);
-    if (!target) return false;
-
-    const updatedNews = data.news.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            published: true,
-            rejected: false,
-            publishedAt: item.publishedAt || new Date().toLocaleDateString('pt-BR'),
-          }
-        : item
-    );
+    const numId = Number(id);
+    if (!numId) return false;
 
     try {
-      await persistData({ ...data, news: updatedNews });
+      await medtecApi.noticias.publicar(numId);
+      await loadApiData();
       return true;
-    } catch {
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      alert('Não foi possível aprovar a notícia: ' + (error?.errors?.join(', ') || error?.message || 'Apenas administradores possuem permissão para publicar.'));
       return false;
     }
   };
 
   const handleRejectNews = async (id: string, reason?: string): Promise<boolean> => {
-    if (!data || !userSession.isGestor) return false;
-    const target = data.news.find((n) => n.id === id);
-    if (!target) return false;
+    const numId = Number(id);
+    if (!numId) return false;
 
-    const updatedNews = data.news.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            published: false,
-            rejected: true,
-            rejectionReason: reason || 'Recusada pelo gestor.',
-          }
-        : item
-    );
+    if (!reason || !reason.trim()) {
+      alert('É obrigatório informar o motivo da reprovação.');
+      return false;
+    }
 
     try {
-      await persistData({ ...data, news: updatedNews });
+      await medtecApi.noticias.reprovar(numId, reason.trim());
+      await loadApiData();
       return true;
-    } catch {
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      alert('Não foi possível reprovar a notícia: ' + (error?.errors?.join(', ') || error?.message || 'Apenas administradores possuem permissão para reprovar.'));
       return false;
     }
   };
 
-  const handleDeleteNews = (id: string) => {
-    if (!data) return;
-    if (!confirm('Deseja realmente excluir esta notícia?')) return;
-    const updatedNews = data.news.filter(n => n.id !== id);
-    persistData({ ...data, news: updatedNews });
+  const handleDeleteNews = async (id: string) => {
+    const numId = Number(id);
+    if (!numId) return;
+
+    if (!confirm('Deseja realmente excluir esta notícia do sistema?')) return;
+
+    try {
+      await medtecApi.noticias.delete(numId);
+      alert('Notícia excluída com sucesso.');
+      await loadApiData();
+    } catch (err: unknown) {
+      const error = err as { errors?: string[]; message?: string };
+      alert('Erro ao excluir notícia: ' + (error?.errors?.join(', ') || error?.message || 'Falha na operação.'));
+    }
   };
 
   const handleEditNews = (item: NewsItem) => {
     setEditingNews(item);
     setNewsForm({ ...item });
+    setNewsCoverFile(null);
+    const cat = apiNewsCategories.find(c => c.nome === item.category);
+    if (cat) {
+      setSelectedNewsCategoriaId(cat.id);
+    }
     setNewsViewMode('editor');
     window.scrollTo({ top: 120, behavior: 'smooth' });
   };
 
   const handleNewNews = () => {
     setEditingNews(null);
+    setNewsCoverFile(null);
     setNewsForm({
       title: '',
-      category: 'Pedagógico',
-      author: 'Equipe MEDTEC / SEDUC',
+      category: apiNewsCategories[0]?.nome || 'Pedagógico',
+      author: userSession.name || 'SEDUC-RO',
       coverImage: '',
       excerpt: '',
       content: '',
       featured: false,
       urgent: false,
       folder: 'Geral',
-      published: true,
-      publishedAt: '',
+      published: false,
+      publishedAt: new Date().toISOString().slice(0, 10),
     });
+    if (apiNewsCategories.length > 0) {
+      setSelectedNewsCategoriaId(apiNewsCategories[0].id);
+    }
     setNewsViewMode('editor');
   };
 
@@ -1030,72 +1154,46 @@ export default function AdminDashboardPage() {
 
   const handleSaveAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!announcementForm.title || !announcementForm.content) return;
+    if (!announcementForm.title?.trim() || !announcementForm.content?.trim()) {
+      alert('Informe o título e o conteúdo do comunicado.');
+      return;
+    }
 
     setSaving(true);
     try {
       const tipoId = selectedTipoAvisoId || (apiTiposAviso[0] ? apiTiposAviso[0].id : 1);
-      const tipoObj = apiTiposAviso.find(t => t.id === tipoId);
 
       let savedAviso: AAviso | null = null;
       try {
         if (editingAnnouncementId) {
           savedAviso = await medtecApi.avisos.update(editingAnnouncementId, {
-            titulo: announcementForm.title,
+            titulo: announcementForm.title.trim(),
             a_tipo_aviso_id: tipoId,
-            conteudo: announcementForm.content,
-            link_texto: announcementForm.linkText || '',
-            link_url: announcementForm.linkUrl || '',
+            conteudo: announcementForm.content.trim(),
+            link_texto: announcementForm.linkText?.trim() || '',
+            link_url: announcementForm.linkUrl?.trim() || '',
             ativo: announcementForm.active ?? true,
           });
         } else {
           savedAviso = await medtecApi.avisos.create({
-            titulo: announcementForm.title,
+            titulo: announcementForm.title.trim(),
             a_tipo_aviso_id: tipoId,
-            conteudo: announcementForm.content,
-            link_texto: announcementForm.linkText || '',
-            link_url: announcementForm.linkUrl || '',
+            conteudo: announcementForm.content.trim(),
+            link_texto: announcementForm.linkText?.trim() || '',
+            link_url: announcementForm.linkUrl?.trim() || '',
             ativo: announcementForm.active ?? true,
           });
         }
       } catch (apiErr: unknown) {
         const err = apiErr as { message?: string; errors?: string[] };
         console.warn('Erro ao salvar aviso na API v1:', err);
-        alert(`Erro na API: ${err.message || err.errors?.join(', ') || 'Falha na requisição'}`);
-      }
-
-      const announcementId = savedAviso ? String(savedAviso.id) : (editingAnnouncementId ? String(editingAnnouncementId) : `aviso-${Date.now()}`);
-      const newItem: AnnouncementItem = {
-        id: announcementId,
-        title: announcementForm.title,
-        content: announcementForm.content,
-        type: (tipoObj?.slug as AnnouncementType) || announcementForm.type || 'aviso',
-        date: new Date().toLocaleDateString('pt-BR'),
-        linkText: announcementForm.linkText || '',
-        linkUrl: announcementForm.linkUrl || '',
-        active: announcementForm.active ?? true,
-        typeColor: tipoObj?.cor,
-        typeName: tipoObj?.nome,
-        a_tipo_aviso_id: tipoId,
-        a_tipo_aviso: tipoObj ? {
-          id: tipoObj.id,
-          nome: tipoObj.nome,
-          slug: tipoObj.slug,
-          cor: tipoObj.cor,
-          posicao: tipoObj.posicao,
-          ativo: tipoObj.ativo,
-        } : undefined,
-      };
-
-      if (data) {
-        const updated = editingAnnouncementId
-          ? data.announcements.map(a => a.id === String(editingAnnouncementId) ? newItem : a)
-          : [newItem, ...data.announcements];
-        persistData({ ...data, announcements: updated });
+        alert(`Erro na API oficial: ${err.message || err.errors?.join(', ') || 'Falha ao salvar comunicado'}`);
+        return; // Interrompe imediatamente; não prossegue com falso sucesso
       }
 
       if (savedAviso) {
         setApiAvisos(prev => editingAnnouncementId ? prev.map(a => a.id === savedAviso!.id ? savedAviso! : a) : [savedAviso!, ...prev]);
+        alert(editingAnnouncementId ? 'Comunicado atualizado com sucesso na API oficial!' : 'Comunicado cadastrado com sucesso na API oficial!');
       }
 
       setEditingAnnouncementId(null);
@@ -1117,38 +1215,32 @@ export default function AdminDashboardPage() {
   const handleDeleteAnnouncement = async (id: string) => {
     if (!confirm('Deseja realmente excluir este comunicado oficial?')) return;
     const numId = Number(id);
-    if (!isNaN(numId)) {
-      try {
-        await medtecApi.avisos.delete(numId);
-        setApiAvisos(prev => prev.filter(a => a.id !== numId));
-      } catch (err: unknown) {
-        const errorData = err as { message?: string };
-        alert(`Erro ao excluir na API: ${errorData.message || 'Falha na exclusão'}`);
-      }
-    }
-    if (data) {
-      const updated = data.announcements.filter(a => a.id !== id);
-      persistData({ ...data, announcements: updated });
+    if (isNaN(numId)) return;
+
+    try {
+      await medtecApi.avisos.delete(numId);
+      setApiAvisos(prev => prev.filter(a => a.id !== numId));
+      alert('Comunicado oficial excluído com sucesso da API.');
+    } catch (err: unknown) {
+      const errorData = err as { message?: string; errors?: string[] };
+      alert(`Erro ao excluir na API oficial: ${errorData.message || errorData.errors?.join(', ') || 'Falha na exclusão'}`);
     }
   };
 
   const handleToggleAnnouncementActive = async (id: string) => {
     const numId = Number(id);
+    if (isNaN(numId)) return;
     const existingApi = apiAvisos.find(a => a.id === numId);
-    const currentActive = existingApi ? existingApi.ativo : data?.announcements.find(a => a.id === id)?.active ?? true;
+    const currentActive = existingApi ? existingApi.ativo : true;
     const newActive = !currentActive;
 
-    if (!isNaN(numId)) {
-      try {
-        await medtecApi.avisos.update(numId, { ativo: newActive });
-        setApiAvisos(prev => prev.map(a => a.id === numId ? { ...a, ativo: newActive } : a));
-      } catch (err) {
-        console.warn('Erro ao atualizar ativo na API v1:', err);
-      }
-    }
-    if (data) {
-      const updated = data.announcements.map(a => a.id === id ? { ...a, active: newActive } : a);
-      persistData({ ...data, announcements: updated });
+    try {
+      await medtecApi.avisos.update(numId, { ativo: newActive });
+      setApiAvisos(prev => prev.map(a => a.id === numId ? { ...a, ativo: newActive } : a));
+    } catch (err: unknown) {
+      const errorData = err as { message?: string };
+      console.warn('Erro ao atualizar ativo na API v1:', err);
+      alert(`Erro ao atualizar visibilidade na API: ${errorData?.message || 'Falha'}`);
     }
   };
 
@@ -1226,8 +1318,11 @@ export default function AdminDashboardPage() {
 
   const handleSavePhoto = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!galleryForm.title) return;
-    if (!galleryFile && !galleryForm.imageUrl) {
+    if (!galleryForm.title?.trim()) {
+      alert('Informe o título da foto.');
+      return;
+    }
+    if (!galleryFile && !galleryForm.imageUrl?.trim()) {
       alert('Selecione um arquivo de foto do computador ou informe um link externo direto.');
       return;
     }
@@ -1235,15 +1330,14 @@ export default function AdminDashboardPage() {
     setSaving(true);
     try {
       const catId = selectedCategoriaId || (apiCategorias[0] ? apiCategorias[0].id : 1);
-      const catObj = apiCategorias.find(c => c.id === catId);
 
       let savedFoto: FotoGaleria | null = null;
       try {
         if (galleryFile) {
           const form = new FormData();
-          form.append('foto_galeria[titulo]', galleryForm.title);
+          form.append('foto_galeria[titulo]', galleryForm.title.trim());
           form.append('foto_galeria[categoria_galeria_id]', String(catId));
-          form.append('foto_galeria[descricao]', galleryForm.description || '');
+          form.append('foto_galeria[descricao]', galleryForm.description?.trim() || '');
           form.append('foto_galeria[imagem]', galleryFile);
 
           if (editingPhotoId) {
@@ -1254,10 +1348,10 @@ export default function AdminDashboardPage() {
         } else if (galleryForm.imageUrl) {
           const payload = {
             foto_galeria: {
-              titulo: galleryForm.title,
+              titulo: galleryForm.title.trim(),
               categoria_galeria_id: catId,
-              descricao: galleryForm.description || '',
-              imagem_url: galleryForm.imageUrl,
+              descricao: galleryForm.description?.trim() || '',
+              imagem_url: galleryForm.imageUrl.trim(),
             },
           };
           if (editingPhotoId) {
@@ -1269,35 +1363,13 @@ export default function AdminDashboardPage() {
       } catch (apiErr: unknown) {
         const err = apiErr as { message?: string; errors?: string[] };
         console.warn('Erro ao salvar foto na API v1:', err);
-        alert(`Erro na API: ${err.message || err.errors?.join(', ') || 'Falha ao salvar foto'}`);
-      }
-
-      const displayImg = savedFoto?.imagem
-        ? getMediaUrl(savedFoto.imagem)
-        : savedFoto?.imagem_url || galleryForm.imageUrl || '';
-
-      const photoId = savedFoto ? String(savedFoto.id) : (editingPhotoId ? String(editingPhotoId) : `gal-${Date.now()}`);
-      const newPhotoItem: GalleryItem = {
-        id: photoId,
-        title: galleryForm.title,
-        description: galleryForm.description || '',
-        imageUrl: displayImg,
-        category: catObj?.nome || galleryForm.category || 'Salas de Aula',
-        date: 'Outubro 2026',
-        categoria_galeria_id: catId,
-        imagem: savedFoto?.imagem,
-        imagem_url: savedFoto?.imagem_url,
-      };
-
-      if (data) {
-        const updated = editingPhotoId
-          ? data.gallery.map(g => g.id === String(editingPhotoId) ? newPhotoItem : g)
-          : [newPhotoItem, ...data.gallery];
-        persistData({ ...data, gallery: updated });
+        alert(`Erro na API oficial: ${err.message || err.errors?.join(', ') || 'Falha ao salvar foto'}`);
+        return; // Interrompe imediatamente; não prossegue com falso sucesso
       }
 
       if (savedFoto) {
         setApiFotos(prev => editingPhotoId ? prev.map(f => f.id === savedFoto!.id ? savedFoto! : f) : [savedFoto!, ...prev]);
+        alert(editingPhotoId ? 'Foto atualizada com sucesso na API oficial!' : 'Foto cadastrada com sucesso na API oficial!');
       }
 
       setEditingPhotoId(null);
@@ -1318,18 +1390,15 @@ export default function AdminDashboardPage() {
   const handleDeletePhoto = async (id: string) => {
     if (!confirm('Deseja excluir esta foto da galeria?')) return;
     const numId = Number(id);
-    if (!isNaN(numId)) {
-      try {
-        await medtecApi.fotosGaleria.delete(numId);
-        setApiFotos(prev => prev.filter(f => f.id !== numId));
-      } catch (err: unknown) {
-        const errorData = err as { message?: string };
-        alert(`Erro ao excluir foto na API: ${errorData.message || 'Falha'}`);
-      }
-    }
-    if (data) {
-      const updated = data.gallery.filter(g => g.id !== id);
-      persistData({ ...data, gallery: updated });
+    if (isNaN(numId)) return;
+
+    try {
+      await medtecApi.fotosGaleria.delete(numId);
+      setApiFotos(prev => prev.filter(f => f.id !== numId));
+      alert('Foto excluída com sucesso da API oficial.');
+    } catch (err: unknown) {
+      const errorData = err as { message?: string; errors?: string[] };
+      alert(`Erro ao excluir foto na API oficial: ${errorData.message || errorData.errors?.join(', ') || 'Falha'}`);
     }
   };
 
@@ -1397,26 +1466,10 @@ export default function AdminDashboardPage() {
         setApiCanais(res.data);
       }
 
-      if (data) {
-        const map: Record<string, string> = {};
-        payload.forEach(c => { map[c.rede] = c.valor; });
-        const updatedSocials = {
-          ...data.socials,
-          youtube: map.youtube || data.socials.youtube,
-          instagram: map.instagram || data.socials.instagram,
-          facebook: map.facebook || data.socials.facebook,
-          whatsapp: map.whatsapp || data.socials.whatsapp,
-          phone: map.telefone || data.socials.phone,
-          email: map.email || data.socials.email,
-          address: map.endereco || data.socials.address,
-        };
-        await persistData({ ...data, socials: updatedSocials });
-      }
-
-      alert('Canais de atendimento e redes oficiais salvos com sucesso na API!');
+      alert('Canais de atendimento e redes oficiais salvos com sucesso na API oficial!');
     } catch (err: unknown) {
       const errorData = err as { message?: string; errors?: string[] };
-      alert(`Erro ao salvar canais: ${errorData.message || errorData.errors?.join(', ') || 'Falha na requisição'}`);
+      alert(`Erro ao salvar canais na API oficial: ${errorData.message || errorData.errors?.join(', ') || 'Falha na requisição'}`);
     } finally {
       setSavingCanais(false);
     }
@@ -1546,108 +1599,13 @@ export default function AdminDashboardPage() {
     window.scrollTo({ top: 120, behavior: 'smooth' });
   };
 
-  const handleDeleteProject = (id: string) => {
-    if (!data) return;
-    if (!confirm('Deseja realmente excluir este projeto pedagógico das escolas?')) return;
-    const updated = (data.projects || []).filter(p => p.id !== id);
-    persistData({ ...data, projects: updated });
+  const handleDeleteProject = (_id: string) => {
+    alert('A exclusão de projetos pedagógicos está desabilitada aguardando a disponibilização dos endpoints oficiais pelo backend Rails (/p_projetos). Nenhuma gravação local é simulada.');
   };
 
   const handleSaveProject = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!data || !projectForm.title || !projectForm.school || !projectForm.municipality) {
-      alert('Por favor, preencha o Título do Projeto, a Escola Estadual e o Município.');
-      return;
-    }
-
-    const currentProjects = data.projects || [];
-    const num = projectForm.number?.trim() || String(currentProjects.length + 1).padStart(2, '0');
-    const missionCode = projectForm.missionCode?.trim() || `Projeto ${num}`;
-    
-    // Iniciais do mediador
-    let initials = projectForm.mediatorInitials?.trim() || '';
-    if (!initials && projectForm.mediatorName) {
-      initials = projectForm.mediatorName
-        .replace(/Profª?\.?/gi, '')
-        .trim()
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map(w => w[0].toUpperCase())
-        .join('');
-    }
-
-    // Processar competências
-    const parsedCompetencias = competenciasInput
-      .split(/[,;\n]+/)
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    // Processar materiais
-    const parsedMaterials = materialsInput
-      .split('\n')
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    const slug = (projectForm.title || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '');
-
-    const id = editingProject?.id || `missao-${num}-${slug || Date.now()}`;
-
-    const completeProject: ProjectMission = {
-      id,
-      number: num,
-      missionCode,
-      title: projectForm.title.trim(),
-      shortTitle: projectForm.shortTitle?.trim() || projectForm.title.trim(),
-      track: (projectForm.track as ProjectMission['track']) || 'Agroecologia & NBAZ',
-      territory: projectForm.territory?.trim() || `${projectForm.municipality} • Rondônia`,
-      typology: projectForm.typology?.trim() || 'Comunidade Escolar de Rondônia',
-      municipality: projectForm.municipality.trim(),
-      school: projectForm.school.trim(),
-      mediatorName: projectForm.mediatorName?.trim() || 'Equipe Pedagógica MEDTEC',
-      mediatorRole: projectForm.mediatorRole?.trim() || 'Docente Mediador(a)',
-      mediatorInitials: initials || 'MD',
-      studentCohort: projectForm.studentCohort?.trim() || 'Ensino Médio Regular',
-      seal: projectForm.seal?.trim() || 'Inovação e Prática de Campo',
-      image: projectForm.image?.trim() || '/hero.jpg',
-      initialApplause: Number(projectForm.initialApplause) || 120,
-      desafioLocal: {
-        title: projectForm.desafioLocal?.title?.trim() || 'Desafio Territorial Enfrentado',
-        description: projectForm.desafioLocal?.description?.trim() || 'Descrição da problemática local e contexto da comunidade escolar.',
-      },
-      praticaMedtec: {
-        title: projectForm.praticaMedtec?.title?.trim() || 'Metodologia com Mediação Tecnológica',
-        description: projectForm.praticaMedtec?.description?.trim() || 'Metodologia ativa e uso da tecnologia aplicada à realidade local.',
-      },
-      impactoGerado: {
-        title: projectForm.impactoGerado?.title?.trim() || 'Transformação Comunitária',
-        metric: projectForm.impactoGerado?.metric?.trim() || 'Resultados em Campo',
-        description: projectForm.impactoGerado?.description?.trim() || 'Impacto positivo mensurado junto aos estudantes e famílias.',
-      },
-      competencias: parsedCompetencias.length > 0 ? parsedCompetencias : ['Pensamento Científico', 'Sustentabilidade', 'Cultura Digital'],
-      quote: projectForm.quote?.trim() || 'A mediação tecnológica conecta os conhecimentos da floresta ao futuro dos nossos jovens.',
-      replicationGuide: {
-        materials: parsedMaterials.length > 0 ? parsedMaterials : ['Computador conectado ao canal MEDTEC', 'Caderno de campo e celulares para registro'],
-        timeline: projectForm.replicationGuide?.timeline || defaultProjectTimeline,
-        pedagogicalTip: projectForm.replicationGuide?.pedagogicalTip?.trim() || 'Incentive a escuta das famílias e o protagonismo dos estudantes desde a primeira semana.',
-      },
-    };
-
-    let updatedProjects: ProjectMission[];
-    if (editingProject) {
-      updatedProjects = currentProjects.map(p => p.id === editingProject.id ? completeProject : p);
-    } else {
-      updatedProjects = [completeProject, ...currentProjects];
-    }
-
-    persistData({ ...data, projects: updatedProjects });
-    setProjectViewMode('lista');
-    setEditingProject(null);
+    alert('A criação e edição de projetos pedagógicos estão desabilitadas aguardando a disponibilização dos endpoints oficiais pelo backend Rails (/p_projetos). A persistência em disco local foi descontinuada para cumprir a diretriz de fonte única de dados.');
   };
 
   const handleNewFaq = () => {
@@ -1674,11 +1632,8 @@ export default function AdminDashboardPage() {
     setFaqViewMode('editor');
   };
 
-  const handleDeleteFaq = (id: string) => {
-    if (!data) return;
-    if (!confirm('Deseja realmente excluir esta dúvida frequente do portal?')) return;
-    const updated = (data.faqs || []).filter((f) => f.id !== id);
-    persistData({ ...data, faqs: updated });
+  const handleDeleteFaq = (_id: string) => {
+    alert('A exclusão de dúvidas frequentes (FAQ) está desabilitada aguardando a disponibilização dos endpoints oficiais pelo backend Rails (/faqs). Nenhuma gravação local é simulada.');
   };
 
   const handleToggleFaqPersona = (persona: 'estudantes' | 'mediadores' | 'gestores') => {
@@ -1691,58 +1646,50 @@ export default function AdminDashboardPage() {
 
   const handleSaveFaq = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!data || !faqForm.question?.trim() || !faqForm.answer?.trim()) {
-      alert('Por favor, informe a Pergunta e a Resposta da dúvida.');
-      return;
-    }
-
-    const currentFaqs = data.faqs || [];
-    const num = faqForm.index?.trim() || String(currentFaqs.length + 1).padStart(2, '0');
-    const id = editingFaq?.id || `faq-${Date.now()}`;
-
-    const parsedTags = faqTagsInput
-      .split(/[,;\n]+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    const actionLink =
-      faqForm.actionLink?.label?.trim() && faqForm.actionLink?.href?.trim()
-        ? { label: faqForm.actionLink.label.trim(), href: faqForm.actionLink.href.trim() }
-        : undefined;
-
-    const completeFaq: FaqItem = {
-      id,
-      index: num,
-      question: faqForm.question.trim(),
-      answer: faqForm.answer.trim(),
-      category: (faqForm.category as FaqItem['category']) || 'Metodologia & Aulas ao Vivo',
-      personas: faqForm.personas && faqForm.personas.length > 0 ? faqForm.personas : ['estudantes', 'mediadores'],
-      actionLink,
-      tags: parsedTags.length > 0 ? parsedTags : ['MEDTEC', 'SEDUC-RO'],
-    };
-
-    let updatedFaqs: FaqItem[];
-    if (editingFaq) {
-      updatedFaqs = currentFaqs.map((f) => (f.id === editingFaq.id ? completeFaq : f));
-    } else {
-      updatedFaqs = [completeFaq, ...currentFaqs];
-    }
-
-    persistData({ ...data, faqs: updatedFaqs });
-    setEditingFaq(null);
-    setFaqViewMode('lista');
+    alert('A criação e edição de dúvidas frequentes (FAQ) estão desabilitadas aguardando a disponibilização dos endpoints oficiais pelo backend Rails (/faqs). A persistência em disco local foi descontinuada para cumprir a diretriz de fonte única de dados.');
   };
 
-  const newsFolders = data
-    ? Array.from(new Set(data.news.map((item) => item.folder?.trim() || 'Geral'))).sort((a, b) =>
-        a.localeCompare(b, 'pt-BR')
-      )
-    : [];
-  const publishedCount = data ? data.news.filter((item) => item.published !== false).length : 0;
-  const draftCount = data ? data.news.length - publishedCount : 0;
-  const totalNewsViews = data ? data.news.reduce((acc, curr) => acc + (curr.views || 0), 0) : 0;
+  const effectiveNews: NewsItem[] = useMemo(() => {
+    if (apiNews.length > 0) {
+      return apiNews.map((n) => ({
+        id: String(n.id),
+        title: n.titulo,
+        slug: n.slug,
+        excerpt: n.resumo || '',
+        content: n.conteudo,
+        coverImage: getMediaUrl(n.imagem_capa),
+        author: n.autor_nome,
+        category: n.categoria_nome,
+        publishedAt: n.data_publicacao,
+        featured: false,
+        urgent: false,
+        folder: n.categoria_nome || 'Geral',
+        published: n.status === 'publicada',
+        rejected: n.status === 'reprovada',
+        rejectionReason: n.motivo_reprovacao || undefined,
+        views: 0,
+        tags: [],
+      }));
+    }
+    return data?.news || [];
+  }, [apiNews, data?.news]);
+
+  const newsFolders = Array.from(new Set(effectiveNews.map((item) => item.folder?.trim() || 'Geral'))).sort((a, b) =>
+    a.localeCompare(b, 'pt-BR')
+  );
+  const publishedCount = effectiveNews.filter((item) => item.published !== false).length;
+  const draftCount = effectiveNews.length - publishedCount;
+  const totalNewsViews = effectiveNews.reduce((acc, curr) => acc + (curr.views || 0), 0);
   const urgentAnnouncementsCount = data ? data.announcements.filter(a => a.type === 'urgente').length : 0;
   const activeAnnouncementsCount = data ? data.announcements.filter(a => a.active).length : 0;
+
+  // Métricas oficiais dos módulos integrados à API Rails v1 (Fonte Única de Verdade)
+  const apiNewsPublishedCount = apiNews.filter((n) => n.status === 'publicada').length;
+  const apiNewsDraftCount = apiNews.filter((n) => n.status !== 'publicada').length;
+  const apiAvisosAtivosCount = apiAvisos.filter((a) => a.ativo).length;
+  const apiAvisosUrgentesCount = apiAvisos.filter(
+    (a) => a.ativo && (a.a_tipo_aviso?.slug === 'urgente' || a.a_tipo_aviso?.nome?.toLowerCase().includes('urgente'))
+  ).length;
 
   // Permissões por Atribuição de Perfil
   const canAccessNews = userSession.isGestor || userSession.profileType === 'Editor de Notícias' || userSession.profileType === 'Operador de Conteúdo';
@@ -1757,9 +1704,6 @@ export default function AdminDashboardPage() {
   const canAccessUsers = userSession.isGestor;
   const canAccessEstados = userSession.isGestor;
 
-  // Seções onde o botão "Salvar Alterações" no topo deve estar ativo
-  const isEditableCmsSection = ['visaoGeral', 'fotos', 'noticias', 'avisos', 'galeria', 'redes', 'siteInfo', 'projetos', 'duvidas', 'estadosCidades'].includes(currentSection);
-
   // Árvore de Navegação em Pastas Expansíveis (Didático - Estilo Accordion JOER SEDUC-RO)
   const folders: NavFolderDef[] = [
     {
@@ -1773,7 +1717,7 @@ export default function AdminDashboardPage() {
           label: 'Notícias e Matérias',
           tooltip: 'Criar ou editar reportagens',
           icon: Newspaper,
-          badge: data?.news?.length,
+          badge: errorNews ? undefined : (loadingNews ? undefined : apiNews.length),
           visible: canAccessNews,
         },
         {
@@ -1797,7 +1741,7 @@ export default function AdminDashboardPage() {
           label: 'Avisos e Comunicados',
           tooltip: 'Publicar alertas no mural',
           icon: Megaphone,
-          badge: apiAvisos.length > 0 ? apiAvisos.length : data?.announcements?.length,
+          badge: errorAvisos ? undefined : (loadingAvisos ? undefined : apiAvisos.length),
           visible: canAccessAnnouncements,
         },
         {
@@ -1813,7 +1757,7 @@ export default function AdminDashboardPage() {
           label: 'Galeria de Fotos',
           tooltip: 'Adicionar fotos das escolas',
           icon: Images,
-          badge: apiFotos.length > 0 ? apiFotos.length : data?.gallery?.length,
+          badge: errorFotos ? undefined : (loadingFotos ? undefined : apiFotos.length),
           visible: canAccessGallery,
         },
       ],
@@ -1941,12 +1885,20 @@ export default function AdminDashboardPage() {
       };
       return (
         <div className="space-y-6">
+          <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2.5">
+            <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>
+              <strong>Gerenciador de Banners:</strong> A persistência deste módulo aguarda a disponibilização do endpoint oficial no backend Rails. A gravação em disco local foi desabilitada para cumprir a diretriz de fonte única de dados. As fotos da galeria e as capas de notícias são gerenciadas exclusivamente nas respectivas abas integradas à API.
+            </span>
+          </div>
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
             <div className="xl:col-span-7 min-w-0">
               <SitePhotosManager
                 data={data}
                 saving={saving}
-                onSave={persistData}
+                onSave={(_next) => {
+                  alert('A gravação de banners está desabilitada aguardando a disponibilização do endpoint oficial no backend Rails. A persistência em disco local foi descontinuada.');
+                }}
                 onPreview={(banner) => setPreviewModal({ isOpen: true, type: 'banner', data: banner })}
               />
             </div>
@@ -1978,7 +1930,7 @@ export default function AdminDashboardPage() {
                 }`}
               >
                 <Newspaper className="h-4 w-4" />
-                <span>Itens Publicados ({data.news.length})</span>
+                <span>Todas as Notícias ({effectiveNews.length})</span>
               </button>
 
               <button
@@ -2025,7 +1977,7 @@ export default function AdminDashboardPage() {
 
           {/* Formulário de Criação / Edição + Prévia ao Vivo */}
           {newsViewMode === 'editor' && (
-          <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800">
+          <div key="news-editor-view" className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <h2 className="text-xl font-black text-slate-900 dark:text-white">
@@ -2089,19 +2041,27 @@ export default function AdminDashboardPage() {
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Categoria
+                        Categoria *
                       </label>
                       <select
-                        value={newsForm.category}
-                        onChange={e => setNewsForm({ ...newsForm, category: e.target.value })}
+                        value={selectedNewsCategoriaId || ''}
+                        onChange={e => {
+                          const id = Number(e.target.value);
+                          setSelectedNewsCategoriaId(id);
+                          const cat = apiNewsCategories.find(c => c.id === id);
+                          if (cat) setNewsForm(prev => ({ ...prev, category: cat.nome }));
+                        }}
                         className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
                       >
-                        <option value="Pedagógico">Pedagógico</option>
-                        <option value="Institucional">Institucional</option>
-                        <option value="Infraestrutura">Infraestrutura</option>
-                        <option value="Tecnologia">Tecnologia</option>
-                        <option value="Eventos">Eventos</option>
-                        <option value="Agroecologia">Agroecologia</option>
+                        {apiNewsCategories.length > 0 ? (
+                          apiNewsCategories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.nome}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="1">Pedagógico</option>
+                        )}
                       </select>
                     </div>
                   </div>
@@ -2127,16 +2087,13 @@ export default function AdminDashboardPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Situação no Site
+                        Fluxo Editorial do Backend
                       </label>
-                      <select
-                        value={newsForm.published === false ? 'rascunho' : 'publicado'}
-                        onChange={(e) => setNewsForm({ ...newsForm, published: e.target.value === 'publicado' })}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
-                      >
-                        <option value="publicado">Publicada (visível no site)</option>
-                        <option value="rascunho">Rascunho (apenas no painel)</option>
-                      </select>
+                      <div className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 text-xs font-medium text-slate-600 dark:text-slate-400">
+                        {editingNews
+                          ? 'Ao salvar edições, a situação é reavaliada pelo backend.'
+                          : 'Novas notícias entram em "Aguardando aprovação" até publicação.'}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2153,17 +2110,24 @@ export default function AdminDashboardPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                     <div>
                       <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
-                        1. Fazer upload do computador:
+                        1. Fazer upload do computador (multipart):
                       </span>
                       <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-[#060D1A] border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#004A99] rounded-xl cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-[#004A99] transition">
                         <Upload size={16} />
-                        <span>{uploadingImage ? 'Enviando foto...' : 'Escolher foto do PC'}</span>
+                        <span className="truncate max-w-[200px]">
+                          {newsCoverFile ? newsCoverFile.name : 'Escolher foto do PC'}
+                        </span>
                         <input
                           type="file"
-                          accept="image/*"
-                          onChange={e => handleFileUpload(e, 'news')}
+                          accept="image/png,image/jpeg,image/webp"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setNewsCoverFile(file);
+                              setNewsForm(prev => ({ ...prev, coverImage: URL.createObjectURL(file) }));
+                            }
+                          }}
                           className="hidden"
-                          disabled={uploadingImage}
                         />
                       </label>
                     </div>
@@ -2174,10 +2138,14 @@ export default function AdminDashboardPage() {
                       </span>
                       <input
                         type="url"
-                        value={newsForm.coverImage}
-                        onChange={e => setNewsForm({ ...newsForm, coverImage: e.target.value })}
+                        value={newsCoverFile ? '' : (newsForm.coverImage || '')}
+                        disabled={!!newsCoverFile}
+                        onChange={e => {
+                          setNewsCoverFile(null);
+                          setNewsForm({ ...newsForm, coverImage: e.target.value });
+                        }}
                         placeholder="https://exemplo.com/foto.jpg"
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-xs text-slate-900 dark:text-slate-100"
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-xs text-slate-900 dark:text-slate-100 disabled:opacity-50"
                       />
                     </div>
                   </div>
@@ -2190,8 +2158,20 @@ export default function AdminDashboardPage() {
                         className="w-20 h-14 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shadow-xs"
                       />
                       <span className="text-xs text-[#004A99] dark:text-sky-400 font-medium truncate max-w-sm">
-                        Foto selecionada: {newsForm.coverImage}
+                        Foto selecionada: {newsCoverFile ? newsCoverFile.name : newsForm.coverImage}
                       </span>
+                      {newsCoverFile && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewsCoverFile(null);
+                            setNewsForm(prev => ({ ...prev, coverImage: '' }));
+                          }}
+                          className="text-[11px] text-rose-500 hover:underline cursor-pointer"
+                        >
+                          Remover arquivo
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2239,11 +2219,14 @@ export default function AdminDashboardPage() {
                       </label>
                       <input
                         type="text"
-                        value={newsForm.author}
-                        onChange={e => setNewsForm({ ...newsForm, author: e.target.value })}
-                        placeholder="Ex: Assessoria de Comunicação SEDUC"
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
+                        disabled
+                        readOnly
+                        value={userSession.name || 'Usuário Autenticado'}
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm cursor-not-allowed"
                       />
+                      <span className="text-[10px] text-slate-400 mt-0.5 block">
+                        Definido automaticamente pela API a partir da conta logada.
+                      </span>
                     </div>
 
                     <div>
@@ -2251,10 +2234,9 @@ export default function AdminDashboardPage() {
                         Data de Publicação
                       </label>
                       <input
-                        type="text"
+                        type="date"
                         value={newsForm.publishedAt}
                         onChange={e => setNewsForm({ ...newsForm, publishedAt: e.target.value })}
-                        placeholder="Ex: 10/10/2026"
                         className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
                       />
                     </div>
@@ -2348,11 +2330,11 @@ export default function AdminDashboardPage() {
 
           {/* Listagem de Notícias Cadastradas */}
           {newsViewMode === 'lista' && (
-          <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
+          <div key="news-list-view" className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                  Notícias por pasta ({data.news.length})
+                  Notícias por pasta ({effectiveNews.length})
                 </h3>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   <span className="font-bold text-emerald-700 dark:text-emerald-400">{publishedCount} publicadas</span>
@@ -2370,11 +2352,11 @@ export default function AdminDashboardPage() {
                   newsFolder === 'Todas' ? 'bg-[#004A99] text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                 }`}
               >
-                Todas ({data.news.length})
+                Todas ({effectiveNews.length})
               </button>
               {newsFolders.map((folder) => {
-                const total = data.news.filter((item) => (item.folder || 'Geral') === folder).length;
-                const live = data.news.filter(
+                const total = effectiveNews.filter((item) => (item.folder || 'Geral') === folder).length;
+                const live = effectiveNews.filter(
                   (item) => (item.folder || 'Geral') === folder && item.published !== false
                 ).length;
                 return (
@@ -2396,7 +2378,7 @@ export default function AdminDashboardPage() {
               {newsFolders
                 .filter((folder) => newsFolder === 'Todas' || folder === newsFolder)
                 .map((folder) => {
-                  const items = data.news.filter((item) => (item.folder || 'Geral') === folder);
+                  const items = effectiveNews.filter((item) => (item.folder || 'Geral') === folder);
                   if (items.length === 0) return null;
                   const live = items.filter((item) => item.published !== false).length;
                   return (
@@ -2404,12 +2386,12 @@ export default function AdminDashboardPage() {
                       <div className="mb-2 flex items-center justify-between">
                         <h4 className="text-sm font-black text-slate-900 dark:text-white">{folder}</h4>
                         <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                          {live} publicada{live === 1 ? '' : 's'} · {items.length - live} rascunho{items.length - live === 1 ? '' : 's'}
+                          {`${live} ${live === 1 ? 'publicada' : 'publicadas'} · ${items.length - live} ${items.length - live === 1 ? 'rascunho' : 'rascunhos'}`}
                         </span>
                       </div>
                       <div className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
-                        {items.map((item) => (
-                          <div key={item.id} className="py-4 px-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        {items.map((item, idx) => (
+                          <div key={item.id ? `news-row-${item.id}` : `news-row-idx-${idx}`} className="py-4 px-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                               <img
                                 src={item.coverImage}
@@ -2434,12 +2416,18 @@ export default function AdminDashboardPage() {
                                       Urgente
                                     </span>
                                   )}
-                                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold ${
-                                    item.published === false
-                                      ? 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                                      : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                    item.rejected
+                                      ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
+                                      : item.published === false
+                                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
+                                        : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
                                   }`}>
-                                    {item.published === false ? 'Rascunho' : 'Publicada'}
+                                    {item.rejected
+                                      ? 'Recusada'
+                                      : item.published === false
+                                        ? 'Aguardando aprovação'
+                                        : 'Publicada'}
                                   </span>
                                 </div>
                                 <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{item.title}</h4>
@@ -2507,7 +2495,7 @@ export default function AdminDashboardPage() {
 
     if (tab === 'avisos' && canAccessAnnouncements) {
       const activeTipo = apiTiposAviso.find(t => t.id === selectedTipoAvisoId) || apiTiposAviso[0];
-      const displayAvisosCount = apiAvisos.length > 0 ? apiAvisos.length : data?.announcements?.length || 0;
+      const displayAvisosCount = apiAvisos.length;
 
       return (
         <div className="space-y-6">
@@ -2969,86 +2957,91 @@ export default function AdminDashboardPage() {
               </h3>
 
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {(apiAvisos.length > 0 ? apiAvisos : (data?.announcements || [])).map((item) => {
-                  const isApiItem = 'a_tipo_aviso_id' in item;
-                  const itemTitle = 'titulo' in item ? item.titulo : item.title;
-                  const itemContent = 'conteudo' in item ? item.conteudo : item.content;
-                  const itemDate = 'created_at' in item ? new Date(item.created_at).toLocaleDateString('pt-BR') : item.date;
-                  const itemActive = 'ativo' in item ? item.ativo !== false : (item as AnnouncementItem).active !== false;
-                  const itemColor = (isApiItem && item.a_tipo_aviso?.cor) || (item as AnnouncementItem).typeColor;
-                  const itemTypeName = (isApiItem && item.a_tipo_aviso?.nome) || (item as AnnouncementItem).typeName || (item as AnnouncementItem).type;
+                {apiAvisos.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500 dark:text-slate-400 text-xs">
+                    Nenhum aviso cadastrado na base oficial da API.
+                  </div>
+                ) : (
+                  apiAvisos.map((item) => {
+                    const itemTitle = item.titulo;
+                    const itemContent = item.conteudo;
+                    const itemDate = new Date(item.created_at).toLocaleDateString('pt-BR');
+                    const itemActive = item.ativo !== false;
+                    const itemColor = item.a_tipo_aviso?.cor;
+                    const itemTypeName = item.a_tipo_aviso?.nome || 'Aviso';
 
-                  return (
-                    <div key={item.id} className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span
-                            style={itemColor ? { backgroundColor: `${itemColor}20`, color: itemColor, borderColor: `${itemColor}50` } : undefined}
-                            className="px-2 py-0.5 rounded text-[10px] font-bold uppercase border"
-                          >
-                            {itemTypeName}
-                          </span>
-                          <span className="text-xs text-slate-400">{itemDate}</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                            itemActive 
-                              ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300' 
-                              : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                          }`}>
-                            {itemActive ? 'Ativo na Home' : 'Oculto'}
-                          </span>
+                    return (
+                      <div key={item.id} className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span
+                              style={itemColor ? { backgroundColor: `${itemColor}20`, color: itemColor, borderColor: `${itemColor}50` } : undefined}
+                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase border"
+                            >
+                              {itemTypeName}
+                            </span>
+                            <span className="text-xs text-slate-400">{itemDate}</span>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              itemActive
+                                ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300'
+                                : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            }`}>
+                              {itemActive ? 'Ativo na Home' : 'Oculto'}
+                            </span>
+                          </div>
+                          <h4 className="font-bold text-sm text-slate-900 dark:text-white">{itemTitle}</h4>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl">{itemContent}</p>
                         </div>
-                        <h4 className="font-bold text-sm text-slate-900 dark:text-white">{itemTitle}</h4>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl">{itemContent}</p>
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewModal({
-                            isOpen: true,
-                            type: 'aviso',
-                            data: {
-                              title: itemTitle,
-                              content: itemContent,
-                              date: itemDate,
-                              cor: itemColor,
-                              typeName: itemTypeName,
-                              active: itemActive,
-                            }
-                          })}
-                          className="px-2.5 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-[#004A99] dark:text-[#00D8FF] text-xs font-bold transition cursor-pointer flex items-center gap-1 border border-sky-200 dark:border-sky-800/60"
-                          title="Ver prévia deste aviso no mural oficial"
-                        >
-                          <Eye size={13} />
-                          <span className="hidden md:inline">Ver Prévia</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleEditAnnouncement(item)}
-                          className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300"
-                          title="Editar"
-                        >
-                          <Edit3 size={15} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleAnnouncementActive(String(item.id))}
-                          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition cursor-pointer"
-                        >
-                          {itemActive ? 'Ocultar' : 'Exibir'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteAnnouncement(String(item.id))}
-                          className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-600 dark:text-slate-300 hover:text-rose-600 transition cursor-pointer"
-                          title="Excluir"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewModal({
+                              isOpen: true,
+                              type: 'aviso',
+                              data: {
+                                title: itemTitle,
+                                content: itemContent,
+                                date: itemDate,
+                                cor: itemColor,
+                                typeName: itemTypeName,
+                                active: itemActive,
+                              }
+                            })}
+                            className="px-2.5 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-[#004A99] dark:text-[#00D8FF] text-xs font-bold transition cursor-pointer flex items-center gap-1 border border-sky-200 dark:border-sky-800/60"
+                            title="Ver prévia deste aviso no mural oficial"
+                          >
+                            <Eye size={13} />
+                            <span className="hidden md:inline">Ver Prévia</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleEditAnnouncement(item)}
+                            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300"
+                            title="Editar"
+                          >
+                            <Edit3 size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleAnnouncementActive(String(item.id))}
+                            className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition cursor-pointer"
+                          >
+                            {itemActive ? 'Ocultar' : 'Exibir'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAnnouncement(String(item.id))}
+                            className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-600 dark:text-slate-300 hover:text-rose-600 transition cursor-pointer"
+                            title="Excluir"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
           )}
@@ -3057,7 +3050,7 @@ export default function AdminDashboardPage() {
     }
 
     if (tab === 'galeria' && canAccessGallery) {
-      const displayFotosCount = apiFotos.length > 0 ? apiFotos.length : data?.gallery?.length || 0;
+      const displayFotosCount = apiFotos.length;
       const selectedCatObj = apiCategorias.find(c => c.id === selectedCategoriaId) || apiCategorias[0];
 
       return (
@@ -3511,18 +3504,20 @@ export default function AdminDashboardPage() {
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {(apiFotos.length > 0 ? apiFotos : (data?.gallery || [])).map((photo) => {
-                  const isApiFoto = 'categoria_galeria_id' in photo;
-                  const photoTitle = 'titulo' in photo ? photo.titulo : photo.title;
-                  const photoDesc = ('descricao' in photo ? photo.descricao : (photo as GalleryItem).description) || '';
-                  const photoCat = isApiFoto && photo.categoria_galeria ? photo.categoria_galeria.nome : (photo as GalleryItem).category;
-                  const photoImg = 'imagem' in photo && photo.imagem
-                    ? getMediaUrl(photo.imagem)
-                    : (photo as GalleryItem).imageUrl || ('imagem_url' in photo ? photo.imagem_url || '' : '');
-                  const photoDate = 'created_at' in photo ? new Date(photo.created_at).toLocaleDateString('pt-BR') : (photo as GalleryItem).date;
+                {apiFotos.length === 0 ? (
+                  <div className="col-span-full p-8 text-center text-slate-500 dark:text-slate-400 text-xs">
+                    Nenhuma foto cadastrada no acervo oficial da API.
+                  </div>
+                ) : (
+                  apiFotos.map((photo) => {
+                    const photoTitle = photo.titulo;
+                    const photoDesc = photo.descricao || '';
+                    const photoCat = photo.categoria_galeria?.nome || 'Galeria';
+                    const photoImg = photo.imagem ? getMediaUrl(photo.imagem) : '';
+                    const photoDate = new Date(photo.created_at).toLocaleDateString('pt-BR');
 
-                  return (
-                    <div key={photo.id} className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-[#060D1A] flex flex-col justify-between group">
+                    return (
+                      <div key={photo.id} className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50 dark:bg-[#060D1A] flex flex-col justify-between group">
                       <div className="relative h-40 bg-slate-200 dark:bg-slate-900">
                         <img
                           src={photoImg}
@@ -3580,8 +3575,9 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
                   );
-                })}
-              </div>
+                })
+              )}
+            </div>
             </div>
           )}
         </div>
@@ -3589,337 +3585,142 @@ export default function AdminDashboardPage() {
     }
 
     if (tab === 'redes' && canAccessSocials) {
-      const FIXED_REDES_CONFIG = [
-        {
-          rede: 'youtube' as const,
-          label: 'YouTube (Canal Oficial)',
-          desc: 'Transmissões ao vivo, videoaulas e eventos',
-          icon: YoutubeIcon,
-          placeholder: 'https://www.youtube.com/@SeducRondonia',
-          defaultVal: data?.socials?.youtube || '',
-        },
-        {
-          rede: 'instagram' as const,
-          label: 'Instagram Oficial',
-          desc: 'Publicações, stories e novidades da rede estadual',
-          icon: InstagramIcon,
-          placeholder: 'https://instagram.com/seducro',
-          defaultVal: data?.socials?.instagram || '',
-        },
-        {
-          rede: 'facebook' as const,
-          label: 'Facebook Oficial',
-          desc: 'Página institucional do Governo de Rondônia',
-          icon: FacebookIcon,
-          placeholder: 'https://facebook.com/seducro',
-          defaultVal: data?.socials?.facebook || '',
-        },
-        {
-          rede: 'whatsapp' as const,
-          label: 'WhatsApp de Suporte / Polos',
-          desc: 'Canal direto para atendimento pedagógico e técnico',
-          icon: MessageSquare,
-          placeholder: 'https://wa.me/5569999998888 ou 69999998888',
-          defaultVal: data?.socials?.whatsapp || '',
-        },
-        {
-          rede: 'telefone' as const,
-          label: 'Telefone da SEDUC',
-          desc: 'Central de atendimento telefônico oficial',
-          icon: Phone,
-          placeholder: '(69) 3216-5300',
-          defaultVal: data?.socials?.phone || '',
-        },
-        {
-          rede: 'email' as const,
-          label: 'E-mail Institucional',
-          desc: 'Endereço para dúvidas, protocolos e comunicados',
-          icon: Mail,
-          placeholder: 'contato@seduc.ro.gov.br',
-          defaultVal: data?.socials?.email || '',
-        },
-        {
-          rede: 'endereco' as const,
-          label: 'Endereço Oficial',
-          desc: 'Localização física da sede da SEDUC / Palácio Rio Madeira',
-          icon: MapPin,
-          placeholder: 'Av. Farquar, 2986 - Bairro Pedrinhas, Palácio Rio Madeira, Porto Velho - RO',
-          defaultVal: data?.socials?.address || '',
-        },
-      ];
-
-      const updateCanal = (rede: string, field: 'valor' | 'posicao' | 'ativo', val: any) => {
-        setApiCanais(prev => {
-          const idx = prev.findIndex(c => c.rede === rede);
-          if (idx >= 0) {
-            const copy = [...prev];
-            copy[idx] = { ...copy[idx], [field]: val };
-            return copy;
-          }
-          const cfg = FIXED_REDES_CONFIG.find(c => c.rede === rede);
-          const newEntry: CanalContato = {
-            id: 0,
-            rede: rede as any,
-            valor: field === 'valor' ? val : (cfg?.defaultVal || ''),
-            posicao: field === 'posicao' ? val : (FIXED_REDES_CONFIG.findIndex(c => c.rede === rede) + 1),
-            ativo: field === 'ativo' ? val : true,
-          };
-          return [...prev, newEntry];
-        });
-      };
-
       return (
-        <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 flex items-center justify-center">
-                  <Share2 size={18} />
-                </div>
-                <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                  Canais Oficiais de Contato e Redes Sociais (/canais_contato)
-                </h2>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Configure os 7 canais fixos da API Backend v1. Cada canal possui valor, ordem de exibição (posição) e controle de visibilidade (ativo).
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSaveSocials} className="space-y-4">
-            <div className="space-y-3">
-              {FIXED_REDES_CONFIG.map((item, index) => {
-                const canal = apiCanais.find(c => c.rede === item.rede);
-                const valor = canal?.valor !== undefined ? canal.valor : item.defaultVal;
-                const posicao = canal?.posicao !== undefined ? canal.posicao : (index + 1);
-                const ativo = canal?.ativo !== undefined ? canal.ativo : true;
-                const IconComponent = item.icon;
-
-                return (
-                  <div
-                    key={item.rede}
-                    className={`p-4 rounded-xl border transition-all ${
-                      ativo
-                        ? 'bg-slate-50/70 dark:bg-[#060D1A] border-slate-200 dark:border-slate-800'
-                        : 'bg-slate-100/40 dark:bg-[#060D1A]/40 border-dashed border-slate-200 dark:border-slate-800/60 opacity-70'
-                    }`}
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          ativo
-                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                            : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
-                        }`}>
-                          <IconComponent size={16} />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-xs text-slate-900 dark:text-white">
-                              {item.label}
-                            </h4>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-mono">
-                              rede: &quot;{item.rede}&quot;
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400">
-                            {item.desc}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={ativo}
-                            onChange={e => updateCanal(item.rede, 'ativo', e.target.checked)}
-                            className="sr-only"
-                          />
-                          <div className={`w-10 h-5 rounded-full transition-colors relative ${
-                            ativo ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
-                          }`}>
-                            <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-transform ${
-                              ativo ? 'translate-x-5' : 'translate-x-0.5'
-                            }`} />
-                          </div>
-                          <span className={`text-xs font-bold ${
-                            ativo ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'
-                          }`}>
-                            {ativo ? 'Visível no Portal' : 'Oculto'}
-                          </span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                      <div className="md:col-span-10">
-                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                          Valor / Link / Contato
-                        </label>
-                        <input
-                          type="text"
-                          value={valor}
-                          onChange={e => updateCanal(item.rede, 'valor', e.target.value)}
-                          placeholder={item.placeholder}
-                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#071324] text-slate-900 dark:text-slate-100 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                          Posição
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={99}
-                          value={posicao}
-                          onChange={e => updateCanal(item.rede, 'posicao', parseInt(e.target.value) || 1)}
-                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#071324] text-slate-900 dark:text-slate-100 text-xs font-bold text-center focus:outline-none focus:ring-1 focus:ring-primary"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-100 dark:border-slate-800">
-              <span className="text-xs text-slate-400">
-                Os canais ativos serão sincronizados automaticamente com o rodapé e o botão flutuante.
-              </span>
-              <button
-                type="submit"
-                disabled={savingCanais}
-                className="px-6 py-2.5 rounded-xl bg-primary hover:bg-[#003875] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-50"
-              >
-                {savingCanais ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                <span>Salvar 7 Canais na API Backend</span>
-              </button>
-            </div>
-          </form>
-        </div>
+        <SocialChannelsModule
+          apiCanais={apiCanais}
+          setApiCanais={setApiCanais}
+          defaultSocials={data?.socials}
+          onSave={handleSaveSocials}
+          saving={savingCanais}
+        />
       );
     }
 
     if (tab === 'siteInfo' && canAccessSiteInfo) {
       return (
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-          <div className="xl:col-span-7 bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 space-y-6">
-            <div>
-              <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                Textos Institucionais & Métricas
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Altere os títulos, slogans e números exibidos na página inicial do MEDTEC em tempo real.
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              {/* Métricas */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-4">
-                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">
-                  Números e Métricas de Alcance (Hero)
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                      Estudantes Formados/Atendidos
-                    </label>
-                    <input
-                      type="text"
-                      value={data.stats.studentsCount}
-                      onChange={e => setData({ ...data, stats: { ...data.stats, studentsCount: e.target.value } })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                      Salas Conectadas
-                    </label>
-                    <input
-                      type="text"
-                      value={data.stats.schoolsCount}
-                      onChange={e => setData({ ...data, stats: { ...data.stats, schoolsCount: e.target.value } })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                      Municípios Atendidos
-                    </label>
-                    <input
-                      type="text"
-                      value={data.stats.citiesCount}
-                      onChange={e => setData({ ...data, stats: { ...data.stats, citiesCount: e.target.value } })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                      Horas de Transmissão
-                    </label>
-                    <input
-                      type="text"
-                      value={data.stats.liveHoursCount}
-                      onChange={e => setData({ ...data, stats: { ...data.stats, liveHoursCount: e.target.value } })}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Textos */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Título do Hero
-                  </label>
-                  <input
-                    type="text"
-                    value={data.siteInfo.heroTitle}
-                    onChange={e => setData({ ...data, siteInfo: { ...data.siteInfo, heroTitle: e.target.value } })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Descrição do Hero
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={data.siteInfo.heroDescription}
-                    onChange={e => setData({ ...data, siteInfo: { ...data.siteInfo, heroDescription: e.target.value } })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Referência Legal / Legislação
-                  </label>
-                  <input
-                    type="text"
-                    value={data.siteInfo.lawText}
-                    onChange={e => setData({ ...data, siteInfo: { ...data.siteInfo, lawText: e.target.value } })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => persistData(data)}
-                disabled={saving}
-                className="px-6 py-2.5 rounded-xl bg-primary hover:bg-[#003875] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition cursor-pointer"
-              >
-                <Save size={16} />
-                <span>Salvar Configurações</span>
-              </button>
-            </div>
+        <div className="space-y-6">
+          <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-900 dark:text-blue-200 text-xs flex items-center gap-2.5">
+            <Info className="h-4 w-4 shrink-0 text-[#004A99] dark:text-sky-400" />
+            <span>
+              <strong>Configurações Institucionais e Métricas:</strong> Conforme a diretriz de fonte única de dados, os indicadores oficiais de alcance (estudantes, salas, municípios, horas) serão sincronizados diretamente via API assim que o endpoint de estatísticas for disponibilizado pelo backend. A gravação em disco local foi desativada para prevenir inconsistências.
+            </span>
           </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            <div className="xl:col-span-7 bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 space-y-6">
+              <div>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                  Textos Institucionais & Métricas
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Altere os títulos, slogans e números exibidos na página inicial do MEDTEC em tempo real.
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                {/* Métricas */}
+                <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-4">
+                  <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                    Números e Métricas de Alcance (Hero)
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Estudantes Formados/Atendidos
+                      </label>
+                      <input
+                        type="text"
+                        value={data.stats.studentsCount}
+                        onChange={e => setData({ ...data, stats: { ...data.stats, studentsCount: e.target.value } })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Salas Conectadas
+                      </label>
+                      <input
+                        type="text"
+                        value={data.stats.schoolsCount}
+                        onChange={e => setData({ ...data, stats: { ...data.stats, schoolsCount: e.target.value } })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Municípios Atendidos
+                      </label>
+                      <input
+                        type="text"
+                        value={data.stats.citiesCount}
+                        onChange={e => setData({ ...data, stats: { ...data.stats, citiesCount: e.target.value } })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                        Horas de Transmissão
+                      </label>
+                      <input
+                        type="text"
+                        value={data.stats.liveHoursCount}
+                        onChange={e => setData({ ...data, stats: { ...data.stats, liveHoursCount: e.target.value } })}
+                        className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 font-bold"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Textos */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Título do Hero
+                    </label>
+                    <input
+                      type="text"
+                      value={data.siteInfo.heroTitle}
+                      onChange={e => setData({ ...data, siteInfo: { ...data.siteInfo, heroTitle: e.target.value } })}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Descrição do Hero
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={data.siteInfo.heroDescription}
+                      onChange={e => setData({ ...data, siteInfo: { ...data.siteInfo, heroDescription: e.target.value } })}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Referência Legal / Legislação
+                    </label>
+                    <input
+                      type="text"
+                      value={data.siteInfo.lawText}
+                      onChange={e => setData({ ...data, siteInfo: { ...data.siteInfo, lawText: e.target.value } })}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={true}
+                  title="Aguardando disponibilização de endpoint de estatísticas no backend Rails"
+                  className="px-6 py-2.5 rounded-xl bg-slate-400 text-white font-bold text-xs flex items-center gap-2 shadow-xs cursor-not-allowed opacity-60"
+                >
+                  <Lock size={16} />
+                  <span>Gravação Aguardando Endpoint da API</span>
+                </button>
+              </div>
+            </div>
 
           {/* Coluna Direita: Simulador de Métricas Fiel ao Vivo */}
           <div className="xl:col-span-5 xl:sticky xl:top-24">
@@ -3934,6 +3735,7 @@ export default function AdminDashboardPage() {
               })}
             />
           </div>
+        </div>
         </div>
       );
     }
@@ -3980,6 +3782,13 @@ export default function AdminDashboardPage() {
 
       return (
         <div className="space-y-6">
+          <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2.5">
+            <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>
+              <strong>Módulo em Homologação Técnica:</strong> As operações de criação, edição e exclusão de projetos pedagógicos estão desabilitadas aguardando a disponibilização dos endpoints oficiais pelo backend Rails (<code className="font-mono text-[11px]">/p_projetos</code>). Nenhuma persistência simulada em disco local é utilizada.
+            </span>
+          </div>
+
           {/* Sub-navegação Interna: Lista vs Editor */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2">
@@ -4807,20 +4616,12 @@ export default function AdminDashboardPage() {
 
                     <button
                       type="submit"
-                      disabled={saving}
-                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                      disabled={true}
+                      title="Aguardando disponibilização do endpoint oficial no backend Rails (/p_projetos)"
+                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-slate-400 text-white text-xs font-bold transition shadow-xs cursor-not-allowed opacity-60"
                     >
-                      {saving ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          <span>Salvando Projeto...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4" />
-                          <span>{editingProject ? 'Salvar Alterações da Missão' : 'Cadastrar Projeto Oficial'}</span>
-                        </>
-                      )}
+                      <Lock className="h-4 w-4" />
+                      <span>Aguardando Endpoint da API</span>
                     </button>
                   </div>
 
@@ -4923,11 +4724,11 @@ export default function AdminDashboardPage() {
 
                 <div className="p-3.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-xs">
                   <p className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                    <span>Sincronização Automática</span>
+                    <Clock className="h-3.5 w-3.5 text-amber-500" />
+                    <span>Integração com Backend Pendente</span>
                   </p>
                   <p className="text-[11px] mt-0.5">
-                    Ao salvar, o projeto ficará disponível instantaneamente na aba pública &ldquo;Projetos&rdquo; e na página inicial.
+                    Este formulário representa a interface homologada. O cadastro será ativado assim que as rotas da API Rails forem publicadas.
                   </p>
                 </div>
               </div>
@@ -4979,6 +4780,13 @@ export default function AdminDashboardPage() {
 
       return (
         <div className="space-y-6">
+          <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2.5">
+            <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>
+              <strong>Módulo em Homologação Técnica:</strong> As operações de criação, edição e exclusão de dúvidas (FAQ) estão desabilitadas aguardando a disponibilização dos endpoints oficiais pelo backend Rails (<code className="font-mono text-[11px]">/d_duvidas</code> ou <code className="font-mono text-[11px]">/faqs</code>). Nenhuma persistência simulada em disco local é utilizada.
+            </span>
+          </div>
+
           {/* Sub-navegação Interna: Lista vs Editor */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2">
@@ -5415,10 +5223,12 @@ export default function AdminDashboardPage() {
                     </button>
                     <button
                       type="submit"
-                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                      disabled={true}
+                      title="Aguardando disponibilização do endpoint oficial no backend Rails (/faqs)"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-slate-400 text-white text-xs font-bold transition shadow-xs cursor-not-allowed opacity-60"
                     >
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>{editingFaq ? 'Atualizar Dúvida' : 'Salvar e Publicar Dúvida'}</span>
+                      <Lock className="h-4 w-4" />
+                      <span>Aguardando Endpoint da API</span>
                     </button>
                   </div>
                 </form>
@@ -5914,7 +5724,7 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="h-screen h-[100dvh] w-full flex overflow-hidden bg-slate-50 dark:bg-[#060D1A] text-slate-800 dark:text-slate-100">
+    <div translate="no" className="notranslate h-screen h-[100dvh] w-full flex overflow-hidden bg-slate-50 dark:bg-[#060D1A] text-slate-800 dark:text-slate-100">
       
       {/* ========================================================
           1. SIDEBAR DESKTOP (FIXA E RETRÁTIL COM ACCORDION JOER)
@@ -6268,37 +6078,6 @@ export default function AdminDashboardPage() {
             >
               {isDark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-600" />}
             </button>
-
-            {/* Feedback e Botão Primário de Salvar (Aparece apenas nas seções de edição do CMS) */}
-            {isEditableCmsSection && (
-              <div className="flex items-center gap-2">
-                {saveSuccess && (
-                  <span className="hidden md:inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    <Check className="h-3.5 w-3.5" />
-                    <span>Salvo no banco</span>
-                  </span>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => persistData(data)}
-                  disabled={saving}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white px-3.5 py-2 text-xs font-bold transition shadow-xs cursor-pointer active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span>Salvando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-3.5 w-3.5" />
-                      <span>Salvar Alterações</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
           </div>
         </header>
 
@@ -6412,15 +6191,32 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-                      {data.news.length}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {publishedCount} no ar · {draftCount} rascunhos
-                    </p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                      {totalNewsViews.toLocaleString('pt-BR')} visualizações no site
-                    </p>
+                    {loadingNews ? (
+                      <div className="h-9 flex items-center gap-2 text-slate-400 text-xs">
+                        <Loader2 className="h-4 w-4 animate-spin text-sky-500" />
+                        <span>Carregando API...</span>
+                      </div>
+                    ) : errorNews ? (
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                          <span>Indisponível</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400">Falha ao consultar /n_noticias</p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
+                          {apiNews.length}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {apiNewsPublishedCount} no ar · {apiNewsDraftCount} rascunhos
+                        </p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                          {apiNews.length === 0 ? 'Nenhuma matéria cadastrada' : 'Registros sincronizados com a API Rails'}
+                        </p>
+                      </>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -6480,21 +6276,38 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-                      {data.announcements.length}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {activeAnnouncementsCount} avisos ativos no mural da Home
-                    </p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                      {urgentAnnouncementsCount > 0 ? (
-                        <span className="text-rose-600 dark:text-rose-400 font-semibold">
-                          {urgentAnnouncementsCount} classificado{urgentAnnouncementsCount === 1 ? '' : 's'} urgente
-                        </span>
-                      ) : (
-                        'Nenhum comunicado urgente ativo'
-                      )}
-                    </p>
+                    {loadingAvisos ? (
+                      <div className="h-9 flex items-center gap-2 text-slate-400 text-xs">
+                        <Loader2 className="h-4 w-4 animate-spin text-sky-500" />
+                        <span>Carregando API...</span>
+                      </div>
+                    ) : errorAvisos ? (
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                          <span>Indisponível</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400">Falha ao consultar /a_avisos</p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
+                          {apiAvisos.length}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {apiAvisosAtivosCount} avisos ativos no mural da Home
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                          {apiAvisosUrgentesCount > 0 ? (
+                            <span className="text-rose-600 dark:text-rose-400 font-semibold">
+                              {apiAvisosUrgentesCount} classificado{apiAvisosUrgentesCount === 1 ? '' : 's'} urgente
+                            </span>
+                          ) : (
+                            'Nenhum comunicado urgente ativo'
+                          )}
+                        </p>
+                      </>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -6520,15 +6333,32 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-                      {(data.banners?.length || 0) + data.gallery.length}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {data.banners?.length || 0} banners rotativos no topo
-                    </p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                      {data.gallery.length} fotos públicas no acervo
-                    </p>
+                    {loadingFotos ? (
+                      <div className="h-9 flex items-center gap-2 text-slate-400 text-xs">
+                        <Loader2 className="h-4 w-4 animate-spin text-sky-500" />
+                        <span>Carregando API...</span>
+                      </div>
+                    ) : errorFotos ? (
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                          <span>Galeria Indisponível</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400">Falha ao consultar /fotos_galeria</p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
+                          {(data.banners?.length || 0) + apiFotos.length}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          {data.banners?.length || 0} banners rotativos no topo
+                        </p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                          {apiFotos.length} fotos públicas no acervo oficial
+                        </p>
+                      </>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -6633,7 +6463,7 @@ export default function AdminDashboardPage() {
                           </h4>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                          {data.news.length} matérias
+                          {loadingNews ? 'Carregando...' : errorNews ? 'Indisponível' : `${apiNews.length} matérias`}
                         </span>
                       </div>
 
@@ -6646,10 +6476,10 @@ export default function AdminDashboardPage() {
                           Última publicação no ar:
                         </span>
                         <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
-                          {data.news[0]?.title || 'Nenhuma notícia publicada ainda'}
+                          {loadingNews ? 'Carregando...' : errorNews ? 'Falha de comunicação com a API' : (apiNews[0]?.titulo || 'Nenhuma notícia publicada ainda')}
                         </p>
                         <p className="text-[10px] text-slate-400 pt-0.5">
-                          {data.news[0]?.publishedAt || ''} • {data.news[0]?.author || 'SEDUC-RO'}
+                          {apiNews[0] ? `${apiNews[0].data_publicacao || ''} • ${apiNews[0].autor_nome || 'SEDUC-RO'}` : ''}
                         </p>
                       </div>
                     </div>
@@ -6741,7 +6571,7 @@ export default function AdminDashboardPage() {
                           </h4>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                          {data.announcements.length} avisos
+                          {loadingAvisos ? 'Carregando...' : errorAvisos ? 'Indisponível' : `${apiAvisos.length} avisos`}
                         </span>
                       </div>
 
@@ -6754,10 +6584,10 @@ export default function AdminDashboardPage() {
                           Último comunicado urgente ativo:
                         </span>
                         <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
-                          {(data.announcements.find(a => a.type === 'urgente' && a.active) || data.announcements[0])?.title || 'Sem comunicados urgentes no momento'}
+                          {loadingAvisos ? 'Carregando...' : errorAvisos ? 'Falha de comunicação com a API' : ((apiAvisos.find(a => (a.a_tipo_aviso?.slug === 'urgente' || a.a_tipo_aviso?.nome?.toLowerCase().includes('urgente')) && a.ativo) || apiAvisos[0])?.titulo || 'Sem comunicados urgentes no momento')}
                         </p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
-                          {data.announcements.filter(a => a.active).length} avisos em exibição no portal
+                          {apiAvisosAtivosCount} avisos em exibição no portal
                         </p>
                       </div>
                     </div>
@@ -6832,7 +6662,7 @@ export default function AdminDashboardPage() {
                           </h4>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                          {data.gallery.length} fotos
+                          {loadingFotos ? 'Carregando...' : errorFotos ? 'Indisponível' : `${apiFotos.length} fotos`}
                         </span>
                       </div>
 
@@ -6845,7 +6675,7 @@ export default function AdminDashboardPage() {
                           Acervo Pedagógico de Rondônia:
                         </span>
                         <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                          {data.gallery.length} fotos catalogadas em Salas de Aula, Estúdios de TV, Comunidades Ribeirinhas e Feiras SEDUC.
+                          {loadingFotos ? 'Carregando...' : errorFotos ? 'Falha de comunicação com a API' : `${apiFotos.length} fotos catalogadas no acervo oficial da API Rails v1.`}
                         </p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
                           Fotos públicas visíveis no portal
@@ -6879,7 +6709,7 @@ export default function AdminDashboardPage() {
                           </h4>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                          {draftCount} pendentes
+                          {loadingNews ? '...' : errorNews ? 'Indisponível' : `${apiNewsDraftCount} pendentes`}
                         </span>
                       </div>
 
@@ -6892,7 +6722,7 @@ export default function AdminDashboardPage() {
                           Triagem & Governança Editorial:
                         </span>
                         <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                          {Math.ceil(draftCount / 2)} matérias aguardando revisão jurídica e conformidade com LGPD/ECA antes da veiculação oficial.
+                          {loadingNews ? 'Carregando...' : errorNews ? 'Falha de comunicação com a API' : `${apiNewsDraftCount} matéria${apiNewsDraftCount === 1 ? '' : 's'} no fluxo de triagem e governança editorial.`}
                         </p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
                           Fluxo: Rascunho ➔ Revisão ➔ Publicado
@@ -7037,7 +6867,7 @@ export default function AdminDashboardPage() {
           {currentSection === 'kanban' && canAccessKanban && (
             <div className="w-full">
               <EditorialKanban
-                news={data?.news || []}
+                news={effectiveNews}
                 onApproveNews={handleApproveNews}
                 onRejectNews={handleRejectNews}
                 isGestor={userSession.isGestor}

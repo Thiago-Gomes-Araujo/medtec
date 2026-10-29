@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDatabase, saveDatabase } from '@/lib/db';
-import { verifyAdminSession, hashPassword, validateCsrfOrigin } from '@/lib/auth';
+import { verifyAdminSession, validateCsrfOrigin } from '@/lib/auth';
 import { UserAccount } from '@/types';
 import { railsApiFetch } from '@/lib/rails-backend';
 
@@ -33,7 +32,7 @@ interface RailsPerfilApiItem {
   descricao?: string;
 }
 
-// GET: Lista todos os usuários cadastrados e perfis disponíveis via API Rails v1
+// GET: Lista todos os usuários cadastrados e perfis disponíveis via API Backend v1
 export async function GET() {
   const auth = await verifyAdminSession();
   if (!auth.valid) {
@@ -44,7 +43,6 @@ export async function GET() {
     return NextResponse.json({ error: 'Apenas o Gestor Geral pode visualizar os usuários cadastrados' }, { status: 403 });
   }
 
-  // 1. Tenta buscar da API Rails v1
   try {
     const [resUsers, resPerfis] = await Promise.all([
       railsApiFetch<{ success: boolean; data: { items: RailsUserApiItem[] } }>('/usuarios?page=all'),
@@ -65,29 +63,23 @@ export async function GET() {
 
       const perfis = resPerfis.ok && resPerfis.data?.data?.items ? resPerfis.data.data.items : [];
 
-      return NextResponse.json({ success: true, users, perfis, source: 'rails' });
+      return NextResponse.json({ success: true, users, perfis, source: 'backend' });
     }
+
+    return NextResponse.json(
+      { error: resUsers.errors?.join(', ') || resUsers.message || 'Falha ao buscar usuários do backend' },
+      { status: resUsers.status || 502 }
+    );
   } catch (err) {
-    console.warn('API Rails indisponível para listagem de usuários, recorrendo ao banco local:', err);
+    console.error('API Backend indisponível para listagem de usuários:', err);
+    return NextResponse.json(
+      { error: 'Não foi possível conectar ao backend para listar os usuários' },
+      { status: 502 }
+    );
   }
-
-  // Fallback para banco local
-  const db = getDatabase();
-  const users = (db.users || []).map((u) => ({
-    id: u.id,
-    name: u.name,
-    cpf: u.cpf,
-    profileType: u.profileType,
-    profileId: u.profileId,
-    role: u.role,
-    active: u.active !== false,
-    createdAt: u.createdAt,
-  }));
-
-  return NextResponse.json({ success: true, users, perfis: [], source: 'local' });
 }
 
-// POST: Cadastra novo usuário na API Rails v1
+// POST: Cadastra novo usuário na API Backend v1
 export async function POST(request: Request) {
   try {
     if (!validateCsrfOrigin(request)) {
@@ -101,45 +93,42 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const name = typeof body?.name === 'string' ? body.name.trim() : '';
-    const rawCpf = typeof body?.cpf === 'string' ? body.cpf.trim() : '';
+    const cpf = typeof body?.cpf === 'string' ? body.cpf.trim() : '';
     const password = typeof body?.password === 'string' ? body.password : '';
-    let profileId = Number(body?.profileId || body?.perfil_id);
+    const profileId = typeof body?.profileId === 'number' ? body.profileId : Number(body?.profileId) || 1;
 
     if (!name || name.length < 3) {
-      return NextResponse.json({ error: 'Informe o nome completo do usuário' }, { status: 400 });
+      return NextResponse.json({ error: 'Nome completo deve ter pelo menos 3 caracteres' }, { status: 400 });
     }
 
-    const cleanCpf = rawCpf.replace(/\D/g, '');
+    const cleanCpf = cpf.replace(/\D/g, '');
     if (!isValidCpfFormat(cleanCpf)) {
-      return NextResponse.json({ error: 'CPF inválido. Certifique-se de digitar os 11 dígitos' }, { status: 400 });
+      return NextResponse.json({ error: 'CPF inválido. Forneça 11 dígitos válidos.' }, { status: 400 });
     }
 
     if (!password || password.length < 6) {
-      return NextResponse.json({ error: 'A senha de acesso deve conter pelo menos 6 caracteres' }, { status: 400 });
+      return NextResponse.json({ error: 'A senha deve conter no mínimo 6 caracteres' }, { status: 400 });
     }
 
-    // Se profileId não veio, busca padrão (Jornalista id 1 ou primeiro perfil)
-    if (!profileId || isNaN(profileId)) {
-      profileId = 1;
-    }
-
-    // 1. Tenta criar na API Rails v1
-    const railsRes = await railsApiFetch<RailsUserApiItem>('/usuarios', {
+    const railsRes = await railsApiFetch<{ success: boolean; data: RailsUserApiItem }>('/usuarios', {
       method: 'POST',
       body: JSON.stringify({
-        nome: name,
-        cpf: cleanCpf,
-        password,
-        perfil_id: profileId,
-        ativo: true,
+        usuario: {
+          nome: name,
+          cpf: cleanCpf,
+          password,
+          password_confirmation: password,
+          perfil_id: profileId,
+          ativo: true,
+        },
       }),
     });
 
-    if (railsRes.ok && railsRes.data) {
-      const u = railsRes.data;
+    if (railsRes.ok && railsRes.data?.data) {
+      const u = railsRes.data.data;
       return NextResponse.json({
         success: true,
-        message: 'Usuário cadastrado com sucesso na API Rails!',
+        message: 'Usuário cadastrado com sucesso no backend!',
         user: {
           id: String(u.id),
           name: u.nome,
@@ -153,43 +142,10 @@ export async function POST(request: Request) {
       });
     }
 
-    if (!railsRes.ok && railsRes.errors && railsRes.errors.length > 0) {
-      return NextResponse.json(
-        { error: railsRes.errors.join(', ') || railsRes.message || 'Erro ao cadastrar na API Rails' },
-        { status: railsRes.status || 422 }
-      );
-    }
-
-    // Fallback para banco local se a API Rails estiver offline
-    const db = getDatabase();
-    const existingUsers = db.users || [];
-    const duplicate = existingUsers.some((u) => u.cpf.replace(/\D/g, '') === cleanCpf);
-    if (duplicate) {
-      return NextResponse.json({ error: 'Já existe um operador cadastrado com este CPF' }, { status: 409 });
-    }
-
-    const passwordHash = hashPassword(password);
-    const formattedCpf = formatCpf(cleanCpf);
-
-    const newUser: UserAccount = {
-      id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      name,
-      cpf: formattedCpf,
-      profileType: body?.profileType || 'Operador de Conteúdo',
-      profileId,
-      role: 'operador',
-      active: true,
-      createdAt: new Date().toLocaleDateString('pt-BR'),
-      passwordHash,
-    };
-
-    saveDatabase({ ...db, users: [...existingUsers, newUser] });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Usuário cadastrado com sucesso!',
-      user: newUser,
-    });
+    return NextResponse.json(
+      { error: railsRes.errors?.join(', ') || railsRes.message || 'Erro ao cadastrar na API Backend' },
+      { status: railsRes.status || 422 }
+    );
   } catch (error) {
     console.error('Erro no POST /api/admin/users:', error);
     return NextResponse.json({ error: 'Erro ao processar cadastro de usuário' }, { status: 500 });
@@ -214,64 +170,35 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'ID do usuário não fornecido' }, { status: 400 });
     }
 
-    const isNumericId = /^\d+$/.test(id);
-
-    // Se é ID numérico do Rails, executa PATCH no Rails
-    if (isNumericId) {
-      const patchData: Record<string, string | number | boolean> = {};
-      if (typeof body.active === 'boolean') {
-        patchData.ativo = body.active;
-      }
-      if (typeof body.newPassword === 'string' && body.newPassword.length >= 6) {
-        patchData.password = body.newPassword;
-      }
-      if (body.profileId) {
-        patchData.perfil_id = Number(body.profileId);
-      }
-
-      const railsRes = await railsApiFetch(`/usuarios/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(patchData),
-      });
-
-      if (railsRes.ok) {
-        return NextResponse.json({
-          success: true,
-          message: 'Usuário atualizado com sucesso na API Rails!',
-          user: railsRes.data,
-        });
-      }
-
-      return NextResponse.json(
-        { error: railsRes.errors?.join(', ') || railsRes.message || 'Erro ao atualizar no Rails' },
-        { status: railsRes.status || 422 }
-      );
+    const patchData: Record<string, string | number | boolean> = {};
+    if (typeof body.active === 'boolean') {
+      patchData.ativo = body.active;
     }
-
-    // Fallback para banco local
-    const db = getDatabase();
-    const users = db.users || [];
-    const index = users.findIndex((u) => u.id === id);
-
-    if (index === -1) {
-      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
-    }
-
-    const targetUser = { ...users[index] };
-    if (typeof body.active === 'boolean') targetUser.active = body.active;
-    if (body.profileType) targetUser.profileType = body.profileType;
     if (typeof body.newPassword === 'string' && body.newPassword.length >= 6) {
-      targetUser.passwordHash = hashPassword(body.newPassword);
+      patchData.password = body.newPassword;
+      patchData.password_confirmation = body.newPassword;
+    }
+    if (body.profileId) {
+      patchData.perfil_id = Number(body.profileId);
     }
 
-    users[index] = targetUser;
-    saveDatabase({ ...db, users });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Usuário atualizado com sucesso!',
-      user: targetUser,
+    const railsRes = await railsApiFetch(`/usuarios/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ usuario: patchData }),
     });
+
+    if (railsRes.ok) {
+      return NextResponse.json({
+        success: true,
+        message: 'Usuário atualizado com sucesso na API Backend!',
+        user: railsRes.data,
+      });
+    }
+
+    return NextResponse.json(
+      { error: railsRes.errors?.join(', ') || railsRes.message || 'Erro ao atualizar no Backend' },
+      { status: railsRes.status || 422 }
+    );
   } catch (error) {
     console.error('Erro no PATCH /api/admin/users:', error);
     return NextResponse.json({ error: 'Erro ao atualizar usuário' }, { status: 500 });
@@ -297,32 +224,15 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID do usuário não fornecido' }, { status: 400 });
     }
 
-    const isNumericId = /^\d+$/.test(id);
-
-    // Se é ID numérico do Rails, executa DELETE no Rails
-    if (isNumericId) {
-      const railsRes = await railsApiFetch(`/usuarios/${id}`, { method: 'DELETE' });
-      if (railsRes.ok || railsRes.status === 204) {
-        return NextResponse.json({ success: true, message: 'Usuário excluído com sucesso da API Rails' });
-      }
-
-      return NextResponse.json(
-        { error: railsRes.errors?.join(', ') || railsRes.message || 'Erro ao excluir usuário na API Rails' },
-        { status: railsRes.status || 422 }
-      );
+    const railsRes = await railsApiFetch(`/usuarios/${id}`, { method: 'DELETE' });
+    if (railsRes.ok || railsRes.status === 204) {
+      return NextResponse.json({ success: true, message: 'Usuário excluído com sucesso da API Backend' });
     }
 
-    // Fallback para banco local
-    const db = getDatabase();
-    const users = db.users || [];
-    const filtered = users.filter((u) => u.id !== id);
-
-    if (filtered.length === users.length) {
-      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
-    }
-
-    saveDatabase({ ...db, users: filtered });
-    return NextResponse.json({ success: true, message: 'Usuário removido com sucesso' });
+    return NextResponse.json(
+      { error: railsRes.errors?.join(', ') || railsRes.message || 'Erro ao excluir usuário na API Backend' },
+      { status: railsRes.status || 422 }
+    );
   } catch (error) {
     console.error('Erro no DELETE /api/admin/users:', error);
     return NextResponse.json({ error: 'Erro ao remover usuário' }, { status: 500 });

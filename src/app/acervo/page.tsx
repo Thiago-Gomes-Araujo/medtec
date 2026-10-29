@@ -4,7 +4,7 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import GallerySection from '@/components/GallerySection';
-import { getDatabase } from '@/lib/db';
+import { medtecApi, getMediaUrl } from '@/lib/api';
 import { GalleryItem } from '@/types';
 
 export const metadata: Metadata = {
@@ -19,8 +19,27 @@ export const metadata: Metadata = {
 };
 
 export default async function AcervoPage() {
-  const db = getDatabase();
-  const gallery: GalleryItem[] = db.gallery || [];
+  let gallery: GalleryItem[] = [];
+
+  try {
+    const res = await medtecApi.fotosGaleria.list({ page: 'all' });
+    if (res.success && res.data?.items) {
+      gallery = res.data.items.map((f) => ({
+        id: String(f.id),
+        title: f.titulo,
+        description: f.descricao || '',
+        imageUrl: getMediaUrl(f.imagem || f.imagem_url),
+        category: f.categoria_galeria?.nome || 'Acervo',
+        date: f.created_at ? new Date(f.created_at).toLocaleDateString('pt-BR') : '',
+        categoria_galeria_id: f.categoria_galeria_id,
+        imagem: f.imagem,
+        imagem_url: f.imagem_url,
+        categoria_galeria: f.categoria_galeria,
+      }));
+    }
+  } catch (err) {
+    console.warn('[AcervoPage] Erro ao carregar fotos da API oficial:', err);
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">

@@ -2,8 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { BannerItem, DatabaseSchema } from '@/types';
 import initialData from '@/data/initialData.json';
-import { PROJECTS_DATA } from '@/data/projectsData';
-import { FAQS_DATA } from '@/data/faqsData';
 
 const DATA_DIR = path.join(process.cwd(), 'src', 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
@@ -28,22 +26,17 @@ export function getDatabase(): DatabaseSchema {
       siteInfo: { ...defaults.siteInfo, ...(parsed.siteInfo || {}) },
       stats: { ...defaults.stats, ...(parsed.stats || {}) },
       socials: { ...defaults.socials, ...(parsed.socials || {}) },
-      announcements: parsed.announcements ?? defaults.announcements,
-      news: (parsed.news ?? defaults.news).map((item) => ({
-        ...item,
-        folder: item.folder?.trim() || item.category || 'Geral',
-        published: item.published !== false,
-        views: typeof item.views === 'number' && item.views > 0 ? item.views : 0,
-      })),
-      gallery: parsed.gallery ?? defaults.gallery,
+      announcements: parsed.announcements ?? [],
+      news: parsed.news ?? [],
+      gallery: parsed.gallery ?? [],
       banners: normalizeBanners(parsed, defaults),
-      users: parsed.users ?? defaults.users ?? [],
-      schools: parsed.schools ?? defaults.schools ?? [],
-      teachers: parsed.teachers ?? defaults.teachers ?? [],
-      students: parsed.students ?? defaults.students ?? [],
-      projects: (parsed.projects && parsed.projects.length > 0) ? parsed.projects : PROJECTS_DATA,
-      faqs: (parsed.faqs && parsed.faqs.length > 0) ? parsed.faqs : FAQS_DATA,
-      transparency: parsed.transparency ?? defaults.transparency ?? { indicadores: [], contratos: [] },
+      users: parsed.users ?? [],
+      schools: parsed.schools ?? [],
+      teachers: parsed.teachers ?? [],
+      students: parsed.students ?? [],
+      projects: parsed.projects ?? [],
+      faqs: parsed.faqs ?? [],
+      transparency: parsed.transparency ?? { indicadores: [], contratos: [] },
     };
   } catch (error) {
     console.error('Error reading database file:', error);

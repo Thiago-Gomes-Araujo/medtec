@@ -1,50 +1,26 @@
 import { NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/db';
-import { indicadoresData, contratosData } from '@/data/medtecData';
 
+/**
+ * Endpoint de transparência, indicadores e contratos.
+ * AVISO: As rotas oficiais de transparência ainda não foram disponibilizadas no backend da API v1.
+ * O endpoint preserva a compatibilidade estrutural retornando listas vazias, sem dados fictícios.
+ */
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const ano = searchParams.get('ano');
-    const tipo = searchParams.get('tipo'); // 'indicadores' | 'contratos' | 'todos'
+  const { searchParams } = new URL(request.url);
+  const tipo = searchParams.get('tipo');
 
-    const db = getDatabase();
-    const sourceIndicadores = (db.transparency?.indicadores && db.transparency.indicadores.length > 0)
-      ? db.transparency.indicadores
-      : indicadoresData;
-    const sourceContratos = (db.transparency?.contratos && db.transparency.contratos.length > 0)
-      ? db.transparency.contratos
-      : contratosData;
-
-    let indicadores = sourceIndicadores;
-    let contratos = sourceContratos;
-
-    if (ano && ano !== 'todos') {
-      const anoNum = parseInt(ano, 10);
-      if (!isNaN(anoNum)) {
-        indicadores = indicadores.filter((i) => i.ano === anoNum);
-        contratos = contratos.filter((c) => c.ano === anoNum);
-      }
-    }
-
-    if (tipo === 'indicadores') {
-      return NextResponse.json({ success: true, indicadores });
-    }
-
-    if (tipo === 'contratos') {
-      return NextResponse.json({ success: true, contratos });
-    }
-
-    return NextResponse.json({
-      success: true,
-      indicadores,
-      contratos,
-    });
-  } catch (error: unknown) {
-    if (typeof error === 'object' && error !== null && 'digest' in error && (error as { digest?: string }).digest === 'NEXT_PRERENDER_INTERRUPTED') {
-      throw error;
-    }
-    console.error('Erro na rota /api/transparency:', error);
-    return NextResponse.json({ success: false, error: 'Falha ao buscar dados de transparência' }, { status: 500 });
+  if (tipo === 'indicadores') {
+    return NextResponse.json({ success: true, indicadores: [] });
   }
+
+  if (tipo === 'contratos') {
+    return NextResponse.json({ success: true, contratos: [] });
+  }
+
+  return NextResponse.json({
+    success: true,
+    indicadores: [],
+    contratos: [],
+    message: 'Endpoints de transparência pendentes no backend.',
+  });
 }

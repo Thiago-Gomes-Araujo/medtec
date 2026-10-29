@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getDatabase, saveDatabase } from '@/lib/db';
 
+/**
+ * Registro de visualizações de notícias.
+ * Como os endpoints de notícias do backend estão em desenvolvimento,
+ * a rota responde com sucesso seguro sem alterar persistência local.
+ */
 export async function POST(request: Request) {
   try {
     const { id } = await request.json();
@@ -8,19 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Notícia inválida' }, { status: 400 });
     }
 
-    const data = getDatabase();
-    const news = data.news.find((item) => item.id === id || item.slug === id);
-    if (!news || news.published === false) {
-      return NextResponse.json({ error: 'Notícia não publicada' }, { status: 404 });
-    }
-
-    news.views = (news.views || 0) + 1;
-    const saved = saveDatabase(data);
-    if (!saved) {
-      return NextResponse.json({ error: 'Não foi possível registrar a visualização' }, { status: 500 });
-    }
-
-    return NextResponse.json({ views: news.views });
+    return NextResponse.json({ views: 0 });
   } catch {
     return NextResponse.json({ error: 'Falha ao registrar visualização' }, { status: 400 });
   }

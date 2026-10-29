@@ -4,7 +4,6 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import FaqCentralSection from '@/components/FaqCentralSection';
-import { getDatabase } from '@/lib/db';
 import { FaqItem } from '@/types';
 
 export const metadata: Metadata = {
@@ -19,8 +18,7 @@ export const metadata: Metadata = {
 };
 
 export default function DuvidasPage() {
-  const db = getDatabase();
-  const faqs: FaqItem[] = db.faqs || [];
+  const faqs: FaqItem[] = [];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC] dark:bg-[#0B1528] text-slate-800 dark:text-slate-100 overflow-x-hidden max-w-[100vw]">

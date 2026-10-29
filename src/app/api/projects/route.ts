@@ -1,40 +1,23 @@
 import { NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/db';
-import { PROJECTS_DATA, TRACK_OPTIONS } from '@/data/projectsData';
 
+/**
+ * Endpoint de projetos escolares e práticas de campo.
+ * AVISO: As rotas oficiais de projetos ainda não foram disponibilizadas no backend da API v1.
+ * O endpoint preserva a compatibilidade estrutural retornando lista vazia, sem dados fictícios.
+ */
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const track = searchParams.get('track');
-    const id = searchParams.get('id');
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
 
-    const db = getDatabase();
-    const sourceProjects = (db.projects && db.projects.length > 0) ? db.projects : PROJECTS_DATA;
-
-    if (id) {
-      const project = sourceProjects.find((p) => p.id === id);
-      if (!project) {
-        return NextResponse.json({ success: false, error: 'Projeto não encontrado' }, { status: 404 });
-      }
-      return NextResponse.json({ success: true, project });
-    }
-
-    let items = sourceProjects;
-    if (track && track !== 'Todas as Trilhas' && !track.includes('Todas')) {
-      items = items.filter((p) => p.track === track);
-    }
-
-    return NextResponse.json({
-      success: true,
-      total: items.length,
-      tracks: TRACK_OPTIONS,
-      items,
-    });
-  } catch (error: unknown) {
-    if (typeof error === 'object' && error !== null && 'digest' in error && (error as { digest?: string }).digest === 'NEXT_PRERENDER_INTERRUPTED') {
-      throw error;
-    }
-    console.error('Erro na rota /api/projects:', error);
-    return NextResponse.json({ success: false, error: 'Falha ao buscar projetos' }, { status: 500 });
+  if (id) {
+    return NextResponse.json({ success: false, error: 'Projeto não encontrado' }, { status: 404 });
   }
+
+  return NextResponse.json({
+    success: true,
+    total: 0,
+    tracks: [],
+    items: [],
+    message: 'Endpoints de projetos pedagógicos pendentes no backend.',
+  });
 }

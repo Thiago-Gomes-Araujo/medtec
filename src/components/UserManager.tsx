@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Users,
   UserPlus,
   ShieldCheck,
   Search,
@@ -15,7 +14,6 @@ import {
   X,
   SlidersHorizontal,
   Edit3,
-  Lock,
   Plus,
   Info
 } from 'lucide-react';
@@ -41,7 +39,7 @@ function formatCpfInput(value: string): string {
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
 }
 
-export default function UserManager({ users: fallbackUsers = [], onRefreshUsers }: UserManagerProps) {
+export default function UserManager({ onRefreshUsers }: UserManagerProps) {
   // Aba ativa: 'usuarios' ou 'perfis'
   const [activeTab, setActiveTab] = useState<'usuarios' | 'perfis'>('usuarios');
 
@@ -53,7 +51,6 @@ export default function UserManager({ users: fallbackUsers = [], onRefreshUsers 
 
   // Estados de Perfis
   const [profiles, setProfiles] = useState<Perfil[]>([]);
-  const [loadingProfiles, setLoadingProfiles] = useState(false);
 
   // Formulário de Cadastro de Usuário
   const [userName, setUserName] = useState('');
@@ -103,7 +100,6 @@ export default function UserManager({ users: fallbackUsers = [], onRefreshUsers 
 
   // Carregar perfis
   const loadProfiles = useCallback(async () => {
-    setLoadingProfiles(true);
     try {
       const res = await medtecApi.perfis.list({ page: 'all' });
       if (res.success && res.data?.items) {
@@ -111,16 +107,11 @@ export default function UserManager({ users: fallbackUsers = [], onRefreshUsers 
         if (res.data.items.length > 0 && !userProfileId) {
           setUserProfileId(res.data.items[0].id);
         }
+      } else {
+        setProfiles([]);
       }
     } catch {
-      // Fallback básico se API offline
-      setProfiles([
-        { id: 1, nome: 'Jornalista', descricao: 'Acesso às matérias e notícias', ativo: true },
-        { id: 2, nome: 'Gestor', descricao: 'Supervisão pedagógica e polos', ativo: true },
-        { id: 3, nome: 'Administrador', descricao: 'Acesso completo ao sistema', ativo: true },
-      ]);
-    } finally {
-      setLoadingProfiles(false);
+      setProfiles([]);
     }
   }, [userProfileId]);
 
@@ -139,29 +130,45 @@ export default function UserManager({ users: fallbackUsers = [], onRefreshUsers 
       const res = await medtecApi.usuarios.list(params);
       if (res.success && res.data?.items) {
         setApiUsers(res.data.items);
+      } else {
+        setApiUsers([]);
       }
     } catch {
-      // Converte fallbackUsers para o formato Usuario
-      const mapped: Usuario[] = fallbackUsers.map((u, i) => ({
-        id: Number(u.id) || i + 1,
-        nome: u.name,
-        cpf: u.cpf,
-        ativo: u.active,
-        perfil_id: u.profileId || 1,
-        perfil_nome: u.profileType,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }));
-      setApiUsers(mapped);
+      setApiUsers([]);
     } finally {
       setLoadingUsers(false);
     }
-  }, [searchTerm, onlyActive, fallbackUsers]);
+  }, [searchTerm, onlyActive]);
 
   useEffect(() => {
-    loadProfiles();
-    loadUsers();
-  }, [loadProfiles, loadUsers]);
+    let isMounted = true;
+    const fetchInitialData = async () => {
+      try {
+        const [perfisRes, usersRes] = await Promise.all([
+          medtecApi.perfis.list({ page: 'all' }),
+          medtecApi.usuarios.list({ page: 1, per_page: 50 }),
+        ]);
+        if (!isMounted) return;
+        if (perfisRes.success && perfisRes.data?.items) {
+          setProfiles(perfisRes.data.items);
+          if (perfisRes.data.items.length > 0 && !userProfileId) {
+            setUserProfileId(perfisRes.data.items[0].id);
+          }
+        }
+        if (usersRes.success && usersRes.data?.items) {
+          setApiUsers(usersRes.data.items);
+        }
+      } catch {
+        if (!isMounted) return;
+        setProfiles([]);
+        setApiUsers([]);
+      }
+    };
+    void fetchInitialData();
+    return () => {
+      isMounted = false;
+    };
+  }, [userProfileId]);
 
   // Usuários exibidos com filtro de busca local se necessário
   const displayUsers = useMemo(() => {

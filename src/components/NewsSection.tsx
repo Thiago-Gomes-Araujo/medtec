@@ -160,7 +160,7 @@ export default function NewsSection({ news }: NewsSectionProps) {
                     </button>
 
                     <Link
-                      href={`/noticias/${item.id}`}
+                      href={`/noticias/${item.slug || item.id}`}
                       className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 transition-colors"
                       title="Abrir página dedicada"
                     >

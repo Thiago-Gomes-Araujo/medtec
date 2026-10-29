@@ -23,74 +23,6 @@ import {
 } from 'lucide-react';
 import { Professor, Aluno } from '@/types';
 
-// Curated 3 featured teachers
-const featuredTeachers: Professor[] = [
-  {
-    id: 1,
-    nome: 'Profa. Ana Beatriz Moura',
-    funcao: 'Ministrante',
-    disciplina: 'Biologia',
-    municipio: 'Porto Velho',
-    escola: 'Estúdio MEDTEC, SEDUC-RO',
-    resumo: 'Transforma o bioma amazônico em laboratório vivo, conectando conteúdos do ENEM à realidade das comunidades ribeirinhas.',
-    entrevista: 'Começo cada aula lembrando que do outro lado da tela há estudantes que atravessam rios para chegar à escola. Uso exemplos da floresta, da pesca e da agricultura familiar para tornar a biologia concreta. O retorno dos mediadores é essencial: eles me contam o que funcionou e o que precisa de reforço imediato nas transmissões.'
-  },
-  {
-    id: 2,
-    nome: 'Prof. Carlos Henrique Lima',
-    funcao: 'Mediador',
-    disciplina: 'Mediação Presencial',
-    municipio: 'Guajará-Mirim',
-    escola: 'EEEFM Simón Bolívar (Surpresa)',
-    resumo: 'Há 7 anos mediando aulas no distrito de Surpresa, organiza grupos de estudo e acolhe estudantes de comunidades isoladas.',
-    entrevista: 'Meu papel não é substituir o ministrante da TV, mas ser a ponte humana. Quando a transmissão termina, tiramos dúvidas, fazemos experimentos com o que temos na comunidade e garantimos que nenhum jovem desista do sonho de concluir o Ensino Médio.'
-  },
-  {
-    id: 3,
-    nome: 'Profa. Marta Oro Win',
-    funcao: 'Mediadora',
-    disciplina: 'Língua Materna e Mediação',
-    municipio: 'Cacoal',
-    escola: 'EEEFM Indígena Paiter Suruí',
-    resumo: 'Articula os saberes tradicionais do povo Suruí com o currículo estadual transmitido ao vivo da capital.',
-    entrevista: 'O MEDTEC nos deu autonomia sem apagar nossa identidade. As aulas chegam em alta resolução via satélite, e em sala integramos os conceitos com a nossa língua, história e preservação ambiental.'
-  }
-];
-
-// Curated 3 featured students
-const featuredStudents: Aluno[] = [
-  {
-    id: 1,
-    nome: 'Larissa Gomes',
-    idade: 17,
-    comunidade: 'Distrito de Nazaré (ribeirinha)',
-    municipio: 'Porto Velho',
-    conquista: 'Aprovada em Medicina na UNIR',
-    categoria: 'Vestibular',
-    resumo: 'Estudou pelas aulas do MEDTEC no distrito às margens do Rio Madeira e conquistou vaga direta no curso de Medicina através do ENEM.'
-  },
-  {
-    id: 2,
-    nome: 'Pedro Henrique Souza',
-    idade: 16,
-    comunidade: 'Linha 184 (rural)',
-    municipio: 'Vilhena',
-    conquista: 'Medalha de Prata na OBMEP',
-    categoria: 'Olimpíada',
-    resumo: 'Filho de pequenos agricultores da Linha 184, destacou-se nacionalmente na Olimpíada Brasileira de Matemática das Escolas Públicas com reforço das aulas de estúdio.'
-  },
-  {
-    id: 3,
-    nome: 'Equipe Robótica Jamari',
-    idade: 17,
-    comunidade: 'Distrito de Triunfo (rural)',
-    municipio: 'Candeias do Jamari',
-    conquista: '1º Lugar na Feira Estadual de Ciências',
-    categoria: 'Robótica',
-    resumo: 'Desenvolveram protótipo funcional de sensor de umidade de solo de baixo custo para otimizar irrigação na agricultura familiar do Cone Sul.'
-  }
-];
-
 function getInitials(name: string) {
   const parts = name.replace(/^(Prof\.|Profa\.)\s*/i, '').trim().split(' ');
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -110,9 +42,52 @@ function StudentCategoryIcon({ categoria, className }: { categoria: string; clas
   }
 }
 
-export default function CommunityMuralSection() {
+interface CommunityMuralSectionProps {
+  initialTeachers?: Professor[];
+  initialStudents?: Aluno[];
+}
+
+export default function CommunityMuralSection({ initialTeachers, initialStudents }: CommunityMuralSectionProps = {}) {
+  const [teachers, setTeachers] = useState<Professor[]>(initialTeachers || []);
+  const [students, setStudents] = useState<Aluno[]>(initialStudents || []);
+  const [loading, setLoading] = useState(!initialTeachers && !initialStudents);
   const [selectedTeacher, setSelectedTeacher] = useState<Professor | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<Aluno | null>(null);
+
+  useEffect(() => {
+    if (initialTeachers && initialStudents) return;
+
+    let isMounted = true;
+    async function loadCommunity() {
+      setLoading(true);
+      try {
+        const [tRes, sRes] = await Promise.all([
+          fetch('/api/teachers'),
+          fetch('/api/students'),
+        ]);
+
+        if (isMounted) {
+          if (tRes.ok) {
+            const tData = await tRes.json();
+            setTeachers(tData.items || []);
+          }
+          if (sRes.ok) {
+            const sData = await sRes.json();
+            setStudents(sData.items || []);
+          }
+        }
+      } catch (err) {
+        console.warn('Falha ao carregar dados do mural da comunidade:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    loadCommunity();
+    return () => {
+      isMounted = false;
+    };
+  }, [initialTeachers, initialStudents]);
 
   // Close modals on Escape key
   useEffect(() => {
@@ -193,68 +168,89 @@ export default function CommunityMuralSection() {
                 </Link>
               </div>
 
-              {/* Lista dos 3 Docentes em Destaque */}
+              {/* Lista dos Docentes em Destaque */}
               <div className="mt-5 space-y-3.5">
-                {featuredTeachers.map((prof) => {
-                  const isMinistrante = prof.funcao === 'Ministrante';
+                {loading ? (
+                  <div className="space-y-3">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#061224] animate-pulse">
+                        <div className="h-10 w-36 bg-slate-200 dark:bg-slate-700 rounded mb-2" />
+                        <div className="h-4 w-48 bg-slate-200 dark:bg-slate-700 rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : teachers.length === 0 ? (
+                  <div className="my-6 rounded-lg border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center bg-slate-50/50 dark:bg-[#061224]/50">
+                    <Presentation className="mx-auto h-8 w-8 text-slate-400 dark:text-slate-500 mb-2" />
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
+                      Nenhum docente cadastrado
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
+                      Os perfis pedagógicos de ministrantes e mediadores serão exibidos assim que homologados na rede.
+                    </p>
+                  </div>
+                ) : (
+                  teachers.slice(0, 3).map((prof) => {
+                    const isMinistrante = prof.funcao === 'Ministrante';
 
-                  return (
-                    <div
-                      key={prof.id}
-                      onClick={() => setSelectedTeacher(prof)}
-                      className="group p-4 rounded-lg border border-slate-200/90 dark:border-slate-800/90 bg-slate-50/60 dark:bg-[#061224]/60 hover:bg-slate-50 dark:hover:bg-[#0F2647]/50 hover:border-[#004A99]/40 dark:hover:border-[#00D8FF]/40 transition-all cursor-pointer shadow-2xs"
-                    >
-                      {/* Linha Superior: Avatar + Nome + Especialidade + Badge de Papel */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                        <div className="flex items-center gap-3">
-                          {/* Avatar Técnico Quadrado */}
-                          <div
-                            className={`w-11 h-11 rounded-md text-white font-bold text-sm grid place-items-center shrink-0 shadow-2xs ${
-                              isMinistrante ? 'bg-[#004A99]' : 'bg-[#0F766E]'
-                            }`}
-                          >
-                            {getInitials(prof.nome)}
+                    return (
+                      <div
+                        key={prof.id}
+                        onClick={() => setSelectedTeacher(prof)}
+                        className="group p-4 rounded-lg border border-slate-200/90 dark:border-slate-800/90 bg-slate-50/60 dark:bg-[#061224]/60 hover:bg-slate-50 dark:hover:bg-[#0F2647]/50 hover:border-[#004A99]/40 dark:hover:border-[#00D8FF]/40 transition-all cursor-pointer shadow-2xs"
+                      >
+                        {/* Linha Superior: Avatar + Nome + Especialidade + Badge de Papel */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                          <div className="flex items-center gap-3">
+                            {/* Avatar Técnico Quadrado */}
+                            <div
+                              className={`w-11 h-11 rounded-md text-white font-bold text-sm grid place-items-center shrink-0 shadow-2xs ${
+                                isMinistrante ? 'bg-[#004A99]' : 'bg-[#0F766E]'
+                              }`}
+                            >
+                              {getInitials(prof.nome)}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="font-semibold text-slate-900 dark:text-white text-sm truncate group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors">
+                                {prof.nome}
+                              </h4>
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                                <BookOpen className="h-3 w-3 text-slate-400" />
+                                {prof.disciplina}
+                              </span>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <h4 className="font-semibold text-slate-900 dark:text-white text-sm truncate group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors">
-                              {prof.nome}
-                            </h4>
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                              <BookOpen className="h-3 w-3 text-slate-400" />
-                              {prof.disciplina}
+
+                          {/* Selo de Papel Pedagógico */}
+                          {isMinistrante ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 text-[11px] font-semibold text-[#004A99] dark:text-[#38BDF8] border border-sky-200 dark:border-sky-800/50 w-fit shrink-0">
+                              <Tv className="h-3 w-3 shrink-0" />
+                              Ministrante • Estúdio PVH
                             </span>
-                          </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 text-[11px] font-semibold text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 w-fit shrink-0">
+                              <School className="h-3 w-3 shrink-0" />
+                              Mediação Presencial • Escola
+                            </span>
+                          )}
                         </div>
 
-                        {/* Selo de Papel Pedagógico */}
-                        {isMinistrante ? (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-sky-50 dark:bg-sky-950/40 px-2 py-0.5 text-[11px] font-semibold text-[#004A99] dark:text-[#38BDF8] border border-sky-200 dark:border-sky-800/50 w-fit shrink-0">
-                            <Tv className="h-3 w-3 shrink-0" />
-                            Ministrante • Estúdio PVH
+                        {/* Unidade e Município */}
+                        <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                          <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span className="truncate">
+                            {prof.escola} • {prof.municipio}
                           </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-teal-50 dark:bg-teal-950/40 px-2 py-0.5 text-[11px] font-semibold text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800/50 w-fit shrink-0">
-                            <School className="h-3 w-3 shrink-0" />
-                            Mediação Presencial • Escola
-                          </span>
-                        )}
-                      </div>
+                        </div>
 
-                      {/* Unidade e Município */}
-                      <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                        <Building2 className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate">
-                          {prof.escola} • {prof.municipio}
-                        </span>
+                        {/* Resumo da Prática Pedagógica */}
+                        <p className="mt-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
+                          {prof.resumo}
+                        </p>
                       </div>
-
-                      {/* Resumo da Prática Pedagógica */}
-                      <p className="mt-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
-                        {prof.resumo}
-                      </p>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -298,57 +294,78 @@ export default function CommunityMuralSection() {
                 </Link>
               </div>
 
-              {/* Lista das 3 Conquistas em Destaque */}
+              {/* Lista das Conquistas em Destaque */}
               <div className="mt-5 space-y-3.5">
-                {featuredStudents.map((aluno) => {
-                  return (
-                    <div
-                      key={aluno.id}
-                      onClick={() => setSelectedStudent(aluno)}
-                      className="group p-4 rounded-lg border border-slate-200/90 dark:border-slate-800/90 bg-slate-50/60 dark:bg-[#061224]/60 hover:bg-slate-50 dark:hover:bg-[#0F2647]/50 hover:border-emerald-500/40 dark:hover:border-emerald-400/40 transition-all cursor-pointer shadow-2xs"
-                    >
-                      {/* Faixa Superior de Conquista (Trophy-first) */}
-                      <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 rounded-md px-3 py-2 mb-2.5 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <StudentCategoryIcon
-                            categoria={aluno.categoria}
-                            className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0"
-                          />
-                          <span className="font-bold text-xs text-emerald-950 dark:text-emerald-200 truncate group-hover:underline">
-                            {aluno.conquista}
+                {loading ? (
+                  <div className="space-y-3">
+                    {[1, 2].map((i) => (
+                      <div key={i} className="p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#061224] animate-pulse">
+                        <div className="h-10 w-36 bg-slate-200 dark:bg-slate-700 rounded mb-2" />
+                        <div className="h-4 w-48 bg-slate-200 dark:bg-slate-700 rounded" />
+                      </div>
+                    ))}
+                  </div>
+                ) : students.length === 0 ? (
+                  <div className="my-6 rounded-lg border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center bg-slate-50/50 dark:bg-[#061224]/50">
+                    <Award className="mx-auto h-8 w-8 text-slate-400 dark:text-slate-500 mb-2" />
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
+                      Nenhuma conquista cadastrada
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
+                      As histórias de estudantes com imagem autorizada (LGPD) serão exibidas assim que registradas.
+                    </p>
+                  </div>
+                ) : (
+                  students.slice(0, 3).map((aluno) => {
+                    return (
+                      <div
+                        key={aluno.id}
+                        onClick={() => setSelectedStudent(aluno)}
+                        className="group p-4 rounded-lg border border-slate-200/90 dark:border-slate-800/90 bg-slate-50/60 dark:bg-[#061224]/60 hover:bg-slate-50 dark:hover:bg-[#0F2647]/50 hover:border-emerald-500/40 dark:hover:border-emerald-400/40 transition-all cursor-pointer shadow-2xs"
+                      >
+                        {/* Faixa Superior de Conquista (Trophy-first) */}
+                        <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 rounded-md px-3 py-2 mb-2.5 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <StudentCategoryIcon
+                              categoria={aluno.categoria}
+                              className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0"
+                            />
+                            <span className="font-bold text-xs text-emerald-950 dark:text-emerald-200 truncate group-hover:underline">
+                              {aluno.conquista}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-900/40 px-2 py-0.5 rounded shrink-0">
+                            {aluno.categoria}
                           </span>
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-900/40 px-2 py-0.5 rounded shrink-0">
-                          {aluno.categoria}
-                        </span>
+
+                        {/* Protagonista e Linha Territorial */}
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-semibold text-slate-900 dark:text-white text-sm">
+                            {aluno.nome}
+                          </h4>
+                          <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-1 shrink-0">
+                            <CheckCircle2 className="h-3 w-3" />
+                            <span>✓ Imagem autorizada (LGPD)</span>
+                          </span>
+                        </div>
+
+                        {/* Rota Territorial */}
+                        <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                          <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                          <span className="truncate">
+                            {aluno.comunidade} • {aluno.municipio}
+                          </span>
+                        </p>
+
+                        {/* Resumo da Trajetória */}
+                        <p className="mt-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
+                          {aluno.resumo}
+                        </p>
                       </div>
-
-                      {/* Protagonista e Linha Territorial */}
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-semibold text-slate-900 dark:text-white text-sm">
-                          {aluno.nome}
-                        </h4>
-                        <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400 flex items-center gap-1 shrink-0">
-                          <CheckCircle2 className="h-3 w-3" />
-                          <span>✓ Imagem autorizada (LGPD)</span>
-                        </span>
-                      </div>
-
-                      {/* Rota Territorial */}
-                      <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-                        <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate">
-                          {aluno.comunidade} • {aluno.municipio}
-                        </span>
-                      </p>
-
-                      {/* Resumo da Trajetória */}
-                      <p className="mt-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2">
-                        {aluno.resumo}
-                      </p>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
 
