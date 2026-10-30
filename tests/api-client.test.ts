@@ -17,6 +17,9 @@ import AdminProjetosSubroutePage from '../src/app/admin/projetos/page';
 import AdminBannersSubroutePage from '../src/app/admin/banners/page';
 import AdminDashboardPage from '../src/app/admin/page';
 import DesktopSidebarContainer from '../src/components/admin/DesktopSidebarContainer';
+import MobileDrawerFooter, { type MobileDrawerFooterProps } from '../src/components/admin/MobileDrawerFooter';
+import NextLink from 'next/link';
+import { ExternalLink, LogOut } from 'lucide-react';
 import SidebarNavItem, { type SidebarNavItemProps } from '../src/components/admin/SidebarNavItem';
 import SidebarFolderAccordion, { type SidebarFolderAccordionProps, type NavFolderDef } from '../src/components/admin/SidebarFolderAccordion';
 import AdminOverview, { type AdminOverviewProps } from '../src/components/admin/AdminOverview';
@@ -148,6 +151,92 @@ describe('Contêiner compartilhado da sidebar desktop', () => {
         assert.ok(toggle?.props.onClick);
         toggle.props.onClick();
         assert.deepEqual(changes, [!isCollapsed]);
+      } finally { stateMock.mock.restore(); }
+    }
+  });
+});
+
+describe('Rodapé compartilhado da gaveta mobile', () => {
+  type FooterElementProps = { children?: ReactNode; className?: string; title?: string; onClick?: () => void } & Partial<MobileDrawerFooterProps>;
+  function elements(node: ReactNode): React.ReactElement<FooterElementProps>[] {
+    if (Array.isArray(node)) return node.flatMap(elements);
+    if (!isValidElement<FooterElementProps>(node)) return [];
+    return [node, ...elements(node.props.children)];
+  }
+  const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'mobile-footer-test' };
+  const withRouter = (node: ReactNode) => createElement(AppRouterContext.Provider, { value: router },
+    createElement(PathnameContext.Provider, { value: '/admin' }, node));
+  // Marcação idêntica à que existia inline nos dois consumidores antes da extração.
+  function originalFooter(userName: string | undefined, roleLabel: string, onLogout: () => void) {
+    return createElement('div', { className: 'shrink-0 border-t border-slate-800 p-3 space-y-2 bg-[#051021]' },
+      createElement(NextLink, { href: '/', target: '_blank', rel: 'noopener noreferrer',
+        className: 'flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white text-xs' },
+        createElement(ExternalLink, { className: 'h-3.5 w-3.5 text-sky-400' }),
+        createElement('span', null, 'Ver Portal Público')),
+      createElement('div', { className: 'pt-2 border-t border-slate-800 flex items-center justify-between' },
+        createElement('div', { className: 'min-w-0' },
+          createElement('p', { className: 'text-xs font-semibold text-white truncate' }, userName),
+          createElement('p', { className: 'text-[10px] text-slate-400' }, roleLabel)),
+        createElement('button', { type: 'button', onClick: onLogout, className: 'text-rose-400 p-1.5 cursor-pointer' },
+          createElement(LogOut, { className: 'h-4 w-4' }))));
+  }
+
+  it('renderiza a mesma marcação, classes e textos do rodapé mobile original', () => {
+    const onLogout = () => {};
+    for (const [userName, roleLabel] of [['Ana Gestora', 'Gestor Geral'], ['12345678900', 'Operador'], [undefined, 'Curador de Fotos']] as const) {
+      const actual = renderToStaticMarkup(withRouter(createElement(MobileDrawerFooter, { userName, roleLabel, onLogout })));
+      const expected = renderToStaticMarkup(withRouter(originalFooter(userName, roleLabel, onLogout)));
+      assert.equal(actual, expected);
+    }
+  });
+
+  it('repassa o callback de logout sem navegar por conta própria', () => {
+    let logouts = 0;
+    const onLogout = () => { logouts++; };
+    const nodes = elements(MobileDrawerFooter({ userName: 'Ana', roleLabel: 'Gestor Geral', onLogout }));
+    const button = nodes.find(node => node.type === 'button');
+    assert.ok(button);
+    assert.strictEqual(button.props.onClick, onLogout);
+    button.props.onClick!();
+    assert.equal(logouts, 1);
+    const links = nodes.filter(node => node.type === NextLink);
+    assert.equal(links.length, 1);
+    assert.equal((links[0].props as { href?: string }).href, '/');
+  });
+
+  it('é usado na gaveta mobile da página e do shell com os rótulos de perfil e o logout de cada consumidor', () => {
+    const originalState = React.useState;
+    const sessions = [
+      { session: { isGestor: true, name: 'Ana Gestora', username: '111' }, userName: 'Ana Gestora', roleLabel: 'Gestor Geral' },
+      { session: { isGestor: false, username: '222', profileType: 'Operador de Conteúdo' }, userName: '222', roleLabel: 'Operador de Conteúdo' },
+      { session: { isGestor: false, name: 'Sem Perfil' }, userName: 'Sem Perfil', roleLabel: 'Operador' },
+    ];
+    for (const kind of ['page', 'shell'] as const) for (const expected of sessions) {
+      // Abre a gaveta e conclui a autenticação invertendo apenas os estados booleanos iniciais,
+      // sem depender da posição dos hooks; a sessão é identificada pelo formato do estado.
+      const stateMock = mock.method(React, 'useState', (initial: unknown) => {
+        if (typeof initial === 'boolean') return originalState(!initial);
+        if (initial && typeof initial === 'object' && 'isGestor' in initial) return originalState(expected.session);
+        return originalState(initial);
+      });
+      let tree: ReactNode;
+      function Capture() { tree = kind === 'page' ? AdminDashboardPage() : AdminShell({ children: null }); return tree; }
+      try {
+        const html = renderToStaticMarkup(withRouter(createElement(Capture)));
+        const nodes = elements(tree);
+        const drawer = nodes.find(node => node.props.className?.includes('fixed inset-0 z-50 lg:hidden'));
+        assert.ok(drawer, 'gaveta mobile aberta');
+        const footers = elements(drawer.props.children).filter(node => node.type === MobileDrawerFooter);
+        assert.equal(footers.length, 1);
+        assert.equal(nodes.filter(node => node.type === MobileDrawerFooter).length, 1);
+        assert.equal(footers[0].props.userName, expected.userName);
+        assert.equal(footers[0].props.roleLabel, expected.roleLabel);
+        const desktopLogout = nodes.find(node => node.props.title === (kind === 'page' ? 'Encerrar Sessão' : 'Sair do Sistema'));
+        assert.ok(desktopLogout?.props.onClick);
+        assert.strictEqual(footers[0].props.onLogout, desktopLogout.props.onClick);
+        assert.equal((html.match(/shrink-0 border-t border-slate-800 p-3 space-y-2 bg-\[#051021\]/g) || []).length, 1);
+        assert.equal((html.match(/shrink-0 border-t border-slate-800\/80 p-3 space-y-2 bg-\[#051021\]/g) || []).length, 1);
+        assert.equal(nodes.filter(node => node.type === DesktopSidebarContainer).length, 1);
       } finally { stateMock.mock.restore(); }
     }
   });
