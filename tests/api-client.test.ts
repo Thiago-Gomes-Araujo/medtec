@@ -5,7 +5,7 @@
 
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { createElement } from 'react';
+import { createElement, isValidElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { PathnameContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
@@ -13,6 +13,8 @@ import AdminFaqSubroutePage from '../src/app/admin/faq/page';
 import AdminProjetosSubroutePage from '../src/app/admin/projetos/page';
 import AdminBannersSubroutePage from '../src/app/admin/banners/page';
 import AdminDashboardPage from '../src/app/admin/page';
+import AdminOverview, { type AdminOverviewProps } from '../src/components/admin/AdminOverview';
+import OverviewStats from '../src/components/admin/OverviewStats';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
 import SitePhotosManager from '../src/components/SitePhotosManager';
@@ -42,6 +44,112 @@ import { getLegacyProjectsHref, readAdminProjects } from '../src/lib/admin-proje
 import { getLegacyBannersHref, readAdminBanners, prepareLocalBannerPreview } from '../src/lib/admin-banners';
 import AdminLiveSimulator from '../src/components/AdminLiveSimulator';
 import { applyOverviewSnapshot, createAdminOverviewLoader, createInitialOverviewState, getOverviewMetrics, startOverviewLoading } from '../src/lib/admin-overview';
+
+describe('Interface componentizada da Visão Geral', () => {
+  function props(overrides: Partial<AdminOverviewProps> = {}): AdminOverviewProps {
+    return {
+      indicators: {
+        loadingNews: false, errorNews: null, totalNews: 450, apiNewsPublishedCount: 400, apiNewsDraftCount: 50,
+        projectsCount: 3, projectMunicipalities: 2, loadingAvisos: false, errorAvisos: null, totalAvisos: 231,
+        apiAvisosAtivosCount: 200, apiAvisosUrgentesCount: 7, loadingFotos: false, errorFotos: null,
+        totalFotos: 280, totalCategorias: 12, usersCountLabel: 120, faqsCount: 4, bannersCount: 1,
+      },
+      userName: 'Gestora de teste',
+      latestNews: { titulo: 'Notícia recebida', data_publicacao: '2026-10-30', autor_nome: 'Autoria recebida' },
+      featuredProject: { title: 'Prática recebida', school: 'Escola recebida', municipality: 'Município recebido' },
+      announcementTitle: 'Aviso recebido', canAccessKanban: true,
+      onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+      ...overrides,
+    };
+  }
+  function render(overrides: Partial<AdminOverviewProps> = {}) {
+    return renderToStaticMarkup(createElement(AdminOverview, props(overrides)));
+  }
+
+  it('renderiza os totais preparados, destaques e grades responsivas sem consultar APIs', () => {
+    const originalFetch = globalThis.fetch;
+    let requests = 0;
+    globalThis.fetch = async () => { requests += 1; throw new Error('Componente visual não consulta dados.'); };
+    try {
+      const html = render();
+      for (const value of ['450', '231', '280', '120']) assert.ok(html.includes('>' + value + '</p>'));
+      for (const text of ['Gestora de teste', '400', '50', '12', 'Notícia recebida', 'Autoria recebida', 'Prática recebida', 'Escola recebida', 'Aviso recebido']) {
+        assert.ok(html.includes(text), text);
+      }
+      assert.ok(html.includes('grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'));
+      assert.ok(html.includes('grid-cols-1 md:grid-cols-2 lg:grid-cols-3'));
+      assert.equal(requests, 0);
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  it('preserva zero confirmado e os textos vazios sem inserir destaques fictícios', () => {
+    const base = props();
+    const html = render({ indicators: { ...base.indicators,
+      totalNews: 0, apiNewsPublishedCount: 0, apiNewsDraftCount: 0,
+      totalAvisos: 0, apiAvisosAtivosCount: 0, apiAvisosUrgentesCount: 0,
+      totalFotos: 0, totalCategorias: 0, usersCountLabel: 0,
+      projectsCount: 0, projectMunicipalities: 0, faqsCount: 0, bannersCount: 0,
+    }, latestNews: undefined, featuredProject: undefined, announcementTitle: undefined });
+    assert.ok((html.match(/>0<\/p>/g) || []).length >= 6);
+    for (const text of ['Nenhuma matéria cadastrada', 'Nenhuma fotografia catalogada',
+      'Nenhuma notícia publicada ainda', 'Nenhum projeto cadastrado', 'Nenhuma dúvida cadastrada ainda.',
+      'Sem comunicados urgentes no momento', 'Nenhum comunicado urgente ativo']) {
+      assert.ok(html.includes(text), text);
+    }
+    assert.ok(!html.includes('Notícia recebida'));
+    assert.ok(!html.includes('Prática recebida'));
+  });
+
+  it('mantém carregamento e falha distintos de vazio sem exibir totais antigos nos cards', () => {
+    const base = props();
+    const loading = render({ indicators: { ...base.indicators,
+      loadingNews: true, loadingAvisos: true, loadingFotos: true, usersCountLabel: '...',
+    } });
+    assert.ok(loading.includes('Carregando API...'));
+    assert.ok(loading.includes('Carregando...'));
+    assert.ok(!loading.includes('>450</p>'));
+    assert.ok(!loading.includes('Nenhuma matéria cadastrada'));
+    const failed = render({ indicators: { ...base.indicators,
+      errorNews: 'Falha de notícias', errorAvisos: 'Falha de avisos', errorFotos: 'Falha de fotos', usersCountLabel: 'Indisponível',
+    } });
+    for (const text of ['Indisponível', 'Galeria Indisponível', 'Falha ao consultar /n_noticias',
+      'Falha ao consultar /a_avisos', 'Falha ao consultar /fotos_galeria', 'Falha de comunicação com a API']) {
+      assert.ok(failed.includes(text), text);
+    }
+    assert.ok(!failed.includes('>450</p>'));
+    assert.ok(!failed.includes('Nenhuma matéria cadastrada'));
+  });
+
+  it('preserva links de lista e Novo e mantém a ação editorial restrita desabilitada', () => {
+    const html = render({ canAccessKanban: false });
+    for (const href of ['/admin/projetos', '/admin/projetos?action=new', '/admin/avisos', '/admin/banners',
+      '/admin/galeria', '/admin/faq', '/admin/institucional', '/admin/redes', '/admin/usuarios']) {
+      assert.ok(html.includes('href="' + href + '"'), href);
+    }
+    assert.ok(/<button[^>]*disabled=""[^>]*><span>Abrir Fila de Aprovação<\/span>/.test(html));
+    assert.equal(SECTION_CONFIG.estadosCidades.href, '/admin/estados-cidades');
+    assert.ok(html.includes('target="_blank"'));
+    assert.ok(html.includes('rel="noopener noreferrer"'));
+  });
+
+  it('encaminha as ações Novo, Notícias e Kanban pelos callbacks recebidos', () => {
+    const calls: string[] = [];
+    const input = props({
+      onOpenNews: () => calls.push('/admin/noticias'),
+      onCreateNews: () => calls.push('/admin/noticias?action=new'),
+      onOpenKanban: () => calls.push('/admin/kanban'),
+    });
+    function activateButtons(node: ReactNode) {
+      if (Array.isArray(node)) { node.forEach(activateButtons); return; }
+      if (!isValidElement<{ children?: ReactNode; disabled?: boolean; onClick?: () => void }>(node)) return;
+      if (node.type === 'button' && !node.props.disabled) node.props.onClick?.();
+      activateButtons(node.props.children);
+    }
+    activateButtons(AdminOverview(input));
+    activateButtons(OverviewStats({ indicators: input.indicators, onOpenNews: input.onOpenNews }));
+    assert.deepEqual(calls, ['/admin/noticias?action=new', '/admin/noticias', '/admin/kanban', '/admin/noticias']);
+  });
+});
 
 describe('Dados e KPIs isolados da Visão Geral', () => {
   const legacy = {
