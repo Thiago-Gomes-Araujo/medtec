@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useImperativeHandle } from 'react';
-import { Newspaper, Plus, ArrowLeft, Save, Upload, Eye, Edit3, Trash2 } from 'lucide-react';
+import { Newspaper, Plus, ArrowLeft, Save, Upload, Eye, Edit3, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import type { NewsItem } from '@/types';
 import { medtecApi, type NCategoriaNoticia } from '@/lib/api';
 import AdminLiveSimulator, { type PreviewContentType, type PreviewItemData } from '@/components/AdminLiveSimulator';
@@ -18,6 +18,13 @@ interface NewsModuleProps {
   errorNews: string | null;
   userSession: { name?: string };
   canPublish: boolean;
+  canUnpublish?: boolean;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  initialNew?: boolean;
+  initialEditingNews?: NewsItem;
+  onEditNavigation?: (id: string) => void;
   newsViewMode: 'lista' | 'editor';
   setNewsViewMode: React.Dispatch<React.SetStateAction<'lista' | 'editor'>>;
   onRefresh: () => Promise<void>;
@@ -26,31 +33,33 @@ interface NewsModuleProps {
 }
 
 export default function NewsModule({ ref, effectiveNews, apiNewsCategories, loadingNews, errorNews,
-  userSession, canPublish, newsViewMode, setNewsViewMode, onRefresh: loadApiData,
+  userSession, canPublish, canUnpublish = canPublish, canCreate = false, canEdit = false,
+  canDelete = false, initialNew = false, initialEditingNews, onEditNavigation, newsViewMode, setNewsViewMode, onRefresh: loadApiData,
   onTogglePublished: handleTogglePublished, onPreview: setPreviewModal }: NewsModuleProps) {
   const [newsFolder, setNewsFolder] = useState('Todas');
   const [saving, setSaving] = useState(false);
-  const [selectedNewsCategoriaId, setSelectedNewsCategoriaId] = useState<number | null>(null);
+  const [selectedNewsCategoriaId, setSelectedNewsCategoriaId] = useState<number | null>(() => apiNewsCategories.find(c => c.nome === initialEditingNews?.category)?.id || apiNewsCategories[0]?.id || null);
   const [newsCoverFile, setNewsCoverFile] = useState<File | null>(null);
   // Estado para formulário de Notícia (novo ou edição)
-  const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
-  const [newsForm, setNewsForm] = useState<Partial<NewsItem>>({
+  const [editingNews, setEditingNews] = useState<NewsItem | null>(initialEditingNews || null);
+  const [newsForm, setNewsForm] = useState<Partial<NewsItem>>(() => initialEditingNews ? { ...initialEditingNews } : {
     title: '',
-    category: 'Pedagógico',
-    author: 'Equipe MEDTEC / SEDUC',
+    category: apiNewsCategories[0]?.nome || 'Pedagógico',
+    author: userSession.name || 'Equipe MEDTEC / SEDUC',
     coverImage: '',
     excerpt: '',
     content: '',
     featured: false,
     urgent: false,
     folder: 'Geral',
-    published: true,
-    publishedAt: '',
+    published: false,
+    publishedAt: initialNew ? new Date().toLocaleDateString('en-CA') : '',
   });
 
   // Funções de Gestão de Notícias (/n_noticias)
   const handleSaveNews = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingNews ? !canEdit : !canCreate) return;
     if (loadingNews || errorNews) {
       alert('Aguarde o carregamento válido das notícias e categorias oficiais.');
       return;
@@ -144,6 +153,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
   };
 
   const handleDeleteNews = async (id: string) => {
+    if (!canDelete) return;
     const numId = Number(id);
     if (!numId) return;
 
@@ -160,6 +170,11 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
   };
 
   const handleEditNews = (item: NewsItem) => {
+    if (!canEdit) return;
+    if (onEditNavigation) {
+      onEditNavigation(item.id);
+      return;
+    }
     setEditingNews(item);
     setNewsForm({ ...item });
     setNewsCoverFile(null);
@@ -172,6 +187,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
   };
 
   const handleNewNews = () => {
+    if (!canCreate) return;
     setEditingNews(null);
     setNewsCoverFile(null);
     setNewsForm({
@@ -205,8 +221,18 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
   return (
         <div className="space-y-6">
           <p className="text-xs text-slate-500 dark:text-slate-400">Pasta, destaque e urgência estão indisponíveis: não possuem persistência no contrato oficial da API.</p>
-          {loadingNews && <p role="status">Carregando notícias da API...</p>}
-          {errorNews && <p role="alert">{errorNews}</p>}
+          {loadingNews && (
+            <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-3" role="status">
+              <Loader2 className="h-6 w-6 animate-spin text-[#004A99] dark:text-sky-400" />
+              <span className="text-xs font-medium">Carregando notícias da API oficial...</span>
+            </div>
+          )}
+          {errorNews && (
+            <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-medium flex items-center gap-2" role="alert">
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
+              <span>{errorNews}</span>
+            </div>
+          )}
           {/* Sub-navegação Interna: Lista vs Editor */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-2">
@@ -225,6 +251,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
 
               <button
                 type="button"
+                disabled={!canCreate}
                 onClick={() => {
                   if (newsViewMode !== 'editor') {
                     handleNewNews();
@@ -241,9 +268,10 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
               </button>
             </div>
 
-            {newsViewMode === 'lista' ? (
+            {newsViewMode === 'lista' && canCreate ? (
               <button
                 type="button"
+                disabled={!canCreate || loadingNews || !!errorNews}
                 onClick={handleNewNews}
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer self-start sm:self-auto"
               >
@@ -266,7 +294,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
           </div>
 
           {/* Formulário de Criação / Edição + Prévia ao Vivo */}
-          {newsViewMode === 'editor' && (
+          {newsViewMode === 'editor' && !loadingNews && !errorNews && (editingNews ? canEdit : canCreate) && (
           <div key="news-editor-view" className="bg-white dark:bg-[#0B1729] rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
               <div>
@@ -568,7 +596,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                   <div className="pt-2">
                     <button
                       type="submit"
-                      disabled={saving || loadingNews || !!errorNews}
+                      disabled={saving || loadingNews || !!errorNews || (editingNews ? !canEdit : !canCreate)}
                       className="px-6 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition cursor-pointer"
                     >
                       <Save size={16} />
@@ -670,121 +698,148 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
               })}
             </div>
 
-            <div className="space-y-6">
-              {newsFolders
-                .filter((folder) => newsFolder === 'Todas' || folder === newsFolder)
-                .map((folder) => {
-                  const items = effectiveNews.filter((item) => (item.folder || 'Geral') === folder);
-                  if (items.length === 0) return null;
-                  const live = items.filter((item) => item.published !== false).length;
-                  return (
-                    <section key={folder}>
-                      <div className="mb-2 flex items-center justify-between">
-                        <h4 className="text-sm font-black text-slate-900 dark:text-white">{folder}</h4>
-                        <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                          {`${live} ${live === 1 ? 'publicada' : 'publicadas'} · ${items.length - live} ${items.length - live === 1 ? 'rascunho' : 'rascunhos'}`}
-                        </span>
-                      </div>
-                      <div className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
-                        {items.map((item, idx) => (
-                          <div key={item.id ? `news-row-${item.id}` : `news-row-idx-${idx}`} className="py-4 px-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                              <img
-                                src={item.coverImage}
-                                alt={item.title}
-                                className="w-16 h-14 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700"
-                              />
-                              <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                                    {item.category}
-                                  </span>
-                                  <span className="text-[11px] text-slate-400 font-medium">
-                                    {item.publishedAt}
-                                  </span>
-                                  {item.featured && (
-                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
-                                      Destaque
+            {effectiveNews.length === 0 ? (
+              <div className="py-14 px-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center space-y-3 bg-slate-50/50 dark:bg-[#071324]/50">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                  <Newspaper className="h-6 w-6" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                    Nenhuma notícia cadastrada no momento.
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
+                    As matérias e reportagens publicadas ou enviadas para aprovação aparecerão listadas aqui.
+                  </p>
+                </div>
+                {canCreate && <button
+                  type="button"
+                  disabled={!canCreate || loadingNews || !!errorNews}
+                onClick={handleNewNews}
+                  className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Cadastrar Primeira Notícia</span>
+                </button>}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {newsFolders
+                  .filter((folder) => newsFolder === 'Todas' || folder === newsFolder)
+                  .map((folder) => {
+                    const items = effectiveNews.filter((item) => (item.folder || 'Geral') === folder);
+                    if (items.length === 0) return null;
+                    const live = items.filter((item) => item.published !== false).length;
+                    return (
+                      <section key={folder}>
+                        <div className="mb-2 flex items-center justify-between">
+                          <h4 className="text-sm font-black text-slate-900 dark:text-white">{folder}</h4>
+                          <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                            {`${live} ${live === 1 ? 'publicada' : 'publicadas'} · ${items.length - live} ${items.length - live === 1 ? 'rascunho' : 'rascunhos'}`}
+                          </span>
+                        </div>
+                        <div className="divide-y divide-slate-100 dark:divide-slate-800 rounded-xl border border-slate-200 dark:border-slate-800">
+                          {items.map((item, idx) => (
+                            <div key={item.id ? `news-row-${item.id}` : `news-row-idx-${idx}`} className="py-4 px-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                              <div className="flex items-center gap-4">
+                                <img
+                                  src={item.coverImage}
+                                  alt={item.title}
+                                  className="w-16 h-14 rounded-lg object-cover bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700"
+                                />
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                      {item.category}
                                     </span>
-                                  )}
-                                  {item.urgent && (
-                                    <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300">
-                                      Urgente
+                                    <span className="text-[11px] text-slate-400 font-medium">
+                                      {item.publishedAt}
                                     </span>
-                                  )}
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                                    item.rejected
-                                      ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
-                                      : item.published === false
-                                        ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
-                                        : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-                                  }`}>
-                                    {item.rejected
-                                      ? 'Recusada'
-                                      : item.published === false
-                                        ? 'Aguardando aprovação'
-                                        : 'Publicada'}
-                                  </span>
+                                    {item.featured && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
+                                        Destaque
+                                      </span>
+                                    )}
+                                    {item.urgent && (
+                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300">
+                                        Urgente
+                                      </span>
+                                    )}
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                      item.rejected
+                                        ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
+                                        : item.published === false
+                                          ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300'
+                                          : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                                    }`}>
+                                      {item.rejected
+                                        ? 'Recusada'
+                                        : item.published === false
+                                          ? 'Aguardando aprovação'
+                                          : 'Publicada'}
+                                    </span>
+                                  </div>
+                                  <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{item.title}</h4>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{item.excerpt}</p>
+                                  <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                    <Eye size={12} />
+                                    <span>
+                                      {(item.views || 0).toLocaleString('pt-BR')}{' '}
+                                      {(item.views || 0) === 1 ? 'visualização' : 'visualizações'}
+                                    </span>
+                                  </p>
                                 </div>
-                                <h4 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{item.title}</h4>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{item.excerpt}</p>
-                                <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                                  <Eye size={12} />
-                                  <span>
-                                    {(item.views || 0).toLocaleString('pt-BR')}{' '}
-                                    {(item.views || 0) === 1 ? 'visualização' : 'visualizações'}
-                                  </span>
-                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewModal({ isOpen: true, type: 'noticia', data: item })}
+                                  className="px-2.5 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-[#004A99] dark:text-[#00D8FF] text-xs font-bold transition cursor-pointer flex items-center gap-1 border border-sky-200 dark:border-sky-800/60"
+                                  title="Ver prévia deste item no site oficial"
+                                >
+                                  <Eye size={13} />
+                                  <span className="hidden md:inline">Ver Prévia</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={item.published ? !canUnpublish : !canPublish}
+                                  title={(item.published ? !canUnpublish : !canPublish) ? 'Esta ação exige permissão específica na API.' : undefined}
+                                  onClick={() => handleTogglePublished(item.id)}
+                                  className={`rounded-lg px-2.5 py-2 text-[11px] font-bold cursor-pointer transition ${
+                                    item.published === false
+                                      ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                  }`}
+                                >
+                                  {item.published === false ? 'Publicar' : 'Tirar do ar'}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!canEdit}
+                                  onClick={() => handleEditNews(item)}
+                                  className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-600 dark:text-slate-300 hover:text-primary transition cursor-pointer"
+                                  title="Editar notícia"
+                                >
+                                  <Edit3 size={15} />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={!canDelete}
+                                  onClick={() => handleDeleteNews(item.id)}
+                                  className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-600 dark:text-slate-300 hover:text-rose-600 transition cursor-pointer"
+                                  title="Excluir notícia"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
                               </div>
                             </div>
-
-                            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => setPreviewModal({ isOpen: true, type: 'noticia', data: item })}
-                                className="px-2.5 py-1.5 rounded-lg bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/60 text-[#004A99] dark:text-[#00D8FF] text-xs font-bold transition cursor-pointer flex items-center gap-1 border border-sky-200 dark:border-sky-800/60"
-                                title="Ver prévia deste item no site oficial"
-                              >
-                                <Eye size={13} />
-                                <span className="hidden md:inline">Ver Prévia</span>
-                              </button>
-                              <button
-                                type="button"
-                                disabled={!canPublish}
-                                title={!canPublish ? 'Publicação exige permissão de administrador na API.' : undefined}
-                                onClick={() => handleTogglePublished(item.id)}
-                                className={`rounded-lg px-2.5 py-2 text-[11px] font-bold cursor-pointer transition ${
-                                  item.published === false
-                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                }`}
-                              >
-                                {item.published === false ? 'Publicar' : 'Tirar do ar'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleEditNews(item)}
-                                className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-600 dark:text-slate-300 hover:text-primary transition cursor-pointer"
-                                title="Editar notícia"
-                              >
-                                <Edit3 size={15} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteNews(item.id)}
-                                className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-600 dark:text-slate-300 hover:text-rose-600 transition cursor-pointer"
-                                title="Excluir notícia"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  );
-                })}
-            </div>
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
+              </div>
+            )}
           </div>
           )}
         </div>

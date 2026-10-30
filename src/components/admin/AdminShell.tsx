@@ -36,7 +36,7 @@ import {
   HelpCircle,
   Lock,
 } from 'lucide-react';
-import { medtecApi, clearStoredTokens } from '@/lib/api';
+import { medtecApi, clearStoredTokens, type AuthUser } from '@/lib/api';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
 
 export type AdminSection =
@@ -67,7 +67,7 @@ export const SECTION_CONFIG: Record<
     group: 'Publicações do Site',
     title: 'Notícias e Matérias',
     subtitle: 'Aqui você escreve novas matérias, escolhe a foto de capa e edita notícias já publicadas no portal.',
-    href: '/admin?tab=noticias',
+    href: '/admin/noticias',
   },
   projetos: {
     group: 'Publicações do Site',
@@ -139,8 +139,17 @@ export function getFolderIdForSection(sec: AdminSection): string | null {
   return null;
 }
 
+export interface AdminSession {
+  isGestor: boolean;
+  username?: string;
+  role?: string;
+  name?: string;
+  profileType?: string;
+  apiUser?: AuthUser;
+}
+
 export interface AdminShellProps {
-  children: React.ReactNode;
+  children: React.ReactNode | ((session: AdminSession) => React.ReactNode);
   activeSection?: AdminSection;
   badges?: Partial<Record<AdminSection, number | string>>;
   previewModalState?: {
@@ -184,13 +193,7 @@ export default function AdminShell({
   // Estado de Autenticação / Sessão
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loadingAuth, setLoadingAuth] = useState(true);
-  const [userSession, setUserSession] = useState<{
-    isGestor: boolean;
-    username?: string;
-    role?: string;
-    name?: string;
-    profileType?: string;
-  }>({ isGestor: false });
+  const [userSession, setUserSession] = useState<AdminSession>({ isGestor: false });
 
   // Sincronização do tema escuro
   const isDark = useSyncExternalStore(
@@ -240,6 +243,7 @@ export default function AdminShell({
               role: meRes.data.perfil_nome,
               name: meRes.data.nome,
               profileType: meRes.data.perfil_nome,
+              apiUser: meRes.data,
             });
           }
         } catch (meErr) {
@@ -310,6 +314,7 @@ export default function AdminShell({
 
   // Permissões por perfil
   const canAccessNews =
+    userSession.profileType === 'Gestor' ||
     userSession.isGestor ||
     userSession.profileType === 'Editor de Notícias' ||
     userSession.profileType === 'Operador de Conteúdo';
@@ -523,7 +528,7 @@ export default function AdminShell({
       : activeSection === 'avisos'
       ? canAccessAnnouncements
       : activeSection === 'noticias'
-      ? canAccessNews
+      ? typeof children === 'function' || canAccessNews
       : activeSection === 'fotos'
       ? canAccessPhotos
       : activeSection === 'galeria'
@@ -982,7 +987,7 @@ export default function AdminShell({
 
           {/* Renderização Condicional: Acesso Permitido vs Restrito */}
           {isAuthorized ? (
-            children
+            typeof children === 'function' ? children(userSession) : children
           ) : (
             <div className="p-12 text-center space-y-4 rounded-2xl bg-white dark:bg-[#0B1729] border border-slate-200 dark:border-slate-800">
               <div className="w-12 h-12 mx-auto rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center">

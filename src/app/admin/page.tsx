@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { DatabaseSchema, NewsItem, ProjectMission, ReplicationWeek } from '@/types';
@@ -57,7 +57,6 @@ import {
   Clock,
 } from 'lucide-react';
 import { YoutubeIcon, InstagramIcon, FacebookIcon } from '@/components/SocialIcons';
-import NewsModule, { type NewsModuleHandle } from '@/components/admin/NewsModule';
 import EditorialKanban from '@/components/EditorialKanban';
 import SitePhotosManager from '@/components/SitePhotosManager';
 import AdminLiveSimulator, { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
@@ -79,7 +78,6 @@ import {
   CanalContato,
   Estado,
   NNoticia,
-  NCategoriaNoticia,
 } from '@/lib/api';
 
 type AdminSection = 'visaoGeral' | 'kanban' | 'fotos' | 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo' | 'usuarios' | 'projetos' | 'duvidas' | 'estadosCidades';
@@ -335,9 +333,6 @@ export default function AdminDashboardPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [currentSection, setCurrentSection] = useState<AdminSection>('visaoGeral');
-  const newsModuleRef = useRef<NewsModuleHandle>(null);
-  const handleNewNews = () => newsModuleRef.current?.newNews();
-  const [newsViewMode, setNewsViewMode] = useState<'lista' | 'editor'>('lista');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -369,6 +364,10 @@ export default function AdminDashboardPage() {
   };
 
   const handleSelectSection = (sec: AdminSection) => {
+    if (sec === 'noticias') {
+      router.push('/admin/noticias');
+      return;
+    }
     if (sec === 'avisos') {
       router.push('/admin/avisos');
       return;
@@ -511,9 +510,8 @@ export default function AdminDashboardPage() {
   const [apiCanais, setApiCanais] = useState<CanalContato[]>([]);
   const [savingCanais, setSavingCanais] = useState(false);
 
-  // Notícias e Categorias (/n_noticias, /n_categorias_noticia)
+  // Notícias oficiais para KPIs e Kanban (/n_noticias)
   const [apiNews, setApiNews] = useState<NNoticia[]>([]);
-  const [apiNewsCategories, setApiNewsCategories] = useState<NCategoriaNoticia[]>([]);
 
   // Estados de Carregamento e Erro da API v1 Oficial (para KPIs e Auditoria)
   const [loadingAvisos, setLoadingAvisos] = useState(true);
@@ -555,6 +553,22 @@ export default function AdminDashboardPage() {
   };
 
   // Carregamento de dados da API v1 oficial
+  const loadNewsData = useCallback(async () => {
+    setLoadingNews(true);
+    setErrorNews(null);
+    try {
+      const response = await medtecApi.noticias.list({ page: 'all' });
+      if (!response.success || !Array.isArray(response.data?.items)) {
+        throw new Error('Resposta inválida da API de Notícias');
+      }
+      setApiNews(response.data.items);
+    } catch {
+      setErrorNews('Falha ao comunicar com a API de Notícias');
+    } finally {
+      setLoadingNews(false);
+    }
+  }, []);
+
   const loadApiData = useCallback(async () => {
     // 1. Avisos e Tipos
     setLoadingAvisos(true);
@@ -621,32 +635,16 @@ export default function AdminDashboardPage() {
       setLoadingEstados(false);
     }
 
-    // 5. Notícias e Categorias do CMS
-    setLoadingNews(true);
-    setErrorNews(null);
-    try {
-      const [catsRes, newsRes] = await Promise.all([
-        medtecApi.noticias.listCategorias({ page: 'all', 'q[ativo_true]': 1 }),
-        medtecApi.noticias.list({ page: 'all' }),
-      ]);
-      if (catsRes.success && catsRes.data?.items) {
-        setApiNewsCategories(catsRes.data.items);
-      }
-      if (!catsRes.success || !catsRes.data?.items || !newsRes.success || !newsRes.data?.items) {
-        throw new Error('Resposta inválida da API de Notícias');
-      }
-      setApiNews(newsRes.data.items);
-    } catch (err) {
-      console.warn('API v1: Erro ao listar notícias/categorias do backend:', err);
-      setErrorNews('Falha ao comunicar com a API de Notícias');
-    } finally {
-      setLoadingNews(false);
-    }
-  }, []);
+    // Notícias oficiais compartilhadas pelos KPIs e pelo Kanban.
+    await loadNewsData();
+  }, [loadNewsData]);
 
   // Carrega dados iniciais e verifica sessão
   const loadData = useCallback(async () => {
     await Promise.resolve();
+    const params = new URLSearchParams(window.location.search);
+    const createNews = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
+    const newsTarget = createNews ? '/admin/noticias?action=new' : '/admin/noticias';
     try {
       let authenticated = false;
 
@@ -668,14 +666,16 @@ export default function AdminDashboardPage() {
 
             if (!isGestor) {
               if (meRes.data.perfil_nome === 'Editor de Notícias') {
-                setCurrentSection('noticias');
+                router.replace(newsTarget);
+                return;
               } else if (meRes.data.perfil_nome === 'Curador de Fotos') {
                 setCurrentSection('fotos');
               } else if (meRes.data.perfil_nome === 'Publicador de Avisos') {
                 router.push('/admin/avisos');
                 return;
               } else {
-                setCurrentSection('noticias');
+                router.replace(newsTarget);
+                return;
               }
             } else {
               setCurrentSection('visaoGeral');
@@ -706,14 +706,16 @@ export default function AdminDashboardPage() {
 
           if (!isGestor) {
             if (profileType === 'Editor de Notícias') {
-              setCurrentSection('noticias');
+              router.replace(newsTarget);
+              return;
             } else if (profileType === 'Curador de Fotos') {
               setCurrentSection('fotos');
             } else if (profileType === 'Publicador de Avisos') {
               router.push('/admin/avisos');
               return;
             } else {
-              setCurrentSection('noticias');
+              router.replace(newsTarget);
+              return;
             }
           } else {
             setCurrentSection('visaoGeral');
@@ -766,7 +768,10 @@ export default function AdminDashboardPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab') || params.get('section');
-      if (tabParam === 'avisos') {
+      if (tabParam === 'noticias') {
+        const create = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
+        router.replace(create ? '/admin/noticias?action=new' : '/admin/noticias');
+      } else if (tabParam === 'avisos') {
         router.push('/admin/avisos');
       } else if (tabParam === 'galeria') {
         router.push('/admin/galeria');
@@ -845,30 +850,6 @@ export default function AdminDashboardPage() {
       alert('Erro de conexão com a API.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleTogglePublished = async (id: string) => {
-    if (!userSession.isGestor) {
-      alert('Publicação e despublicação exigem permissão de administrador na API.');
-      return;
-    }
-    const numId = Number(id);
-    if (!numId) return;
-
-    try {
-      const current = apiNews.find(n => n.id === numId);
-      if (current?.status === 'publicada') {
-        await medtecApi.noticias.despublicar(numId);
-        alert('Notícia despublicada com sucesso. Ela retornou à fila de aprovação.');
-      } else {
-        await medtecApi.noticias.publicar(numId);
-        alert('Notícia publicada com sucesso!');
-      }
-      await loadApiData();
-    } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      alert('Erro ao alterar status da notícia: ' + (error?.errors?.join(', ') || error?.message || 'Falha na operação.'));
     }
   };
 
@@ -3356,8 +3337,7 @@ export default function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setCurrentSection('noticias');
-                      handleNewNews();
+                      router.push('/admin/noticias?action=new');
                     }}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
                   >
@@ -3421,8 +3401,7 @@ export default function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setCurrentSection('noticias');
-                      setNewsViewMode('lista');
+                      router.push('/admin/noticias');
                     }}
                     className="inline-flex items-center gap-1 text-xs font-bold text-[#004A99] dark:text-sky-400 hover:underline pt-2 border-t border-slate-100 dark:border-slate-800 cursor-pointer"
                   >
@@ -3682,8 +3661,7 @@ export default function AdminDashboardPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setCurrentSection('noticias');
-                        setNewsViewMode('lista');
+                        router.push('/admin/noticias');
                       }}
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
                     >
@@ -4061,26 +4039,6 @@ export default function AdminDashboardPage() {
 
           {/* VISÃO 3: FOTOS & BANNERS DO SITE (VISÃO DEDICADA) */}
           {currentSection === 'fotos' && canAccessPhotos && renderCmsModule('fotos')}
-
-          {/* VISÃO 4: NOTÍCIAS & REPORTAGENS (VISÃO DEDICADA) */}
-          {canAccessNews && (
-            <div hidden={currentSection !== 'noticias'}>
-              <NewsModule
-                ref={newsModuleRef}
-                effectiveNews={effectiveNews}
-                apiNewsCategories={apiNewsCategories}
-                loadingNews={loadingNews}
-                errorNews={errorNews}
-                userSession={userSession}
-                canPublish={userSession.isGestor}
-                newsViewMode={newsViewMode}
-                setNewsViewMode={setNewsViewMode}
-                onRefresh={loadApiData}
-                onTogglePublished={handleTogglePublished}
-                onPreview={setPreviewModal}
-              />
-            </div>
-          )}
 
           {/* VISÃO: PROJETOS PEDAGÓGICOS (VISÃO DEDICADA GESTOR) */}
           {currentSection === 'projetos' && canAccessProjects && renderCmsModule('projetos')}

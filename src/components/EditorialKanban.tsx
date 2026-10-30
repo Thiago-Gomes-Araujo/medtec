@@ -65,7 +65,7 @@ export default function EditorialKanban({
 
   // Se propNews não estiver definido, busca da API
   useEffect(() => {
-    if (propNews && propNews.length > 0) return;
+    if (propNews !== undefined) return;
 
     let isMounted = true;
     async function loadFromApi() {
@@ -110,7 +110,7 @@ export default function EditorialKanban({
   }, [propNews]);
 
   // Lista unificada de notícias
-  const allNews: NewsItem[] = propNews && propNews.length > 0 ? propNews : internalNews;
+  const allNews: NewsItem[] = propNews ?? internalNews;
 
   // Contagens para os filtros
   const pendingNews = useMemo(() => allNews.filter((n) => n.published === false && !n.rejected), [allNews]);
