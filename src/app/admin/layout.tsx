@@ -8,6 +8,9 @@ export const metadata: Metadata = {
     index: false,
     follow: false,
   },
+  other: {
+    google: 'notranslate',
+  },
 };
 
 export default function AdminLayout({
@@ -15,5 +18,9 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <div translate="no" className="notranslate w-full h-full">
+      {children}
+    </div>
+  );
 }

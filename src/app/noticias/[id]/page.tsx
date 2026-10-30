@@ -2,7 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
-import { getDatabase } from '@/lib/db';
+import { medtecApi, getMediaUrl } from '@/lib/api';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight, Calendar, User, ArrowLeft, Tag, Radio } from 'lucide-react';
@@ -15,12 +15,36 @@ interface Props {
 
 export const instant = false;
 
+async function fetchNewsItem(idOrSlug: string): Promise<NewsItem | null> {
+  try {
+    const res = await medtecApi.noticias.getPublicoBySlug(idOrSlug);
+    if (!res?.data) return null;
+    const item = res.data;
+
+    return {
+      id: item.slug,
+      title: item.titulo,
+      slug: item.slug,
+      excerpt: item.resumo || '',
+      content: item.conteudo,
+      coverImage: getMediaUrl(item.imagem_capa),
+      author: item.autor_nome || 'SEDUC-RO',
+      category: item.categoria_nome || 'Geral',
+      publishedAt: item.data_publicacao || '',
+      featured: false,
+      urgent: false,
+      published: true,
+      views: 0,
+      tags: [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const data = getDatabase();
-  const allNews: NewsItem[] = data.news || [];
-
-  const newsItem = allNews.find((n) => n.id === id || n.slug === id);
+  const newsItem = await fetchNewsItem(id);
 
   if (!newsItem) {
     return {
@@ -45,13 +69,9 @@ const FALLBACK_COVER =
 
 export default async function NoticiaDetalhePage({ params }: Props) {
   const { id } = await params;
-  const data = getDatabase();
-  const allNews: NewsItem[] = data.news || [];
+  const newsItem = await fetchNewsItem(id);
 
-  const newsItem = allNews.find((n) => n.id === id || n.slug === id);
-
-  // Se não encontrar ou se a notícia estiver despublicada, retorna 404
-  if (!newsItem || newsItem.published === false) {
+  if (!newsItem) {
     notFound();
   }
 

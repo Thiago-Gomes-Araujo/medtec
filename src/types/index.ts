@@ -73,7 +73,7 @@ export interface SocialLinks {
   youtube: string;
   facebook: string;
   whatsapp: string;
-  tiktok: string;
+  tiktok?: string;
   email: string;
   phone: string;
   address: string;

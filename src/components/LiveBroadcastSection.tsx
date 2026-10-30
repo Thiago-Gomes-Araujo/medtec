@@ -35,49 +35,14 @@ export default function LiveBroadcastSection({
   announcements: propAnnouncements = EMPTY_ANNOUNCEMENTS,
   news: propNews = EMPTY_NEWS,
 }: LiveBroadcastSectionProps) {
-  const [fetchedData, setFetchedData] = React.useState<{
-    socials?: SocialLinks;
-    announcements?: AnnouncementItem[];
-    news?: NewsItem[];
-  } | null>(null);
-
-  const hasFetchedRef = React.useRef(false);
-
-  // Derivação de dados: prioriza props passadas pelo servidor (SSR); senão, dados buscados da API
-  const effectiveSocials = propSocials || fetchedData?.socials;
+  // Derivação de dados: utiliza diretamente as props passadas
+  const effectiveSocials = propSocials || null;
   const effectiveAnnouncements = propAnnouncements.length > 0 
     ? propAnnouncements 
-    : (fetchedData?.announcements || EMPTY_ANNOUNCEMENTS);
+    : EMPTY_ANNOUNCEMENTS;
   const effectiveNews = propNews.length > 0 
     ? propNews 
-    : (fetchedData?.news || EMPTY_NEWS);
-
-  const needsFetch = !propSocials || propAnnouncements.length === 0 || propNews.length === 0;
-
-  React.useEffect(() => {
-    // Se faltam dados e ainda não buscou da API, busca exatamente uma vez
-    if (!needsFetch || hasFetchedRef.current) return;
-
-    hasFetchedRef.current = true;
-    let ignore = false;
-
-    fetch('/api/data')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!ignore && data) {
-          setFetchedData({
-            socials: data.socials,
-            announcements: data.announcements || EMPTY_ANNOUNCEMENTS,
-            news: data.news || EMPTY_NEWS,
-          });
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      ignore = true;
-    };
-  }, [needsFetch]);
+    : EMPTY_NEWS;
 
   const schedules = [
     {

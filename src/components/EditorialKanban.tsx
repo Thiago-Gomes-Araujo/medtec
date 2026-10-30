@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Check,
   CheckCircle2,
@@ -17,6 +17,7 @@ import {
   Inbox
 } from 'lucide-react';
 import { NewsItem } from '@/types';
+import { ApiError } from '@/lib/api';
 
 interface AuditLog {
   data: string;
@@ -25,21 +26,24 @@ interface AuditLog {
 }
 
 interface EditorialKanbanProps {
-  news?: NewsItem[];
-  onApproveNews?: (newsId: string) => Promise<boolean>;
-  onRejectNews?: (newsId: string, reason?: string) => Promise<boolean>;
-  isGestor?: boolean;
+  news: NewsItem[];
+  onApproveNews: (newsId: string) => Promise<boolean>;
+  onRejectNews: (newsId: string, reason: string) => Promise<boolean>;
+  loading?: boolean;
+  error?: string | null;
+  canApprove?: boolean;
+  canReject?: boolean;
 }
 
 export default function EditorialKanban({
-  news: propNews,
+  news: allNews,
   onApproveNews,
   onRejectNews,
-  isGestor = true,
+  loading = false,
+  error = null,
+  canApprove = false,
+  canReject = false,
 }: EditorialKanbanProps) {
-  // Estado local para quando os dados não forem injetados via props
-  const [internalNews, setInternalNews] = useState<NewsItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'pendentes' | 'publicadas' | 'recusadas' | 'todas' | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
@@ -62,44 +66,14 @@ export default function EditorialKanban({
     },
   ]);
 
-  // Se propNews não estiver definido, busca da API
-  useEffect(() => {
-    if (propNews && propNews.length > 0) return;
-
-    let isMounted = true;
-    async function loadFromApi() {
-      setLoading(true);
-      try {
-        const res = await fetch('/api/editorial');
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted && data.news) {
-            setInternalNews(data.news);
-          }
-        }
-      } catch (err) {
-        console.error('Falha ao carregar editorial da API:', err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    loadFromApi();
-    return () => {
-      isMounted = false;
-    };
-  }, [propNews]);
-
-  // Lista unificada de notícias
-  const allNews: NewsItem[] = propNews && propNews.length > 0 ? propNews : internalNews;
-
   // Contagens para os filtros
   const pendingNews = useMemo(() => allNews.filter((n) => n.published === false && !n.rejected), [allNews]);
   const publishedNews = useMemo(() => allNews.filter((n) => n.published !== false), [allNews]);
   const rejectedNews = useMemo(() => allNews.filter((n) => n.rejected === true), [allNews]);
 
-  // Se o usuário ainda não escolheu um filtro manualmente, prioriza 'pendentes' se houver; senão 'todas'
-  const activeFilter = selectedFilter ?? (pendingNews.length > 0 ? 'pendentes' : 'todas');
+  // Por padrão exibe 'todas' para que nenhuma notícia pareça ter desaparecido,
+  // mantendo os contadores destacados em cada aba
+  const activeFilter = selectedFilter ?? 'todas';
 
   // Filtra as notícias conforme busca e aba ativa
   const filteredNews = useMemo(() => {
@@ -125,39 +99,14 @@ export default function EditorialKanban({
   // Execução da aprovação com persistência real
   const handleConfirmApproval = async () => {
     const item = confirmModal.item;
-    if (!item) return;
+    if (!item || !canApprove || loading || error || approvingId || rejectingId) return;
 
     setApprovingId(item.id);
     setConfirmModal({ isOpen: false, item: null });
 
     try {
-      let success = false;
-
-      // 1. Prioriza a função de persistência central injetada pelo admin (PUT /api/data)
-      if (onApproveNews) {
-        success = await onApproveNews(item.id);
-      } else {
-        // 2. Fallback para rota dedicada POST /api/editorial
-        const res = await fetch('/api/editorial', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ newsId: item.id }),
-        });
-        success = res.ok;
-      }
-
+      const success = await onApproveNews(item.id);
       if (success) {
-        // Atualiza estado local se não estiver usando props
-        if (!propNews || propNews.length === 0) {
-          setInternalNews((prev) =>
-            prev.map((n) =>
-              n.id === item.id
-                ? { ...n, published: true, rejected: false, publishedAt: new Date().toLocaleDateString('pt-BR') }
-                : n
-            )
-          );
-        }
-
         // Registra evento no histórico de auditoria
         setHistorico((prev) => [
           {
@@ -175,14 +124,14 @@ export default function EditorialKanban({
       } else {
         setFeedback({
           type: 'error',
-          message: 'Não foi possível aprovar a notícia. Verifique as permissões de gestor ou a conexão.',
+          message: 'Não foi possível aprovar a notícia. Verifique as permissões editoriais ou a conexão.',
         });
       }
     } catch (err) {
       console.error('Erro ao aprovar notícia:', err);
       setFeedback({
         type: 'error',
-        message: 'Ocorreu um erro inesperado ao processar a aprovação da notícia.',
+        message: ApiError.getFriendlyMessage(err),
       });
     } finally {
       setApprovingId(null);
@@ -193,35 +142,22 @@ export default function EditorialKanban({
   // Execução da recusa com persistência
   const handleConfirmReject = async () => {
     const item = rejectModal.item;
-    if (!item) return;
+    if (!item || !canReject || loading || error || approvingId || rejectingId) return;
+
+    if (!rejectReason || !rejectReason.trim()) {
+      setFeedback({
+        type: 'error',
+        message: 'É obrigatório informar o motivo da reprovação da notícia.',
+      });
+      return;
+    }
 
     setRejectingId(item.id);
     setRejectModal({ isOpen: false, item: null });
 
     try {
-      let success = false;
-      if (onRejectNews) {
-        success = await onRejectNews(item.id, rejectReason);
-      } else {
-        const res = await fetch('/api/editorial', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ newsId: item.id, action: 'reject', reason: rejectReason }),
-        });
-        success = res.ok;
-      }
-
+      const success = await onRejectNews(item.id, rejectReason.trim());
       if (success) {
-        if (!propNews || propNews.length === 0) {
-          setInternalNews((prev) =>
-            prev.map((n) =>
-              n.id === item.id
-                ? { ...n, published: false, rejected: true, rejectionReason: rejectReason || 'Recusada pelo gestor.' }
-                : n
-            )
-          );
-        }
-
         setHistorico((prev) => [
           {
             data: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
@@ -238,14 +174,14 @@ export default function EditorialKanban({
       } else {
         setFeedback({
           type: 'error',
-          message: 'Não foi possível recusar a notícia. Verifique as permissões de gestor ou a conexão.',
+          message: 'Não foi possível recusar a notícia. Verifique as permissões editoriais ou a conexão.',
         });
       }
     } catch (err) {
       console.error('Erro ao recusar notícia:', err);
       setFeedback({
         type: 'error',
-        message: 'Ocorreu um erro inesperado ao processar a recusa da notícia.',
+        message: ApiError.getFriendlyMessage(err),
       });
     } finally {
       setRejectingId(null);
@@ -256,11 +192,15 @@ export default function EditorialKanban({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-slate-400 gap-2">
+      <div role="status" className="flex items-center justify-center py-16 text-slate-400 gap-2">
         <Loader2 className="w-5 h-5 animate-spin text-[#004A99] dark:text-sky-400" />
         <span className="text-sm font-medium">Carregando notícias para aprovação...</span>
       </div>
     );
+  }
+
+  if (error) {
+    return <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">{error}</p>;
   }
 
   return (
@@ -399,35 +339,39 @@ export default function EditorialKanban({
       ======================================================== */}
       <div className="space-y-3">
         {filteredNews.length === 0 ? (
-          <div className="bg-white dark:bg-[#0B1528] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-10 text-center flex flex-col items-center justify-center">
+          <div key="empty-state" className="bg-white dark:bg-[#0B1528] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-10 text-center flex flex-col items-center justify-center">
             <Inbox className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
             <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
-              Nenhuma notícia encontrada
+              <span>{allNews.length === 0 ? 'Fila editorial aguardando matérias' : 'Nenhuma notícia encontrada'}</span>
             </h3>
             <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 max-w-md">
-              {activeFilter === 'pendentes'
-                ? 'Excelente! Todas as reportagens cadastradas no sistema já foram avaliadas e aprovadas pelo gestor.'
-                : 'Nenhuma matéria corresponde aos filtros ou termos pesquisados.'}
+              <span>
+                {allNews.length === 0
+                  ? 'A fila editorial exibirá as matérias enviadas para avaliação pelo CMS.'
+                  : activeFilter === 'pendentes'
+                  ? 'Não há matérias pendentes de avaliação no momento.'
+                  : 'Nenhuma matéria corresponde aos filtros ou termos pesquisados.'}
+              </span>
             </p>
-            {activeFilter === 'pendentes' && (
+            {allNews.length > 0 && activeFilter === 'pendentes' && (
               <button
                 type="button"
                 onClick={() => setSelectedFilter('todas')}
                 className="mt-4 px-4 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold text-slate-700 dark:text-slate-200 transition cursor-pointer"
               >
-                Ver todas as notícias publicadas
+                <span>Ver todas as notícias publicadas</span>
               </button>
             )}
           </div>
         ) : (
-          filteredNews.map((item) => {
+          filteredNews.map((item, idx) => {
             const isPublished = item.published !== false;
             const isCurrentlyApproving = approvingId === item.id;
             const hasAttachments = Boolean(item.coverImage);
 
             return (
               <div
-                key={item.id}
+                key={item.id ? `news-item-${item.id}` : `news-item-idx-${idx}`}
                 className="bg-white dark:bg-[#0B1528] rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs hover:border-[#004A99]/40 dark:hover:border-sky-500/40 transition flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
                 {/* Informações da Notícia */}
@@ -509,7 +453,7 @@ export default function EditorialKanban({
                         <XCircle className="w-3.5 h-3.5" />
                         <span>Recusada</span>
                       </span>
-                      {isGestor && (
+                      {canApprove && (
                         <button
                           type="button"
                           onClick={() => setConfirmModal({ isOpen: true, item })}
@@ -524,7 +468,7 @@ export default function EditorialKanban({
                       {/* Botão Recusar */}
                       <button
                         type="button"
-                        disabled={rejectingId === item.id || isCurrentlyApproving || !isGestor}
+                        disabled={rejectingId === item.id || isCurrentlyApproving || !canReject}
                         onClick={() => {
                           setRejectReason('');
                           setRejectModal({ isOpen: true, item });
@@ -548,7 +492,7 @@ export default function EditorialKanban({
                       {/* Botão Aprovar Notícia */}
                       <button
                         type="button"
-                        disabled={isCurrentlyApproving || rejectingId === item.id || !isGestor}
+                        disabled={isCurrentlyApproving || rejectingId === item.id || !canApprove}
                         onClick={() => setConfirmModal({ isOpen: true, item })}
                         className="flex-1 md:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         title="Aprovar e publicar imediatamente no portal"
@@ -601,15 +545,22 @@ export default function EditorialKanban({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                  {allNews.map((item) => {
-                    const anexo = item.coverImage;
-                    const isUrl = anexo?.startsWith('http://') || anexo?.startsWith('https://');
-                    const displayName = anexo && anexo.length > 26
-                      ? `${anexo.substring(0, 14)}...${anexo.substring(anexo.length - 8)}`
-                      : anexo;
+                  {allNews.length === 0 ? (
+                    <tr key="empty-anexos">
+                      <td colSpan={3} className="py-4 px-3 text-center text-slate-400 italic">
+                        <span>Nenhum anexo encontrado.</span>
+                      </td>
+                    </tr>
+                  ) : (
+                    allNews.map((item, idx) => {
+                      const anexo = item.coverImage;
+                      const isUrl = anexo?.startsWith('http://') || anexo?.startsWith('https://');
+                      const displayName = anexo && anexo.length > 26
+                        ? `${anexo.substring(0, 14)}...${anexo.substring(anexo.length - 8)}`
+                        : anexo;
 
-                    return (
-                      <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-900/30">
+                      return (
+                        <tr key={item.id ? `anexo-${item.id}` : `anexo-idx-${idx}`} className="hover:bg-slate-50/70 dark:hover:bg-slate-900/30">
                         <td className="py-2 px-3 font-medium text-slate-900 dark:text-slate-100 max-w-[180px] truncate">
                           {item.title}
                         </td>
@@ -651,7 +602,7 @@ export default function EditorialKanban({
                         </td>
                       </tr>
                     );
-                  })}
+                  }))}
                 </tbody>
               </table>
             </div>
@@ -707,7 +658,7 @@ export default function EditorialKanban({
                     Confirmar Aprovação
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Ação restrita ao Gestor Geral
+                    Ação restrita a usuários com permissão editorial
                   </p>
                 </div>
               </div>
@@ -746,6 +697,7 @@ export default function EditorialKanban({
               </button>
               <button
                 type="button"
+                disabled={!canApprove || !!approvingId || !!rejectingId}
                 onClick={handleConfirmApproval}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
               >
@@ -825,6 +777,7 @@ export default function EditorialKanban({
               </button>
               <button
                 type="button"
+                disabled={!canReject || !!approvingId || !!rejectingId}
                 onClick={handleConfirmReject}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
               >

@@ -17,7 +17,7 @@ import {
   Info
 } from 'lucide-react';
 
-import { medtecApi, setStoredTokens } from '@/lib/api';
+import { setStoredTokens } from '@/lib/api';
 
 export default function AdminLoginPage() {
   const [cpf, setCpf] = useState('');
@@ -42,43 +42,7 @@ export default function AdminLoginPage() {
     }
 
     try {
-      let apiSuccess = false;
-
-      // 1. Tenta autenticar diretamente na API Backend v1
-      try {
-        const resApi = await medtecApi.auth.login(cleanCpf, password);
-        if (resApi.success && resApi.data) {
-          apiSuccess = true;
-          setStoredTokens(resApi.data);
-        }
-      } catch (apiErr: unknown) {
-        const err = apiErr as { errors?: string[]; message?: string };
-        const code = err?.errors?.[0];
-
-        if (code === 'cpf_senha_obrigatorios') {
-          setError('Informe o CPF e a senha para acessar o painel.');
-          setLoading(false);
-          return;
-        }
-        if (code === 'credenciais_invalidas') {
-          setError('CPF ou senha incorretos. Verifique suas credenciais.');
-          setLoading(false);
-          return;
-        }
-        if (code === 'usuario_inativo') {
-          setError('Este usuário está inativo. Entre em contato com a administração da SEDUC.');
-          setLoading(false);
-          return;
-        }
-        if (code === 'muitas_tentativas') {
-          setError('Muitas tentativas em pouco tempo. Aguarde 1 minuto e tente novamente.');
-          setLoading(false);
-          return;
-        }
-        // Se for erro de rede/conexão, tentará o fallback local
-      }
-
-      // 2. Sincroniza sessão local/cookies no Next.js
+      // O servidor autentica e cria o cookie necessário para acessar o painel.
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -90,14 +54,6 @@ export default function AdminLoginPage() {
         if (data.tokens) {
           setStoredTokens(data.tokens);
         }
-        const searchParams = new URLSearchParams(window.location.search);
-        const redirectTarget = searchParams.get('redirect') || '/admin';
-        router.push(redirectTarget);
-        router.refresh();
-        return;
-      }
-
-      if (apiSuccess) {
         const searchParams = new URLSearchParams(window.location.search);
         const redirectTarget = searchParams.get('redirect') || '/admin';
         router.push(redirectTarget);

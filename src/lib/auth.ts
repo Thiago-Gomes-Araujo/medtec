@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
-import { getDatabase } from '@/lib/db';
 
 export const AUTH_COOKIE_NAME = 'medtec_admin_session';
 
@@ -145,42 +144,7 @@ export function authenticateUser(loginAttempt: string, passwordAttempt: string):
     };
   }
 
-  // 2. Verifica se é um Operador cadastrado (por CPF formatado ou apenas dígitos)
-  try {
-    const db = getDatabase();
-    const cleanAttempt = cleanLogin.replace(/\D/g, '');
-
-    const matchedUser = db.users?.find((u) => {
-      const cleanUserCpf = u.cpf.replace(/\D/g, '');
-      return cleanUserCpf === cleanAttempt || u.cpf === cleanLogin;
-    });
-
-    if (matchedUser) {
-      if (matchedUser.active === false) {
-        return { authenticated: false, error: 'Conta de operador inativa. Contate o gestor.' };
-      }
-
-      if (!matchedUser.passwordHash) {
-        return { authenticated: false, error: 'Usuário sem credencial local cadastrada' };
-      }
-
-      const isPassValid = verifyPassword(passwordAttempt, matchedUser.passwordHash);
-      if (isPassValid) {
-        return {
-          authenticated: true,
-          user: {
-            username: matchedUser.cpf,
-            role: 'operador',
-            name: matchedUser.name,
-            profileType: matchedUser.profileType,
-          },
-        };
-      }
-    }
-  } catch (err) {
-    console.error('Erro ao verificar operador no banco:', err);
-  }
-
+  // 2. Operadores devem ser autenticados pela API Backend v1 (/auth/login).
   return { authenticated: false, error: 'Usuário/CPF ou senha incorretos' };
 }
 
