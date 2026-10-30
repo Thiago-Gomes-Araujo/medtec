@@ -13,9 +13,10 @@ import AdminFaqSubroutePage from '../src/app/admin/faq/page';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
 import FaqModule, { type FaqViewMode } from '../src/components/admin/FaqModule';
+import ProjectsModule, { type ProjectViewMode } from '../src/components/admin/ProjectsModule';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSession } from '../src/components/admin/AdminShell';
-import type { FaqItem, NewsItem } from '../src/types';
+import type { FaqItem, NewsItem, ProjectMission } from '../src/types';
 
 import {
   buildQueryString,
@@ -33,6 +34,66 @@ import {
 } from '../src/lib/api/tokens';
 import { medtecApi } from '../src/lib/api/index';
 import { getLegacyFaqHref, readAdminFaqs } from '../src/lib/admin-faq';
+
+describe('Módulo administrativo de Projetos', () => {
+  function renderProjects(projects: ProjectMission[] = [], viewMode: ProjectViewMode = 'lista') {
+    return renderToStaticMarkup(createElement(ProjectsModule, {
+      projects, viewMode, onViewModeChange: () => {},
+    }));
+  }
+
+  it('exibe lista vazia e bloqueio de persistência sem inserir projetos substitutos', () => {
+    const html = renderProjects();
+    assert.ok(html.includes('Projetos Cadastrados (0)'));
+    assert.ok(html.includes('Nenhum projeto encontrado com os filtros atuais'));
+    assert.ok(html.includes('criação, edição e exclusão de projetos pedagógicos'));
+    assert.ok(html.includes('desabilitadas aguardando suporte oficial do backend Rails'));
+  });
+
+  it('renderiza os projetos recebidos com identificação, escola e ações existentes', () => {
+    const project: ProjectMission = {
+      id: 'project-test', number: '09', missionCode: 'Projeto 09', title: 'Projeto recebido',
+      shortTitle: 'Título curto recebido', track: 'Ciência na Amazônia',
+      territory: 'Território de teste', typology: 'Tipologia de teste', municipality: 'Município de teste',
+      school: 'Escola de teste', mediatorName: 'Docente de teste', mediatorRole: 'Docente',
+      mediatorInitials: 'DT', studentCohort: 'Turma de teste', seal: 'Selo de teste',
+      image: '/hero.jpg', initialApplause: 0,
+      desafioLocal: { title: 'Desafio de teste', description: '' },
+      praticaMedtec: { title: 'Prática de teste', description: '' },
+      impactoGerado: { title: '', metric: '', description: '' },
+      competencias: ['Competência de teste'], quote: '',
+      replicationGuide: { materials: [], timeline: [], pedagogicalTip: '' },
+    };
+    const html = renderProjects([project]);
+    for (const text of ['Projetos Cadastrados (1)', 'Projeto recebido', 'Escola de teste', 'Município de teste', 'Docente de teste', 'Competência de teste']) {
+      assert.ok(html.includes(text));
+    }
+    assert.ok(html.includes('Editar dados da missão'));
+    assert.ok(html.includes('Excluir projeto'));
+    assert.ok(html.includes('href="/projetos"'));
+    assert.ok(!html.includes('Nenhum projeto encontrado'));
+  });
+
+  it('mantém formulário, upload e prévia sem habilitar a gravação de projetos', () => {
+    const originalFetch = globalThis.fetch;
+    let requests = 0;
+    globalThis.fetch = async () => {
+      requests += 1;
+      throw new Error('Renderizar o editor não deve iniciar uploads ou gravações.');
+    };
+    try {
+      const html = renderProjects([], 'editor');
+      assert.ok(/<button[^>]*type="submit"[^>]*disabled=""/.test(html));
+      assert.ok(html.includes('Aguardando Endpoint da API'));
+      assert.ok(html.includes('type="file"'));
+      assert.ok(html.includes('Simulação no Portal Público'));
+      assert.ok(html.includes('Integração com Backend Pendente'));
+      assert.equal(requests, 0);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
 
 describe('Subrota administrativa de FAQ', () => {
   it('monta o shell e aguarda autenticação sem iniciar a leitura restrita', () => {
