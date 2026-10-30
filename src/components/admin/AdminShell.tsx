@@ -79,7 +79,7 @@ export const SECTION_CONFIG: Record<
     group: 'Publicações do Site',
     title: 'Dúvidas Frequentes (FAQ)',
     subtitle: 'Cadastre, edite e organize as perguntas e respostas que aparecem na Central de Dúvidas do portal.',
-    href: '/admin?tab=duvidas',
+    href: '/admin/faq',
   },
   avisos: {
     group: 'Publicações do Site',

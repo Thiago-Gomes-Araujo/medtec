@@ -7,11 +7,15 @@ import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { PathnameContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
+import AdminFaqSubroutePage from '../src/app/admin/faq/page';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
+import FaqModule, { type FaqViewMode } from '../src/components/admin/FaqModule';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSession } from '../src/components/admin/AdminShell';
-import type { NewsItem } from '../src/types';
+import type { FaqItem, NewsItem } from '../src/types';
 
 import {
   buildQueryString,
@@ -28,6 +32,147 @@ import {
   isAccessTokenExpired,
 } from '../src/lib/api/tokens';
 import { medtecApi } from '../src/lib/api/index';
+import { getLegacyFaqHref, readAdminFaqs } from '../src/lib/admin-faq';
+
+describe('Subrota administrativa de FAQ', () => {
+  it('monta o shell e aguarda autenticação sem iniciar a leitura restrita', () => {
+    const originalFetch = globalThis.fetch;
+    let requests = 0;
+    globalThis.fetch = async () => {
+      requests += 1;
+      throw new Error('A leitura não deve iniciar durante a montagem não autenticada.');
+    };
+    try {
+      const router = {
+        back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'test',
+      };
+      const html = renderToStaticMarkup(createElement(
+        AppRouterContext.Provider,
+        { value: router },
+        createElement(PathnameContext.Provider, { value: '/admin/faq' }, createElement(AdminFaqSubroutePage)),
+      ));
+      assert.ok(html.includes('Autenticando e carregando painel de gestão...'));
+      assert.ok(!html.includes('Dúvidas Cadastradas'));
+      assert.equal(requests, 0);
+      assert.equal(SECTION_CONFIG.duvidas.href, '/admin/faq');
+      assert.equal(getFolderIdForSection('duvidas'), 'publicacoes');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('encaminha os quatro links legados de FAQ sem capturar as outras seções', () => {
+    for (const key of ['tab', 'section']) {
+      for (const id of ['faq', 'duvidas']) {
+        assert.equal(getLegacyFaqHref(new URLSearchParams({ [key]: id })), '/admin/faq');
+      }
+    }
+    for (const id of ['noticias', 'kanban', 'usuarios', 'avisos', 'galeria', 'redes', 'siteInfo', 'estadosCidades']) {
+      assert.equal(getLegacyFaqHref(new URLSearchParams({ tab: id })), null);
+    }
+    assert.equal(getLegacyFaqHref(new URLSearchParams()), null);
+    assert.equal(getLegacyFaqHref(new URLSearchParams('tab=noticias&section=faq')), null);
+  });
+
+  it('lê somente a coleção FAQ da fonte administrativa existente, com GET cancelável', async () => {
+    const originalFetch = globalThis.fetch;
+    const controller = new AbortController();
+    const item: FaqItem = {
+      id: 'faq-test', index: '01', question: 'Pergunta recebida', answer: 'Resposta recebida',
+      category: 'Metodologia & Aulas ao Vivo', personas: ['estudantes'], tags: [],
+    };
+    let requests = 0;
+    globalThis.fetch = async (url, options) => {
+      requests += 1;
+      assert.equal(url, '/api/data');
+      assert.equal(options?.method, 'GET');
+      assert.equal(options?.signal, controller.signal);
+      return new Response(JSON.stringify({ faqs: [item], siteInfo: { title: 'Não utilizado' } }), {
+        status: 200, headers: { 'Content-Type': 'application/json' },
+      });
+    };
+    try {
+      assert.deepEqual(await readAdminFaqs(controller.signal), [item]);
+      assert.equal(requests, 1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('aceita lista vazia confirmada como resultado válido', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({ faqs: [] }), { status: 200 });
+    try {
+      assert.deepEqual(await readAdminFaqs(), []);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('propaga falhas de sessão, permissão, servidor e rede sem substituir por lista vazia', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      for (const status of [401, 403, 500]) {
+        globalThis.fetch = async () => new Response(null, { status });
+        await assert.rejects(readAdminFaqs(), new RegExp(`HTTP ${status}`));
+      }
+      globalThis.fetch = async () => { throw new Error('Failed to fetch'); };
+      await assert.rejects(readAdminFaqs(), /Failed to fetch/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('rejeita resposta inválida em vez de aceitar o handler público vazio como fallback', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      for (const payload of ['não é JSON', '{}', '{"items":[]}', '{"faqs":null}']) {
+        globalThis.fetch = async () => new Response(payload, { status: 200 });
+        await assert.rejects(readAdminFaqs(), /Resposta inválida/);
+      }
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+describe('FAQ administrativo extraído', () => {
+  function renderFaq(faqs: FaqItem[] = [], viewMode: FaqViewMode = 'lista') {
+    return renderToStaticMarkup(createElement(FaqModule, {
+      faqs, viewMode, onViewModeChange: () => {},
+    }));
+  }
+
+  it('exibe estado vazio e explica o bloqueio de gravação sem dados substitutos', () => {
+    const html = renderFaq();
+    assert.ok(html.includes('Dúvidas Cadastradas (0)'));
+    assert.ok(html.includes('Nenhuma dúvida encontrada'));
+    assert.ok(html.includes('criação, edição e exclusão'));
+    assert.ok(html.includes('desabilitadas aguardando suporte oficial do backend Rails'));
+  });
+
+  it('renderiza a coleção recebida com categoria, público, tags e link', () => {
+    const html = renderFaq([{
+      id: 'faq-test', index: '07', question: 'Pergunta recebida', answer: 'Resposta recebida',
+      category: 'Legislação & Diretrizes', personas: ['gestores'], tags: ['normas'],
+      actionLink: { label: 'Consultar orientações', href: '/transparencia' },
+    }]);
+    for (const text of ['Pergunta recebida', 'Resposta recebida', 'gestores', '#normas', 'Consultar orientações']) {
+      assert.ok(html.includes(text));
+    }
+    assert.ok(html.includes('Dúvidas Cadastradas (1)'));
+    assert.ok(!html.includes('Nenhuma dúvida encontrada'));
+  });
+
+  it('mantém envio desabilitado e a prévia sem promessa de publicação', () => {
+    const html = renderFaq([], 'editor');
+    assert.ok(/<button[^>]*type="submit"[^>]*disabled=""/.test(html));
+    assert.ok(html.includes('Aguardando Endpoint da API'));
+    assert.ok(html.includes('Prévia sem publicação'));
+    assert.ok(html.includes('Esta prévia não altera o portal.'));
+    assert.ok(!html.includes('Disponibilidade Imediata'));
+  });
+});
 
 describe('Autorização da subrota de usuários', () => {
   const adminSession: AdminSession = {
