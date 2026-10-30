@@ -1,107 +1,109 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
-import { medtecApi, CanalContato } from '@/lib/api';
+import { ApiError, type CanalContato } from '@/lib/api';
 import SocialChannelsModule from '@/components/admin/SocialChannelsModule';
 import AdminShell from '@/components/admin/AdminShell';
-import type { SocialLinks } from '@/types';
+import { getChannelChanges, readAdminChannels, saveAdminChannels } from '@/lib/admin-channels';
 
-export default function AdminRedesSubroutePage() {
+function ChannelsContent() {
+  const [official, setOfficial] = useState<CanalContato[] | null>(null);
   const [apiCanais, setApiCanais] = useState<CanalContato[]>([]);
-  const [defaultSocials, setDefaultSocials] = useState<SocialLinks | undefined>(undefined);
-  const [loadingCanais, setLoadingCanais] = useState(true);
-  const [savingCanais, setSavingCanais] = useState(false);
-
-  const loadCanaisData = useCallback(async () => {
-    setLoadingCanais(true);
-    try {
-      const [canaisRes, dataRes] = await Promise.allSettled([
-        medtecApi.canaisContato.list({ page: 'all' }),
-        fetch('/api/data').then((res) => (res.ok ? res.json() : null)),
-      ]);
-
-      if (canaisRes.status === 'fulfilled' && canaisRes.value.success && canaisRes.value.data?.items) {
-        setApiCanais(canaisRes.value.data.items);
-      }
-
-      if (dataRes.status === 'fulfilled' && dataRes.value?.socials) {
-        setDefaultSocials(dataRes.value.socials);
-      }
-    } catch (err) {
-      console.warn('API v1: Erro ao listar canais de contato na subrota /admin/redes:', err);
-    } finally {
-      setLoadingCanais(false);
-    }
-  }, []);
+  const [loading, setLoading] = useState(true);
+  const [readError, setReadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [readVersion, setReadVersion] = useState(0);
+  const savePending = useRef(false);
 
   useEffect(() => {
-    void loadCanaisData();
-  }, [loadCanaisData]);
-
-  const handleSaveSocials = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingCanais(true);
-    try {
-      const fixedKeys = ['youtube', 'instagram', 'facebook', 'whatsapp', 'telefone', 'email', 'endereco'] as const;
-      const payload = fixedKeys.map((rede, idx) => {
-        const found = apiCanais.find((c) => c.rede === rede);
-        const fallbackValue =
-          rede === 'youtube'
-            ? defaultSocials?.youtube || ''
-            : rede === 'instagram'
-            ? defaultSocials?.instagram || ''
-            : rede === 'facebook'
-            ? defaultSocials?.facebook || ''
-            : rede === 'whatsapp'
-            ? defaultSocials?.whatsapp || ''
-            : rede === 'telefone'
-            ? defaultSocials?.phone || ''
-            : rede === 'email'
-            ? defaultSocials?.email || ''
-            : defaultSocials?.address || '';
-        return {
-          rede,
-          valor: found?.valor !== undefined && found.valor !== '' ? found.valor : fallbackValue,
-          posicao: found?.posicao !== undefined ? Number(found.posicao) : idx + 1,
-          ativo: found?.ativo !== undefined ? Boolean(found.ativo) : true,
-        };
-      });
-
-      const res = await medtecApi.canaisContato.updateMany(payload);
-      if (res.success && res.data) {
-        setApiCanais(res.data);
+    let active = true;
+    async function load() {
+      await Promise.resolve();
+      if (!active) return;
+      setLoading(true);
+      setOfficial(null);
+      setReadError(null);
+      try {
+        const channels = await readAdminChannels();
+        if (active) {
+          setOfficial(channels);
+          setApiCanais(channels);
+        }
+      } catch (error) {
+        if (active) setReadError(ApiError.getFriendlyMessage(error));
+      } finally {
+        if (active) setLoading(false);
       }
+    }
+    void load();
+    return () => { active = false; };
+  }, [readVersion]);
 
-      alert('Canais de atendimento e redes oficiais salvos com sucesso na API oficial!');
-    } catch (err: unknown) {
-      const errorData = err as { message?: string; errors?: string[] };
-      alert(
-        `Erro ao salvar canais na API oficial: ${
-          errorData.message || errorData.errors?.join(', ') || 'Falha na requisição'
-        }`
-      );
+  const handleSave = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (loading || readError || !official || savePending.current) return;
+    savePending.current = true;
+    setSaving(true);
+    setSaveError(null);
+    setNotice(null);
+    try {
+      const channels = await saveAdminChannels(official, apiCanais);
+      if (channels) {
+        setOfficial(channels);
+        setApiCanais(channels);
+        setNotice('Alterações confirmadas pela API oficial.');
+      }
+    } catch (error) {
+      setSaveError(ApiError.getFriendlyMessage(error));
     } finally {
-      setSavingCanais(false);
+      savePending.current = false;
+      setSaving(false);
     }
   };
 
+  if (loading) return (
+    <div role="status" className="py-20 flex flex-col items-center justify-center text-slate-400 gap-3">
+      <Loader2 className="h-6 w-6 animate-spin text-[#004A99] dark:text-sky-400" />
+      <span className="text-xs font-medium">Carregando canais oficiais de contato...</span>
+    </div>
+  );
+
+  if (readError || official === null) return (
+    <div role="alert" className="rounded-lg border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-950/30 p-3 text-xs text-red-700 dark:text-red-300 space-y-2">
+      <p>{readError || 'Não foi possível carregar os canais oficiais.'}</p>
+      <p>A gravação está bloqueada até que os canais sejam carregados com sucesso.</p>
+      <button type="button" onClick={() => setReadVersion((version) => version + 1)} className="font-bold underline cursor-pointer">
+        Tentar novamente
+      </button>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {saveError && <p role="alert" className="text-xs text-red-700 dark:text-red-300">{saveError}</p>}
+      {notice && <p role="status" className="text-xs text-emerald-700 dark:text-emerald-300">{notice}</p>}
+      <SocialChannelsModule
+        apiCanais={apiCanais}
+        setApiCanais={(action) => {
+          setNotice(null);
+          setSaveError(null);
+          setApiCanais(action);
+        }}
+        onSave={handleSave}
+        saving={saving}
+        canSave={getChannelChanges(official, apiCanais).length > 0}
+      />
+    </div>
+  );
+}
+
+export default function AdminRedesSubroutePage() {
   return (
     <AdminShell activeSection="redes">
-      {loadingCanais ? (
-        <div className="py-20 flex flex-col items-center justify-center text-slate-400 gap-3">
-          <Loader2 className="h-6 w-6 animate-spin text-[#004A99] dark:text-sky-400" />
-          <span className="text-xs font-medium">Carregando canais oficiais de contato...</span>
-        </div>
-      ) : (
-        <SocialChannelsModule
-          apiCanais={apiCanais}
-          setApiCanais={setApiCanais}
-          defaultSocials={defaultSocials}
-          onSave={handleSaveSocials}
-          saving={savingCanais}
-        />
-      )}
+      {() => <ChannelsContent />}
     </AdminShell>
   );
 }

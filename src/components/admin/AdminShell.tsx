@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAdminTheme } from '@/components/admin/useAdminTheme';
+import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
+import { filterAdminNavigation } from '@/lib/admin-navigation-filter';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -38,98 +41,9 @@ import {
 } from 'lucide-react';
 import { medtecApi, clearStoredTokens, type AuthUser } from '@/lib/api';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
+import { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
-export type AdminSection =
-  | 'visaoGeral'
-  | 'kanban'
-  | 'fotos'
-  | 'noticias'
-  | 'avisos'
-  | 'galeria'
-  | 'redes'
-  | 'siteInfo'
-  | 'usuarios'
-  | 'projetos'
-  | 'duvidas'
-  | 'estadosCidades';
-
-export const SECTION_CONFIG: Record<
-  AdminSection,
-  { group: string; title: string; subtitle: string; href: string }
-> = {
-  visaoGeral: {
-    group: 'Início',
-    title: 'Início (Resumo do Painel)',
-    subtitle: 'Visão executiva unificada, indicadores em tempo real e atalhos didáticos de acesso rápido.',
-    href: '/admin',
-  },
-  noticias: {
-    group: 'Publicações do Site',
-    title: 'Notícias e Matérias',
-    subtitle: 'Aqui você escreve novas matérias, escolhe a foto de capa e edita notícias já publicadas no portal.',
-    href: '/admin/noticias',
-  },
-  projetos: {
-    group: 'Publicações do Site',
-    title: 'Projetos Pedagógicos e Práticas Escolares',
-    subtitle: 'Cadastre, edite e gerencie os projetos pedagógicos, práticas de campo e missões escolares dos 52 municípios.',
-    href: '/admin/projetos',
-  },
-  duvidas: {
-    group: 'Publicações do Site',
-    title: 'Dúvidas Frequentes (FAQ)',
-    subtitle: 'Cadastre, edite e organize as perguntas e respostas que aparecem na Central de Dúvidas do portal.',
-    href: '/admin/faq',
-  },
-  avisos: {
-    group: 'Publicações do Site',
-    title: 'Avisos e Comunicados',
-    subtitle: 'Use esta área para postar comunicados oficiais, calendários e avisos urgentes para as escolas.',
-    href: '/admin/avisos',
-  },
-  fotos: {
-    group: 'Publicações do Site',
-    title: 'Banners da Página Inicial',
-    subtitle: 'Gerencie as imagens grandes que passam no topo da Página Inicial do site.',
-    href: '/admin/banners',
-  },
-  galeria: {
-    group: 'Publicações do Site',
-    title: 'Galeria de Fotos',
-    subtitle: 'Envie fotografias das salas de aula, estúdios e projetos realizados nos municípios.',
-    href: '/admin/galeria',
-  },
-  kanban: {
-    group: 'Aprovação e Revisão',
-    title: 'Fila de Aprovação (Passo a Passo)',
-    subtitle: 'Acompanhe as reportagens em rascunho, envie para revisão e publique oficialmente no portal.',
-    href: '/admin/kanban',
-  },
-  siteInfo: {
-    group: 'Dados e Contatos do Site',
-    title: 'Números de Alunos e Escolas',
-    subtitle: 'Atualize a quantidade oficial de estudantes, escolas, turmas e municípios atendidos.',
-    href: '/admin/institucional',
-  },
-  redes: {
-    group: 'Dados e Contatos do Site',
-    title: 'Redes Sociais e WhatsApp',
-    subtitle: 'Atualize os links oficiais de transmissão, redes sociais e canais de atendimento.',
-    href: '/admin/redes',
-  },
-  usuarios: {
-    group: 'Usuários e Acessos',
-    title: 'Gerenciar Equipe e Senhas',
-    subtitle: 'Cadastre operadores por CPF, redefina senhas e gerencie permissões de acesso ao sistema.',
-    href: '/admin/usuarios',
-  },
-  estadosCidades: {
-    group: 'Dados e Contatos do Site',
-    title: 'Estados e Municípios',
-    subtitle: 'Cadastre e gerencie a base de unidades federativas (UF) e municípios atendidos pelo MEDTEC.',
-    href: '/admin/estados-cidades',
-  },
-};
+export { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
 export function getFolderIdForSection(sec: AdminSection): string | null {
   if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas'].includes(sec)) return 'publicacoes';
@@ -203,29 +117,7 @@ export default function AdminShell({
   const [userSession, setUserSession] = useState<AdminSession>({ isGestor: false });
 
   // Sincronização do tema escuro
-  const isDark = useSyncExternalStore(
-    (onStoreChange) => {
-      if (typeof window === 'undefined') return () => {};
-      const observer = new MutationObserver(onStoreChange);
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-      return () => observer.disconnect();
-    },
-    () => (typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : false),
-    () => false
-  );
-
-  const toggleTheme = () => {
-    const nextDark = !isDark;
-    if (nextDark) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-      localStorage.setItem('medtec-theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-      localStorage.setItem('medtec-theme', 'light');
-    }
-  };
+  const { isDark, toggleTheme } = useAdminTheme();
 
   // Verificação de sessão
   const checkAuth = useCallback(async () => {
@@ -487,33 +379,7 @@ export default function AdminShell({
   ];
 
   // Pesquisa rápida da Sidebar
-  const searchQuery = sidebarSearch.trim().toLowerCase();
-  const isSearching = searchQuery.length > 0;
-  const homeMatchesSearch = !isSearching || 'início resumo do painel visão geral home'.includes(searchQuery);
-
-  const filteredFolders = folders
-    .map((folder) => {
-      if (!folder.visible) return { ...folder, items: [] };
-
-      const folderNameMatches = folder.label.toLowerCase().includes(searchQuery);
-      const matchedItems = folder.items.filter((item) => {
-        if (!item.visible) return false;
-        if (!isSearching || folderNameMatches) return true;
-        return (
-          item.label.toLowerCase().includes(searchQuery) ||
-          item.tooltip.toLowerCase().includes(searchQuery)
-        );
-      });
-
-      return {
-        ...folder,
-        items: matchedItems,
-        visible: matchedItems.length > 0,
-      };
-    })
-    .filter((folder) => folder.visible);
-
-  const hasAnySearchResult = homeMatchesSearch || filteredFolders.length > 0;
+  const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
 
   // Tela de carregamento enquanto valida sessão
   if (loadingAuth || !isLoggedIn) {
@@ -566,11 +432,7 @@ export default function AdminShell({
       {/* ========================================================
           1. SIDEBAR DESKTOP (FIXA E RETRÁTIL COM ACCORDION JOER)
       ======================================================== */}
-      <aside
-        className={`hidden lg:flex flex-col shrink-0 h-full bg-[#07152B] text-slate-200 border-r border-slate-800 select-none z-30 transition-all duration-300 ease-in-out ${
-          isCollapsed ? 'w-20' : 'w-64'
-        }`}
-      >
+      <DesktopSidebarContainer isCollapsed={isCollapsed}>
         {/* Topo da Sidebar: Identidade + Botão de Recolher */}
         <div className="h-16 px-4 border-b border-slate-800/80 flex items-center justify-between shrink-0">
           {!isCollapsed ? (
@@ -802,7 +664,7 @@ export default function AdminShell({
             </button>
           </div>
         </div>
-      </aside>
+      </DesktopSidebarContainer>
 
       {/* ========================================================
           2. DRAWER MOBILE

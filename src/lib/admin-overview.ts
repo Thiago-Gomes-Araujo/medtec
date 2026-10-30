@@ -1,5 +1,4 @@
 import { ApiError, medtecApi, type AAviso, type ApiResponse, type NNoticia, type PaginatedData } from '@/lib/api';
-import type { DatabaseSchema } from '@/types';
 
 interface OverviewCollection<T> {
   items: T[];
@@ -12,7 +11,6 @@ interface OverviewData {
   gallery: { total: number; categories: number };
   users: number;
   states: number;
-  legacy: DatabaseSchema;
 }
 
 type ReadResult<T> = { data: T; error: null } | { data: null; error: string };
@@ -23,13 +21,13 @@ export type AdminOverviewState = { [K in keyof OverviewData]: Resource<OverviewD
 export function createInitialOverviewState(): AdminOverviewState {
   const initial = { data: null, loading: true, error: null };
   return { news: { ...initial }, avisos: { ...initial }, gallery: { ...initial },
-    users: { ...initial }, states: { ...initial }, legacy: { ...initial } };
+    users: { ...initial }, states: { ...initial } };
 }
 
 export function startOverviewLoading(previous: AdminOverviewState): AdminOverviewState {
   const start = <T>(resource: Resource<T>): Resource<T> => ({ ...resource, loading: true, error: null });
   return { news: start(previous.news), avisos: start(previous.avisos), gallery: start(previous.gallery),
-    users: start(previous.users), states: start(previous.states), legacy: start(previous.legacy) };
+    users: start(previous.users), states: start(previous.states) };
 }
 
 export function applyOverviewSnapshot(previous: AdminOverviewState, snapshot: OverviewSnapshot): AdminOverviewState {
@@ -40,7 +38,7 @@ export function applyOverviewSnapshot(previous: AdminOverviewState, snapshot: Ov
   });
   return { news: finish(previous.news, snapshot.news), avisos: finish(previous.avisos, snapshot.avisos),
     gallery: finish(previous.gallery, snapshot.gallery), users: finish(previous.users, snapshot.users),
-    states: finish(previous.states, snapshot.states), legacy: finish(previous.legacy, snapshot.legacy) };
+    states: finish(previous.states, snapshot.states) };
 }
 
 async function collection<T>(request: Promise<ApiResponse<PaginatedData<T>>>): Promise<OverviewCollection<T>> {
@@ -52,24 +50,6 @@ async function collection<T>(request: Promise<ApiResponse<PaginatedData<T>>>): P
   return { items: response.data.items, total: response.data.pagination.total_count };
 }
 
-async function readLegacyOverview(): Promise<DatabaseSchema> {
-  const response = await fetch('/api/data', { method: 'GET', cache: 'no-store' });
-  if (!response.ok) throw new Error(`Não foi possível carregar os dados legados do painel (HTTP ${response.status}).`);
-  const value: unknown = await response.json();
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('Resposta inválida dos dados legados do painel.');
-  }
-  const data = value as Partial<DatabaseSchema>;
-  if (!data.siteInfo || !data.stats || !data.socials || !Array.isArray(data.banners) ||
-      !Array.isArray(data.news) || !Array.isArray(data.gallery) || !Array.isArray(data.announcements) ||
-      (data.projects !== undefined && !Array.isArray(data.projects)) ||
-      (data.faqs !== undefined && !Array.isArray(data.faqs))) {
-    throw new Error('Resposta inválida dos dados legados do painel.');
-  }
-  // Mantém o formato legado compartilhado com os blocos antigos, sem migrar registros.
-  return data as DatabaseSchema;
-}
-
 async function settle<T>(read: () => Promise<T>): Promise<ReadResult<T>> {
   try { return { data: await read(), error: null }; }
   catch (error) { return { data: null, error: ApiError.getFriendlyMessage(error) }; }
@@ -78,7 +58,7 @@ async function settle<T>(read: () => Promise<T>): Promise<ReadResult<T>> {
 // O chamador confirma o acesso antes da leitura; a autorização definitiva continua no Rails.
 async function readOverview(authorized: boolean): Promise<OverviewSnapshot | null> {
   if (!authorized) return null;
-  const [news, avisos, gallery, users, states, legacy] = await Promise.all([
+  const [news, avisos, gallery, users, states] = await Promise.all([
     settle(() => collection(medtecApi.noticias.list({ page: 'all' }))),
     settle(() => collection(medtecApi.avisos.list({ page: 'all' }))),
     settle(async () => {
@@ -90,9 +70,8 @@ async function readOverview(authorized: boolean): Promise<OverviewSnapshot | nul
     }),
     settle(async () => (await collection(medtecApi.usuarios.list({ page: 1, per_page: 1 }))).total),
     settle(async () => (await collection(medtecApi.estados.list({ page: 1, per_page: 1 }))).total),
-    settle(readLegacyOverview),
   ]);
-  return { news, avisos, gallery, users, states, legacy };
+  return { news, avisos, gallery, users, states };
 }
 
 // Uma leitura em andamento por proprietário, compartilhada por chamadas concorrentes.
@@ -107,25 +86,36 @@ export function createAdminOverviewLoader() {
 }
 
 export function getOverviewMetrics(state: AdminOverviewState) {
-  const news = state.news.data?.items || [];
-  const avisos = state.avisos.data?.items || [];
-  const legacy = state.legacy.data;
+  // O cache permanece no estado, mas só uma leitura concluída sem erro é atual.
+  const current = <T>(resource: Resource<T>): T | null =>
+    resource.loading || resource.error ? null : resource.data;
+  const news = current(state.news);
+  const avisos = current(state.avisos);
+  const gallery = current(state.gallery);
   return {
-    totalNews: state.news.data?.total ?? null,
-    apiNewsPublishedCount: news.filter((item) => item.status === 'publicada').length,
-    apiNewsDraftCount: news.filter((item) => item.status === 'aguardando').length,
-    apiAvisosAtivosCount: avisos.filter((item) => item.ativo).length,
-    apiAvisosUrgentesCount: avisos.filter((item) => item.ativo &&
-      (item.a_tipo_aviso?.slug === 'urgente' || item.a_tipo_aviso?.nome?.toLowerCase().includes('urgente'))).length,
-    totalAvisos: state.avisos.data?.total ?? null,
-    totalFotos: state.gallery.data?.total ?? null,
-    totalCategorias: state.gallery.data?.categories ?? null,
-    totalEstados: state.states.error ? null : state.states.data,
-    totalUsers: state.users.data,
+    totalNews: news?.total ?? null,
+    apiNewsPublishedCount: news ? news.items.filter((item) => item.status === 'publicada').length : null,
+    apiNewsDraftCount: news ? news.items.filter((item) => item.status === 'aguardando').length : null,
+    apiAvisosAtivosCount: avisos ? avisos.items.filter((item) => item.ativo).length : null,
+    apiAvisosUrgentesCount: avisos ? avisos.items.filter((item) => item.ativo &&
+      (item.a_tipo_aviso?.slug === 'urgente' || item.a_tipo_aviso?.nome?.toLowerCase().includes('urgente'))).length : null,
+    totalAvisos: avisos?.total ?? null,
+    totalFotos: gallery?.total ?? null,
+    totalCategorias: gallery?.categories ?? null,
+    totalEstados: current(state.states),
+    totalUsers: current(state.users),
     usersCountLabel: state.users.loading ? '...' : state.users.error ? 'Indisponível' : (state.users.data ?? '—'),
-    projectsCount: legacy?.projects?.length || 0,
-    projectMunicipalities: new Set((legacy?.projects || []).map((project) => project.municipality)).size,
-    bannersCount: legacy?.banners?.length || 0,
-    faqsCount: legacy?.faqs?.length || 0,
+  };
+}
+
+export function getOverviewHighlights(state: AdminOverviewState) {
+  const news = state.news.loading || state.news.error ? undefined : state.news.data?.items[0];
+  const avisos = state.avisos.loading || state.avisos.error ? [] : (state.avisos.data?.items || []);
+  return {
+    latestNews: news ? {
+      titulo: news.titulo, data_publicacao: news.data_publicacao, autor_nome: news.autor_nome,
+    } : undefined,
+    announcementTitle: (avisos.find(a => (a.a_tipo_aviso?.slug === 'urgente' ||
+      a.a_tipo_aviso?.nome?.toLowerCase().includes('urgente')) && a.ativo) || avisos[0])?.titulo,
   };
 }

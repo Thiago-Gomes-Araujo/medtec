@@ -1,6 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import SidebarNavItem from '@/components/admin/SidebarNavItem';
+import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
+import SidebarFolderAccordion, { type NavFolderDef } from '@/components/admin/SidebarFolderAccordion';
+import { useAdminTheme } from '@/components/admin/useAdminTheme';
+import { filterAdminNavigation } from '@/lib/admin-navigation-filter';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -8,7 +13,6 @@ import {
   Newspaper, 
   Share2, 
   LogOut, 
-  Check,
   PanelLeftClose,
   PanelLeftOpen,
   Menu,
@@ -17,7 +21,6 @@ import {
   Moon,
   ExternalLink,
   ChevronRight,
-  ChevronDown,
   ArrowLeft,
   Search,
   Home,
@@ -35,278 +38,17 @@ import {
   Lightbulb,
   MapPin,
   HelpCircle,
-  MessageSquare,
-  Phone,
-  Mail,
 } from 'lucide-react';
-import { YoutubeIcon, InstagramIcon, FacebookIcon } from '@/components/SocialIcons';
 import { useAdminOverview } from '@/components/admin/useAdminOverview';
 import AdminOverview from '@/components/admin/AdminOverview';
-import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
-import SocialChannelsModule from '@/components/admin/SocialChannelsModule';
-import SiteInfoModule from '@/components/admin/SiteInfoModule';
-import EstadosCidadesModule from '@/components/admin/EstadosCidadesModule';
-import GalleryModule from '@/components/admin/GalleryModule';
-import AnnouncementsModule from '@/components/admin/AnnouncementsModule';
 import { getLegacyFaqHref } from '@/lib/admin-faq';
 import { getLegacyProjectsHref } from '@/lib/admin-projects';
 import { getLegacyBannersHref } from '@/lib/admin-banners';
+import { SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
 import {
   medtecApi,
   clearStoredTokens,
-  ATipoAviso,
-  CategoriaGaleria,
-  FotoGaleria,
-  CanalContato,
-  Estado,
 } from '@/lib/api';
-
-type AdminSection = 'visaoGeral' | 'kanban' | 'fotos' | 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo' | 'usuarios' | 'projetos' | 'duvidas' | 'estadosCidades';
-type CmsSubTab = 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo' | 'estadosCidades';
-
-// Mapa de Títulos de Seção para Breadcrumb e Header (Didático e sem jargões)
-const SECTION_CONFIG: Record<AdminSection, { group: string; title: string; subtitle: string }> = {
-  visaoGeral: {
-    group: 'Início',
-    title: 'Início (Resumo do Painel)',
-    subtitle: 'Visão executiva unificada, indicadores em tempo real e atalhos didáticos de acesso rápido.',
-  },
-  noticias: {
-    group: 'Publicações do Site',
-    title: 'Notícias e Matérias',
-    subtitle: 'Aqui você escreve novas matérias, escolhe a foto de capa e edita notícias já publicadas no portal.',
-  },
-  projetos: {
-    group: 'Publicações do Site',
-    title: 'Projetos Pedagógicos e Práticas Escolares',
-    subtitle: 'Cadastre, edite e gerencie os projetos pedagógicos, práticas de campo e missões escolares dos 52 municípios.',
-  },
-  duvidas: {
-    group: 'Publicações do Site',
-    title: 'Dúvidas Frequentes (FAQ)',
-    subtitle: 'Cadastre, edite e organize as perguntas e respostas que aparecem na Central de Dúvidas do portal.',
-  },
-  avisos: {
-    group: 'Publicações do Site',
-    title: 'Avisos e Comunicados',
-    subtitle: 'Use esta área para postar comunicados oficiais, calendários e avisos urgentes para as escolas.',
-  },
-  fotos: {
-    group: 'Publicações do Site',
-    title: 'Banners da Página Inicial',
-    subtitle: 'Gerencie as imagens grandes que passam no topo da Página Inicial do site.',
-  },
-  galeria: {
-    group: 'Publicações do Site',
-    title: 'Galeria de Fotos',
-    subtitle: 'Envie fotografias das salas de aula, estúdios e projetos realizados nos municípios.',
-  },
-  kanban: {
-    group: 'Aprovação e Revisão',
-    title: 'Fila de Aprovação (Passo a Passo)',
-    subtitle: 'Acompanhe as reportagens em rascunho, envie para revisão e publique oficialmente no portal.',
-  },
-  siteInfo: {
-    group: 'Dados e Contatos do Site',
-    title: 'Números de Alunos e Escolas',
-    subtitle: 'Atualize a quantidade oficial de estudantes, escolas, turmas e municípios atendidos.',
-  },
-  redes: {
-    group: 'Dados e Contatos do Site',
-    title: 'Redes Sociais e WhatsApp',
-    subtitle: 'Atualize os links oficiais de transmissão, redes sociais e canais de atendimento.',
-  },
-  usuarios: {
-    group: 'Usuários e Acessos',
-    title: 'Gerenciar Equipe e Senhas',
-    subtitle: 'Cadastre operadores por CPF, redefina senhas e gerencie permissões de acesso ao sistema.',
-  },
-  estadosCidades: {
-    group: 'Dados e Contatos do Site',
-    title: 'Estados e Municípios',
-    subtitle: 'Cadastre e gerencie a base de unidades federativas (UF) e municípios atendidos pelo MEDTEC.',
-  },
-};
-
-interface NavItemDef {
-  section: AdminSection;
-  label: string;
-  tooltip: string;
-  icon: React.ElementType;
-  badge?: number | string;
-  visible: boolean;
-}
-
-interface NavFolderDef {
-  id: string;
-  label: string;
-  icon: React.ElementType;
-  visible: boolean;
-  items: NavItemDef[];
-}
-
-interface SidebarNavItemProps {
-  label: string;
-  icon: React.ElementType;
-  badge?: number | string;
-  isActive: boolean;
-  isCollapsed?: boolean;
-  onClick: () => void;
-  tooltip?: string;
-}
-
-function SidebarNavItem({
-  label,
-  icon: Icon,
-  badge,
-  isActive,
-  isCollapsed = false,
-  onClick,
-  tooltip,
-}: SidebarNavItemProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={isCollapsed ? (tooltip || label) : tooltip}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer ${
-        isActive
-          ? 'bg-[#004A99] text-white font-semibold shadow-xs ring-1 ring-white/10'
-          : 'text-slate-300 hover:text-white hover:bg-slate-800/60 font-medium'
-      } ${isCollapsed ? 'justify-center px-2' : ''}`}
-    >
-      <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-      {!isCollapsed && (
-        <>
-          <span className="truncate text-left flex-1">{label}</span>
-          {badge !== undefined && badge !== null && (
-            <span
-              className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                isActive
-                  ? 'bg-white/20 text-white'
-                  : 'bg-slate-800 text-slate-400 border border-slate-700/60'
-              }`}
-            >
-              {badge}
-            </span>
-          )}
-        </>
-      )}
-    </button>
-  );
-}
-
-interface SidebarFolderAccordionProps {
-  folder: NavFolderDef;
-  isOpen: boolean;
-  isFolderActive: boolean;
-  currentSection: AdminSection;
-  isCollapsed?: boolean;
-  onToggle: () => void;
-  onSelectSection: (section: AdminSection) => void;
-}
-
-function SidebarFolderAccordion({
-  folder,
-  isOpen,
-  isFolderActive,
-  currentSection,
-  isCollapsed = false,
-  onToggle,
-  onSelectSection,
-}: SidebarFolderAccordionProps) {
-  const visibleItems = folder.items.filter((item) => item.visible);
-  if (visibleItems.length === 0) return null;
-
-  if (isCollapsed) {
-    return (
-      <button
-        type="button"
-        onClick={onToggle}
-        title={folder.label}
-        className={`w-full flex items-center justify-center p-2 rounded-lg transition cursor-pointer ${
-          isFolderActive
-            ? 'bg-[#004A99] text-white shadow-xs'
-            : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-        }`}
-      >
-        <folder.icon className="h-4 w-4 shrink-0" />
-      </button>
-    );
-  }
-
-  return (
-    <div className="space-y-1">
-      {/* Botão da Pasta / Grupo Pai */}
-      <button
-        type="button"
-        onClick={onToggle}
-        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer select-none ${
-          isFolderActive
-            ? 'text-white bg-slate-800/80 ring-1 ring-white/10'
-            : 'text-slate-300 hover:text-white hover:bg-slate-800/40'
-        }`}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <folder.icon
-            className={`h-4 w-4 shrink-0 transition-colors ${
-              isFolderActive ? 'text-sky-400' : 'text-slate-400'
-            }`}
-          />
-          <span className="truncate text-left">{folder.label}</span>
-        </div>
-        <div className="flex items-center gap-1 shrink-0 text-slate-400">
-          {isOpen ? (
-            <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200" />
-          )}
-        </div>
-      </button>
-
-      {/* Subitens Expansíveis com Linha Guia e Recuo Didático */}
-      {isOpen && (
-        <div className="ml-4 pl-3 border-l-2 border-slate-800 space-y-1 pt-0.5 pb-1 transition-all">
-          {visibleItems.map((item) => {
-            const isItemActive = currentSection === item.section;
-            const ItemIcon = item.icon;
-            return (
-              <button
-                key={item.section}
-                type="button"
-                onClick={() => onSelectSection(item.section)}
-                title={item.tooltip}
-                className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer group ${
-                  isItemActive
-                    ? 'bg-[#004A99] text-white font-bold shadow-xs ring-1 ring-sky-400/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60 font-medium'
-                }`}
-              >
-                <ItemIcon
-                  className={`h-3.5 w-3.5 shrink-0 transition ${
-                    isItemActive ? 'text-white' : 'text-slate-400 group-hover:text-sky-300'
-                  }`}
-                />
-                <span className="truncate text-left flex-1">{item.label}</span>
-                {item.badge !== undefined && (
-                  <span
-                    className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
-                      isItemActive
-                        ? 'bg-white/20 text-white font-bold'
-                        : 'bg-slate-800 text-slate-400 border border-slate-700/60'
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -342,48 +84,9 @@ export default function AdminDashboardPage() {
   };
 
   const handleSelectSection = (sec: AdminSection) => {
-    if (sec === 'fotos') {
-      router.push('/admin/banners');
-      return;
-    }
-    if (sec === 'projetos') {
-      router.push('/admin/projetos');
-      return;
-    }
-    if (sec === 'duvidas') {
-      router.push('/admin/faq');
-      return;
-    }
-    if (sec === 'usuarios') {
-      router.push('/admin/usuarios');
-      return;
-    }
-    if (sec === 'kanban') {
-      router.push('/admin/kanban');
-      return;
-    }
-    if (sec === 'noticias') {
-      router.push('/admin/noticias');
-      return;
-    }
-    if (sec === 'avisos') {
-      router.push('/admin/avisos');
-      return;
-    }
-    if (sec === 'galeria') {
-      router.push('/admin/galeria');
-      return;
-    }
-    if (sec === 'estadosCidades') {
-      router.push('/admin/estados-cidades');
-      return;
-    }
-    if (sec === 'siteInfo') {
-      router.push('/admin/institucional');
-      return;
-    }
-    if (sec === 'redes') {
-      router.push('/admin/redes');
+    const href = SECTION_HREFS.get(sec);
+    if (href) {
+      router.push(href);
       return;
     }
     setCurrentSection(sec);
@@ -396,121 +99,24 @@ export default function AdminDashboardPage() {
   const [userSession, setUserSession] = useState<{
     isGestor: boolean;
     username?: string;
-    role?: string;
     name?: string;
     profileType?: string;
     editorialProfile?: string;
   }>({ isGestor: false });
 
-  // Estado para Modal de Pré-visualização Fiel em Tela Cheia
-  const [previewModal, setPreviewModal] = useState<{
-    isOpen: boolean;
-    type: PreviewContentType;
-    data: PreviewItemData;
-  }>({
-    isOpen: false,
-    type: 'noticia',
-    data: {},
-  });
-
-  // -------------------------------------------------------------
-  // ESTADOS DA API v1 OFICIAL (/api/v1)
-  // -------------------------------------------------------------
-  // Avisos e Tipos de Aviso (/a_avisos, /a_tipos_aviso) - Compartilhado com Visão Geral e Sidebar
-  const [apiTiposAviso, setApiTiposAviso] = useState<ATipoAviso[]>([]);
-
-  // Galeria e Categorias (/fotos_galeria, /categorias_galeria) - Compartilhado com Visão Geral e Sidebar
-  const [apiFotos, setApiFotos] = useState<FotoGaleria[]>([]);
-  const [apiCategorias, setApiCategorias] = useState<CategoriaGaleria[]>([]);
-
-  // Canais de Contato (/canais_contato)
-  const [apiCanais, setApiCanais] = useState<CanalContato[]>([]);
-  const [savingCanais, setSavingCanais] = useState(false);
-
   // A sessão Rails confirma o perfil editorial; permissões de edição não aprovam notícias.
   const canAccessKanban = userSession.isGestor && userSession.editorialProfile === 'Administrador';
   const {
-    data, setData, errorData, apiNews, loadingNews, errorNews, totalNews,
-    apiAvisos, setApiAvisos, loadingAvisos, errorAvisos, totalAvisos,
+    latestNews, loadingNews, errorNews, totalNews,
+    announcementTitle, loadingAvisos, errorAvisos, totalAvisos,
     loadingFotos, errorFotos, totalFotos, totalCategorias, totalEstados,
     apiNewsPublishedCount, apiNewsDraftCount, apiAvisosAtivosCount, apiAvisosUrgentesCount,
-    totalUsers, errorUsers, usersCountLabel, projectsCount, projectMunicipalities, bannersCount, faqsCount,
+    totalUsers, errorUsers, usersCountLabel,
     reload: loadOverview,
   } = useAdminOverview();
-  const draftCount = apiNewsDraftCount;
-
-  // As listas completas abaixo pertencem aos blocos legados, não aos KPIs.
-  const [loadingGalleryModule, setLoadingGalleryModule] = useState(true);
-  const [errorGalleryModule, setErrorGalleryModule] = useState<string | null>(null);
-
-  // Estados (/g_estados) - Compartilhado com a Sidebar
-  const [apiEstados, setApiEstados] = useState<Estado[]>([]);
-  const [loadingEstados, setLoadingEstados] = useState(false);
 
   // Sincronização do tema escuro
-  const isDark = useSyncExternalStore(
-    (onStoreChange) => {
-      if (typeof window === 'undefined') return () => {};
-      const observer = new MutationObserver(onStoreChange);
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-      return () => observer.disconnect();
-    },
-    () => (typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : false),
-    () => false
-  );
-
-  const toggleTheme = () => {
-    const nextDark = !isDark;
-    if (nextDark) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-      localStorage.setItem('medtec-theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-      localStorage.setItem('medtec-theme', 'light');
-    }
-  };
-
-  // Mantém os blocos antigos sem buscar dados de seus formulários ao abrir o resumo.
-  useEffect(() => {
-    if (!isLoggedIn || !userSession.isGestor) return;
-    let active = true;
-    const loadLegacyModule = async () => {
-      await Promise.resolve();
-      if (!active) return;
-      try {
-        if (currentSection === 'avisos') {
-          const response = await medtecApi.tiposAviso.list({ page: 'all' });
-          if (active && response.success && response.data?.items) setApiTiposAviso(response.data.items);
-        } else if (currentSection === 'galeria') {
-          setLoadingGalleryModule(true);
-          setErrorGalleryModule(null);
-          const [categories, photos] = await Promise.all([
-            medtecApi.categoriasGaleria.list({ page: 'all' }),
-            medtecApi.fotosGaleria.list({ page: 'all' }),
-          ]);
-          if (active && categories.success && categories.data?.items) setApiCategorias(categories.data.items);
-          if (active && photos.success && photos.data?.items) setApiFotos(photos.data.items);
-        } else if (currentSection === 'redes') {
-          const response = await medtecApi.canaisContato.list({ page: 'all' });
-          if (active && response.success && response.data?.items) setApiCanais(response.data.items);
-        } else if (currentSection === 'estadosCidades') {
-          setLoadingEstados(true);
-          const response = await medtecApi.estados.list({ page: 'all' });
-          if (active && response.success && response.data?.items) setApiEstados(response.data.items);
-        }
-      } catch (error) {
-        console.warn('API v1: Erro ao carregar módulo legado:', error);
-        if (active && currentSection === 'galeria') setErrorGalleryModule('Falha ao comunicar com a API da Galeria');
-      } finally {
-        if (active && currentSection === 'galeria') setLoadingGalleryModule(false);
-        if (active && currentSection === 'estadosCidades') setLoadingEstados(false);
-      }
-    };
-    void loadLegacyModule();
-    return () => { active = false; };
-  }, [currentSection, isLoggedIn, userSession.isGestor]);
+  const { isDark, toggleTheme } = useAdminTheme();
 
   // Carrega dados iniciais e verifica sessão
   const loadData = useCallback(async () => {
@@ -537,7 +143,6 @@ export default function AdminDashboardPage() {
             setUserSession({
               isGestor,
               username: meRes.data.cpf,
-              role: meRes.data.perfil_nome,
               name: meRes.data.nome,
               profileType: meRes.data.perfil_nome,
               editorialProfile: meRes.data.perfil_nome,
@@ -579,7 +184,6 @@ export default function AdminDashboardPage() {
           setUserSession({
             isGestor,
             username: authJson.user,
-            role: authJson.role,
             name: authJson.name,
             profileType,
           });
@@ -674,46 +278,6 @@ export default function AdminDashboardPage() {
     router.push('/admin/login');
   };
 
-  // -------------------------------------------------------------
-  // FUNÇÕES DE REDES SOCIAIS E CANAIS DE CONTATO (/canais_contato)
-  // -------------------------------------------------------------
-  const handleSaveSocials = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingCanais(true);
-    try {
-      const fixedKeys = ['youtube', 'instagram', 'facebook', 'whatsapp', 'telefone', 'email', 'endereco'] as const;
-      const payload = fixedKeys.map((rede, idx) => {
-        const found = apiCanais.find(c => c.rede === rede);
-        const fallbackValue = rede === 'youtube' ? (data?.socials?.youtube || '') :
-                              rede === 'instagram' ? (data?.socials?.instagram || '') :
-                              rede === 'facebook' ? (data?.socials?.facebook || '') :
-                              rede === 'whatsapp' ? (data?.socials?.whatsapp || '') :
-                              rede === 'telefone' ? (data?.socials?.phone || '') :
-                              rede === 'email' ? (data?.socials?.email || '') :
-                              (data?.socials?.address || '');
-        return {
-          rede,
-          valor: found?.valor !== undefined && found.valor !== '' ? found.valor : fallbackValue,
-          posicao: found?.posicao !== undefined ? Number(found.posicao) : (idx + 1),
-          ativo: found?.ativo !== undefined ? Boolean(found.ativo) : true,
-        };
-      });
-
-      const res = await medtecApi.canaisContato.updateMany(payload);
-      if (res.success && res.data) {
-        setApiCanais(res.data);
-      }
-
-      alert('Canais de atendimento e redes oficiais salvos com sucesso na API oficial!');
-    } catch (err: unknown) {
-      const errorData = err as { message?: string; errors?: string[] };
-      alert(`Erro ao salvar canais na API oficial: ${errorData.message || errorData.errors?.join(', ') || 'Falha na requisição'}`);
-    } finally {
-      setSavingCanais(false);
-    }
-  };
-
-
   // Permissões por Atribuição de Perfil
   const canAccessNews = userSession.isGestor || userSession.profileType === 'Editor de Notícias' || userSession.profileType === 'Operador de Conteúdo';
   const canAccessPhotos = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
@@ -747,7 +311,6 @@ export default function AdminDashboardPage() {
           label: 'Projetos Pedagógicos',
           tooltip: 'Cadastrar e gerenciar projetos pedagógicos das escolas',
           icon: Lightbulb,
-          badge: projectsCount,
           visible: canAccessProjects,
         },
         {
@@ -755,7 +318,6 @@ export default function AdminDashboardPage() {
           label: 'Dúvidas Frequentes (FAQ)',
           tooltip: 'Cadastrar e gerenciar perguntas frequentes do portal',
           icon: HelpCircle,
-          badge: faqsCount,
           visible: canAccessFaqs,
         },
         {
@@ -771,7 +333,6 @@ export default function AdminDashboardPage() {
           label: 'Banners da Página Inicial',
           tooltip: 'Trocar imagens do topo da Home',
           icon: Presentation,
-          badge: bannersCount,
           visible: canAccessPhotos,
         },
         {
@@ -795,7 +356,7 @@ export default function AdminDashboardPage() {
           label: 'Fila de Aprovação (Passo a Passo)',
           tooltip: 'Abre o fluxo Rascunho > Revisão > Publicado',
           icon: CheckCircle2,
-          badge: errorNews ? undefined : (loadingNews ? undefined : (draftCount > 0 ? draftCount : undefined)),
+          badge: errorNews ? undefined : (loadingNews ? undefined : (apiNewsDraftCount !== null && apiNewsDraftCount > 0 ? apiNewsDraftCount : undefined)),
           visible: canAccessKanban,
         },
       ],
@@ -851,42 +412,16 @@ export default function AdminDashboardPage() {
   ];
 
   // Pesquisa Rápida da Sidebar (Filtro Instantâneo Didático)
-  const searchQuery = sidebarSearch.trim().toLowerCase();
-  const isSearching = searchQuery.length > 0;
-  const homeMatchesSearch = !isSearching || 'início resumo do painel visão geral home'.includes(searchQuery);
-
-  const filteredFolders = folders
-    .map((folder) => {
-      if (!folder.visible) return { ...folder, items: [] };
-
-      const folderNameMatches = folder.label.toLowerCase().includes(searchQuery);
-      const matchedItems = folder.items.filter((item) => {
-        if (!item.visible) return false;
-        if (!isSearching || folderNameMatches) return true;
-        return (
-          item.label.toLowerCase().includes(searchQuery) ||
-          item.tooltip.toLowerCase().includes(searchQuery)
-        );
-      });
-
-      return {
-        ...folder,
-        items: matchedItems,
-        visible: matchedItems.length > 0,
-      };
-    })
-    .filter((folder) => folder.visible);
-
-  const hasAnySearchResult = homeMatchesSearch || filteredFolders.length > 0;
+  const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
 
   // Loading State
-  if (!isLoggedIn || !data) {
+  if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-[#07152B] flex flex-col items-center justify-center space-y-4 text-white">
         <div className="w-9 h-9 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
         <div className="text-center space-y-1">
           <p className="text-sm font-bold tracking-wide">MEDTEC Rondônia • SEDUC-RO</p>
-          <p role={errorData ? 'alert' : undefined} className="text-xs text-slate-400">{errorData || 'Autenticando e carregando painel de gestão...'}</p>
+          <p className="text-xs text-slate-400">Autenticando e carregando painel de gestão...</p>
         </div>
       </div>
     );
@@ -894,100 +429,13 @@ export default function AdminDashboardPage() {
 
   const currentConfig = SECTION_CONFIG[currentSection];
 
-  // Renderizador unificado dos módulos CMS (reutilizável tanto nas visões dedicadas quanto nas abas do Painel Geral)
-  const renderCmsModule = (tab: CmsSubTab) => {
-    if (!data) return null;
-
-    if (tab === 'avisos' && canAccessAnnouncements) {
-      return (
-        <AnnouncementsModule
-          apiAvisos={apiAvisos}
-          setApiAvisos={setApiAvisos}
-          apiTiposAviso={apiTiposAviso}
-          setApiTiposAviso={setApiTiposAviso}
-          loadingAvisos={loadingAvisos}
-          errorAvisos={errorAvisos}
-          onPreview={(avisoData) =>
-            setPreviewModal({
-              isOpen: true,
-              type: 'aviso',
-              data: avisoData,
-            })
-          }
-        />
-      );
-    }
-
-    if (tab === 'galeria' && canAccessGallery) {
-      return (
-        <GalleryModule
-          apiFotos={apiFotos}
-          setApiFotos={setApiFotos}
-          apiCategorias={apiCategorias}
-          setApiCategorias={setApiCategorias}
-          loadingFotos={loadingGalleryModule}
-          errorFotos={errorGalleryModule}
-          onPreview={(photoData) =>
-            setPreviewModal({
-              isOpen: true,
-              type: 'galeria',
-              data: photoData,
-            })
-          }
-        />
-      );
-    }
-
-    if (tab === 'redes' && canAccessSocials) {
-      return (
-        <SocialChannelsModule
-          apiCanais={apiCanais}
-          setApiCanais={setApiCanais}
-          defaultSocials={data?.socials}
-          onSave={handleSaveSocials}
-          saving={savingCanais}
-        />
-      );
-    }
-
-    if (tab === 'siteInfo' && canAccessSiteInfo) {
-      return (
-        <SiteInfoModule
-          data={data}
-          setData={setData}
-          onPreview={(siteData) => setPreviewModal({
-            isOpen: true,
-            type: 'siteInfo',
-            data: siteData,
-          })}
-        />
-      );
-    }
-
-    if (tab === 'estadosCidades' && canAccessEstados) {
-      return (
-        <EstadosCidadesModule
-          apiEstados={apiEstados}
-          setApiEstados={setApiEstados}
-          loadingEstados={loadingEstados}
-        />
-      );
-    }
-
-    return null;
-  };
-
   return (
     <div translate="no" className="notranslate h-screen h-[100dvh] w-full flex overflow-hidden bg-slate-50 dark:bg-[#060D1A] text-slate-800 dark:text-slate-100">
       
       {/* ========================================================
           1. SIDEBAR DESKTOP (FIXA E RETRÁTIL COM ACCORDION JOER)
       ======================================================== */}
-      <aside
-        className={`hidden lg:flex flex-col shrink-0 h-full bg-[#07152B] text-slate-200 border-r border-slate-800 select-none z-30 transition-all duration-300 ease-in-out ${
-          isCollapsed ? 'w-20' : 'w-64'
-        }`}
-      >
+      <DesktopSidebarContainer isCollapsed={isCollapsed}>
         {/* Topo da Sidebar: Identidade + Botão de Recolher */}
         <div className="h-16 px-4 border-b border-slate-800/80 flex items-center justify-between shrink-0">
           {!isCollapsed ? (
@@ -1144,7 +592,7 @@ export default function AdminDashboardPage() {
             </button>
           </div>
         </div>
-      </aside>
+      </DesktopSidebarContainer>
 
       {/* ========================================================
           2. GAVETA MOBILE (OFF-CANVAS PARA TELAS < LG COM ACCORDION)
@@ -1380,18 +828,13 @@ export default function AdminDashboardPage() {
             <AdminOverview
               indicators={{
                 loadingNews, errorNews, totalNews, apiNewsPublishedCount, apiNewsDraftCount,
-                projectsCount, projectMunicipalities, loadingAvisos, errorAvisos, totalAvisos,
+                loadingAvisos, errorAvisos, totalAvisos,
                 apiAvisosAtivosCount, apiAvisosUrgentesCount, loadingFotos, errorFotos,
-                totalFotos, totalCategorias, usersCountLabel, faqsCount, bannersCount,
+                totalFotos, totalCategorias, usersCountLabel,
               }}
               userName={userSession.name || userSession.username}
-              latestNews={apiNews[0] ? {
-                titulo: apiNews[0].titulo, data_publicacao: apiNews[0].data_publicacao, autor_nome: apiNews[0].autor_nome,
-              } : undefined}
-              featuredProject={data.projects?.[0] ? {
-                title: data.projects[0].title, school: data.projects[0].school, municipality: data.projects[0].municipality,
-              } : undefined}
-              announcementTitle={(apiAvisos.find(a => (a.a_tipo_aviso?.slug === 'urgente' || a.a_tipo_aviso?.nome?.toLowerCase().includes('urgente')) && a.ativo) || apiAvisos[0])?.titulo}
+              latestNews={latestNews}
+              announcementTitle={announcementTitle}
               canAccessKanban={canAccessKanban}
               onOpenNews={() => router.push('/admin/noticias')}
               onCreateNews={() => router.push('/admin/noticias?action=new')}
@@ -1399,33 +842,8 @@ export default function AdminDashboardPage() {
             />
           )}
 
-          {/* VISÃO 5: MURAL DE AVISOS (VISÃO DEDICADA) */}
-          {currentSection === 'avisos' && canAccessAnnouncements && renderCmsModule('avisos')}
-
-          {/* VISÃO 6: GALERIA FOTOGRÁFICA (VISÃO DEDICADA) */}
-          {currentSection === 'galeria' && canAccessGallery && renderCmsModule('galeria')}
-
-          {/* VISÃO 7: REDES SOCIAIS & CONTATOS (VISÃO DEDICADA) */}
-          {currentSection === 'redes' && canAccessSocials && renderCmsModule('redes')}
-
-          {/* VISÃO 8: MÉTRICAS & TEXTOS INSTITUCIONAIS (VISÃO DEDICADA) */}
-          {currentSection === 'siteInfo' && canAccessSiteInfo && renderCmsModule('siteInfo')}
-
-          {/* VISÃO 10: ESTADOS E MUNICÍPIOS (/g_estados, /g_cidades) */}
-          {currentSection === 'estadosCidades' && canAccessEstados && renderCmsModule('estadosCidades')}
-
         </main>
       </div>
-
-      {/* ========================================================
-          MODAL DE TELA CHEIA - SIMULAÇÃO FIEL DO PORTAL PÚBLICO
-      ======================================================== */}
-      <AdminPreviewModal
-        isOpen={previewModal.isOpen}
-        onClose={() => setPreviewModal(prev => ({ ...prev, isOpen: false }))}
-        type={previewModal.type}
-        data={previewModal.data}
-      />
 
     </div>
   );

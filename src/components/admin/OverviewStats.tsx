@@ -6,10 +6,10 @@ import type { useAdminOverview } from '@/components/admin/useAdminOverview';
 
 export type OverviewStatsIndicators = Pick<ReturnType<typeof useAdminOverview>,
   'loadingNews' | 'errorNews' | 'totalNews' | 'apiNewsPublishedCount' |
-  'apiNewsDraftCount' | 'projectsCount' | 'projectMunicipalities' | 'loadingAvisos' |
+  'apiNewsDraftCount' | 'loadingAvisos' |
   'errorAvisos' | 'totalAvisos' | 'apiAvisosAtivosCount' | 'apiAvisosUrgentesCount' |
   'loadingFotos' | 'errorFotos' | 'totalFotos' | 'totalCategorias' |
-  'usersCountLabel' | 'faqsCount'>;
+  'usersCountLabel'>;
 
 interface OverviewStatsProps {
   indicators: OverviewStatsIndicators;
@@ -19,9 +19,9 @@ interface OverviewStatsProps {
 export default function OverviewStats({ indicators, onOpenNews }: OverviewStatsProps) {
   const {
     loadingNews, errorNews, totalNews, apiNewsPublishedCount, apiNewsDraftCount,
-    projectsCount, projectMunicipalities, loadingAvisos, errorAvisos, totalAvisos,
+    loadingAvisos, errorAvisos, totalAvisos,
     apiAvisosAtivosCount, apiAvisosUrgentesCount, loadingFotos, errorFotos,
-    totalFotos, totalCategorias, usersCountLabel, faqsCount,
+    totalFotos, totalCategorias, usersCountLabel,
   } = indicators;
 
   return (
@@ -86,14 +86,11 @@ export default function OverviewStats({ indicators, onOpenNews }: OverviewStatsP
           </div>
         </div>
         <div>
-          <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-            {projectsCount}
+          <p className="text-sm font-bold text-slate-900 dark:text-white">
+            Indisponível — sem integração oficial
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            {projectMunicipalities} municípios com práticas
-          </p>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-            4 trilhas de conhecimento no ar
+            Projetos e municípios aguardam integração.
           </p>
         </div>
         <Link
@@ -138,7 +135,7 @@ export default function OverviewStats({ indicators, onOpenNews }: OverviewStatsP
                 {apiAvisosAtivosCount} avisos ativos no mural da Home
               </p>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-                {apiAvisosUrgentesCount > 0 ? (
+                {apiAvisosUrgentesCount !== null && apiAvisosUrgentesCount > 0 ? (
                   <span className="text-rose-600 dark:text-rose-400 font-semibold">
                     {apiAvisosUrgentesCount} classificado{apiAvisosUrgentesCount === 1 ? '' : 's'} urgente
                   </span>
@@ -246,14 +243,11 @@ export default function OverviewStats({ indicators, onOpenNews }: OverviewStatsP
           </div>
         </div>
         <div>
-          <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-            {faqsCount}
+          <p className="text-sm font-bold text-slate-900 dark:text-white">
+            Indisponível — sem integração oficial
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Perguntas ativas na Central de Dúvidas
-          </p>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-            Respostas oficiais para a comunidade
+            Indicadores de FAQ aguardam integração.
           </p>
         </div>
         <Link

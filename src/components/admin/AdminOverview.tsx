@@ -5,13 +5,11 @@ import { Plus, ExternalLink, Newspaper, Lightbulb, Megaphone, Presentation, Imag
   CheckCircle2, SlidersHorizontal, BarChart3, Share2, UserCog, HelpCircle, ChevronRight, ArrowRight } from 'lucide-react';
 import OverviewStats, { type OverviewStatsIndicators } from '@/components/admin/OverviewStats';
 import type { NNoticia } from '@/lib/api';
-import type { ProjectMission } from '@/types';
 
 export interface AdminOverviewProps {
-  indicators: OverviewStatsIndicators & { bannersCount: number };
+  indicators: OverviewStatsIndicators;
   userName?: string;
   latestNews?: Pick<NNoticia, 'titulo' | 'data_publicacao' | 'autor_nome'>;
-  featuredProject?: Pick<ProjectMission, 'title' | 'school' | 'municipality'>;
   announcementTitle?: string;
   canAccessKanban: boolean;
   onOpenNews: () => void;
@@ -20,13 +18,13 @@ export interface AdminOverviewProps {
 }
 
 export default function AdminOverview({
-  indicators, userName, latestNews, featuredProject, announcementTitle,
+  indicators, userName, latestNews, announcementTitle,
   canAccessKanban, onOpenNews, onCreateNews, onOpenKanban,
 }: AdminOverviewProps) {
   const {
-    loadingNews, errorNews, totalNews, apiNewsDraftCount, projectsCount,
+    loadingNews, errorNews, totalNews, apiNewsDraftCount,
     loadingAvisos, errorAvisos, totalAvisos, apiAvisosAtivosCount,
-    loadingFotos, errorFotos, totalFotos, usersCountLabel, faqsCount, bannersCount,
+    loadingFotos, errorFotos, totalFotos, usersCountLabel,
   } = indicators;
 
   return (
@@ -37,7 +35,7 @@ export default function AdminOverview({
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-400">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Sistema Operacional • 52 Municípios Conectados via Satélite</span>
+            <span>Central administrativa MEDTEC</span>
           </div>
           <h2 className="text-lg sm:text-xl font-black tracking-tight">
             Painel do Gestor • Central Executiva CMS
@@ -121,7 +119,8 @@ export default function AdminOverview({
                   {loadingNews ? 'Carregando...' : errorNews ? 'Falha de comunicação com a API' : (latestNews?.titulo || 'Nenhuma notícia publicada ainda')}
                 </p>
                 <p className="text-[10px] text-slate-400 pt-0.5">
-                  {latestNews ? `${latestNews.data_publicacao || ''} • ${latestNews.autor_nome || 'SEDUC-RO'}` : ''}
+                  {!loadingNews && !errorNews && latestNews
+                    ? [latestNews.data_publicacao, latestNews.autor_nome].filter(Boolean).join(' • ') : ''}
                 </p>
               </div>
             </div>
@@ -139,7 +138,7 @@ export default function AdminOverview({
           {/* Módulo: Projetos Pedagógicos e Práticas Escolares */}
           <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-amber-500/40 transition flex flex-col justify-between space-y-4">
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-100/60 dark:border-amber-900/40 flex items-center justify-center">
                     <Lightbulb className="h-4 w-4" />
@@ -148,8 +147,8 @@ export default function AdminOverview({
                     Projetos Pedagógicos
                   </h4>
                 </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold border border-amber-200/80 dark:border-amber-800/80">
-                  {projectsCount} missões
+                <span className="max-w-36 shrink-0 text-right text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold border border-amber-200/80 dark:border-amber-800/80">
+                  Indisponível — sem integração oficial
                 </span>
               </div>
 
@@ -162,10 +161,7 @@ export default function AdminOverview({
                   Prática em destaque:
                 </span>
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
-                  {featuredProject?.title || 'Nenhum projeto cadastrado'}
-                </p>
-                <p className="text-[10px] text-slate-400 pt-0.5">
-                  {featuredProject?.school || 'SEDUC-RO'} • {featuredProject?.municipality || 'Rondônia'}
+                  Indisponível — sem integração oficial
                 </p>
               </div>
             </div>
@@ -218,7 +214,7 @@ export default function AdminOverview({
                   {loadingAvisos ? 'Carregando...' : errorAvisos ? 'Falha de comunicação com a API' : (announcementTitle || 'Sem comunicados urgentes no momento')}
                 </p>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
-                  {apiAvisosAtivosCount} avisos em exibição no portal
+                  {loadingAvisos ? 'Carregando...' : errorAvisos ? 'Indisponível' : `${apiAvisosAtivosCount} avisos em exibição no portal`}
                 </p>
               </div>
             </div>
@@ -235,7 +231,7 @@ export default function AdminOverview({
           {/* Módulo 03: Banners da Página Inicial */}
           <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-[#004A99]/40 transition flex flex-col justify-between space-y-4">
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-[#004A99] dark:text-sky-400 border border-blue-100/60 dark:border-blue-900/40 flex items-center justify-center">
                     <Presentation className="h-4 w-4" />
@@ -244,8 +240,8 @@ export default function AdminOverview({
                     Banners da Página Inicial
                   </h4>
                 </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  {bannersCount} banners
+                <span className="max-w-36 shrink-0 text-right text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
+                  Indisponível — sem integração oficial
                 </span>
               </div>
 
@@ -258,10 +254,7 @@ export default function AdminOverview({
                   Carrossel & Transmissão:
                 </span>
                 <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                  {bannersCount} banners ativos no carrossel da página inicial, foto do estúdio e capas de destaque.
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
-                  Transmissão ao vivo integrada
+                  Indisponível — sem integração oficial
                 </p>
               </div>
             </div>
@@ -430,7 +423,7 @@ export default function AdminOverview({
           {/* Módulo: Central de Dúvidas Frequentes (FAQ) */}
           <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-[#004A99]/40 transition flex flex-col justify-between space-y-4">
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-[#004A99] dark:text-sky-400 border border-sky-100/60 dark:border-sky-900/40 flex items-center justify-center">
                     <HelpCircle className="h-4 w-4" />
@@ -439,8 +432,8 @@ export default function AdminOverview({
                     Dúvidas Frequentes (FAQ)
                   </h4>
                 </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  {faqsCount} dúvidas
+                <span className="max-w-36 shrink-0 text-right text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
+                  Indisponível — sem integração oficial
                 </span>
               </div>
 
@@ -453,12 +446,7 @@ export default function AdminOverview({
                   Central de Respostas Oficiais:
                 </span>
                 <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                  {faqsCount > 0
-                    ? `${faqsCount} dúvidas catalogadas em 4 categorias para estudantes, mediadores e gestores.`
-                    : 'Nenhuma dúvida cadastrada ainda.'}
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
-                  Aparece na tela pública /duvidas
+                  Indisponível — sem integração oficial
                 </p>
               </div>
             </div>
