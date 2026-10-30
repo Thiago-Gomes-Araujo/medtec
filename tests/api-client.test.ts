@@ -12,6 +12,7 @@ import { PathnameContext } from 'next/dist/shared/lib/hooks-client-context.share
 import AdminFaqSubroutePage from '../src/app/admin/faq/page';
 import AdminProjetosSubroutePage from '../src/app/admin/projetos/page';
 import AdminBannersSubroutePage from '../src/app/admin/banners/page';
+import AdminDashboardPage from '../src/app/admin/page';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
 import SitePhotosManager from '../src/components/SitePhotosManager';
@@ -40,6 +41,193 @@ import { getLegacyFaqHref, readAdminFaqs } from '../src/lib/admin-faq';
 import { getLegacyProjectsHref, readAdminProjects } from '../src/lib/admin-projects';
 import { getLegacyBannersHref, readAdminBanners, prepareLocalBannerPreview } from '../src/lib/admin-banners';
 import AdminLiveSimulator from '../src/components/AdminLiveSimulator';
+import { applyOverviewSnapshot, createAdminOverviewLoader, createInitialOverviewState, getOverviewMetrics, startOverviewLoading } from '../src/lib/admin-overview';
+
+describe('Dados e KPIs isolados da Visão Geral', () => {
+  const legacy = {
+    siteInfo: {}, stats: {}, socials: {}, banners: [{ id: 'banner-teste', imageUrl: '/banner.jpg' }],
+    news: [], gallery: [], announcements: [], users: [{ id: 'não usar no KPI' }],
+    projects: [{ municipality: 'Porto Velho' }, { municipality: 'Porto Velho' }, { municipality: 'Ji-Paraná' }],
+    faqs: [{ id: 'faq-teste' }],
+  };
+  const items: Record<string, object[]> = {
+    n_noticias: [{ id: 1, titulo: 'Recebida', status: 'publicada' }, { id: 2, status: 'aguardando' }, { id: 3, status: 'reprovada' }],
+    a_avisos: [{ id: 1, ativo: true, a_tipo_aviso: { slug: 'urgente' } },
+      { id: 2, ativo: true, a_tipo_aviso: { nome: 'Comunicado Urgente' } }, { id: 3, ativo: false }],
+    fotos_galeria: [{ id: 1 }], categorias_galeria: [{ id: 1 }], g_estados: [{ id: 1 }],
+    usuarios: Array.from({ length: 50 }, (_, index) => ({ id: index + 1 })),
+  };
+  const totals: Record<string, number> = {
+    n_noticias: 80, a_avisos: 90, fotos_galeria: 280, categorias_galeria: 12, g_estados: 27, usuarios: 120,
+  };
+  function json(value: unknown, status = 200) {
+    return new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
+  }
+  function serve(url: string, empty = false) {
+    const endpoint = new URL(url, 'http://test').pathname.split('/').pop()!;
+    if (endpoint === 'data') return json(legacy);
+    assert.ok(endpoint in items, `Endpoint inesperado: ${endpoint}`);
+    return json({ success: true, data: {
+      items: empty ? [] : items[endpoint],
+      pagination: { total_count: empty ? 0 : totals[endpoint], current_page: 1, total_pages: 1, per_page: 1 },
+    } });
+  }
+
+  it('não consulta dados antes da autorização e mantém carregamento distinto de zero', async () => {
+    const originalFetch = globalThis.fetch;
+    let requests = 0;
+    globalThis.fetch = async () => { requests += 1; throw new Error('Leitura não autorizada.'); };
+    try {
+      assert.equal(await createAdminOverviewLoader()(false), null);
+      const state = createInitialOverviewState();
+      assert.equal(state.users.loading, true);
+      assert.equal(state.users.data, null);
+      assert.equal(getOverviewMetrics(state).usersCountLabel, '...');
+      const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'overview-test' };
+      const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminDashboardPage)));
+      assert.ok(html.includes('Autenticando e carregando painel de gestão...'));
+      assert.ok(!html.includes('Painel do Gestor • Central Executiva CMS'));
+      assert.equal(requests, 0);
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  it('preserva os totais oficiais mesmo quando apenas parte dos registros foi recebida', async () => {
+    const originalFetch = globalThis.fetch;
+    const queries: URL[] = [];
+    globalThis.fetch = async (input, options) => {
+      assert.equal(options?.method, 'GET');
+      queries.push(new URL(String(input), 'http://test'));
+      return serve(String(input));
+    };
+    try {
+      const snapshot = await createAdminOverviewLoader()(true);
+      assert.ok(snapshot);
+      const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
+      const metrics = getOverviewMetrics(state);
+      assert.equal(metrics.totalUsers, 120);
+      assert.equal(metrics.usersCountLabel, 120);
+      assert.equal(metrics.totalNews, 80);
+      assert.equal(metrics.totalAvisos, 90);
+      assert.equal(metrics.totalFotos, 280);
+      assert.equal(metrics.totalCategorias, 12);
+      assert.equal(metrics.totalEstados, 27);
+      assert.equal(metrics.apiNewsPublishedCount, 1);
+      assert.equal(metrics.apiNewsDraftCount, 1);
+      assert.equal(metrics.apiAvisosAtivosCount, 2);
+      assert.equal(metrics.apiAvisosUrgentesCount, 2);
+      assert.equal(metrics.projectsCount, 3);
+      assert.equal(metrics.projectMunicipalities, 2);
+      assert.equal(metrics.bannersCount, 1);
+      assert.equal(metrics.faqsCount, 1);
+      for (const endpoint of ['usuarios', 'fotos_galeria', 'categorias_galeria', 'g_estados']) {
+        const query = queries.find((url) => url.pathname.endsWith('/' + endpoint));
+        assert.equal(query?.searchParams.get('page'), '1');
+        assert.equal(query?.searchParams.get('per_page'), '1');
+      }
+      assert.equal(queries.find((url) => url.pathname.endsWith('/n_noticias'))?.searchParams.get('page'), 'all');
+      assert.equal(queries.find((url) => url.pathname.endsWith('/a_avisos'))?.searchParams.get('page'), 'all');
+      assert.equal(state.news.loading, false);
+      assert.equal(state.news.error, null);
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  it('distingue zero confirmado de ausência de leitura e não converte zero em fallback', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input) => serve(String(input), true);
+    try {
+      const snapshot = await createAdminOverviewLoader()(true);
+      assert.ok(snapshot);
+      const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
+      const metrics = getOverviewMetrics(state);
+      for (const value of [metrics.totalUsers, metrics.totalNews, metrics.totalAvisos, metrics.totalFotos, metrics.totalCategorias, metrics.totalEstados]) {
+        assert.equal(value, 0);
+      }
+      assert.equal(metrics.usersCountLabel, 0);
+      assert.equal(state.users.loading, false);
+      assert.equal(state.users.error, null);
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  it('compartilha leituras concorrentes sem consultas de formulários ou perfis', async () => {
+    const originalFetch = globalThis.fetch;
+    const requests: string[] = [];
+    globalThis.fetch = async (input) => { requests.push(String(input)); return serve(String(input)); };
+    try {
+      const read = createAdminOverviewLoader();
+      const first = read(true);
+      assert.equal(read(true), first);
+      assert.equal(await read(false), null);
+      assert.ok(await first);
+      assert.equal(requests.length, 7);
+      assert.equal(new Set(requests).size, 7);
+      assert.ok(!requests.some((url) => /perfis|a_tipos_aviso|canais_contato/.test(url)));
+      await read(true);
+      assert.equal(requests.length, 14);
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  it('isola falhas e preserva a última leitura válida, exibindo erro em vez de zero', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      const read = createAdminOverviewLoader();
+      globalThis.fetch = async (input) => serve(String(input));
+      const success = await read(true);
+      assert.ok(success);
+      const previous = applyOverviewSnapshot(createInitialOverviewState(), success);
+      const loading = startOverviewLoading(previous);
+      assert.equal(loading.users.loading, true);
+      assert.equal(loading.users.data, 120);
+      assert.equal(getOverviewMetrics(loading).usersCountLabel, '...');
+      globalThis.fetch = async (input) => {
+        if (String(input).includes('/usuarios')) return json({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403);
+        if (String(input).includes('/n_noticias')) throw new Error('Rede indisponível');
+        return serve(String(input));
+      };
+      const failure = await read(true);
+      assert.ok(failure);
+      const after = applyOverviewSnapshot(loading, failure);
+      assert.equal(after.users.loading, false);
+      assert.ok(after.users.error);
+      assert.equal(after.users.data, 120);
+      assert.equal(getOverviewMetrics(after).usersCountLabel, 'Indisponível');
+      assert.equal(after.news.data, previous.news.data);
+      assert.ok(after.news.error?.includes('Falha de conexão com a API'));
+      assert.equal(after.gallery.error, null);
+      const initialFailure = applyOverviewSnapshot(createInitialOverviewState(), failure);
+      assert.equal(initialFailure.users.data, null);
+      assert.equal(initialFailure.news.data, null);
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  it('recusa metadados inválidos sem substituir o total por array.length', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      for (const total of [undefined, -1, '120', 1.5]) {
+        globalThis.fetch = async (input) => String(input).includes('/usuarios')
+          ? json({ success: true, data: { items: items.usuarios, pagination: { total_count: total } } })
+          : serve(String(input));
+        const snapshot = await createAdminOverviewLoader()(true);
+        assert.ok(snapshot);
+        assert.ok(snapshot.users.error);
+        assert.equal(snapshot.users.data, null);
+      }
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  it('expõe falha da leitura legada sem impedir os indicadores oficiais válidos', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      for (const response of [new Response('', { status: 503 }), new Response('{}'), new Response('JSON inválido')]) {
+        globalThis.fetch = async (input) => String(input) === '/api/data' ? response : serve(String(input));
+        const snapshot = await createAdminOverviewLoader()(true);
+        assert.ok(snapshot);
+        assert.ok(snapshot.legacy.error);
+        assert.equal(snapshot.legacy.data, null);
+        assert.equal(snapshot.users.data, 120);
+      }
+    } finally { globalThis.fetch = originalFetch; }
+  });
+});
 
 describe('Rota independente de Banners e seleção local protegida', () => {
   const source = {

@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { DatabaseSchema } from '@/types';
 import { 
   Tv, 
   Newspaper, 
@@ -45,8 +44,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { YoutubeIcon, InstagramIcon, FacebookIcon } from '@/components/SocialIcons';
-import { useEditorialNews } from '@/components/admin/useEditorialNews';
-import { useAdminUsers } from '@/components/admin/useAdminUsers';
+import { useAdminOverview } from '@/components/admin/useAdminOverview';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
 import SocialChannelsModule from '@/components/admin/SocialChannelsModule';
 import SiteInfoModule from '@/components/admin/SiteInfoModule';
@@ -60,7 +58,6 @@ import {
   medtecApi,
   clearStoredTokens,
   ATipoAviso,
-  AAviso,
   CategoriaGaleria,
   FotoGaleria,
   CanalContato,
@@ -316,7 +313,6 @@ function SidebarFolderAccordion({
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [data, setData] = useState<DatabaseSchema | null>(null);
   const [currentSection, setCurrentSection] = useState<AdminSection>('visaoGeral');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -424,7 +420,6 @@ export default function AdminDashboardPage() {
   // ESTADOS DA API v1 OFICIAL (/api/v1)
   // -------------------------------------------------------------
   // Avisos e Tipos de Aviso (/a_avisos, /a_tipos_aviso) - Compartilhado com Visão Geral e Sidebar
-  const [apiAvisos, setApiAvisos] = useState<AAviso[]>([]);
   const [apiTiposAviso, setApiTiposAviso] = useState<ATipoAviso[]>([]);
 
   // Galeria e Categorias (/fotos_galeria, /categorias_galeria) - Compartilhado com Visão Geral e Sidebar
@@ -438,16 +433,18 @@ export default function AdminDashboardPage() {
   // A sessão Rails confirma o perfil editorial; permissões de edição não aprovam notícias.
   const canAccessKanban = userSession.isGestor && userSession.editorialProfile === 'Administrador';
   const {
-    apiNews, effectiveNews, loadingNews, errorNews,
-    reload: loadNewsData,
-  } = useEditorialNews();
+    data, setData, errorData, apiNews, loadingNews, errorNews, totalNews,
+    apiAvisos, setApiAvisos, loadingAvisos, errorAvisos, totalAvisos,
+    loadingFotos, errorFotos, totalFotos, totalCategorias, totalEstados,
+    apiNewsPublishedCount, apiNewsDraftCount, apiAvisosAtivosCount, apiAvisosUrgentesCount,
+    totalUsers, errorUsers, usersCountLabel, projectsCount, projectMunicipalities, bannersCount, faqsCount,
+    reload: loadOverview,
+  } = useAdminOverview();
+  const draftCount = apiNewsDraftCount;
 
-  // Estados de Carregamento e Erro da API v1 Oficial (para KPIs e Auditoria)
-  const [loadingAvisos, setLoadingAvisos] = useState(true);
-  const [errorAvisos, setErrorAvisos] = useState<string | null>(null);
-
-  const [loadingFotos, setLoadingFotos] = useState(true);
-  const [errorFotos, setErrorFotos] = useState<string | null>(null);
+  // As listas completas abaixo pertencem aos blocos legados, não aos KPIs.
+  const [loadingGalleryModule, setLoadingGalleryModule] = useState(true);
+  const [errorGalleryModule, setErrorGalleryModule] = useState<string | null>(null);
 
   // Estados (/g_estados) - Compartilhado com a Sidebar
   const [apiEstados, setApiEstados] = useState<Estado[]>([]);
@@ -478,75 +475,45 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const loadApiData = useCallback(async () => {
-    // 1. Avisos e Tipos
-    setLoadingAvisos(true);
-    setErrorAvisos(null);
-    try {
-      const [tiposRes, avisosRes] = await Promise.all([
-        medtecApi.tiposAviso.list({ page: 'all' }),
-        medtecApi.avisos.list({ page: 'all' }),
-      ]);
-      if (tiposRes.success && tiposRes.data?.items) {
-        setApiTiposAviso(tiposRes.data.items);
+  // Mantém os blocos antigos sem buscar dados de seus formulários ao abrir o resumo.
+  useEffect(() => {
+    if (!isLoggedIn || !userSession.isGestor) return;
+    let active = true;
+    const loadLegacyModule = async () => {
+      await Promise.resolve();
+      if (!active) return;
+      try {
+        if (currentSection === 'avisos') {
+          const response = await medtecApi.tiposAviso.list({ page: 'all' });
+          if (active && response.success && response.data?.items) setApiTiposAviso(response.data.items);
+        } else if (currentSection === 'galeria') {
+          setLoadingGalleryModule(true);
+          setErrorGalleryModule(null);
+          const [categories, photos] = await Promise.all([
+            medtecApi.categoriasGaleria.list({ page: 'all' }),
+            medtecApi.fotosGaleria.list({ page: 'all' }),
+          ]);
+          if (active && categories.success && categories.data?.items) setApiCategorias(categories.data.items);
+          if (active && photos.success && photos.data?.items) setApiFotos(photos.data.items);
+        } else if (currentSection === 'redes') {
+          const response = await medtecApi.canaisContato.list({ page: 'all' });
+          if (active && response.success && response.data?.items) setApiCanais(response.data.items);
+        } else if (currentSection === 'estadosCidades') {
+          setLoadingEstados(true);
+          const response = await medtecApi.estados.list({ page: 'all' });
+          if (active && response.success && response.data?.items) setApiEstados(response.data.items);
+        }
+      } catch (error) {
+        console.warn('API v1: Erro ao carregar módulo legado:', error);
+        if (active && currentSection === 'galeria') setErrorGalleryModule('Falha ao comunicar com a API da Galeria');
+      } finally {
+        if (active && currentSection === 'galeria') setLoadingGalleryModule(false);
+        if (active && currentSection === 'estadosCidades') setLoadingEstados(false);
       }
-      if (avisosRes.success && avisosRes.data?.items) {
-        setApiAvisos(avisosRes.data.items);
-      }
-    } catch (err) {
-      console.warn('API v1: Erro ao listar avisos/tipos:', err);
-      setErrorAvisos('Falha ao comunicar com a API de Avisos');
-    } finally {
-      setLoadingAvisos(false);
-    }
-
-    // 2. Galeria e Categorias
-    setLoadingFotos(true);
-    setErrorFotos(null);
-    try {
-      const [catsRes, fotosRes] = await Promise.all([
-        medtecApi.categoriasGaleria.list({ page: 'all' }),
-        medtecApi.fotosGaleria.list({ page: 'all' }),
-      ]);
-      if (catsRes.success && catsRes.data?.items) {
-        setApiCategorias(catsRes.data.items);
-      }
-      if (fotosRes.success && fotosRes.data?.items) {
-        setApiFotos(fotosRes.data.items);
-      }
-    } catch (err) {
-      console.warn('API v1: Erro ao listar galeria/categorias:', err);
-      setErrorFotos('Falha ao comunicar com a API da Galeria');
-    } finally {
-      setLoadingFotos(false);
-    }
-
-    // 3. Canais de Contato
-    try {
-      const canaisRes = await medtecApi.canaisContato.list({ page: 'all' });
-      if (canaisRes.success && canaisRes.data?.items) {
-        setApiCanais(canaisRes.data.items);
-      }
-    } catch (err) {
-      console.warn('API v1: Erro ao listar canais de contato:', err);
-    }
-
-    // 4. Estados
-    try {
-      setLoadingEstados(true);
-      const estadosRes = await medtecApi.estados.list({ page: 'all' });
-      if (estadosRes.success && estadosRes.data?.items) {
-        setApiEstados(estadosRes.data.items);
-      }
-    } catch (err) {
-      console.warn('API v1: Erro ao listar estados:', err);
-    } finally {
-      setLoadingEstados(false);
-    }
-
-    // Notícias oficiais para os KPIs da Visão Geral.
-    await loadNewsData();
-  }, [loadNewsData]);
+    };
+    void loadLegacyModule();
+    return () => { active = false; };
+  }, [currentSection, isLoggedIn, userSession.isGestor]);
 
   // Carrega dados iniciais e verifica sessão
   const loadData = useCallback(async () => {
@@ -559,6 +526,7 @@ export default function AdminDashboardPage() {
     const newsTarget = createNews ? '/admin/noticias?action=new' : '/admin/noticias';
     try {
       let authenticated = false;
+      let overviewAuthorized = false;
 
       // 1. Tenta validar token JWT na API Backend v1 (/auth/me)
       if (medtecApi.auth.isAuthenticated()) {
@@ -567,6 +535,7 @@ export default function AdminDashboardPage() {
           if (meRes.success && meRes.data) {
             authenticated = true;
             const isGestor = meRes.data.perfil_nome === 'Administrador' || meRes.data.perfil_id === 3 || meRes.data.id === 1;
+            overviewAuthorized = isGestor;
             setIsLoggedIn(true);
             setUserSession({
               isGestor,
@@ -606,6 +575,7 @@ export default function AdminDashboardPage() {
         if (authRes.ok) {
           const authJson = await authRes.json();
           const isGestor = authJson.isGestor !== false;
+          overviewAuthorized = isGestor;
           const profileType = authJson.profileType;
 
           setIsLoggedIn(true);
@@ -644,38 +614,19 @@ export default function AdminDashboardPage() {
         return;
       }
 
-      // Carrega dados da API Backend v1 oficial (avisos, fotos, canais, estados, cidades)
-      try {
-        await loadApiData();
-      } catch (apiErr) {
-        console.warn('API v1: Aviso ao carregar dados oficiais do backend:', apiErr);
-      }
-
-      // Carrega configurações institucionais do portal (siteInfo, stats, socials, banners)
-      try {
-        const res = await fetch('/api/data');
-        if (res.ok) {
-          const json = await res.json();
-          setData(json);
-        }
-      } catch {
-        // fallback silencioso
-      }
+      // A autenticação e os redirecionamentos acima continuam pertencendo à página.
+      await loadOverview(overviewAuthorized);
     } catch (err) {
       console.error(err);
       router.push('/admin/login');
     }
-  }, [router, loadApiData]);
+  }, [router, loadOverview]);
 
   useEffect(() => {
-    let isMounted = true;
     const run = async () => {
       await loadData();
     };
     void run();
-    return () => {
-      isMounted = false;
-    };
   }, [loadData]);
 
   // Sincroniza subrotas legadas ou transição de abas via query param ?tab= ou ?section=
@@ -766,17 +717,6 @@ export default function AdminDashboardPage() {
   };
 
 
-  // Métricas oficiais dos módulos integrados à API Rails v1 (Fonte Única de Verdade)
-  const apiNewsPublishedCount = apiNews.filter((n) => n.status === 'publicada').length;
-  const apiNewsDraftCount = apiNews.filter((n) => n.status === 'aguardando').length;
-  const draftCount = apiNewsDraftCount;
-  const totalNewsViews = effectiveNews.reduce((acc, curr) => acc + (curr.views || 0), 0);
-
-  const apiAvisosAtivosCount = apiAvisos.filter((a) => a.ativo).length;
-  const apiAvisosUrgentesCount = apiAvisos.filter(
-    (a) => a.ativo && (a.a_tipo_aviso?.slug === 'urgente' || a.a_tipo_aviso?.nome?.toLowerCase().includes('urgente'))
-  ).length;
-
   // Permissões por Atribuição de Perfil
   const canAccessNews = userSession.isGestor || userSession.profileType === 'Editor de Notícias' || userSession.profileType === 'Operador de Conteúdo';
   const canAccessPhotos = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
@@ -787,8 +727,6 @@ export default function AdminDashboardPage() {
   const canAccessSocials = userSession.isGestor;
   const canAccessSiteInfo = userSession.isGestor;
   const canAccessUsers = userSession.isGestor;
-  const usersManagement = useAdminUsers({ enabled: isLoggedIn && canAccessUsers });
-  const usersCountLabel = usersManagement.loadingUsers ? '...' : usersManagement.errorUsers ? 'Indisponível' : (usersManagement.totalUsers ?? '—');
   const canAccessEstados = userSession.isGestor;
 
   // Árvore de Navegação em Pastas Expansíveis (Didático - Estilo Accordion JOER SEDUC-RO)
@@ -804,7 +742,7 @@ export default function AdminDashboardPage() {
           label: 'Notícias e Matérias',
           tooltip: 'Criar ou editar reportagens',
           icon: Newspaper,
-          badge: errorNews ? undefined : (loadingNews ? undefined : apiNews.length),
+          badge: errorNews ? undefined : (loadingNews ? undefined : (totalNews ?? undefined)),
           visible: canAccessNews,
         },
         {
@@ -812,7 +750,7 @@ export default function AdminDashboardPage() {
           label: 'Projetos Pedagógicos',
           tooltip: 'Cadastrar e gerenciar projetos pedagógicos das escolas',
           icon: Lightbulb,
-          badge: data?.projects?.length,
+          badge: projectsCount,
           visible: canAccessProjects,
         },
         {
@@ -820,7 +758,7 @@ export default function AdminDashboardPage() {
           label: 'Dúvidas Frequentes (FAQ)',
           tooltip: 'Cadastrar e gerenciar perguntas frequentes do portal',
           icon: HelpCircle,
-          badge: data?.faqs?.length,
+          badge: faqsCount,
           visible: canAccessFaqs,
         },
         {
@@ -828,7 +766,7 @@ export default function AdminDashboardPage() {
           label: 'Avisos e Comunicados',
           tooltip: 'Publicar alertas no mural',
           icon: Megaphone,
-          badge: errorAvisos ? undefined : (loadingAvisos ? undefined : apiAvisos.length),
+          badge: errorAvisos ? undefined : (loadingAvisos ? undefined : (totalAvisos ?? undefined)),
           visible: canAccessAnnouncements,
         },
         {
@@ -836,7 +774,7 @@ export default function AdminDashboardPage() {
           label: 'Banners da Página Inicial',
           tooltip: 'Trocar imagens do topo da Home',
           icon: Presentation,
-          badge: data?.banners?.length,
+          badge: bannersCount,
           visible: canAccessPhotos,
         },
         {
@@ -844,7 +782,7 @@ export default function AdminDashboardPage() {
           label: 'Galeria de Fotos',
           tooltip: 'Adicionar fotos das escolas',
           icon: Images,
-          badge: errorFotos ? undefined : (loadingFotos ? undefined : apiFotos.length),
+          badge: errorFotos ? undefined : (loadingFotos ? undefined : (totalFotos ?? undefined)),
           visible: canAccessGallery,
         },
       ],
@@ -892,7 +830,7 @@ export default function AdminDashboardPage() {
           label: 'Estados e Municípios',
           tooltip: 'Cadastrar e gerenciar estados (UF) e municípios da API',
           icon: MapPin,
-          badge: apiEstados.length > 0 ? apiEstados.length : undefined,
+          badge: totalEstados !== null && totalEstados > 0 ? totalEstados : undefined,
           visible: canAccessEstados,
         },
       ],
@@ -908,7 +846,7 @@ export default function AdminDashboardPage() {
           label: 'Gerenciar Equipe e Senhas',
           tooltip: 'Abre o cadastro de operadores por CPF',
           icon: UserCog,
-          badge: usersManagement.errorUsers ? undefined : (usersManagement.totalUsers ?? undefined),
+          badge: errorUsers ? undefined : (totalUsers ?? undefined),
           visible: canAccessUsers,
         },
       ],
@@ -951,7 +889,7 @@ export default function AdminDashboardPage() {
         <div className="w-9 h-9 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
         <div className="text-center space-y-1">
           <p className="text-sm font-bold tracking-wide">MEDTEC Rondônia • SEDUC-RO</p>
-          <p className="text-xs text-slate-400">Autenticando e carregando painel de gestão...</p>
+          <p role={errorData ? 'alert' : undefined} className="text-xs text-slate-400">{errorData || 'Autenticando e carregando painel de gestão...'}</p>
         </div>
       </div>
     );
@@ -990,8 +928,8 @@ export default function AdminDashboardPage() {
           setApiFotos={setApiFotos}
           apiCategorias={apiCategorias}
           setApiCategorias={setApiCategorias}
-          loadingFotos={loadingFotos}
-          errorFotos={errorFotos}
+          loadingFotos={loadingGalleryModule}
+          errorFotos={errorGalleryModule}
           onPreview={(photoData) =>
             setPreviewModal({
               isOpen: true,
@@ -1521,13 +1459,13 @@ export default function AdminDashboardPage() {
                     ) : (
                       <>
                         <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-                          {apiNews.length}
+                          {totalNews}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                           {apiNewsPublishedCount} no ar · {apiNewsDraftCount} rascunhos
                         </p>
                         <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                          {apiNews.length === 0 ? 'Nenhuma matéria cadastrada' : 'Registros sincronizados com a API Rails'}
+                          {totalNews === 0 ? 'Nenhuma matéria cadastrada' : 'Registros sincronizados com a API Rails'}
                         </p>
                       </>
                     )}
@@ -1556,10 +1494,10 @@ export default function AdminDashboardPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-                      {data.projects?.length || 0}
+                      {projectsCount}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {new Set((data.projects || []).map(p => p.municipality)).size} municípios com práticas
+                      {projectMunicipalities} municípios com práticas
                     </p>
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
                       4 trilhas de conhecimento no ar
@@ -1601,7 +1539,7 @@ export default function AdminDashboardPage() {
                     ) : (
                       <>
                         <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-                          {apiAvisos.length}
+                          {totalAvisos}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                           {apiAvisosAtivosCount} avisos ativos no mural da Home
@@ -1654,13 +1592,13 @@ export default function AdminDashboardPage() {
                     ) : (
                       <>
                         <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-                          {apiFotos.length}
+                          {totalFotos}
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          {apiCategorias.length} categoria{apiCategorias.length === 1 ? '' : 's'} de acervo escolar
+                          {totalCategorias} categoria{totalCategorias === 1 ? '' : 's'} de acervo escolar
                         </p>
                         <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-                          {apiFotos.length === 0 ? 'Nenhuma fotografia catalogada' : 'Acervo oficial sincronizado com a API Rails'}
+                          {totalFotos === 0 ? 'Nenhuma fotografia catalogada' : 'Acervo oficial sincronizado com a API Rails'}
                         </p>
                       </>
                     )}
@@ -1716,7 +1654,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-                      {data.faqs?.length || 0}
+                      {faqsCount}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       Perguntas ativas na Central de Dúvidas
@@ -1762,7 +1700,7 @@ export default function AdminDashboardPage() {
                           </h4>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                          {loadingNews ? 'Carregando...' : errorNews ? 'Indisponível' : `${apiNews.length} matérias`}
+                          {loadingNews ? 'Carregando...' : errorNews ? 'Indisponível' : `${totalNews} matérias`}
                         </span>
                       </div>
 
@@ -1808,7 +1746,7 @@ export default function AdminDashboardPage() {
                           </h4>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold border border-amber-200/80 dark:border-amber-800/80">
-                          {data.projects?.length || 0} missões
+                          {projectsCount} missões
                         </span>
                       </div>
 
@@ -1861,7 +1799,7 @@ export default function AdminDashboardPage() {
                           </h4>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                          {loadingAvisos ? 'Carregando...' : errorAvisos ? 'Indisponível' : `${apiAvisos.length} avisos`}
+                          {loadingAvisos ? 'Carregando...' : errorAvisos ? 'Indisponível' : `${totalAvisos} avisos`}
                         </span>
                       </div>
 
@@ -1904,7 +1842,7 @@ export default function AdminDashboardPage() {
                           </h4>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                          {data.banners?.length || 0} banners
+                          {bannersCount} banners
                         </span>
                       </div>
 
@@ -1917,7 +1855,7 @@ export default function AdminDashboardPage() {
                           Carrossel & Transmissão:
                         </span>
                         <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                          {data.banners?.length || 0} banners ativos no carrossel da página inicial, foto do estúdio e capas de destaque.
+                          {bannersCount} banners ativos no carrossel da página inicial, foto do estúdio e capas de destaque.
                         </p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
                           Transmissão ao vivo integrada
@@ -1947,7 +1885,7 @@ export default function AdminDashboardPage() {
                           </h4>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                          {loadingFotos ? 'Carregando...' : errorFotos ? 'Indisponível' : `${apiFotos.length} fotos`}
+                          {loadingFotos ? 'Carregando...' : errorFotos ? 'Indisponível' : `${totalFotos} fotos`}
                         </span>
                       </div>
 
@@ -1960,7 +1898,7 @@ export default function AdminDashboardPage() {
                           Acervo Pedagógico de Rondônia:
                         </span>
                         <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                          {loadingFotos ? 'Carregando...' : errorFotos ? 'Falha de comunicação com a API' : `${apiFotos.length} fotos catalogadas no acervo oficial da API Rails v1.`}
+                          {loadingFotos ? 'Carregando...' : errorFotos ? 'Falha de comunicação com a API' : `${totalFotos} fotos catalogadas no acervo oficial da API Rails v1.`}
                         </p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
                           Fotos públicas visíveis no portal
@@ -2099,7 +2037,7 @@ export default function AdminDashboardPage() {
                           </h4>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                          {data.faqs?.length || 0} dúvidas
+                          {faqsCount} dúvidas
                         </span>
                       </div>
 
@@ -2112,8 +2050,8 @@ export default function AdminDashboardPage() {
                           Central de Respostas Oficiais:
                         </span>
                         <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                          {data.faqs && data.faqs.length > 0
-                            ? `${data.faqs.length} dúvidas catalogadas em 4 categorias para estudantes, mediadores e gestores.`
+                          {faqsCount > 0
+                            ? `${faqsCount} dúvidas catalogadas em 4 categorias para estudantes, mediadores e gestores.`
                             : 'Nenhuma dúvida cadastrada ainda.'}
                         </p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
