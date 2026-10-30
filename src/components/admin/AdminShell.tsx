@@ -103,7 +103,7 @@ export const SECTION_CONFIG: Record<
     group: 'Aprovação e Revisão',
     title: 'Fila de Aprovação (Passo a Passo)',
     subtitle: 'Acompanhe as reportagens em rascunho, envie para revisão e publique oficialmente no portal.',
-    href: '/admin?tab=kanban',
+    href: '/admin/kanban',
   },
   siteInfo: {
     group: 'Dados e Contatos do Site',
@@ -334,7 +334,7 @@ export default function AdminShell({
   const canAccessFaqs = userSession.isGestor || userSession.profileType === 'Operador de Conteúdo';
   const canAccessSocials = userSession.isGestor;
   const canAccessSiteInfo = userSession.isGestor;
-  const canAccessKanban = userSession.isGestor;
+  const canAccessKanban = userSession.isGestor && userSession.apiUser?.perfil_nome === 'Administrador';
   const canAccessUsers = userSession.isGestor;
   const canAccessEstados = userSession.isGestor;
 

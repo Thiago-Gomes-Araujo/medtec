@@ -57,7 +57,6 @@ import {
   Clock,
 } from 'lucide-react';
 import { YoutubeIcon, InstagramIcon, FacebookIcon } from '@/components/SocialIcons';
-import EditorialKanban from '@/components/EditorialKanban';
 import { useEditorialNews } from '@/components/admin/useEditorialNews';
 import SitePhotosManager from '@/components/SitePhotosManager';
 import AdminLiveSimulator, { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
@@ -363,6 +362,10 @@ export default function AdminDashboardPage() {
   };
 
   const handleSelectSection = (sec: AdminSection) => {
+    if (sec === 'kanban') {
+      router.push('/admin/kanban');
+      return;
+    }
     if (sec === 'noticias') {
       router.push('/admin/noticias');
       return;
@@ -514,8 +517,8 @@ export default function AdminDashboardPage() {
   const canAccessKanban = userSession.isGestor && userSession.editorialProfile === 'Administrador';
   const {
     apiNews, effectiveNews, loadingNews, errorNews,
-    reload: loadNewsData, approveNews, rejectNews,
-  } = useEditorialNews({ canApprove: canAccessKanban, canReject: canAccessKanban });
+    reload: loadNewsData,
+  } = useEditorialNews();
 
   // Estados de Carregamento e Erro da API v1 Oficial (para KPIs e Auditoria)
   const [loadingAvisos, setLoadingAvisos] = useState(true);
@@ -619,7 +622,7 @@ export default function AdminDashboardPage() {
       setLoadingEstados(false);
     }
 
-    // Notícias oficiais compartilhadas pelos KPIs e pelo Kanban.
+    // Notícias oficiais para os KPIs da Visão Geral.
     await loadNewsData();
   }, [loadNewsData]);
 
@@ -627,6 +630,9 @@ export default function AdminDashboardPage() {
   const loadData = useCallback(async () => {
     await Promise.resolve();
     const params = new URLSearchParams(window.location.search);
+    // O efeito de compatibilidade encaminha a fila para sua própria rota.
+    // Não carrega sessão/dados dos demais módulos para esse acesso legado.
+    if ((params.get('tab') || params.get('section')) === 'kanban') return;
     const createNews = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
     const newsTarget = createNews ? '/admin/noticias?action=new' : '/admin/noticias';
     try {
@@ -753,7 +759,9 @@ export default function AdminDashboardPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab') || params.get('section');
-      if (tabParam === 'noticias') {
+      if (tabParam === 'kanban') {
+        router.replace('/admin/kanban');
+      } else if (tabParam === 'noticias') {
         const create = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
         router.replace(create ? '/admin/noticias?action=new' : '/admin/noticias');
       } else if (tabParam === 'avisos') {
@@ -3825,7 +3833,7 @@ export default function AdminDashboardPage() {
                     <button
                       type="button"
                       disabled={!canAccessKanban}
-                      onClick={() => setCurrentSection('kanban')}
+                      onClick={() => router.push('/admin/kanban')}
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
                     >
                       <span>Abrir Fila de Aprovação</span>
@@ -3950,24 +3958,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-            </div>
-          )}
-
-          {/* VISÃO 2: KANBAN COM AUTORIZAÇÃO EDITORIAL RAILS */}
-          {currentSection === 'kanban' && !canAccessKanban && (
-            <p role="alert">A fila de aprovação exige permissão editorial de Administrador na API.</p>
-          )}
-          {currentSection === 'kanban' && canAccessKanban && (
-            <div className="w-full">
-              <EditorialKanban
-                news={effectiveNews}
-                onApproveNews={approveNews}
-                onRejectNews={rejectNews}
-                loading={loadingNews}
-                error={errorNews}
-                canApprove={canAccessKanban}
-                canReject={canAccessKanban}
-              />
             </div>
           )}
 
