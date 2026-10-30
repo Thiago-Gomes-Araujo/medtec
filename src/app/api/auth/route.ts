@@ -33,6 +33,7 @@ export async function POST(request: Request) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cpf: username, password }),
+        signal: AbortSignal.timeout(5000),
       });
 
       if (backendRes.ok) {
@@ -46,6 +47,7 @@ export async function POST(request: Request) {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${backendTokens?.access_token}`,
             },
+            signal: AbortSignal.timeout(5000),
           });
           if (meRes.ok) {
             const meJson = await meRes.json();
