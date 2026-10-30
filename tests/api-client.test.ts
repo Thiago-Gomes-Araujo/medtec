@@ -5,6 +5,10 @@
 
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import EditorialKanban from '../src/components/EditorialKanban';
+import type { NewsItem } from '../src/types';
 
 import {
   buildQueryString,
@@ -897,5 +901,50 @@ describe('10. Tratamento Rigoroso de Erros de Protocolo e Ausência de Mocks', (
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+});
+
+// Contrato visual da integração controlada; nenhuma decisão editorial é executada.
+describe('11. Kanban controlado e permissões editoriais', () => {
+  const pendingNews: NewsItem = {
+    id: '7', title: 'Materia pendente', slug: 'materia-pendente', excerpt: '',
+    content: 'Conteudo', coverImage: '', author: 'Equipe', category: 'Pedagogico',
+    publishedAt: '2026-10-30', featured: false, published: false, rejected: false,
+  };
+  const callbacks = {
+    onApproveNews: async () => { throw new Error('A renderização não deve publicar.'); },
+    onRejectNews: async () => { throw new Error('A renderização não deve reprovar.'); },
+  };
+  const actionButton = (html: string, label: string) => {
+    const button = html.match(/<button\b[\s\S]*?<\/button>/g)?.find((item) => item.includes(label));
+    assert.ok(button, `Ação ausente: ${label}`);
+    return button;
+  };
+
+  it('não concede aprovação ou reprovação quando permissões são omitidas', () => {
+    const html = renderToStaticMarkup(createElement(EditorialKanban, { news: [pendingNews], ...callbacks }));
+    assert.match(actionButton(html, 'Aprovar notícia'), /disabled=""/);
+    assert.match(actionButton(html, 'Recusar'), /disabled=""/);
+  });
+
+  it('mantém publicação e reprovação como permissões independentes', () => {
+    const html = renderToStaticMarkup(createElement(EditorialKanban, {
+      news: [pendingNews], ...callbacks, canApprove: true, canReject: false,
+    }));
+    assert.doesNotMatch(actionButton(html, 'Aprovar notícia'), /disabled=""/);
+    assert.match(actionButton(html, 'Recusar'), /disabled=""/);
+  });
+
+  it('distingue coleção vazia válida de falha da API e de carregamento', () => {
+    const props = { news: [], ...callbacks };
+    const empty = renderToStaticMarkup(createElement(EditorialKanban, props));
+    assert.match(empty, /Fila editorial aguardando matérias/);
+    const error = renderToStaticMarkup(createElement(EditorialKanban, { ...props, error: 'Sem permissão na API' }));
+    assert.match(error, /role="alert"/);
+    assert.match(error, /Sem permissão na API/);
+    assert.doesNotMatch(error, /Fila editorial aguardando matérias/);
+    const loading = renderToStaticMarkup(createElement(EditorialKanban, { ...props, loading: true }));
+    assert.match(loading, /role="status"/);
+    assert.doesNotMatch(loading, /Fila editorial aguardando matérias/);
   });
 });

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { DatabaseSchema, NewsItem, ProjectMission, ReplicationWeek } from '@/types';
+import { DatabaseSchema, ProjectMission, ReplicationWeek } from '@/types';
 import { 
   Tv, 
   Newspaper, 
@@ -58,6 +58,7 @@ import {
 } from 'lucide-react';
 import { YoutubeIcon, InstagramIcon, FacebookIcon } from '@/components/SocialIcons';
 import EditorialKanban from '@/components/EditorialKanban';
+import { useEditorialNews } from '@/components/admin/useEditorialNews';
 import SitePhotosManager from '@/components/SitePhotosManager';
 import AdminLiveSimulator, { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
 import UserManager from '@/components/UserManager';
@@ -69,7 +70,6 @@ import AnnouncementsModule from '@/components/admin/AnnouncementsModule';
 import { FaqItem, FaqCategory } from '@/types';
 import {
   medtecApi,
-  getMediaUrl,
   clearStoredTokens,
   ATipoAviso,
   AAviso,
@@ -77,7 +77,6 @@ import {
   FotoGaleria,
   CanalContato,
   Estado,
-  NNoticia,
 } from '@/lib/api';
 
 type AdminSection = 'visaoGeral' | 'kanban' | 'fotos' | 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo' | 'usuarios' | 'projetos' | 'duvidas' | 'estadosCidades';
@@ -401,6 +400,7 @@ export default function AdminDashboardPage() {
     role?: string;
     name?: string;
     profileType?: string;
+    editorialProfile?: string;
   }>({ isGestor: false });
 
   // Estado para formulário de Projeto Pedagógico (novo ou edição)
@@ -510,8 +510,12 @@ export default function AdminDashboardPage() {
   const [apiCanais, setApiCanais] = useState<CanalContato[]>([]);
   const [savingCanais, setSavingCanais] = useState(false);
 
-  // Notícias oficiais para KPIs e Kanban (/n_noticias)
-  const [apiNews, setApiNews] = useState<NNoticia[]>([]);
+  // A sessão Rails confirma o perfil editorial; permissões de edição não aprovam notícias.
+  const canAccessKanban = userSession.isGestor && userSession.editorialProfile === 'Administrador';
+  const {
+    apiNews, effectiveNews, loadingNews, errorNews,
+    reload: loadNewsData, approveNews, rejectNews,
+  } = useEditorialNews({ canApprove: canAccessKanban, canReject: canAccessKanban });
 
   // Estados de Carregamento e Erro da API v1 Oficial (para KPIs e Auditoria)
   const [loadingAvisos, setLoadingAvisos] = useState(true);
@@ -519,9 +523,6 @@ export default function AdminDashboardPage() {
 
   const [loadingFotos, setLoadingFotos] = useState(true);
   const [errorFotos, setErrorFotos] = useState<string | null>(null);
-
-  const [loadingNews, setLoadingNews] = useState(true);
-  const [errorNews, setErrorNews] = useState<string | null>(null);
 
   // Estados (/g_estados) - Compartilhado com a Sidebar
   const [apiEstados, setApiEstados] = useState<Estado[]>([]);
@@ -551,23 +552,6 @@ export default function AdminDashboardPage() {
       localStorage.setItem('medtec-theme', 'light');
     }
   };
-
-  // Carregamento de dados da API v1 oficial
-  const loadNewsData = useCallback(async () => {
-    setLoadingNews(true);
-    setErrorNews(null);
-    try {
-      const response = await medtecApi.noticias.list({ page: 'all' });
-      if (!response.success || !Array.isArray(response.data?.items)) {
-        throw new Error('Resposta inválida da API de Notícias');
-      }
-      setApiNews(response.data.items);
-    } catch {
-      setErrorNews('Falha ao comunicar com a API de Notícias');
-    } finally {
-      setLoadingNews(false);
-    }
-  }, []);
 
   const loadApiData = useCallback(async () => {
     // 1. Avisos e Tipos
@@ -662,6 +646,7 @@ export default function AdminDashboardPage() {
               role: meRes.data.perfil_nome,
               name: meRes.data.nome,
               profileType: meRes.data.perfil_nome,
+              editorialProfile: meRes.data.perfil_nome,
             });
 
             if (!isGestor) {
@@ -853,41 +838,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleApproveNews = async (id: string): Promise<boolean> => {
-    const numId = Number(id);
-    if (!numId) return false;
-
-    try {
-      await medtecApi.noticias.publicar(numId);
-      await loadApiData();
-      return true;
-    } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      alert('Não foi possível aprovar a notícia: ' + (error?.errors?.join(', ') || error?.message || 'Apenas administradores possuem permissão para publicar.'));
-      return false;
-    }
-  };
-
-  const handleRejectNews = async (id: string, reason?: string): Promise<boolean> => {
-    const numId = Number(id);
-    if (!numId) return false;
-
-    if (!reason || !reason.trim()) {
-      alert('É obrigatório informar o motivo da reprovação.');
-      return false;
-    }
-
-    try {
-      await medtecApi.noticias.reprovar(numId, reason.trim());
-      await loadApiData();
-      return true;
-    } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      alert('Não foi possível reprovar a notícia: ' + (error?.errors?.join(', ') || error?.message || 'Apenas administradores possuem permissão para reprovar.'));
-      return false;
-    }
-  };
-
   // -------------------------------------------------------------
   // FUNÇÕES DE REDES SOCIAIS E CANAIS DE CONTATO (/canais_contato)
   // -------------------------------------------------------------
@@ -1006,28 +956,6 @@ export default function AdminDashboardPage() {
     alert('A criação e edição de dúvidas frequentes (FAQ) estão desabilitadas aguardando a disponibilização dos endpoints oficiais pelo backend Rails (/faqs). A persistência em disco local foi descontinuada para cumprir a diretriz de fonte única de dados.');
   };
 
-  const effectiveNews: NewsItem[] = useMemo(() => {
-    return apiNews.map((n) => ({
-      id: String(n.id),
-      title: n.titulo,
-      slug: n.slug,
-      excerpt: n.resumo || '',
-      content: n.conteudo,
-      coverImage: getMediaUrl(n.imagem_capa),
-      author: n.autor_nome,
-      category: n.categoria_nome,
-      publishedAt: n.data_publicacao,
-      featured: false,
-      urgent: false,
-      folder: n.categoria_nome || 'Geral',
-      published: n.status === 'publicada',
-      rejected: n.status === 'reprovada',
-      rejectionReason: n.motivo_reprovacao || undefined,
-      views: 0,
-      tags: [],
-    }));
-  }, [apiNews]);
-
   // Métricas oficiais dos módulos integrados à API Rails v1 (Fonte Única de Verdade)
   const apiNewsPublishedCount = apiNews.filter((n) => n.status === 'publicada').length;
   const apiNewsDraftCount = apiNews.filter((n) => n.status === 'aguardando').length;
@@ -1048,7 +976,6 @@ export default function AdminDashboardPage() {
   const canAccessFaqs = userSession.isGestor || userSession.profileType === 'Operador de Conteúdo';
   const canAccessSocials = userSession.isGestor;
   const canAccessSiteInfo = userSession.isGestor;
-  const canAccessKanban = userSession.isGestor;
   const canAccessUsers = userSession.isGestor;
   const canAccessEstados = userSession.isGestor;
 
@@ -3897,6 +3824,7 @@ export default function AdminDashboardPage() {
 
                     <button
                       type="button"
+                      disabled={!canAccessKanban}
                       onClick={() => setCurrentSection('kanban')}
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
                     >
@@ -4025,14 +3953,20 @@ export default function AdminDashboardPage() {
             </div>
           )}
 
-          {/* VISÃO 2: PIPELINE KANBAN (EXCLUSIVO GESTOR) */}
+          {/* VISÃO 2: KANBAN COM AUTORIZAÇÃO EDITORIAL RAILS */}
+          {currentSection === 'kanban' && !canAccessKanban && (
+            <p role="alert">A fila de aprovação exige permissão editorial de Administrador na API.</p>
+          )}
           {currentSection === 'kanban' && canAccessKanban && (
             <div className="w-full">
               <EditorialKanban
                 news={effectiveNews}
-                onApproveNews={handleApproveNews}
-                onRejectNews={handleRejectNews}
-                isGestor={userSession.isGestor}
+                onApproveNews={approveNews}
+                onRejectNews={rejectNews}
+                loading={loadingNews}
+                error={errorNews}
+                canApprove={canAccessKanban}
+                canReject={canAccessKanban}
               />
             </div>
           )}

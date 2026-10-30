@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Check,
   CheckCircle2,
@@ -17,7 +17,7 @@ import {
   Inbox
 } from 'lucide-react';
 import { NewsItem } from '@/types';
-import { medtecApi, getMediaUrl } from '@/lib/api';
+import { ApiError } from '@/lib/api';
 
 interface AuditLog {
   data: string;
@@ -26,21 +26,24 @@ interface AuditLog {
 }
 
 interface EditorialKanbanProps {
-  news?: NewsItem[];
-  onApproveNews?: (newsId: string) => Promise<boolean>;
-  onRejectNews?: (newsId: string, reason?: string) => Promise<boolean>;
-  isGestor?: boolean;
+  news: NewsItem[];
+  onApproveNews: (newsId: string) => Promise<boolean>;
+  onRejectNews: (newsId: string, reason: string) => Promise<boolean>;
+  loading?: boolean;
+  error?: string | null;
+  canApprove?: boolean;
+  canReject?: boolean;
 }
 
 export default function EditorialKanban({
-  news: propNews,
+  news: allNews,
   onApproveNews,
   onRejectNews,
-  isGestor = true,
+  loading = false,
+  error = null,
+  canApprove = false,
+  canReject = false,
 }: EditorialKanbanProps) {
-  // Estado local para quando os dados não forem injetados via props
-  const [internalNews, setInternalNews] = useState<NewsItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'pendentes' | 'publicadas' | 'recusadas' | 'todas' | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
@@ -62,55 +65,6 @@ export default function EditorialKanban({
       titulo: 'Sincronização com o CMS Central',
     },
   ]);
-
-  // Se propNews não estiver definido, busca da API
-  useEffect(() => {
-    if (propNews !== undefined) return;
-
-    let isMounted = true;
-    async function loadFromApi() {
-      setLoading(true);
-      try {
-        const res = await medtecApi.noticias.list({ page: 1, per_page: 50 });
-        if (res.success && Array.isArray(res.data?.items)) {
-          const mapped: NewsItem[] = res.data.items.map((n) => ({
-            id: String(n.id),
-            title: n.titulo,
-            slug: n.slug,
-            excerpt: n.resumo || '',
-            content: n.conteudo,
-            coverImage: getMediaUrl(n.imagem_capa),
-            author: n.autor_nome,
-            category: n.categoria_nome,
-            publishedAt: n.data_publicacao,
-            featured: false,
-            urgent: false,
-            folder: 'Geral',
-            published: n.status === 'publicada',
-            rejected: n.status === 'reprovada',
-            rejectionReason: n.motivo_reprovacao || undefined,
-            views: 0,
-            tags: [],
-          }));
-          if (isMounted) {
-            setInternalNews(mapped);
-          }
-        }
-      } catch (err) {
-        console.error('Falha ao carregar editorial da API oficial:', err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    loadFromApi();
-    return () => {
-      isMounted = false;
-    };
-  }, [propNews]);
-
-  // Lista unificada de notícias
-  const allNews: NewsItem[] = propNews ?? internalNews;
 
   // Contagens para os filtros
   const pendingNews = useMemo(() => allNews.filter((n) => n.published === false && !n.rejected), [allNews]);
@@ -145,36 +99,14 @@ export default function EditorialKanban({
   // Execução da aprovação com persistência real
   const handleConfirmApproval = async () => {
     const item = confirmModal.item;
-    if (!item) return;
+    if (!item || !canApprove || loading || error || approvingId || rejectingId) return;
 
     setApprovingId(item.id);
     setConfirmModal({ isOpen: false, item: null });
 
     try {
-      let success = false;
-
-      if (onApproveNews) {
-        success = await onApproveNews(item.id);
-      } else {
-        const numId = Number(item.id);
-        if (numId) {
-          const res = await medtecApi.noticias.publicar(numId);
-          success = !!res;
-        }
-      }
-
+      const success = await onApproveNews(item.id);
       if (success) {
-        // Atualiza estado local se não estiver usando props
-        if (!propNews || propNews.length === 0) {
-          setInternalNews((prev) =>
-            prev.map((n) =>
-              n.id === item.id
-                ? { ...n, published: true, rejected: false, publishedAt: new Date().toLocaleDateString('pt-BR') }
-                : n
-            )
-          );
-        }
-
         // Registra evento no histórico de auditoria
         setHistorico((prev) => [
           {
@@ -192,14 +124,14 @@ export default function EditorialKanban({
       } else {
         setFeedback({
           type: 'error',
-          message: 'Não foi possível aprovar a notícia. Verifique as permissões de gestor ou a conexão.',
+          message: 'Não foi possível aprovar a notícia. Verifique as permissões editoriais ou a conexão.',
         });
       }
     } catch (err) {
       console.error('Erro ao aprovar notícia:', err);
       setFeedback({
         type: 'error',
-        message: 'Ocorreu um erro inesperado ao processar a aprovação da notícia.',
+        message: ApiError.getFriendlyMessage(err),
       });
     } finally {
       setApprovingId(null);
@@ -210,7 +142,7 @@ export default function EditorialKanban({
   // Execução da recusa com persistência
   const handleConfirmReject = async () => {
     const item = rejectModal.item;
-    if (!item) return;
+    if (!item || !canReject || loading || error || approvingId || rejectingId) return;
 
     if (!rejectReason || !rejectReason.trim()) {
       setFeedback({
@@ -224,28 +156,8 @@ export default function EditorialKanban({
     setRejectModal({ isOpen: false, item: null });
 
     try {
-      let success = false;
-      if (onRejectNews) {
-        success = await onRejectNews(item.id, rejectReason.trim());
-      } else {
-        const numId = Number(item.id);
-        if (numId) {
-          const res = await medtecApi.noticias.reprovar(numId, rejectReason.trim());
-          success = !!res;
-        }
-      }
-
+      const success = await onRejectNews(item.id, rejectReason.trim());
       if (success) {
-        if (!propNews || propNews.length === 0) {
-          setInternalNews((prev) =>
-            prev.map((n) =>
-              n.id === item.id
-                ? { ...n, published: false, rejected: true, rejectionReason: rejectReason || 'Recusada pelo gestor.' }
-                : n
-            )
-          );
-        }
-
         setHistorico((prev) => [
           {
             data: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
@@ -262,14 +174,14 @@ export default function EditorialKanban({
       } else {
         setFeedback({
           type: 'error',
-          message: 'Não foi possível recusar a notícia. Verifique as permissões de gestor ou a conexão.',
+          message: 'Não foi possível recusar a notícia. Verifique as permissões editoriais ou a conexão.',
         });
       }
     } catch (err) {
       console.error('Erro ao recusar notícia:', err);
       setFeedback({
         type: 'error',
-        message: 'Ocorreu um erro inesperado ao processar a recusa da notícia.',
+        message: ApiError.getFriendlyMessage(err),
       });
     } finally {
       setRejectingId(null);
@@ -280,11 +192,15 @@ export default function EditorialKanban({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16 text-slate-400 gap-2">
+      <div role="status" className="flex items-center justify-center py-16 text-slate-400 gap-2">
         <Loader2 className="w-5 h-5 animate-spin text-[#004A99] dark:text-sky-400" />
         <span className="text-sm font-medium">Carregando notícias para aprovação...</span>
       </div>
     );
+  }
+
+  if (error) {
+    return <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">{error}</p>;
   }
 
   return (
@@ -537,7 +453,7 @@ export default function EditorialKanban({
                         <XCircle className="w-3.5 h-3.5" />
                         <span>Recusada</span>
                       </span>
-                      {isGestor && (
+                      {canApprove && (
                         <button
                           type="button"
                           onClick={() => setConfirmModal({ isOpen: true, item })}
@@ -552,7 +468,7 @@ export default function EditorialKanban({
                       {/* Botão Recusar */}
                       <button
                         type="button"
-                        disabled={rejectingId === item.id || isCurrentlyApproving || !isGestor}
+                        disabled={rejectingId === item.id || isCurrentlyApproving || !canReject}
                         onClick={() => {
                           setRejectReason('');
                           setRejectModal({ isOpen: true, item });
@@ -576,7 +492,7 @@ export default function EditorialKanban({
                       {/* Botão Aprovar Notícia */}
                       <button
                         type="button"
-                        disabled={isCurrentlyApproving || rejectingId === item.id || !isGestor}
+                        disabled={isCurrentlyApproving || rejectingId === item.id || !canApprove}
                         onClick={() => setConfirmModal({ isOpen: true, item })}
                         className="flex-1 md:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                         title="Aprovar e publicar imediatamente no portal"
@@ -742,7 +658,7 @@ export default function EditorialKanban({
                     Confirmar Aprovação
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Ação restrita ao Gestor Geral
+                    Ação restrita a usuários com permissão editorial
                   </p>
                 </div>
               </div>
@@ -781,6 +697,7 @@ export default function EditorialKanban({
               </button>
               <button
                 type="button"
+                disabled={!canApprove || !!approvingId || !!rejectingId}
                 onClick={handleConfirmApproval}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
               >
@@ -860,6 +777,7 @@ export default function EditorialKanban({
               </button>
               <button
                 type="button"
+                disabled={!canReject || !!approvingId || !!rejectingId}
                 onClick={handleConfirmReject}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
               >
