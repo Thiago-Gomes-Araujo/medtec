@@ -73,7 +73,7 @@ export const SECTION_CONFIG: Record<
     group: 'Publicações do Site',
     title: 'Projetos Pedagógicos e Práticas Escolares',
     subtitle: 'Cadastre, edite e gerencie os projetos pedagógicos, práticas de campo e missões escolares dos 52 municípios.',
-    href: '/admin?tab=projetos',
+    href: '/admin/projetos',
   },
   duvidas: {
     group: 'Publicações do Site',
@@ -91,7 +91,7 @@ export const SECTION_CONFIG: Record<
     group: 'Publicações do Site',
     title: 'Banners da Página Inicial',
     subtitle: 'Gerencie as imagens grandes que passam no topo da Página Inicial do site.',
-    href: '/admin?tab=fotos',
+    href: '/admin/banners',
   },
   galeria: {
     group: 'Publicações do Site',

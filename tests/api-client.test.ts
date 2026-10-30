@@ -10,13 +10,16 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { PathnameContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 import AdminFaqSubroutePage from '../src/app/admin/faq/page';
+import AdminProjetosSubroutePage from '../src/app/admin/projetos/page';
+import AdminBannersSubroutePage from '../src/app/admin/banners/page';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
+import SitePhotosManager from '../src/components/SitePhotosManager';
 import FaqModule, { type FaqViewMode } from '../src/components/admin/FaqModule';
 import ProjectsModule, { type ProjectViewMode } from '../src/components/admin/ProjectsModule';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSession } from '../src/components/admin/AdminShell';
-import type { FaqItem, NewsItem, ProjectMission } from '../src/types';
+import type { BannerItem, FaqItem, NewsItem, ProjectMission } from '../src/types';
 
 import {
   buildQueryString,
@@ -34,6 +37,315 @@ import {
 } from '../src/lib/api/tokens';
 import { medtecApi } from '../src/lib/api/index';
 import { getLegacyFaqHref, readAdminFaqs } from '../src/lib/admin-faq';
+import { getLegacyProjectsHref, readAdminProjects } from '../src/lib/admin-projects';
+import { getLegacyBannersHref, readAdminBanners, prepareLocalBannerPreview } from '../src/lib/admin-banners';
+import AdminLiveSimulator from '../src/components/AdminLiveSimulator';
+
+describe('Rota independente de Banners e seleção local protegida', () => {
+  const source = {
+    banners: [{ id: 'b1', imageUrl: '/banner.jpg', title: 'Banner recebido', linkUrl: '/noticias' }],
+    siteInfo: { heroImage: '/hero.jpg', studioImage: '/studio.jpg', title: 'Não necessário' },
+    news: [{ id: 'n1', title: 'Notícia recebida', coverImage: '/cover.jpg', content: 'Não necessário' }],
+    gallery: [{ id: 'g1', title: 'Foto recebida', imageUrl: '/photo.jpg', description: 'Não necessário' }],
+    users: [{ id: 'não necessário' }],
+    projects: [],
+  };
+
+  it('aguarda autorização no shell sem consultar dados ou iniciar upload', () => {
+    const originalFetch = globalThis.fetch;
+    let requests = 0;
+    globalThis.fetch = async () => { requests += 1; throw new Error('Acesso ainda não autorizado.'); };
+    try {
+      const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'banners-test' };
+      const html = renderToStaticMarkup(createElement(
+        AppRouterContext.Provider, { value: router },
+        createElement(PathnameContext.Provider, { value: '/admin/banners' }, createElement(AdminBannersSubroutePage)),
+      ));
+      assert.ok(html.includes('Autenticando e carregando painel de gestão...'));
+      assert.ok(!html.includes('Carrossel de banners'));
+      assert.equal(requests, 0);
+      assert.equal(SECTION_CONFIG.fotos.href, '/admin/banners');
+      assert.equal(getFolderIdForSection('fotos'), 'publicacoes');
+      assert.equal(SECTION_CONFIG.galeria.href, '/admin/galeria');
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  it('encaminha fotos e variantes banners sem capturar as dez subrotas anteriores', () => {
+    for (const key of ['tab', 'section']) {
+      for (const id of ['fotos', 'banners']) {
+        assert.equal(getLegacyBannersHref(new URLSearchParams({ [key]: id })), '/admin/banners');
+      }
+    }
+    for (const id of ['noticias', 'kanban', 'usuarios', 'duvidas', 'projetos', 'avisos', 'galeria', 'redes', 'siteInfo', 'estadosCidades']) {
+      assert.equal(getLegacyBannersHref(new URLSearchParams({ tab: id })), null);
+    }
+    assert.equal(getLegacyBannersHref(new URLSearchParams()), null);
+    assert.equal(getLegacyBannersHref(new URLSearchParams('tab=galeria&section=fotos')), null);
+  });
+
+  it('faz somente GET cancelável da fonte legada e retém apenas os campos necessários', async () => {
+    const originalFetch = globalThis.fetch;
+    const controller = new AbortController();
+    let requests = 0;
+    globalThis.fetch = async (url, options) => {
+      requests += 1;
+      assert.equal(url, '/api/data');
+      assert.equal(options?.method, 'GET');
+      assert.equal(options?.cache, 'no-store');
+      assert.equal(options?.signal, controller.signal);
+      return new Response(JSON.stringify(source));
+    };
+    try {
+      const result = await readAdminBanners(controller.signal);
+      assert.deepEqual(result, {
+        banners: source.banners,
+        siteInfo: { heroImage: '/hero.jpg', studioImage: '/studio.jpg' },
+        news: [{ id: 'n1', title: 'Notícia recebida', coverImage: '/cover.jpg' }],
+        gallery: [{ id: 'g1', title: 'Foto recebida', imageUrl: '/photo.jpg' }],
+      });
+      assert.equal(requests, 1);
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  it('preserva uma coleção vazia confirmada sem gerar banner substituto', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({ ...source, banners: [], news: [], gallery: [] }));
+    try {
+      assert.deepEqual((await readAdminBanners()).banners, []);
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  it('expõe falhas HTTP, rede, cancelamento, JSON e dados inválidos sem fallback', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => new Response('', { status: 403 });
+      await assert.rejects(readAdminBanners(), /HTTP 403/);
+      globalThis.fetch = async () => { throw new Error('Rede indisponível'); };
+      await assert.rejects(readAdminBanners(), /Rede indisponível/);
+      globalThis.fetch = async () => { throw new DOMException('Cancelado', 'AbortError'); };
+      await assert.rejects(readAdminBanners(), { name: 'AbortError' });
+      for (const payload of ['inválido', '{}', JSON.stringify({ ...source, banners: null }),
+        JSON.stringify({ ...source, banners: [{ id: 'inválido' }] }),
+        JSON.stringify({ ...source, siteInfo: {} }), JSON.stringify({ ...source, news: [{}] }),
+        JSON.stringify({ ...source, gallery: [{}] })]) {
+        globalThis.fetch = async () => new Response(payload);
+        await assert.rejects(readAdminBanners(), /Resposta inválida/);
+      }
+    } finally { globalThis.fetch = originalFetch; }
+  });
+
+  it('a seleção usada por Banners prepara prévia local sem disparar upload ou gravação', async () => {
+    const originalFetch = globalThis.fetch;
+    const originalReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
+    const file = new File(['imagem sintética apenas para teste'], 'banner.png', { type: 'image/png' });
+    let requests = 0;
+    let reads = 0;
+    class LocalReader {
+      result = 'data:image/png;base64,aW1hZ2Vt';
+      onload: (() => void) | null = null;
+      readAsDataURL(blob: Blob) {
+        assert.equal(blob, file);
+        reads += 1;
+        queueMicrotask(() => this.onload?.());
+      }
+    }
+    Object.defineProperty(globalThis, 'FileReader', { configurable: true, value: LocalReader });
+    globalThis.fetch = async () => { requests += 1; throw new Error('Upload ou gravação proibidos.'); };
+    try {
+      const preview = await prepareLocalBannerPreview(file);
+      assert.equal(preview?.imageUrl, 'data:image/png;base64,aW1hZ2Vt');
+      assert.equal(preview?.title, 'banner.png');
+      assert.equal(reads, 1);
+      assert.equal(requests, 0);
+      const html = renderToStaticMarkup(createElement(AdminLiveSimulator, { type: 'banner', data: preview! }));
+      assert.ok(html.includes('data:image/png;base64,aW1hZ2Vt'));
+      assert.ok(html.includes('banner.png'));
+      assert.equal(requests, 0);
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (originalReader) Object.defineProperty(globalThis, 'FileReader', originalReader);
+      else Reflect.deleteProperty(globalThis, 'FileReader');
+    }
+  });
+
+  it('trata cancelamento e arquivos inválidos antes de iniciar a leitura local', async () => {
+    assert.equal(await prepareLocalBannerPreview(undefined), null);
+    await assert.rejects(prepareLocalBannerPreview(new File(['texto'], 'banner.svg', { type: 'image/svg+xml' })), /JPEG, PNG, WEBP ou AVIF/);
+    await assert.rejects(prepareLocalBannerPreview(new File([], 'vazio.png', { type: 'image/png' })), /até 5 MB/);
+    await assert.rejects(prepareLocalBannerPreview(new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'grande.png', { type: 'image/png' })), /até 5 MB/);
+  });
+
+  it('expõe falha de leitura da imagem sem retornar sucesso de upload', async () => {
+    const originalReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
+    class FailedReader {
+      onerror: (() => void) | null = null;
+      readAsDataURL() { queueMicrotask(() => this.onerror?.()); }
+    }
+    Object.defineProperty(globalThis, 'FileReader', { configurable: true, value: FailedReader });
+    try {
+      await assert.rejects(prepareLocalBannerPreview(new File(['imagem'], 'banner.png', { type: 'image/png' })), /Não foi possível ler a imagem/);
+    } finally {
+      if (originalReader) Object.defineProperty(globalThis, 'FileReader', originalReader);
+      else Reflect.deleteProperty(globalThis, 'FileReader');
+    }
+  });
+});
+
+describe('Banners no gerenciador de fotos existente', () => {
+  function renderBanners(banners: BannerItem[] = [], saving = false) {
+    return renderToStaticMarkup(createElement(SitePhotosManager, {
+      banners,
+      siteInfo: { heroImage: '/hero-recebido.jpg', studioImage: '/estudio-recebido.jpg' },
+      news: [{ id: 'capa-teste', title: 'Capa recebida', coverImage: '/capa-recebida.jpg' }],
+      gallery: [{ id: 'foto-teste', title: 'Foto recebida', imageUrl: '/foto-recebida.jpg' }],
+      saving,
+    }));
+  }
+
+  it('renderiza somente a coleção recebida, preservando links e controles do carrossel', () => {
+    const html = renderBanners([
+      { id: 'banner-teste', title: 'Banner recebido', imageUrl: '/banner-recebido.jpg', linkUrl: '/destino-recebido' },
+      { id: 'outro-banner', title: 'Outro banner', imageUrl: '/outro-banner.jpg' },
+    ]);
+    for (const text of ['Banner recebido', 'Outro banner', '/destino-recebido', 'Salvar link', 'Subir banner', 'Descer banner', 'Remover banner', 'Ver prévia no site']) {
+      assert.ok(html.includes(text), text);
+    }
+    assert.ok(html.includes('Capa recebida'));
+    assert.ok(html.includes('Foto recebida'));
+    assert.ok(html.includes('/estudio-recebido.jpg'));
+    assert.ok(html.includes('Simulador do Site Oficial'));
+    assert.equal((html.match(/aria-label="Remover banner"/g) || []).length, 2);
+    assert.ok(!html.includes('role="dialog"'));
+  });
+
+  it('mantém a lista vazia e usa a imagem de referência apenas no simulador', () => {
+    const html = renderBanners();
+    assert.ok(html.includes('Carrossel de banners'));
+    assert.ok(html.includes('/hero-recebido.jpg'));
+    assert.ok(!html.includes('aria-label="Remover banner"'));
+    assert.ok(!html.includes('name="destino"'));
+    assert.ok(html.includes('Ou cole o link da imagem'));
+    assert.ok(html.includes('Selecionar banner para prévia local'));
+  });
+
+  it('mostra o bloqueio e preserva seletores sem iniciar requisições ao renderizar', () => {
+    const originalFetch = globalThis.fetch;
+    let requests = 0;
+    globalThis.fetch = async () => {
+      requests += 1;
+      throw new Error('Renderizar Banners não deve iniciar leitura, upload ou gravação.');
+    };
+    try {
+      const html = renderBanners([{ id: 'banner-teste', imageUrl: '/banner-recebido.jpg' }], true);
+      assert.ok(html.includes('aguarda a disponibilização do endpoint oficial no backend Rails'));
+      assert.ok(html.includes('a gravação deste módulo está bloqueada'));
+      assert.ok(!html.includes('O envio vale na hora'));
+      assert.ok(/<button[^>]*type="submit"[^>]*disabled=""[^>]*>Salvar link<\/button>/.test(html));
+      assert.ok(html.includes('type="file"'));
+      assert.ok(html.includes('accept="image/*"'));
+      assert.equal(requests, 0);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+describe('Subrota administrativa de Projetos', () => {
+  it('monta o shell e aguarda autorização sem iniciar leitura ou upload', () => {
+    const originalFetch = globalThis.fetch;
+    let requests = 0;
+    globalThis.fetch = async () => {
+      requests += 1;
+      throw new Error('Não deve iniciar requisições antes da autorização.');
+    };
+    try {
+      const router = {
+        back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'test',
+      };
+      const html = renderToStaticMarkup(createElement(
+        AppRouterContext.Provider,
+        { value: router },
+        createElement(PathnameContext.Provider, { value: '/admin/projetos' }, createElement(AdminProjetosSubroutePage)),
+      ));
+      assert.ok(html.includes('Autenticando e carregando painel de gestão...'));
+      assert.ok(!html.includes('Projetos Cadastrados'));
+      assert.equal(requests, 0);
+      assert.equal(SECTION_CONFIG.projetos.href, '/admin/projetos');
+      assert.equal(getFolderIdForSection('projetos'), 'publicacoes');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('encaminha os links legados e preserva o atalho Novo sem capturar outros módulos', () => {
+    for (const key of ['tab', 'section']) {
+      assert.equal(getLegacyProjectsHref(new URLSearchParams({ [key]: 'projetos' })), '/admin/projetos');
+      assert.equal(getLegacyProjectsHref(new URLSearchParams({ [key]: 'projetos', action: 'new' })), '/admin/projetos?action=new');
+    }
+    for (const id of ['noticias', 'kanban', 'usuarios', 'duvidas', 'faq', 'avisos', 'galeria', 'redes', 'siteInfo', 'estadosCidades']) {
+      assert.equal(getLegacyProjectsHref(new URLSearchParams({ tab: id })), null);
+    }
+    assert.equal(getLegacyProjectsHref(new URLSearchParams()), null);
+    assert.equal(getLegacyProjectsHref(new URLSearchParams('tab=noticias&section=projetos')), null);
+  });
+
+  it('extrai somente projetos da fonte administrativa com um GET cancelável', async () => {
+    const originalFetch = globalThis.fetch;
+    const controller = new AbortController();
+    // Sem reconstruir o contrato de registro: a coleção deve ser preservada pela leitura.
+    const records = [{ id: 'project-test', title: 'Projeto recebido' }];
+    let requests = 0;
+    globalThis.fetch = async (url, options) => {
+      requests += 1;
+      assert.equal(url, '/api/data');
+      assert.equal(options?.method, 'GET');
+      assert.equal(options?.signal, controller.signal);
+      return new Response(JSON.stringify({ projects: records, faqs: [], siteInfo: {} }), { status: 200 });
+    };
+    try {
+      assert.deepEqual(await readAdminProjects(controller.signal), records);
+      assert.equal(requests, 1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('aceita uma lista vazia confirmada sem usar a coleção pública como fallback', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({ projects: [] }), { status: 200 });
+    try {
+      assert.deepEqual(await readAdminProjects(), []);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('não transforma erros HTTP ou de rede em sucesso vazio', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      for (const status of [401, 403, 500]) {
+        globalThis.fetch = async () => new Response(null, { status });
+        await assert.rejects(readAdminProjects(), new RegExp(`HTTP ${status}`));
+      }
+      globalThis.fetch = async () => { throw new Error('Failed to fetch'); };
+      await assert.rejects(readAdminProjects(), /Failed to fetch/);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('rejeita JSON inválido ou coleção ausente, sem fallback silencioso', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      for (const payload of ['não é JSON', '{}', '{"items":[]}', '{"projects":null}']) {
+        globalThis.fetch = async () => new Response(payload, { status: 200 });
+        await assert.rejects(readAdminProjects(), /Resposta inválida/);
+      }
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
 
 describe('Módulo administrativo de Projetos', () => {
   function renderProjects(projects: ProjectMission[] = [], viewMode: ProjectViewMode = 'lista') {

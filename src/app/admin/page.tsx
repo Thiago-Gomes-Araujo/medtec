@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useSyncExternalStore, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { DatabaseSchema } from '@/types';
@@ -47,15 +47,15 @@ import {
 import { YoutubeIcon, InstagramIcon, FacebookIcon } from '@/components/SocialIcons';
 import { useEditorialNews } from '@/components/admin/useEditorialNews';
 import { useAdminUsers } from '@/components/admin/useAdminUsers';
-import SitePhotosManager from '@/components/SitePhotosManager';
-import AdminLiveSimulator, { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
+import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
 import SocialChannelsModule from '@/components/admin/SocialChannelsModule';
 import SiteInfoModule from '@/components/admin/SiteInfoModule';
 import EstadosCidadesModule from '@/components/admin/EstadosCidadesModule';
 import GalleryModule from '@/components/admin/GalleryModule';
 import AnnouncementsModule from '@/components/admin/AnnouncementsModule';
 import { getLegacyFaqHref } from '@/lib/admin-faq';
-import ProjectsModule, { type ProjectViewMode, type ProjectsModuleHandle } from '@/components/admin/ProjectsModule';
+import { getLegacyProjectsHref } from '@/lib/admin-projects';
+import { getLegacyBannersHref } from '@/lib/admin-banners';
 import {
   medtecApi,
   clearStoredTokens,
@@ -68,7 +68,7 @@ import {
 } from '@/lib/api';
 
 type AdminSection = 'visaoGeral' | 'kanban' | 'fotos' | 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo' | 'usuarios' | 'projetos' | 'duvidas' | 'estadosCidades';
-type CmsSubTab = 'fotos' | 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo' | 'estadosCidades';
+type CmsSubTab = 'noticias' | 'avisos' | 'galeria' | 'redes' | 'siteInfo' | 'estadosCidades';
 
 // Mapa de Títulos de Seção para Breadcrumb e Header (Didático e sem jargões)
 const SECTION_CONFIG: Record<AdminSection, { group: string; title: string; subtitle: string }> = {
@@ -317,8 +317,6 @@ function SidebarFolderAccordion({
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [data, setData] = useState<DatabaseSchema | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [currentSection, setCurrentSection] = useState<AdminSection>('visaoGeral');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -351,6 +349,14 @@ export default function AdminDashboardPage() {
   };
 
   const handleSelectSection = (sec: AdminSection) => {
+    if (sec === 'fotos') {
+      router.push('/admin/banners');
+      return;
+    }
+    if (sec === 'projetos') {
+      router.push('/admin/projetos');
+      return;
+    }
     if (sec === 'duvidas') {
       router.push('/admin/faq');
       return;
@@ -402,10 +408,6 @@ export default function AdminDashboardPage() {
     profileType?: string;
     editorialProfile?: string;
   }>({ isGestor: false });
-
-  // Modo e comando compartilhados com os atalhos da Visão Geral.
-  const [projectViewMode, setProjectViewMode] = useState<ProjectViewMode>('lista');
-  const projectsModuleRef = useRef<ProjectsModuleHandle>(null);
 
   // Estado para Modal de Pré-visualização Fiel em Tela Cheia
   const [previewModal, setPreviewModal] = useState<{
@@ -550,9 +552,9 @@ export default function AdminDashboardPage() {
   const loadData = useCallback(async () => {
     await Promise.resolve();
     const params = new URLSearchParams(window.location.search);
-    // O efeito de compatibilidade encaminha fila, usuários e FAQ para suas rotas.
+    // O efeito de compatibilidade encaminha os módulos migrados para suas rotas.
     // Não carrega sessão/dados dos demais módulos para esse acesso legado.
-    if (getLegacyFaqHref(params) || ['kanban', 'usuarios'].includes(params.get('tab') || params.get('section') || '')) return;
+    if (getLegacyBannersHref(params) || getLegacyProjectsHref(params) || getLegacyFaqHref(params) || ['kanban', 'usuarios'].includes(params.get('tab') || params.get('section') || '')) return;
     const createNews = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
     const newsTarget = createNews ? '/admin/noticias?action=new' : '/admin/noticias';
     try {
@@ -580,7 +582,8 @@ export default function AdminDashboardPage() {
                 router.replace(newsTarget);
                 return;
               } else if (meRes.data.perfil_nome === 'Curador de Fotos') {
-                setCurrentSection('fotos');
+                router.replace('/admin/banners');
+                return;
               } else if (meRes.data.perfil_nome === 'Publicador de Avisos') {
                 router.push('/admin/avisos');
                 return;
@@ -620,7 +623,8 @@ export default function AdminDashboardPage() {
               router.replace(newsTarget);
               return;
             } else if (profileType === 'Curador de Fotos') {
-              setCurrentSection('fotos');
+              router.replace('/admin/banners');
+              return;
             } else if (profileType === 'Publicador de Avisos') {
               router.push('/admin/avisos');
               return;
@@ -680,7 +684,13 @@ export default function AdminDashboardPage() {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab') || params.get('section');
       const faqHref = getLegacyFaqHref(params);
-      if (faqHref) {
+      const projectsHref = getLegacyProjectsHref(params);
+      const bannersHref = getLegacyBannersHref(params);
+      if (bannersHref) {
+        router.replace(bannersHref);
+      } else if (projectsHref) {
+        router.replace(projectsHref);
+      } else if (faqHref) {
         router.replace(faqHref);
       } else if (tabParam === 'usuarios') {
         router.replace('/admin/usuarios');
@@ -714,31 +724,6 @@ export default function AdminDashboardPage() {
     clearStoredTokens();
     await fetch('/api/auth', { method: 'DELETE' });
     router.push('/admin/login');
-  };
-
-  // Salvar banco de dados completo no servidor
-  const persistData = async (newData: DatabaseSchema) => {
-    setSaving(true);
-    setSaveSuccess(false);
-    try {
-      const res = await fetch('/api/data', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newData),
-      });
-
-      if (res.ok) {
-        setData(newData);
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
-      } else {
-        alert('Erro ao salvar dados no disco.');
-      }
-    } catch {
-      alert('Erro de conexão com a API.');
-    } finally {
-      setSaving(false);
-    }
   };
 
   // -------------------------------------------------------------
@@ -977,44 +962,6 @@ export default function AdminDashboardPage() {
   // Renderizador unificado dos módulos CMS (reutilizável tanto nas visões dedicadas quanto nas abas do Painel Geral)
   const renderCmsModule = (tab: CmsSubTab) => {
     if (!data) return null;
-
-    if (tab === 'fotos' && canAccessPhotos) {
-      const activeBanner = data.banners?.[0] || {
-        id: 'banner-default',
-        title: 'Ensino Médio com Mediação Tecnológica em Rondônia',
-        imageUrl: data.siteInfo.heroImage || '/hero.jpg',
-        linkUrl: '',
-      };
-      return (
-        <div className="space-y-6">
-          <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2.5">
-            <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-            <span>
-              <strong>Gerenciador de Banners:</strong> A persistência deste módulo aguarda a disponibilização do endpoint oficial no backend Rails. A gravação em disco local foi desabilitada para cumprir a diretriz de fonte única de dados. As fotos da galeria e as capas de notícias são gerenciadas exclusivamente nas respectivas abas integradas à API.
-            </span>
-          </div>
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-            <div className="xl:col-span-7 min-w-0">
-              <SitePhotosManager
-                data={data}
-                saving={saving}
-                onSave={(_next) => {
-                  alert('A gravação de banners está desabilitada aguardando a disponibilização do endpoint oficial no backend Rails. A persistência em disco local foi descontinuada.');
-                }}
-                onPreview={(banner) => setPreviewModal({ isOpen: true, type: 'banner', data: banner })}
-              />
-            </div>
-            <div className="xl:col-span-5 min-w-0">
-              <AdminLiveSimulator
-                type="banner"
-                data={activeBanner}
-                onOpenFullscreen={() => setPreviewModal({ isOpen: true, type: 'banner', data: activeBanner })}
-              />
-            </div>
-          </div>
-        </div>
-      );
-    }
 
     if (tab === 'avisos' && canAccessAnnouncements) {
       return (
@@ -1513,17 +1460,13 @@ export default function AdminDashboardPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentSection('projetos');
-                      projectsModuleRef.current?.newProject();
-                    }}
+                  <Link
+                    href="/admin/projetos?action=new"
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     <span>+ Novo Projeto</span>
-                  </button>
+                  </Link>
 
                   <button
                     type="button"
@@ -1622,17 +1565,13 @@ export default function AdminDashboardPage() {
                       4 trilhas de conhecimento no ar
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentSection('projetos');
-                      setProjectViewMode('lista');
-                    }}
+                  <Link
+                    href="/admin/projetos"
                     className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline pt-2 border-t border-slate-100 dark:border-slate-800 cursor-pointer"
                   >
                     <span>Gerenciar Projetos</span>
                     <ArrowRight className="h-3 w-3" />
-                  </button>
+                  </Link>
                 </div>
 
                 {/* KPI 2: Avisos */}
@@ -1891,29 +1830,21 @@ export default function AdminDashboardPage() {
                     </div>
 
                     <div className="flex items-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCurrentSection('projetos');
-                          setProjectViewMode('lista');
-                        }}
+                      <Link
+                        href="/admin/projetos"
                         className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
                       >
                         <span>Abrir Projetos</span>
                         <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCurrentSection('projetos');
-                          projectsModuleRef.current?.newProject();
-                        }}
+                      </Link>
+                      <Link
+                        href="/admin/projetos?action=new"
                         className="inline-flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
                         title="Cadastrar Novo Projeto"
                       >
                         <Plus className="h-3.5 w-3.5" />
                         <span>Novo</span>
-                      </button>
+                      </Link>
                     </div>
                   </div>
 
@@ -1994,14 +1925,13 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setCurrentSection('fotos')}
+                    <Link
+                      href="/admin/banners"
                       className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
                     >
                       <span>Trocar Banners da Home</span>
                       <ArrowRight className="h-3.5 w-3.5" />
-                    </button>
+                    </Link>
                   </div>
 
                   {/* Módulo 04: Galeria de Fotos */}
@@ -2204,22 +2134,6 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-            </div>
-          )}
-
-          {/* VISÃO 3: FOTOS & BANNERS DO SITE (VISÃO DEDICADA) */}
-          {currentSection === 'fotos' && canAccessPhotos && renderCmsModule('fotos')}
-
-          {/* VISÃO: PROJETOS PEDAGÓGICOS (VISÃO DEDICADA GESTOR) */}
-          {canAccessProjects && (
-            // Preserva rascunho, filtros e upload em andamento ao alternar seções.
-            <div hidden={currentSection !== 'projetos'}>
-              <ProjectsModule
-                ref={projectsModuleRef}
-                projects={data.projects || []}
-                viewMode={projectViewMode}
-                onViewModeChange={setProjectViewMode}
-              />
             </div>
           )}
 
