@@ -121,7 +121,7 @@ export const SECTION_CONFIG: Record<
     group: 'Usuários e Acessos',
     title: 'Gerenciar Equipe e Senhas',
     subtitle: 'Cadastre operadores por CPF, redefina senhas e gerencie permissões de acesso ao sistema.',
-    href: '/admin?tab=usuarios',
+    href: '/admin/usuarios',
   },
   estadosCidades: {
     group: 'Dados e Contatos do Site',
@@ -146,6 +146,13 @@ export interface AdminSession {
   name?: string;
   profileType?: string;
   apiUser?: AuthUser;
+}
+
+// O contrato Rails documenta Administrador como perfil com todas as permissões.
+// A sessão local e as heurísticas por ID não autorizam gestão de contas.
+export function canAccessAdminUsers(session: Pick<AdminSession, 'isGestor' | 'apiUser'>): boolean {
+  return session.isGestor && session.apiUser?.ativo === true &&
+    session.apiUser.perfil_nome === 'Administrador';
 }
 
 export interface AdminShellProps {
@@ -335,7 +342,7 @@ export default function AdminShell({
   const canAccessSocials = userSession.isGestor;
   const canAccessSiteInfo = userSession.isGestor;
   const canAccessKanban = userSession.isGestor && userSession.apiUser?.perfil_nome === 'Administrador';
-  const canAccessUsers = userSession.isGestor;
+  const canAccessUsers = canAccessAdminUsers(userSession);
   const canAccessEstados = userSession.isGestor;
 
   // Definição da Árvore de Pastas da Sidebar

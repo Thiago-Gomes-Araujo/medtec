@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   UserPlus,
   ShieldCheck,
@@ -17,9 +17,10 @@ import {
   Plus,
   Info
 } from 'lucide-react';
-import { UserAccount } from '@/types';
+import type { AdminUsersData } from '@/components/admin/useAdminUsers';
 import {
   medtecApi,
+  ApiError,
   Usuario,
   Perfil,
   ModuloPermissoes,
@@ -27,8 +28,7 @@ import {
 } from '@/lib/api';
 
 interface UserManagerProps {
-  users?: UserAccount[];
-  onRefreshUsers?: () => Promise<void> | void;
+  management: AdminUsersData;
 }
 
 function formatCpfInput(value: string): string {
@@ -39,18 +39,17 @@ function formatCpfInput(value: string): string {
   return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
 }
 
-export default function UserManager({ onRefreshUsers }: UserManagerProps) {
+export default function UserManager({ management }: UserManagerProps) {
+  const {
+    apiUsers, profiles, loadingUsers, loadingProfiles, errorUsers, errorProfiles,
+    reloadUsers: loadUsers, reloadProfiles: loadProfiles,
+  } = management;
   // Aba ativa: 'usuarios' ou 'perfis'
   const [activeTab, setActiveTab] = useState<'usuarios' | 'perfis'>('usuarios');
 
   // Estados de Usuários
-  const [apiUsers, setApiUsers] = useState<Usuario[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [onlyActive, setOnlyActive] = useState(false);
-
-  // Estados de Perfis
-  const [profiles, setProfiles] = useState<Perfil[]>([]);
 
   // Formulário de Cadastro de Usuário
   const [userName, setUserName] = useState('');
@@ -98,89 +97,18 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
   const [profilePermsError, setProfilePermsError] = useState('');
   const [profilePermsSuccess, setProfilePermsSuccess] = useState('');
 
-  // Carregar perfis
-  const loadProfiles = useCallback(async () => {
-    try {
-      const res = await medtecApi.perfis.list({ page: 'all' });
-      if (res.success && res.data?.items) {
-        setProfiles(res.data.items);
-        if (res.data.items.length > 0 && !userProfileId) {
-          setUserProfileId(res.data.items[0].id);
-        }
-      } else {
-        setProfiles([]);
-      }
-    } catch {
-      setProfiles([]);
-    }
-  }, [userProfileId]);
-
-  // Carregar usuários
-  const loadUsers = useCallback(async () => {
-    setLoadingUsers(true);
-    try {
-      const params: Record<string, string | number> = { page: 1, per_page: 50 };
-      if (searchTerm.trim()) {
-        params['q[nome_cont]'] = searchTerm.trim();
-      }
-      if (onlyActive) {
-        params['q[ativo_true]'] = 1;
-      }
-
-      const res = await medtecApi.usuarios.list(params);
-      if (res.success && res.data?.items) {
-        setApiUsers(res.data.items);
-      } else {
-        setApiUsers([]);
-      }
-    } catch {
-      setApiUsers([]);
-    } finally {
-      setLoadingUsers(false);
-    }
-  }, [searchTerm, onlyActive]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchInitialData = async () => {
-      try {
-        const [perfisRes, usersRes] = await Promise.all([
-          medtecApi.perfis.list({ page: 'all' }),
-          medtecApi.usuarios.list({ page: 1, per_page: 50 }),
-        ]);
-        if (!isMounted) return;
-        if (perfisRes.success && perfisRes.data?.items) {
-          setProfiles(perfisRes.data.items);
-          if (perfisRes.data.items.length > 0 && !userProfileId) {
-            setUserProfileId(perfisRes.data.items[0].id);
-          }
-        }
-        if (usersRes.success && usersRes.data?.items) {
-          setApiUsers(usersRes.data.items);
-        }
-      } catch {
-        if (!isMounted) return;
-        setProfiles([]);
-        setApiUsers([]);
-      }
-    };
-    void fetchInitialData();
-    return () => {
-      isMounted = false;
-    };
-  }, [userProfileId]);
-
   // Usuários exibidos com filtro de busca local se necessário
   const displayUsers = useMemo(() => {
-    if (!searchTerm.trim()) return apiUsers;
+    const filteredUsers = onlyActive ? apiUsers.filter((user) => user.ativo) : apiUsers;
+    if (!searchTerm.trim()) return filteredUsers;
     const term = searchTerm.toLowerCase().trim();
-    return apiUsers.filter(
+    return filteredUsers.filter(
       (u) =>
         u.nome.toLowerCase().includes(term) ||
         u.cpf.includes(term) ||
         (u.perfil_nome && u.perfil_nome.toLowerCase().includes(term))
     );
-  }, [apiUsers, searchTerm]);
+  }, [apiUsers, searchTerm, onlyActive]);
 
   // Criar Usuário
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -220,13 +148,10 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
       setUserPassword('');
       setConfirmPassword('');
       await loadUsers();
-      if (onRefreshUsers) await onRefreshUsers();
 
       setTimeout(() => setUserFormSuccess(''), 4000);
     } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      const msg = error?.errors?.join(', ') || error?.message || 'Falha ao cadastrar usuário na API.';
-      setUserFormError(msg);
+      setUserFormError(ApiError.getFriendlyMessage(err));
     } finally {
       setSubmittingUser(false);
     }
@@ -239,10 +164,8 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
         ativo: !user.ativo,
       });
       await loadUsers();
-      if (onRefreshUsers) await onRefreshUsers();
     } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      alert('Erro: ' + (error?.errors?.join(', ') || error?.message || 'Falha ao alterar status.'));
+      alert('Erro: ' + ApiError.getFriendlyMessage(err));
     }
   };
 
@@ -255,10 +178,8 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
     try {
       await medtecApi.usuarios.delete(user.id);
       await loadUsers();
-      if (onRefreshUsers) await onRefreshUsers();
     } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      alert('Não foi possível excluir: ' + (error?.errors?.join(', ') || error?.message || 'O usuário pode ter concedido permissões ou possuir vínculos no banco.'));
+      alert('Não foi possível excluir: ' + ApiError.getFriendlyMessage(err));
     }
   };
 
@@ -294,8 +215,7 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
         setPasswordModalSuccess('');
       }, 1800);
     } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      setPasswordModalError(error?.errors?.join(', ') || error?.message || 'Falha ao atualizar senha na API.');
+      setPasswordModalError(ApiError.getFriendlyMessage(err));
     } finally {
       setUpdatingPassword(false);
     }
@@ -322,8 +242,7 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
         setSelectedExtraIds(activeExtraIds);
       }
     } catch (err: unknown) {
-      const error = err as { message?: string };
-      setExtrasError(error?.message || 'Não foi possível carregar as permissões do usuário.');
+      setExtrasError(ApiError.getFriendlyMessage(err));
     } finally {
       setLoadingExtras(false);
     }
@@ -344,8 +263,7 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
         setExtrasSuccess('');
       }, 1500);
     } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      setExtrasError(error?.errors?.join(', ') || error?.message || 'Falha ao salvar permissões extras.');
+      setExtrasError(ApiError.getFriendlyMessage(err));
     } finally {
       setSavingExtras(false);
     }
@@ -371,8 +289,7 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
         setSelectedProfileRegraIds(markedIds);
       }
     } catch (err: unknown) {
-      const error = err as { message?: string };
-      setProfilePermsError(error?.message || 'Não foi possível carregar as permissões do perfil.');
+      setProfilePermsError(ApiError.getFriendlyMessage(err));
     } finally {
       setLoadingProfilePerms(false);
     }
@@ -393,11 +310,10 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
         setProfilePermsSuccess('');
       }, 1500);
     } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string; erro_bruto?: string };
-      if (error?.erro_bruto === 'perfil_admin_imutavel') {
+      if (err instanceof ApiError && err.erroBruto === 'perfil_admin_imutavel') {
         setProfilePermsError('O perfil Administrador sempre possui todas as permissões e não pode ser alterado.');
       } else {
-        setProfilePermsError(error?.errors?.join(', ') || error?.message || 'Falha ao salvar permissões do perfil.');
+        setProfilePermsError(ApiError.getFriendlyMessage(err));
       }
     } finally {
       setSavingProfilePerms(false);
@@ -429,10 +345,9 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
       setEditingProfile(null);
       setProfileName('');
       setProfileDesc('');
-      await loadProfiles();
+      await Promise.all([loadProfiles(), loadUsers()]);
     } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      setProfileError(error?.errors?.join(', ') || error?.message || 'Falha ao salvar perfil.');
+      setProfileError(ApiError.getFriendlyMessage(err));
     } finally {
       setSubmittingProfile(false);
     }
@@ -444,15 +359,25 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
 
     try {
       await medtecApi.perfis.delete(perfil.id);
-      await loadProfiles();
+      await Promise.all([loadProfiles(), loadUsers()]);
     } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      alert('Não foi possível excluir o perfil: ' + (error?.errors?.join(', ') || error?.message || 'Verifique se existem usuários vinculados ou se é o perfil Administrador.'));
+      alert('Não foi possível excluir o perfil: ' + ApiError.getFriendlyMessage(err));
     }
   };
 
   return (
     <div className="space-y-8">
+      {(errorUsers || errorProfiles) && (
+        <div role="alert" className="rounded-lg border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-950/30 p-3 text-xs text-red-700 dark:text-red-300 space-y-2">
+          {errorUsers && <p>Usuários: {errorUsers}</p>}
+          {errorProfiles && <p>Perfis: {errorProfiles}</p>}
+          <button type="button" onClick={() => { void loadUsers(); void loadProfiles(); }} className="font-bold underline cursor-pointer">
+            Tentar novamente
+          </button>
+        </div>
+      )}
+      {loadingProfiles && <p role="status" className="text-xs text-slate-500">Carregando perfis da API...</p>}
+
       {/* 1. CABEÇALHO INSTITUCIONAL */}
       <div className="rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -616,7 +541,7 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
 
               <button
                 type="submit"
-                disabled={submittingUser}
+                disabled={submittingUser || loadingProfiles || !!errorProfiles || profiles.length === 0}
                 className="w-full mt-2 py-2.5 px-4 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white font-bold text-xs shadow-xs transition cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 <UserPlus size={16} />
@@ -666,6 +591,8 @@ export default function UserManager({ onRefreshUsers }: UserManagerProps) {
 
               {loadingUsers ? (
                 <div className="py-8 text-center text-xs text-slate-500">Carregando usuários da API...</div>
+              ) : errorUsers && apiUsers.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-500">Não foi possível carregar os usuários.</div>
               ) : displayUsers.length === 0 ? (
                 <div className="py-8 text-center text-xs text-slate-500">Nenhum usuário encontrado.</div>
               ) : (

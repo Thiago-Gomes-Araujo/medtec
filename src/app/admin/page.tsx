@@ -58,9 +58,9 @@ import {
 } from 'lucide-react';
 import { YoutubeIcon, InstagramIcon, FacebookIcon } from '@/components/SocialIcons';
 import { useEditorialNews } from '@/components/admin/useEditorialNews';
+import { useAdminUsers } from '@/components/admin/useAdminUsers';
 import SitePhotosManager from '@/components/SitePhotosManager';
 import AdminLiveSimulator, { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
-import UserManager from '@/components/UserManager';
 import SocialChannelsModule from '@/components/admin/SocialChannelsModule';
 import SiteInfoModule from '@/components/admin/SiteInfoModule';
 import EstadosCidadesModule from '@/components/admin/EstadosCidadesModule';
@@ -362,6 +362,10 @@ export default function AdminDashboardPage() {
   };
 
   const handleSelectSection = (sec: AdminSection) => {
+    if (sec === 'usuarios') {
+      router.push('/admin/usuarios');
+      return;
+    }
     if (sec === 'kanban') {
       router.push('/admin/kanban');
       return;
@@ -630,9 +634,9 @@ export default function AdminDashboardPage() {
   const loadData = useCallback(async () => {
     await Promise.resolve();
     const params = new URLSearchParams(window.location.search);
-    // O efeito de compatibilidade encaminha a fila para sua própria rota.
+    // O efeito de compatibilidade encaminha fila e usuários para suas próprias rotas.
     // Não carrega sessão/dados dos demais módulos para esse acesso legado.
-    if ((params.get('tab') || params.get('section')) === 'kanban') return;
+    if (['kanban', 'usuarios'].includes(params.get('tab') || params.get('section') || '')) return;
     const createNews = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
     const newsTarget = createNews ? '/admin/noticias?action=new' : '/admin/noticias';
     try {
@@ -759,7 +763,9 @@ export default function AdminDashboardPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab') || params.get('section');
-      if (tabParam === 'kanban') {
+      if (tabParam === 'usuarios') {
+        router.replace('/admin/usuarios');
+      } else if (tabParam === 'kanban') {
         router.replace('/admin/kanban');
       } else if (tabParam === 'noticias') {
         const create = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
@@ -985,6 +991,8 @@ export default function AdminDashboardPage() {
   const canAccessSocials = userSession.isGestor;
   const canAccessSiteInfo = userSession.isGestor;
   const canAccessUsers = userSession.isGestor;
+  const usersManagement = useAdminUsers({ enabled: isLoggedIn && canAccessUsers });
+  const usersCountLabel = usersManagement.loadingUsers ? '...' : usersManagement.errorUsers ? 'Indisponível' : (usersManagement.totalUsers ?? '—');
   const canAccessEstados = userSession.isGestor;
 
   // Árvore de Navegação em Pastas Expansíveis (Didático - Estilo Accordion JOER SEDUC-RO)
@@ -1104,7 +1112,7 @@ export default function AdminDashboardPage() {
           label: 'Gerenciar Equipe e Senhas',
           tooltip: 'Abre o cadastro de operadores por CPF',
           icon: UserCog,
-          badge: data?.users?.length,
+          badge: usersManagement.errorUsers ? undefined : (usersManagement.totalUsers ?? undefined),
           visible: canAccessUsers,
         },
       ],
@@ -3491,7 +3499,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <div>
                     <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
-                      {data.users?.length || 0}
+                      {usersCountLabel}
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       Operadores cadastrados com acesso por CPF
@@ -3500,14 +3508,13 @@ export default function AdminDashboardPage() {
                       Controle seguro de perfis e senhas
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setCurrentSection('usuarios')}
+                  <Link
+                    href="/admin/usuarios"
                     className="inline-flex items-center gap-1 text-xs font-bold text-[#004A99] dark:text-sky-400 hover:text-[#003875] dark:hover:text-sky-300 hover:underline pt-2 border-t border-slate-100 dark:border-slate-800 cursor-pointer"
                   >
                     <span>Gerenciar Operadores</span>
                     <ArrowRight className="h-3 w-3" />
-                  </button>
+                  </Link>
                 </div>
 
                 {/* KPI: Dúvidas Frequentes (FAQ) */}
@@ -3854,7 +3861,7 @@ export default function AdminDashboardPage() {
                           </h4>
                         </div>
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                          {data.users?.length || 0} operadores
+                          {usersCountLabel} operadores
                         </span>
                       </div>
 
@@ -3883,17 +3890,16 @@ export default function AdminDashboardPage() {
                           </span>
                           <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition" />
                         </Link>
-                        <button
-                          type="button"
-                          onClick={() => setCurrentSection('usuarios')}
+                        <Link
+                          href="/admin/usuarios"
                           className="w-full text-left px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#071324] hover:bg-blue-50/60 dark:hover:bg-blue-950/30 border border-slate-100 dark:border-slate-800/80 hover:border-blue-200/60 dark:hover:border-blue-900/40 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between transition cursor-pointer group"
                         >
                           <span className="flex items-center gap-2">
                             <UserCog className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400" />
-                            <span>Gerenciar Equipe e Senhas ({data.users?.length || 0})</span>
+                            <span>Gerenciar Equipe e Senhas ({usersCountLabel})</span>
                           </span>
                           <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition" />
-                        </button>
+                        </Link>
                       </div>
                     </div>
 
@@ -3984,16 +3990,6 @@ export default function AdminDashboardPage() {
 
           {/* VISÃO 10: ESTADOS E MUNICÍPIOS (/g_estados, /g_cidades) */}
           {currentSection === 'estadosCidades' && canAccessEstados && renderCmsModule('estadosCidades')}
-
-          {/* VISÃO 9: CADASTRO E GESTÃO DE OPERADORES & USUÁRIOS (EXCLUSIVO GESTOR) */}
-          {currentSection === 'usuarios' && canAccessUsers && (
-            <div className="space-y-6">
-              <UserManager
-                users={data.users || []}
-                onRefreshUsers={loadData}
-              />
-            </div>
-          )}
 
         </main>
       </div>

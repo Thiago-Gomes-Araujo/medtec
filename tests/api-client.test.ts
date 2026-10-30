@@ -8,6 +8,9 @@ import assert from 'node:assert/strict';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import EditorialKanban from '../src/components/EditorialKanban';
+import UserManager from '../src/components/UserManager';
+import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
+import { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSession } from '../src/components/admin/AdminShell';
 import type { NewsItem } from '../src/types';
 
 import {
@@ -25,6 +28,89 @@ import {
   isAccessTokenExpired,
 } from '../src/lib/api/tokens';
 import { medtecApi } from '../src/lib/api/index';
+
+describe('Autorização da subrota de usuários', () => {
+  const adminSession: AdminSession = {
+    isGestor: true,
+    apiUser: { id: 100, nome: '', cpf: '', ativo: true, perfil_id: 10, perfil_nome: 'Administrador' },
+  };
+
+  it('nega sessão local mesmo quando ela se identifica como gestora ou administradora', () => {
+    assert.equal(canAccessAdminUsers({ isGestor: true }), false);
+    assert.equal(canAccessAdminUsers({ isGestor: false }), false);
+  });
+
+  it('não autoriza operador por IDs legados de usuário ou perfil', () => {
+    assert.equal(canAccessAdminUsers({
+      isGestor: true,
+      apiUser: { ...adminSession.apiUser!, id: 1, perfil_id: 3, perfil_nome: 'Operador de Conteúdo' },
+    }), false);
+  });
+
+  it('exige Administrador ativo confirmado pelo Rails e preserva a restrição administrativa', () => {
+    assert.equal(canAccessAdminUsers(adminSession), true);
+    assert.equal(canAccessAdminUsers({ ...adminSession, isGestor: false }), false);
+    assert.equal(canAccessAdminUsers({
+      ...adminSession, apiUser: { ...adminSession.apiUser!, ativo: false },
+    }), false);
+  });
+
+  it('direciona usuários para a subrota e mantém seu agrupamento no shell', () => {
+    assert.equal(SECTION_CONFIG.usuarios.href, '/admin/usuarios');
+    assert.equal(getFolderIdForSection('usuarios'), 'usuarios');
+  });
+});
+
+describe('Usuários desacoplados dos dados locais do painel', () => {
+  function renderUsers(overrides: Partial<AdminUsersData> = {}) {
+    const management: AdminUsersData = {
+      apiUsers: [], profiles: [], totalUsers: 0,
+      loadingUsers: false, loadingProfiles: false,
+      errorUsers: null, errorProfiles: null,
+      reloadUsers: async () => {}, reloadProfiles: async () => {},
+      ...overrides,
+    };
+    return renderToStaticMarkup(createElement(UserManager, { management }));
+  }
+
+  it('distingue lista vazia confirmada de falha de leitura e de carregamento', () => {
+    const empty = renderUsers();
+    assert.ok(empty.includes('Nenhum usuário encontrado.'));
+    assert.ok(!empty.includes('role="alert"'));
+
+    const failed = renderUsers({ errorUsers: 'Você não possui permissão para executar esta operação.' });
+    assert.ok(failed.includes('role="alert"'));
+    assert.ok(failed.includes('Não foi possível carregar os usuários.'));
+    assert.ok(!failed.includes('Nenhum usuário encontrado.'));
+
+    const loading = renderUsers({ loadingUsers: true });
+    assert.ok(loading.includes('Carregando usuários da API...'));
+    assert.ok(!loading.includes('Nenhum usuário encontrado.'));
+  });
+
+  it('mantém a última leitura válida visível quando uma atualização falha', () => {
+    const html = renderUsers({
+      apiUsers: [{
+        id: 100, nome: 'Conta de teste', cpf: '', ativo: true, perfil_id: 1,
+        perfil_nome: 'Perfil de teste', created_at: '', updated_at: '',
+      }],
+      totalUsers: 1,
+      errorUsers: 'Falha de conexão com a API.',
+    });
+    assert.ok(html.includes('Conta de teste'));
+    assert.ok(html.includes('Falha de conexão com a API.'));
+    assert.ok(html.includes('Tentar novamente'));
+  });
+
+  it('bloqueia cadastro enquanto os perfis não puderem ser carregados', () => {
+    const profiles = [{ id: 1, nome: 'Perfil de teste', ativo: true }];
+    const submitDisabled = (html: string) => /<button[^>]*type="submit"[^>]*disabled=""/.test(html);
+    assert.equal(submitDisabled(renderUsers({ profiles })), false);
+    assert.equal(submitDisabled(renderUsers({ profiles, loadingProfiles: true })), true);
+    assert.equal(submitDisabled(renderUsers({ profiles, errorProfiles: 'Sem permissão' })), true);
+    assert.equal(submitDisabled(renderUsers()), true);
+  });
+});
 
 describe('1. Montagem de Query String e Filtros', () => {
   it('deve formatar paginação numérica e per_page', () => {
