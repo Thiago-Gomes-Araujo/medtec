@@ -1,30 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { ExternalLink, Phone, Mail, MapPin } from 'lucide-react';
-import { medtecApi } from '@/lib/api';
+
+const INSTITUTIONAL_CONTACT = {
+  telefone: '(69) 3216-5300',
+  email: 'mediacaotecnologica@seduc.ro.gov.br',
+  endereco: 'Palácio Rio Madeira, Porto Velho - RO',
+} as const;
 
 export default function SiteFooter() {
-  const [canais, setCanais] = useState<Record<string, string>>({
-    telefone: '(69) 3216-5300',
-    email: 'mediacaotecnologica@seduc.ro.gov.br',
-    endereco: 'Palácio Rio Madeira, Porto Velho - RO',
-  });
-
-  useEffect(() => {
-    medtecApi.canaisContato.list({ 'q[ativo_true]': 1, page: 'all' })
-      .then((res) => {
-        if (res.success && res.data?.items?.length) {
-          const map: Record<string, string> = {};
-          res.data.items.forEach((c) => {
-            if (c.ativo && c.valor) map[c.rede] = c.valor;
-          });
-          setCanais((prev) => ({ ...prev, ...map }));
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const canais = INSTITUTIONAL_CONTACT;
 
   return (
     <footer className="relative mt-20 border-t border-slate-200 dark:border-slate-800 bg-[#004A99] dark:bg-[#08152B] text-white transition-colors duration-200">

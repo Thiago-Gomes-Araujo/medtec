@@ -20,10 +20,14 @@ export const metadata: Metadata = {
 
 async function PublicAoVivoContent() {
   const socials: SocialLinks = {
-    instagram: '', youtube: '', facebook: '', whatsapp: '', email: '', phone: '', address: '',
+    instagram: 'https://www.instagram.com/governoro/',
+    youtube: 'https://www.youtube.com/@SeducRondonia',
+    facebook: 'https://www.facebook.com/governoderondonia',
+    whatsapp: '',
+    email: 'mediacaotecnologica@seduc.ro.gov.br',
+    phone: '(69) 3216-5300',
+    address: 'Palácio Rio Madeira, Porto Velho - RO',
   };
-  // Mantém a consulta de canais existente, independente da leitura de avisos.
-  const canaisPromise = medtecApi.canaisContato.list({ 'q[ativo_true]': 1, page: 'all' }).catch(() => null);
   let announcements: AvisoPublico[] = [];
   let announcementsError: string | null = null;
   try {
@@ -36,17 +40,6 @@ async function PublicAoVivoContent() {
     const message = ApiError.getFriendlyMessage(error);
     const status = error instanceof ApiError && error.status > 0 ? ' (HTTP ' + error.status + ')' : '';
     announcementsError = message + status;
-  }
-  const canaisRes = await canaisPromise;
-  if (canaisRes?.success && Array.isArray(canaisRes.data?.items)) {
-    for (const item of canaisRes.data.items) {
-      if (!item.valor || item.ativo === false) continue;
-      const rede = item.rede.toLowerCase();
-      if (rede === 'youtube') socials.youtube = item.valor;
-      else if (rede === 'instagram') socials.instagram = item.valor;
-      else if (rede === 'facebook') socials.facebook = item.valor;
-      else if (rede === 'whatsapp') socials.whatsapp = item.valor;
-    }
   }
   return <LiveBroadcastSection socials={socials} announcements={announcements}
     announcementsError={announcementsError} news={[]} />;

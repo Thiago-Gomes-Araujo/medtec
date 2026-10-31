@@ -91,6 +91,13 @@ import AdminRedesSubroutePage from '../src/app/admin/redes/page';
 import SocialChannelsModule, { type SocialChannelsModuleProps } from '../src/components/admin/SocialChannelsModule';
 import { ADMIN_CHANNEL_KEYS, getChannelChanges, readAdminChannels, saveAdminChannels } from '../src/lib/admin-channels';
 import type { CanalContato } from '../src/lib/api';
+import SiteFooter from '../src/components/SiteFooter';
+import FloatingSocialRotator from '../src/components/FloatingSocialRotator';
+import PublicGaleriaPage from '../src/app/galeria/page';
+import PublicAcervoPage from '../src/app/acervo/page';
+import PublicRedesPage from '../src/app/redes/page';
+import GallerySection from '../src/components/GallerySection';
+import SocialSection from '../src/components/SocialSection';
 
 // Inclui dados fora do contrato Rails para caracterizar as comparações em
 // runtime. O helper de produção continuará usando os tipos Rails existentes.
@@ -8833,5 +8840,226 @@ describe('FAQ público Lote D — formulário acessível de visitantes', () => {
   it('renderizar e reativar formulário não envia dados sem ação do visitante', async () => {
     const manager = await mountPublicFaq(async () => publicVisitorSuccess(), true, form);
     try { await manager.render(); assert.equal(manager.calls.length, 0); } finally { await manager.restore(); }
+  });
+});
+
+describe('Lote E1 — correção das chamadas públicas e isolamento de sessão', () => {
+  it('SiteFooter não chama /canais_contato, não aciona refresh, preserva sessão admin e exibe dados institucionais verificados', async () => {
+    const manager = await mountCategories(async () => {
+      throw new Error('SiteFooter não deve realizar chamadas HTTP');
+    }, true, { component: () => SiteFooter(), anonymous: true, allowedPaths: /^$/ });
+    try {
+      assert.equal(manager.calls.length, 0);
+      assert.equal(getStoredAccessToken(), 'category-ui-user');
+      assert.equal(getStoredRefreshToken(), 'category-ui-refresh');
+      const html = manager.html();
+      assert.match(html, /\(69\) 3216-5300/);
+      assert.match(html, /mediacaotecnologica@seduc\.ro\.gov\.br/);
+      assert.match(html, /Palácio Rio Madeira, Porto Velho - RO/);
+      assert.doesNotMatch(html, /999999999/);
+    } finally {
+      await manager.restore();
+    }
+  });
+
+  it('FloatingSocialRotator não chama /canais_contato, preserva sessão admin e não exibe WhatsApp fictício', () => {
+    setStoredTokens({ access_token: 'admin-session-token', refresh_token: 'admin-session-refresh' });
+    let calls = 0;
+    const fetchMock = mock.method(globalThis, 'fetch', async () => {
+      calls++;
+      throw new Error('FloatingSocialRotator não deve realizar chamadas HTTP');
+    });
+    try {
+      const html = renderToStaticMarkup(
+        createElement(PathnameContext.Provider, { value: '/' }, createElement(FloatingSocialRotator))
+      );
+      assert.equal(calls, 0);
+      assert.equal(getStoredAccessToken(), 'admin-session-token');
+      assert.equal(getStoredRefreshToken(), 'admin-session-refresh');
+      assert.doesNotMatch(html, /999999999/);
+      assert.match(html, /instagram\.com\/governoro|facebook\.com\/governoderondonia|youtube\.com\/@SeducRondonia/);
+    } finally {
+      fetchMock.mock.restore();
+      clearStoredTokens();
+    }
+  });
+
+  for (const [name, page] of [['galeria', PublicGaleriaPage], ['acervo', PublicAcervoPage]] as const) {
+    it('/' + name + ' não chama /fotos_galeria sem autenticação nem envia Bearer da sessão admin', async () => {
+      setStoredTokens({ access_token: 'admin-session-token', refresh_token: 'admin-session-refresh' });
+      let calls = 0;
+      const fetchMock = mock.method(globalThis, 'fetch', async () => {
+        calls++;
+        throw new Error('Não deve chamar endpoints protegidos em /' + name);
+      });
+      try {
+        const tree = await page();
+        assert.equal(calls, 0);
+        assert.equal(getStoredAccessToken(), 'admin-session-token');
+        assert.equal(getStoredRefreshToken(), 'admin-session-refresh');
+        const section = noticeNodes(tree).find(node => node.type === GallerySection);
+        assert.ok(section);
+        assert.deepEqual(section.props.gallery, []);
+        assert.equal(section.props.unavailable, true);
+        const html = renderToStaticMarkup(section);
+        assert.match(html, /role="alert"/);
+        assert.match(html, /Acervo fotográfico indisponível no momento/);
+        assert.doesNotMatch(html, /Nenhum registro fotográfico encontrado para a categoria selecionada/);
+      } finally {
+        fetchMock.mock.restore();
+        clearStoredTokens();
+      }
+    });
+  }
+
+  it('GallerySection apresenta estados distintos para carregamento, lista vazia legítima, indisponibilidade e erro de rede', () => {
+    const loadingHtml = renderToStaticMarkup(createElement(GallerySection, { gallery: [], loading: true }));
+    assert.match(loadingHtml, /role="status"/);
+    assert.match(loadingHtml, /Carregando acervo fotográfico/);
+    assert.doesNotMatch(loadingHtml, /indisponível|Nenhum registro/);
+
+    const unavailableHtml = renderToStaticMarkup(createElement(GallerySection, { gallery: [], unavailable: true }));
+    assert.match(unavailableHtml, /role="alert"/);
+    assert.match(unavailableHtml, /Acervo fotográfico indisponível no momento/);
+    assert.doesNotMatch(unavailableHtml, /Nenhum registro fotográfico publicado/);
+
+    const networkErrorHtml = renderToStaticMarkup(createElement(GallerySection, {
+      gallery: [],
+      error: 'Não foi possível conectar ao servidor no momento. Verifique sua conexão e tente novamente.',
+    }));
+    assert.match(networkErrorHtml, /role="alert"/);
+    assert.match(networkErrorHtml, /Verifique sua conexão e tente novamente/);
+
+    const emptyHtml = renderToStaticMarkup(createElement(GallerySection, { gallery: [] }));
+    assert.match(emptyHtml, /Nenhum registro fotográfico publicado até o momento/);
+    assert.doesNotMatch(emptyHtml, /role="alert"|categoria selecionada/);
+
+    const withPhotoHtml = renderToStaticMarkup(createElement(GallerySection, {
+      gallery: [{
+        id: '10',
+        title: 'Aula inaugural conectada',
+        description: 'Transmissão para polos rurais.',
+        imageUrl: 'https://medtec.invalid/foto.jpg',
+        category: 'Salas de Aula',
+        date: '31/10/2026',
+      }],
+    }));
+    assert.match(withPhotoHtml, /Aula inaugural conectada/);
+    assert.match(withPhotoHtml, /Salas de Aula/);
+  });
+
+  it('/redes não chama /canais_contato, preserva sessão admin e apresenta canais institucionais sem WhatsApp fictício', async () => {
+    setStoredTokens({ access_token: 'admin-session-token', refresh_token: 'admin-session-refresh' });
+    let calls = 0;
+    const fetchMock = mock.method(globalThis, 'fetch', async () => {
+      calls++;
+      throw new Error('Não deve chamar /canais_contato em /redes');
+    });
+    try {
+      const tree = await PublicRedesPage();
+      assert.equal(calls, 0);
+      assert.equal(getStoredAccessToken(), 'admin-session-token');
+      assert.equal(getStoredRefreshToken(), 'admin-session-refresh');
+      const section = noticeNodes(tree).find(node => node.type === SocialSection);
+      assert.ok(section);
+      const html = renderToStaticMarkup(section);
+      assert.match(html, /youtube\.com\/@SeducRondonia/);
+      assert.match(html, /instagram\.com\/governoro/);
+      assert.match(html, /facebook\.com\/governoderondonia/);
+      assert.match(html, /\(69\) 3216-5300/);
+      assert.doesNotMatch(html, /999999999/);
+    } finally {
+      fetchMock.mock.restore();
+      clearStoredTokens();
+    }
+  });
+
+  it('SocialSection suporta estados de carregamento, indisponibilidade, erro de rede e WhatsApp configurado', () => {
+    const loadingHtml = renderToStaticMarkup(createElement(SocialSection, { loading: true }));
+    assert.match(loadingHtml, /role="status"/);
+    assert.match(loadingHtml, /Carregando canais oficiais/);
+
+    const unavailableHtml = renderToStaticMarkup(createElement(SocialSection, { unavailable: true }));
+    assert.match(unavailableHtml, /role="alert"/);
+    assert.match(unavailableHtml, /temporariamente indisponível/);
+    assert.doesNotMatch(unavailableHtml, /999999999/);
+
+    const errorHtml = renderToStaticMarkup(createElement(SocialSection, { error: 'Falha de conexão com a rede.' }));
+    assert.match(errorHtml, /role="alert"/);
+    assert.match(errorHtml, /Falha de conexão com a rede/);
+
+    const customWhatsappHtml = renderToStaticMarkup(createElement(SocialSection, {
+      socials: {
+        instagram: 'https://www.instagram.com/governoro/',
+        youtube: 'https://www.youtube.com/@SeducRondonia',
+        facebook: 'https://www.facebook.com/governoderondonia',
+        whatsapp: 'https://wa.me/556932165300',
+        email: 'mediacaotecnologica@seduc.ro.gov.br',
+        phone: '(69) 3216-5300',
+        address: 'Palácio Rio Madeira, Porto Velho - RO',
+      },
+    }));
+    assert.match(customWhatsappHtml, /https:\/\/wa\.me\/556932165300/);
+    assert.match(customWhatsappHtml, /Falar no WhatsApp/);
+  });
+
+  it('/ao-vivo preserva Lote B (/publico/a_avisos sem Bearer) e não requisita /canais_contato nem aciona refresh', async () => {
+    setStoredTokens({ access_token: 'admin-session-token', refresh_token: 'admin-session-refresh' });
+    const paths: { path: string; auth: string | null }[] = [];
+    const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+      const url = new URL(String(input));
+      paths.push({ path: url.pathname, auth: new Headers(options?.headers).get('Authorization') });
+      return publicAvisosReply([publicAvisoFixture]);
+    });
+    try {
+      const view = await resolvePublicNoticePage(PublicAoVivoPage);
+      assert.equal(paths.length, 1);
+      assert.equal(paths[0].path.endsWith('/publico/a_avisos'), true);
+      assert.equal(paths[0].auth, null);
+      assert.equal(paths.some(item => item.path.includes('/canais_contato') || item.path.includes('/auth/refresh_token')), false);
+      assert.equal(getStoredAccessToken(), 'admin-session-token');
+      assert.equal(getStoredRefreshToken(), 'admin-session-refresh');
+      const html = renderToStaticMarkup(view);
+      assert.match(html, /Comunicado recebido da API/);
+      assert.match(html, /\(69\) 3216-5300/);
+      assert.doesNotMatch(html, /999999999/);
+    } finally {
+      fetchMock.mock.restore();
+      clearStoredTokens();
+    }
+  });
+
+  it('serviços autenticados do CMS (fotosGaleria, categoriasGaleria e canaisContato) permanecem protegidos por Bearer', async () => {
+    setStoredTokens({ access_token: 'cms-bearer-token', refresh_token: 'cms-refresh-token' });
+    const calls: { path: string; method: string; auth: string | null }[] = [];
+    const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+      const url = new URL(String(input));
+      calls.push({
+        path: url.pathname,
+        method: options?.method || 'GET',
+        auth: new Headers(options?.headers).get('Authorization'),
+      });
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'OK',
+        data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: 0, per_page: 10 } },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    try {
+      await medtecApi.fotosGaleria.list({ page: 'all' });
+      await medtecApi.categoriasGaleria.list({ page: 'all' });
+      await medtecApi.canaisContato.list({ page: 'all' });
+      assert.equal(calls.length, 3);
+      assert.equal(calls[0].path.endsWith('/fotos_galeria'), true);
+      assert.equal(calls[1].path.endsWith('/categorias_galeria'), true);
+      assert.equal(calls[2].path.endsWith('/canais_contato'), true);
+      for (const call of calls) {
+        assert.equal(call.path.includes('/publico/'), false);
+        assert.equal(call.auth, 'Bearer cms-bearer-token');
+      }
+    } finally {
+      fetchMock.mock.restore();
+      clearStoredTokens();
+    }
   });
 });
