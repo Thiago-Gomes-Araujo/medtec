@@ -3,6 +3,7 @@ import { apiFetch } from '../client';
 import type { ApiResponse, PaginatedData, DCategoriaDuvida, DCategoriaDuvidaInput, QueryParams } from '../types';
 import type { DDuvida, DDuvidaInput } from '../types';
 import type { DDuvidaVisitante } from '../types';
+import type { DuvidaPublica, CategoriaDuvidaPublica, PublicoDuvidasParams, DuvidaVisitantePublicaInput } from '../types';
 
 function validateCategory(value: DCategoriaDuvida): DCategoriaDuvida {
   if (!value || !Number.isSafeInteger(value.id) || value.id < 1 ||
@@ -152,5 +153,49 @@ export const duvidasVisitanteService = {
   },
   async delete(id: number): Promise<void> {
     await apiFetch<void>(`/d_duvidas_visitante/${id}`, { method: 'DELETE' });
+  },
+};
+
+// Site público: nenhum Bearer, cookie ou refresh da sessão administrativa.
+export const duvidasPublicasService = {
+  async list(params?: PublicoDuvidasParams, signal?: AbortSignal): Promise<ApiResponse<PaginatedData<DuvidaPublica>>> {
+    const response = await apiFetch<ApiResponse<PaginatedData<DuvidaPublica>>>('/publico/d_duvidas', {
+      method: 'GET', skipAuth: true, credentials: 'omit', cache: 'no-store', signal,
+      params: { categoria: params?.categoria, busca: params?.busca, page: params?.page, per_page: params?.per_page },
+    });
+    const pagination = response?.data?.pagination;
+    if (response?.success !== true || !Array.isArray(response.data?.items) || !pagination ||
+        !Number.isSafeInteger(pagination.current_page) || pagination.current_page < 1 ||
+        !Number.isSafeInteger(pagination.total_pages) || pagination.total_pages < 0 ||
+        !Number.isSafeInteger(pagination.total_count) || pagination.total_count < 0 ||
+        !Number.isSafeInteger(pagination.per_page) || pagination.per_page < 1 ||
+        response.data.items.some(item => !item || !Number.isSafeInteger(item.id) || item.id < 1 ||
+          !['pergunta', 'resposta', 'categoria_nome', 'categoria_slug'].every(key => typeof item[key as keyof DuvidaPublica] === 'string'))) {
+      throw new Error('Resposta inválida da API pública de Dúvidas.');
+    }
+    return response;
+  },
+
+  async listCategorias(signal?: AbortSignal): Promise<ApiResponse<CategoriaDuvidaPublica[]>> {
+    const response = await apiFetch<ApiResponse<CategoriaDuvidaPublica[]>>('/publico/d_categorias_duvida', {
+      method: 'GET', skipAuth: true, credentials: 'omit', cache: 'no-store', signal,
+    });
+    if (response?.success !== true || !Array.isArray(response.data) ||
+        response.data.some(item => !item || typeof item.nome !== 'string' || typeof item.slug !== 'string')) {
+      throw new Error('Resposta inválida da API pública de Categorias de Dúvidas.');
+    }
+    return response;
+  },
+
+  async enviarVisitante(data: DuvidaVisitantePublicaInput): Promise<ApiResponse<null>> {
+    const response = await apiFetch<ApiResponse<null>>('/publico/d_duvidas_visitante', {
+      method: 'POST', skipAuth: true, credentials: 'omit',
+      body: JSON.stringify({ d_duvida_visitante: { nome: data.nome, email: data.email,
+        telefone: data.telefone || undefined, descricao: data.descricao } }),
+    });
+    if (response?.success !== true || response.data !== null || typeof response.message !== 'string' || !response.message.trim()) {
+      throw new Error('Resposta inválida do envio público de Dúvidas.');
+    }
+    return response;
   },
 };

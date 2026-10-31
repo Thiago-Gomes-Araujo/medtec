@@ -49,9 +49,15 @@ import UserManager from '../src/components/UserManager';
 import SitePhotosManager from '../src/components/SitePhotosManager';
 import FaqModule from '../src/components/admin/FaqModule';
 import DuvidasVisitanteModule from '../src/components/admin/DuvidasVisitanteModule';
+import FaqCentralSection from '../src/components/FaqCentralSection';
+import DuvidaVisitanteForm from '../src/components/DuvidaVisitanteForm';
+import PublicFaqPage from '../src/app/faq/page';
+import PublicDuvidasPage from '../src/app/duvidas/page';
+import FaqSection from '../src/components/FaqSection';
 import DuvidaCategoriesManager from '../src/components/admin/DuvidaCategoriesManager';
 import type { DCategoriaDuvida, DDuvida, DDuvidaInput } from '../src/lib/api/types';
 import type { DDuvidaVisitante } from '../src/lib/api/types';
+import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput } from '../src/lib/api/types';
 import ProjectsModule, { type ProjectViewMode } from '../src/components/admin/ProjectsModule';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
@@ -7452,7 +7458,7 @@ describe('Categorias de Dúvidas C1 — serviço autenticado', () => {
 
 // Executa hooks, efeitos e eventos reais com o reconciliador existente. O DOM
 // visual é capturado como árvore React, seguindo os testes de sessão do projeto.
-async function mountCategories(fetcher: (url: URL, options: RequestInit) => Promise<Response>, strict = false, config?: { component: () => ReactNode; allowedPaths: RegExp }) {
+async function mountCategories(fetcher: (url: URL, options: RequestInit) => Promise<Response>, strict = false, config?: { component: () => ReactNode; allowedPaths: RegExp; anonymous?: boolean }) {
   let tree: ReactNode = null;
   const calls: { url: URL; options: RequestInit }[] = [];
   const doc = { nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null,
@@ -7477,7 +7483,8 @@ async function mountCategories(fetcher: (url: URL, options: RequestInit) => Prom
       await unmount();
       for (const call of calls) {
         assert.match(call.url.pathname, config?.allowedPaths || /\/d_categorias_duvida(?:\/\d+)?$/);
-        assert.equal(new Headers(call.options.headers).get('Authorization'), 'Bearer category-ui-user');
+        assert.equal(new Headers(call.options.headers).get('Authorization'), config?.anonymous ? null : 'Bearer category-ui-user');
+        if (config?.anonymous) assert.equal(call.options.credentials, 'omit');
       }
     } finally {
       fetchMock.mock.restore(); clearStoredTokens();
@@ -8469,5 +8476,362 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.match(manager.html(), /Página 1 de 1 · 10 envios/);
       assert.equal(manager.calls.at(-1)!.url.searchParams.get('page'), '1');
     } finally { await manager.restore(); }
+  });
+});
+
+// Lote D: contrato público, sem Bearer, cookies ou requisições reais.
+const publicDuvidaFixture: DuvidaPublica = {
+  id: 501, pergunta: 'Como faço minha matrícula?', resposta: 'Procure a secretaria do polo.',
+  categoria_nome: 'Matrícula', categoria_slug: 'matricula',
+};
+const publicCategoryFixture: CategoriaDuvidaPublica = { nome: 'Matrícula', slug: 'matricula' };
+const publicVisitorInput: DuvidaVisitantePublicaInput = { nome: 'Maria sintética', email: 'maria@example.invalid', descricao: 'Como participar?' };
+function publicDuvidaList(items = [publicDuvidaFixture], pagination = {
+  current_page: 1, total_pages: items.length ? 1 : 0, total_count: items.length, per_page: 10,
+}) {
+  return categoriaReply({ success: true, message: 'Resultado sintético', data: { items, pagination } });
+}
+function publicCategoryReply(items = [publicCategoryFixture]) {
+  return categoriaReply({ success: true, message: 'Categorias encontradas', data: items });
+}
+function publicVisitorSuccess(message = 'Dúvida enviada. Em breve entraremos em contato.') {
+  return categoriaReply({ success: true, message, data: null }, 201);
+}
+function mountPublicFaq(fetcher: (url: URL, options: RequestInit) => Promise<Response>, strict = false, component = () => FaqCentralSection()) {
+  return mountCategories(fetcher, strict, { component, anonymous: true, allowedPaths: /\/publico\/d_(?:duvidas|categorias_duvida|duvidas_visitante)$/ });
+}
+function publicFaqBackend(read: (url: URL, options: RequestInit) => Promise<Response>) {
+  return async (url: URL, options: RequestInit) => url.pathname.endsWith('/d_categorias_duvida') ? publicCategoryReply() : read(url, options);
+}
+async function fillPublicVisitor(manager: Awaited<ReturnType<typeof mountPublicFaq>>, telefone = '') {
+  await manager.change('nome', ' Maria sintética '); await manager.change('email', ' maria@example.invalid ');
+  await manager.change('descricao', ' Como participar? '); if (telefone) await manager.change('telefone', telefone);
+}
+
+describe('FAQ público Lote D — três endpoints anônimos', () => {
+  const service = medtecApi.duvidasPublicas;
+  const operations = {
+    list: () => service.list({ categoria: 'matricula', busca: 'certificado', page: 2, per_page: 5 }),
+    categories: () => service.listCategorias(), send: () => service.enviarVisitante(publicVisitorInput),
+  };
+  for (const operation of ['list', 'categories', 'send'] as const) {
+    it(operation + ': endpoint, formato e parâmetros sem Bearer mesmo com sessão administrativa', async () => {
+      setStoredTokens({ access_token: 'public-isolation-user', refresh_token: 'public-isolation-refresh' });
+      const calls: { url: URL; options: RequestInit }[] = [];
+      const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options: RequestInit = {}) => {
+        calls.push({ url: new URL(String(input)), options });
+        return operation === 'list' ? publicDuvidaList([publicDuvidaFixture], { current_page: 2, total_pages: 4, total_count: 18, per_page: 5 })
+          : operation === 'categories' ? publicCategoryReply() : publicVisitorSuccess();
+      });
+      try {
+        const result = await operations[operation](); assert.equal(calls.length, 1);
+        const { url, options } = calls[0];
+        assert.ok(url.pathname.endsWith('/publico/' + { list: 'd_duvidas', categories: 'd_categorias_duvida', send: 'd_duvidas_visitante' }[operation]));
+        assert.equal(new Headers(options.headers).get('Authorization'), null); assert.equal(options.credentials, 'omit');
+        assert.equal(options.method, operation === 'send' ? 'POST' : 'GET');
+        if (operation === 'list') {
+          for (const [key, value] of Object.entries({ categoria: 'matricula', busca: 'certificado', page: '2', per_page: '5' })) assert.equal(url.searchParams.get(key), value);
+          assert.deepEqual(result, { success: true, message: 'Resultado sintético', data: { items: [publicDuvidaFixture], pagination: { current_page: 2, total_pages: 4, total_count: 18, per_page: 5 } } });
+        } else if (operation === 'categories') {
+          assert.deepEqual(result, { success: true, message: 'Categorias encontradas', data: [publicCategoryFixture] });
+          assert.equal(Object.hasOwn(publicCategoryFixture, 'id'), false); assert.equal(Object.hasOwn(publicCategoryFixture, 'ativo'), false);
+        } else {
+          assert.deepEqual(JSON.parse(String(options.body)), { d_duvida_visitante: publicVisitorInput });
+          assert.deepEqual(result, { success: true, message: 'Dúvida enviada. Em breve entraremos em contato.', data: null });
+        }
+        if (operation !== 'send') assert.equal(options.body, undefined);
+        assert.equal(getStoredAccessToken(), 'public-isolation-user'); assert.equal(getStoredRefreshToken(), 'public-isolation-refresh');
+      } finally { fetcher.mock.restore(); clearStoredTokens(); }
+    });
+  }
+  for (const operation of ['list', 'categories', 'send'] as const) {
+    it(operation + ': 401 token_expirado não faz refresh, retry ou logout', async () => {
+      setStoredTokens({ access_token: 'public-isolation-user', refresh_token: 'public-isolation-refresh' }); let count = 0;
+      const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+        count++; assert.match(String(input), /\/publico\/d_/); assert.equal(new Headers(options?.headers).get('Authorization'), null);
+        return categoriaReply({ success: false, errors: ['token_expirado'] }, 401);
+      });
+      try {
+        await assert.rejects(operations[operation](), error => error instanceof ApiError && error.status === 401);
+        assert.equal(count, 1); assert.equal(getStoredAccessToken(), 'public-isolation-user'); assert.equal(getStoredRefreshToken(), 'public-isolation-refresh');
+      } finally { fetcher.mock.restore(); clearStoredTokens(); }
+    });
+  }
+  for (const telefone of [undefined, '92999999999']) {
+    it('envio seleciona somente os campos permitidos; telefone: ' + telefone, async () => {
+      const fetcher = mock.method(globalThis, 'fetch', async (_input: RequestInfo | URL, options?: RequestInit) => {
+        const expected = { ...publicVisitorInput, ...(telefone ? { telefone } : {}) };
+        assert.deepEqual(JSON.parse(String(options?.body)), { d_duvida_visitante: expected }); return publicVisitorSuccess();
+      });
+      const extra = { ...publicVisitorInput, telefone, id: 1, respondida: true, autor_id: 99, protocolo: 'não permitido' };
+      try { await service.enviarVisitante(extra); } finally { fetcher.mock.restore(); }
+    });
+  }
+  it('filtros vazios são omitidos e leituras aceitam cancelamento', async () => {
+    const controller = new AbortController();
+    const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+      const url = new URL(String(input)); assert.equal(options?.signal, controller.signal); assert.equal(options?.cache, 'no-store');
+      assert.equal(url.searchParams.has('categoria'), false); assert.equal(url.searchParams.has('busca'), false);
+      return url.pathname.endsWith('/d_duvidas') ? publicDuvidaList([]) : publicCategoryReply([]);
+    });
+    try {
+      assert.equal((await service.list({ categoria: '', busca: '' }, controller.signal)).data.pagination.total_count, 0);
+      assert.deepEqual((await service.listCategorias(controller.signal)).data, []);
+    } finally { fetcher.mock.restore(); }
+  });
+  for (const status of [422, 429]) {
+    it('POST propaga HTTP ' + status + ' e suas mensagens', async () => {
+      const fetcher = mock.method(globalThis, 'fetch', async () => categoriaReply({ success: false, message: 'Erro sintético', errors: [status === 429 ? 'muitas_tentativas' : 'Email inválido'] }, status));
+      try { await assert.rejects(service.enviarVisitante(publicVisitorInput), error => error instanceof ApiError && error.status === status); }
+      finally { fetcher.mock.restore(); }
+    });
+  }
+  for (const operation of ['list', 'categories', 'send'] as const) {
+    it(operation + ': falha de rede não vira sucesso ou vazio', async () => {
+      const fetcher = mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
+      try { await assert.rejects(operations[operation](), error => error instanceof ApiError && error.status === 0); }
+      finally { fetcher.mock.restore(); }
+    });
+  }
+  for (const [operation, payload] of [
+    ['list', null], ['list', { success: true, data: { items: [] } }],
+    ['list', { success: true, data: { items: [{ pergunta: 'Incompleta' }], pagination: { current_page: 1, total_pages: 1, total_count: 1, per_page: 10 } } }],
+    ['categories', { success: true, data: { items: [publicCategoryFixture] } }],
+    ['categories', { success: true, data: [{ nome: 'Categoria sem slug' }] }],
+    ['send', { success: true, message: 'OK', data: { id: 1 } }], ['send', { success: false, message: 'Falha', data: null }],
+  ] as const) {
+    it(operation + ': resposta inválida não simula sucesso: ' + JSON.stringify(payload), async () => {
+      const fetcher = mock.method(globalThis, 'fetch', async () => categoriaReply(payload));
+      try { await assert.rejects(operations[operation](), /Resposta inválida/); } finally { fetcher.mock.restore(); }
+    });
+  }
+});
+
+describe('FAQ público Lote D — páginas e listagem compartilhada', () => {
+  it('/faq, /duvidas e wrapper existente compartilham o mesmo componente sem FAQs locais', () => {
+    for (const page of [PublicFaqPage, PublicDuvidasPage, FaqSection]) {
+      const tree = page(); const shared = noticeNodes(tree).filter(node => node.type === FaqCentralSection);
+      assert.equal(shared.length, 1); assert.equal(Object.hasOwn(shared[0].props, 'initialFaqs'), false);
+    }
+  });
+  it('SSR apresenta carregamento sem perguntas ou categorias inventadas', () => {
+    const html = renderToStaticMarkup(createElement(FaqCentralSection));
+    assert.match(html, /Carregando perguntas/); assert.match(html, /Carregando categorias/);
+    assert.doesNotMatch(html, /Nenhuma pergunta encontrada|Horários de Transmissão|Papel do Mediador|Validade e Certificação|Metodologia &amp; Aulas/);
+    assert.match(html, /Enviar dúvida/);
+  });
+  it('consulta anônima mostra total oficial, categorias sem ID e acordeão acessível', async () => {
+    const manager = await mountPublicFaq(publicFaqBackend(async () => publicDuvidaList([publicDuvidaFixture], { current_page: 1, total_pages: 3, total_count: 25, per_page: 10 })));
+    try {
+      assert.match(manager.html(), /25 resultados/); assert.match(manager.html(), /Como faço minha matrícula/);
+      assert.ok(manager.nodes().some(node => node.type === 'button' && node.props.children === 'Matrícula'));
+      const question = manager.nodes().find(node => node.type === 'button' && typeof node.props.id === 'string' && node.props.id.endsWith('-pergunta-501')); assert.ok(question);
+      assert.equal(question.props['aria-expanded'], false);
+      await manager.act(() => Reflect.apply(question.props.onClick as () => unknown, undefined, []));
+      const answer = manager.nodes().find(node => node.props.id === question.props['aria-controls']); assert.ok(answer);
+      assert.equal(answer.props.hidden, false); assert.equal(answer.props['aria-labelledby'], question.props.id);
+      assert.match(manager.html(), /Procure a secretaria do polo/);
+      assert.equal(manager.calls.length, 2);
+    } finally { await manager.restore(); }
+  });
+  it('busca global por pergunta, categoria e paginação são enviadas à API sem filtro local', async () => {
+    const manager = await mountPublicFaq(publicFaqBackend(async url => publicDuvidaList([publicDuvidaFixture], { current_page: Number(url.searchParams.get('page')), total_pages: 3, total_count: 25, per_page: 10 })));
+    try {
+      await manager.click('Próxima'); assert.match(manager.html(), /Página 2 de 3/);
+      const before = manager.calls.length; await manager.change('busca', ' certificado '); assert.equal(manager.calls.length, before);
+      await manager.submit('Buscar perguntas'); let url = manager.calls.at(-1)!.url;
+      assert.equal(url.searchParams.get('busca'), 'certificado'); assert.equal(url.searchParams.get('page'), '1'); assert.equal(url.searchParams.get('per_page'), '10');
+      assert.match(manager.html(), /Como faço minha matrícula/, 'Não filtra a coleção retornada na página atual');
+      await manager.click('Matrícula'); url = manager.calls.at(-1)!.url;
+      assert.equal(url.searchParams.get('categoria'), 'matricula'); assert.equal(url.searchParams.get('busca'), 'certificado');
+      await manager.click('Próxima'); assert.equal(manager.calls.at(-1)!.url.searchParams.get('categoria'), 'matricula');
+      await manager.click('Limpar filtros'); url = manager.calls.at(-1)!.url;
+      assert.equal(url.searchParams.has('busca'), false); assert.equal(url.searchParams.has('categoria'), false); assert.equal(url.searchParams.get('page'), '1');
+    } finally { await manager.restore(); }
+  });
+  it('vazio legítimo só aparece após a leitura e não transforma categorias em mocks', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountPublicFaq(publicFaqBackend(() => pending.promise));
+    try {
+      assert.match(manager.html(), /Carregando perguntas/); assert.doesNotMatch(manager.html(), /Nenhuma pergunta encontrada/);
+      await manager.act(() => pending.resolve(publicDuvidaList([])));
+      assert.match(manager.html(), /Nenhuma pergunta encontrada/); assert.doesNotMatch(manager.html(), /role="alert"/);
+    } finally { await manager.restore(); }
+  });
+  for (const outcome of [401, 404, 503, 'network'] as const) {
+    it('perguntas com ' + outcome + ': indisponibilidade sem perguntas fictícias, login ou falso vazio', async () => {
+      let failed = false;
+      const manager = await mountPublicFaq(publicFaqBackend(async () => {
+        if (failed) return publicDuvidaList(); failed = true;
+        if (outcome === 'network') throw new TypeError('Failed to fetch');
+        return categoriaReply({ success: false, errors: ['nao_autenticado'] }, outcome);
+      }));
+      try {
+        assert.match(manager.html(), /role="alert"/); assert.match(manager.html(), outcome === 'network' ? /conectar/ : /Perguntas indisponíveis/);
+        assert.doesNotMatch(manager.html(), /Nenhuma pergunta encontrada|Como faço minha matrícula|Faça login|Horários de Transmissão/);
+        assert.ok(manager.nodes().some(node => node.type === DuvidaVisitanteForm));
+        await manager.click('Tentar novamente'); assert.match(manager.html(), /Como faço minha matrícula/);
+        assert.equal(getStoredAccessToken(), 'category-ui-user');
+      } finally { await manager.restore(); }
+    });
+  }
+  it('falha de categorias não impede perguntas e recarrega apenas o catálogo público', async () => {
+    let failed = true;
+    const manager = await mountPublicFaq(async url => {
+      if (url.pathname.endsWith('/d_categorias_duvida')) return failed ? categoriaReply({ success: false }, 503) : publicCategoryReply();
+      return publicDuvidaList();
+    });
+    try {
+      assert.match(manager.html(), /Categorias indisponíveis/); assert.match(manager.html(), /Como faço minha matrícula/);
+      assert.doesNotMatch(manager.html(), /Infraestrutura &amp; Satélite/);
+      failed = false; await manager.click('Recarregar categorias');
+      assert.equal(manager.calls.filter(call => call.url.pathname.endsWith('/d_duvidas')).length, 1);
+      assert.ok(manager.nodes().some(node => node.type === 'button' && node.props.children === 'Matrícula'));
+    } finally { await manager.restore(); }
+  });
+  it('catálogo vazio não cria categorias fixas', async () => {
+    const manager = await mountPublicFaq(async url => url.pathname.endsWith('/d_categorias_duvida') ? publicCategoryReply([]) : publicDuvidaList());
+    try { assert.match(manager.html(), /Nenhuma categoria disponível/); assert.match(manager.html(), /Como faço minha matrícula/); }
+    finally { await manager.restore(); }
+  });
+  it('perguntas e categorias carregam independentemente', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountPublicFaq(async url => url.pathname.endsWith('/d_categorias_duvida') ? pending.promise : publicDuvidaList());
+    try {
+      assert.match(manager.html(), /Como faço minha matrícula/); assert.match(manager.html(), /Carregando categorias/);
+      await manager.act(() => pending.resolve(publicCategoryReply())); assert.doesNotMatch(manager.html(), /Carregando categorias/);
+    } finally { await manager.restore(); }
+  });
+  it('resposta obsoleta não substitui a busca vigente', async () => {
+    const pending = adminReturnDeferred<Response>(); let reads = 0;
+    const manager = await mountPublicFaq(publicFaqBackend(async () => ++reads === 1 ? pending.promise : publicDuvidaList([{ ...publicDuvidaFixture, pergunta: 'Resultado vigente' }])));
+    try {
+      await manager.change('busca', 'vigente'); await manager.submit('Buscar perguntas');
+      await manager.act(() => pending.resolve(publicDuvidaList([{ ...publicDuvidaFixture, pergunta: 'Resultado obsoleto' }])));
+      assert.match(manager.html(), /Resultado vigente/); assert.doesNotMatch(manager.html(), /Resultado obsoleto/);
+    } finally { await manager.restore(); }
+  });
+  it('Strict Mode não duplica as duas leituras públicas iniciais', async () => {
+    const manager = await mountPublicFaq(publicFaqBackend(async () => publicDuvidaList()), true);
+    try { assert.equal(manager.calls.length, 2); } finally { await manager.restore(); }
+  });
+  it('respostas não executam HTML recebido da API', async () => {
+    const manager = await mountPublicFaq(publicFaqBackend(async () => publicDuvidaList([{ ...publicDuvidaFixture, resposta: '<script>alert(1)</script>' }])));
+    try { assert.match(manager.html(), /&lt;script&gt;/); assert.doesNotMatch(manager.html(), /<script>/); }
+    finally { await manager.restore(); }
+  });
+});
+
+describe('FAQ público Lote D — formulário acessível de visitantes', () => {
+  const form = () => DuvidaVisitanteForm();
+  it('validação local associa erros aos campos obrigatórios e não envia POST inválido', async () => {
+    const manager = await mountPublicFaq(async () => { throw new Error('Nenhum envio esperado'); }, false, form);
+    try {
+      await manager.submit('Enviar dúvida');
+      assert.match(manager.html(), /Informe seu nome/); assert.match(manager.html(), /Informe um e-mail válido/); assert.match(manager.html(), /Descreva sua dúvida/);
+      for (const name of ['nome', 'email', 'descricao']) {
+        const field = manager.nodes().find(node => node.props.name === name); assert.ok(field);
+        assert.equal(field.props['aria-invalid'], true); assert.ok(manager.nodes().some(node => node.props.id === field.props['aria-describedby']));
+        assert.ok(manager.nodes().some(node => node.type === 'label' && node.props.htmlFor === field.props.id));
+      }
+      assert.equal(manager.nodes().find(node => node.props.name === 'telefone')?.props.required, undefined);
+      assert.equal(manager.calls.length, 0);
+    } finally { await manager.restore(); }
+  });
+  it('nome e descrição em branco e email malformado continuam inválidos', async () => {
+    const manager = await mountPublicFaq(async () => publicVisitorSuccess(), false, form);
+    try {
+      await manager.change('nome', '   '); await manager.change('descricao', '   '); await manager.change('email', 'sem-arroba');
+      await manager.submit('Enviar dúvida'); assert.equal(manager.calls.length, 0); assert.match(manager.html(), /role="alert"/);
+    } finally { await manager.restore(); }
+  });
+  it('resumo de erros recebe foco após envio inválido e não interrompe a correção dos campos', async () => {
+    const manager = await mountPublicFaq(async () => publicVisitorSuccess(), false, form);
+    try {
+      await manager.submit('Enviar dúvida');
+      const summary = manager.nodes().find(node => node.props.role === 'alert'); assert.ok(summary);
+      const ref = summary.props.ref as { current: { focus: () => void } | null };
+      let focuses = 0; ref.current = { focus() { focuses++; } };
+      await manager.submit('Enviar dúvida'); assert.equal(focuses, 1);
+      await manager.change('nome', 'Maria'); assert.equal(focuses, 1);
+      await manager.change('email', 'maria@example.invalid'); assert.equal(focuses, 1);
+      assert.equal(manager.calls.length, 0);
+    } finally { await manager.restore(); }
+  });
+  for (const telefone of ['', '92999999999']) {
+    it('envio válido com telefone ' + (telefone || 'opcional ausente') + ' confirma a mensagem da API e limpa os campos', async () => {
+      const manager = await mountPublicFaq(async (_url, options) => {
+        assert.deepEqual(JSON.parse(String(options.body)), { d_duvida_visitante: { ...publicVisitorInput, ...(telefone ? { telefone } : {}) } });
+        return publicVisitorSuccess('Recebemos sua dúvida. A equipe entrará em contato.');
+      }, false, form);
+      try {
+        await fillPublicVisitor(manager, telefone); await manager.submit('Enviar dúvida');
+        assert.match(manager.html(), /Recebemos sua dúvida/); assert.match(manager.html(), /role="status"/);
+        assert.equal(manager.nodes().find(node => node.props.name === 'nome')?.props.value, '');
+        assert.doesNotMatch(manager.html(), /e-mail enviado|protocolo de atendimento/i);
+        assert.equal(manager.calls.length, 1); assert.equal(manager.calls[0].options.method, 'POST');
+        assert.equal(getStoredAccessToken(), 'category-ui-user');
+      } finally { await manager.restore(); }
+    });
+  }
+  it('envio pendente bloqueia campos e duplicatas, sem sucesso antecipado', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountPublicFaq(() => pending.promise, false, form);
+    try {
+      await fillPublicVisitor(manager);
+      const node = manager.nodes().find(node => node.type === 'form'); assert.ok(node);
+      await manager.act(() => { for (let i = 0; i < 2; i++) void Reflect.apply(node.props.onSubmit as () => unknown, undefined, [{ preventDefault() {} }]); });
+      assert.equal(manager.calls.length, 1); assert.match(manager.html(), /Enviando dúvida/); assert.doesNotMatch(manager.html(), /Dúvida enviada/);
+      assert.equal(manager.nodes().find(node => node.type === 'fieldset')?.props.disabled, true);
+      assert.equal(manager.nodes().find(node => node.type === 'form')?.props['aria-busy'], true);
+      await manager.act(() => pending.resolve(publicVisitorSuccess())); assert.match(manager.html(), /Dúvida enviada/);
+    } finally { await manager.restore(); }
+  });
+  it('422 mostra mensagens do Rails e preserva os campos para correção', async () => {
+    const manager = await mountPublicFaq(async () => categoriaReply({ success: false, message: 'Erro de validação', errors: ['Email inválido', 'Descrição não pode ficar em branco'] }, 422), false, form);
+    try {
+      await fillPublicVisitor(manager); await manager.submit('Enviar dúvida');
+      assert.match(manager.html(), /Email inválido/); assert.match(manager.html(), /Descrição não pode ficar em branco/);
+      assert.match(manager.html(), /value=" Maria sintética "/); assert.match(manager.html(), /Como participar/);
+      assert.doesNotMatch(manager.html(), /Dúvida enviada/); assert.equal(manager.calls.length, 1);
+    } finally { await manager.restore(); }
+  });
+  it('429 orienta aguardar um minuto sem apagar dados nem repetir POST automaticamente', async () => {
+    let failed = true;
+    const manager = await mountPublicFaq(async () => failed ? categoriaReply({ success: false, errors: ['muitas_tentativas'] }, 429) : publicVisitorSuccess(), false, form);
+    try {
+      await fillPublicVisitor(manager); await manager.submit('Enviar dúvida');
+      assert.match(manager.html(), /Muitos envios. Aguarde um minuto/); assert.match(manager.html(), /value=" Maria sintética "/);
+      assert.equal(manager.calls.length, 1); failed = false;
+      await manager.submit('Enviar dúvida'); assert.match(manager.html(), /Dúvida enviada/); assert.equal(manager.calls.length, 2);
+    } finally { await manager.restore(); }
+  });
+  for (const outcome of [401, 404, 503, 'network', 'invalid'] as const) {
+    it('envio com ' + outcome + ' não afirma sucesso, email enviado ou protocolo', async () => {
+      const manager = await mountPublicFaq(async () => {
+        if (outcome === 'network') throw new TypeError('Failed to fetch');
+        if (outcome === 'invalid') return categoriaReply({ success: true, data: { protocolo: 'não contratual' } }, 201);
+        return categoriaReply({ success: false, errors: [outcome === 401 ? 'token_expirado' : 'falha'] }, outcome);
+      }, false, form);
+      try {
+        await fillPublicVisitor(manager); await manager.submit('Enviar dúvida');
+        assert.match(manager.html(), /role="alert"/); assert.match(manager.html(), /value=" Maria sintética "/);
+        assert.doesNotMatch(manager.html(), /Dúvida enviada|email enviado|protocolo|Faça login/i);
+        assert.equal(manager.calls.length, 1); assert.equal(getStoredAccessToken(), 'category-ui-user');
+      } finally { await manager.restore(); }
+    });
+  }
+  it('resposta após desmontagem não inicia novas chamadas', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountPublicFaq(() => pending.promise, false, form);
+    try {
+      await fillPublicVisitor(manager); const node = manager.nodes().find(node => node.type === 'form'); assert.ok(node);
+      await manager.act(() => { void Reflect.apply(node.props.onSubmit as () => unknown, undefined, [{ preventDefault() {} }]); });
+      await manager.unmount(); await manager.act(() => pending.resolve(publicVisitorSuccess())); assert.equal(manager.calls.length, 1);
+    } finally { await manager.restore(); }
+  });
+  it('renderizar e reativar formulário não envia dados sem ação do visitante', async () => {
+    const manager = await mountPublicFaq(async () => publicVisitorSuccess(), true, form);
+    try { await manager.render(); assert.equal(manager.calls.length, 0); } finally { await manager.restore(); }
   });
 });

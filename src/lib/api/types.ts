@@ -295,6 +295,33 @@ export interface DDuvidaVisitante {
   updated_at: string;
 }
 
+export interface DuvidaPublica {
+  id: number;
+  pergunta: string;
+  resposta: string;
+  categoria_nome: string;
+  categoria_slug: string;
+}
+
+export interface CategoriaDuvidaPublica {
+  nome: string;
+  slug: string;
+}
+
+export interface PublicoDuvidasParams {
+  categoria?: string;
+  busca?: string;
+  page?: number;
+  per_page?: number;
+}
+
+export interface DuvidaVisitantePublicaInput {
+  nome: string;
+  email: string;
+  telefone?: string;
+  descricao: string;
+}
+
 // ============================================================================
 // Galeria de Fotos
 // ============================================================================

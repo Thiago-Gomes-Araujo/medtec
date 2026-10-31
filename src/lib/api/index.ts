@@ -23,7 +23,7 @@ import { avisosService, tiposAvisoService } from './services/avisos.service';
 import { categoriasGaleriaService, fotosGaleriaService } from './services/galeria.service';
 import { canaisService } from './services/canais.service';
 import { noticiasService } from './services/noticias.service';
-import { categoriasDuvidaService, duvidasService, duvidasVisitanteService } from './services/duvidas.service';
+import { categoriasDuvidaService, duvidasService, duvidasVisitanteService, duvidasPublicasService } from './services/duvidas.service';
 
 export const medtecApi = {
   // Autenticação e Sessão (/auth)
@@ -68,6 +68,7 @@ export const medtecApi = {
   categoriasDuvida: categoriasDuvidaService,
   duvidas: duvidasService,
   duvidasVisitante: duvidasVisitanteService,
+  duvidasPublicas: duvidasPublicasService,
 };
 
 // Exportações de infraestrutura e utilitários
