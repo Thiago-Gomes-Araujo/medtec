@@ -48,6 +48,11 @@ import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
 import SitePhotosManager from '../src/components/SitePhotosManager';
 import FaqModule from '../src/components/admin/FaqModule';
+import AnnouncementsModule, { type AnnouncementsModuleProps } from '../src/components/admin/AnnouncementsModule';
+import GalleryModule, { type GalleryModuleProps } from '../src/components/admin/GalleryModule';
+import AdminAvisosPage from '../src/app/admin/avisos/page';
+import AdminGaleriaPage from '../src/app/admin/galeria/page';
+import type { ATipoAviso, AAviso, FotoGaleria, CategoriaGaleria } from '../src/lib/api/types';
 import DuvidasVisitanteModule from '../src/components/admin/DuvidasVisitanteModule';
 import FaqCentralSection from '../src/components/FaqCentralSection';
 import DuvidaVisitanteForm from '../src/components/DuvidaVisitanteForm';
@@ -101,6 +106,7 @@ import SocialSection from '../src/components/SocialSection';
 import PublicNoticiasPage from '../src/app/noticias/page';
 import PublicNoticiaDetalhePage, { generateMetadata as generateNoticiaMetadata } from '../src/app/noticias/[id]/page';
 import NewsEditorialSection from '../src/components/NewsEditorialSection';
+import NewsModule from '../src/components/admin/NewsModule';
 import NewsViewTracker, { recordNewsView } from '../src/components/NewsViewTracker';
 import type { NoticiaPublica, CategoriaPublica } from '../src/lib/api/types';
 
@@ -9707,5 +9713,543 @@ describe('Lote E3 — correção das notícias públicas e remoção de dados fi
       fetchMock.mock.restore();
       clearStoredTokens();
     }
+  });
+});
+
+// E5: exercita formulários e cargas das páginas sem montar autenticação nem
+// realizar HTTP real. Reutiliza o reconciliador e o interceptador já existentes.
+const e5Active: ATipoAviso = { id: 37, nome: 'Ativa oficial', slug: 'ativa-oficial', ativo: true, posicao: 0, cor: '#004A99' };
+const e5Inactive: ATipoAviso = { ...e5Active, id: 51, nome: 'Inativa oficial', slug: 'inativa-oficial', ativo: false };
+const e5Aviso: AAviso = { id: 81, titulo: 'Comunicado existente', conteudo: 'Orientação oficial', a_tipo_aviso_id: 51, ativo: true, created_at: '2026-10-31T12:00:00Z', updated_at: '2026-10-31T12:00:00Z' };
+const e5Foto: FotoGaleria = { id: 82, titulo: 'Foto existente', categoria_galeria_id: 51, imagem_url: 'https://example.test/foto.jpg', created_at: '2026-10-31T12:00:00Z', updated_at: '2026-10-31T12:00:00Z' };
+type E5Kind = 'avisos' | 'galeria';
+
+async function mountE5(kind: E5Kind, config: {
+  catalog?: ATipoAviso[]; existing?: boolean; loading?: boolean; error?: string; page?: boolean;
+  fetcher?: (url: URL, options: RequestInit) => Promise<Response>;
+} = {}) {
+  const alerts: string[] = [];
+  let confirmed = true;
+  const descriptors = new Map(['alert', 'confirm'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  Object.defineProperty(globalThis, 'alert', { configurable: true, value: (message: string) => alerts.push(message) });
+  Object.defineProperty(globalThis, 'confirm', { configurable: true, value: () => confirmed });
+  let updateCatalog: (next: ATipoAviso[]) => void;
+  let updateLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  let updateError: React.Dispatch<React.SetStateAction<string | null>>;
+  const isAviso = kind === 'avisos';
+  const formLabel = isAviso ? 'Formulário de aviso' : 'Formulário de foto';
+  const foreign = isAviso ? 'a_tipo_aviso_id' : 'categoria_galeria_id';
+  function Component() {
+    const [catalog, setCatalog] = React.useState(config.catalog ?? [e5Active]);
+    const [categories, setCategories] = React.useState<CategoriaGaleria[]>(config.catalog ?? [e5Active]);
+    const [loading, setLoading] = React.useState(config.loading ?? false);
+    const [error, setError] = React.useState<string | null>(config.error ?? null);
+    const [avisos, setAvisos] = React.useState(config.existing ? [e5Aviso] : []);
+    const [fotos, setFotos] = React.useState(config.existing ? [e5Foto] : []);
+    React.useEffect(() => {
+      updateCatalog = isAviso ? setCatalog : setCategories; updateLoading = setLoading; updateError = setError;
+    }, [setCatalog, setCategories, setLoading, setError]);
+    if (config.page) {
+      // Os hooks da página e do módulo executam no Capture do harness. O Shell
+      // continua sendo conferido pelos testes de acesso existentes.
+      if (isAviso) {
+        const page = AdminAvisosPage();
+        const child = page.props.children as React.ReactElement<AnnouncementsModuleProps>;
+        return AnnouncementsModule(child.props);
+      }
+      const page = AdminGaleriaPage();
+      const child = page.props.children as React.ReactElement<GalleryModuleProps>;
+      return GalleryModule(child.props);
+    }
+    return isAviso ? AnnouncementsModule({
+      apiAvisos: avisos, setApiAvisos: setAvisos, apiTiposAviso: catalog, setApiTiposAviso: setCatalog,
+      loadingAvisos: loading, errorAvisos: error, onPreview() {},
+    }) : GalleryModule({
+      apiFotos: fotos, setApiFotos: setFotos, apiCategorias: categories, setApiCategorias: setCategories,
+      loadingFotos: loading, errorFotos: error, onPreview() {},
+    });
+  }
+  const restoreDialogs = () => {
+    for (const [key, descriptor] of descriptors) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key);
+    }
+  };
+  try {
+    const manager = await mountCategories(config.fetcher ?? (async () => { throw new Error('HTTP inesperado no teste E5'); }), false, {
+      component: Component, allowedPaths: /\/(?:a_avisos|a_tipos_aviso|fotos_galeria|categorias_galeria)(?:\/\d+)?$/,
+    });
+    const invoke = async (predicate: (node: React.ReactElement<NoticeNodeProps>) => boolean) => {
+      const node = manager.nodes().find(predicate); assert.ok(node);
+      await manager.act(() => Reflect.apply(node.props.onClick as () => unknown, undefined, []));
+    };
+    return {
+      ...manager, alerts, foreign, formLabel,
+      restore: async () => { try { await manager.restore(); } finally { restoreDialogs(); } },
+      setCatalog: (value: ATipoAviso[]) => manager.act(() => updateCatalog(value)),
+      setLoading: (value: boolean) => manager.act(() => updateLoading(value)),
+      setError: (value: string | null) => manager.act(() => updateError(value)),
+      confirm: (value: boolean) => { confirmed = value; },
+      newRecord: () => invoke(node => node.type === 'button' && node.props.children instanceof Array && node.props.children.some((child: unknown) => isValidElement(child) && String((child.props as { children?: unknown }).children).includes(isAviso ? 'Novo Aviso' : 'Adicionar Foto'))),
+      toggleCatalog: () => invoke(node => node.type === 'button' && Array.isArray(node.props.children) &&
+        node.props.children.some((child: unknown) => isValidElement(child) && String((child.props as { children?: unknown }).children).includes(isAviso ? 'Tipos e Cores de Aviso' : 'Categorias da Galeria'))),
+      async catalogAction(action: 'edit' | 'delete', index: number) {
+        const title = isAviso ? (action === 'edit' ? 'Editar tipo' : 'Excluir tipo') : (action === 'edit' ? 'Editar categoria' : 'Excluir categoria');
+        const node = manager.nodes().filter(node => node.type === 'button' && node.props.title === title)[index]; assert.ok(node);
+        await manager.act(() => Reflect.apply(node.props.onClick as () => unknown, undefined, []));
+      },
+      submitCatalog: () => manager.submit(),
+      edit: () => invoke(node => node.type === 'button' && node.props.title === (isAviso ? 'Editar' : 'Editar foto')),
+      remove: () => invoke(node => node.type === 'button' && node.props.title === (isAviso ? 'Excluir' : 'Excluir foto')),
+      select: () => manager.nodes().find(node => node.type === 'select' && node.props.name === foreign)!,
+      optionIds() {
+        const select = manager.nodes().find(node => node.type === 'select' && node.props.name === foreign); assert.ok(select);
+        return noticeNodes(select).filter(node => node.type === 'option').map(node => node.props.value);
+      },
+      saveDisabled: () => manager.nodes().find(node => node.type === 'button' && node.props.type === 'submit')?.props.disabled,
+      fill: async () => {
+        await manager.change('titulo', 'Conteúdo de apresentação');
+        await manager.change(isAviso ? 'conteudo' : 'imagem_url', isAviso ? 'Mensagem oficial' : 'https://example.test/nova.jpg');
+      },
+      submit: () => manager.submit(formLabel),
+    };
+  } catch (error) { restoreDialogs(); throw error; }
+}
+
+function e5List(items: unknown[]) {
+  return categoriaReply({ success: true, data: { items, pagination: { current_page: 1, total_pages: items.length ? 1 : 0, total_count: items.length, per_page: 20 } } });
+}
+
+for (const kind of ['avisos', 'galeria'] as const) describe(`E5 — ${kind}`, () => {
+  const isAviso = kind === 'avisos';
+  const recordPath = isAviso ? '/a_avisos' : '/fotos_galeria';
+  const catalogPath = isAviso ? '/a_tipos_aviso' : '/categorias_galeria';
+  const saved = isAviso ? { ...e5Aviso, a_tipo_aviso_id: 37 } : { ...e5Foto, categoria_galeria_id: 37 };
+
+  it('catálogo vazio não inventa ID 1 e bloqueia botão e submissão direta', async () => {
+    const manager = await mountE5(kind, { catalog: [] });
+    try {
+      await manager.newRecord(); await manager.fill();
+      assert.deepEqual(manager.optionIds(), ['']); assert.equal(manager.select().props.value, '');
+      assert.equal(manager.saveDisabled(), true); await manager.submit();
+      assert.equal(manager.calls.length, 0); assert.match(manager.alerts.at(-1)!, /Carregue e selecione/);
+      assert.match(manager.html(), /Cadastre ou ative/);
+    } finally { await manager.restore(); }
+  });
+
+  it('seleciona e envia apenas ID oficial ativo, mesmo com opção inativa em primeiro lugar', async () => {
+    const manager = await mountE5(kind, { catalog: [e5Inactive, e5Active], fetcher: async () => categoriaReply(saved, 201) });
+    try {
+      await manager.newRecord(); await manager.fill();
+      assert.deepEqual(manager.optionIds(), [37]); assert.equal(manager.select().props.value, 37);
+      assert.equal(manager.saveDisabled(), false); await manager.submit();
+      assert.equal(manager.calls.length, 1);
+      const call = manager.calls[0]; assert.equal(call.options.method, 'POST'); assert.ok(call.url.pathname.endsWith(recordPath));
+      const body = JSON.parse(String(call.options.body));
+      assert.equal(body[isAviso ? 'a_aviso' : 'foto_galeria'][manager.foreign], 37);
+      assert.match(manager.alerts.at(-1)!, /sucesso/);
+    } finally { await manager.restore(); }
+  });
+
+  it('IDs inválidos no catálogo nunca são oferecidos ou enviados', async () => {
+    const manager = await mountE5(kind, { catalog: [0, -1, 1.5].map(id => ({ ...e5Active, id })) });
+    try {
+      await manager.newRecord(); await manager.fill(); await manager.submit();
+      assert.deepEqual(manager.optionIds(), ['']); assert.equal(manager.calls.length, 0);
+    } finally { await manager.restore(); }
+  });
+
+  it('somente opções inativas não habilitam novos cadastros', async () => {
+    const manager = await mountE5(kind, { catalog: [e5Inactive] });
+    try {
+      await manager.newRecord(); await manager.fill(); await manager.submit();
+      assert.deepEqual(manager.optionIds(), ['']); assert.equal(manager.saveDisabled(), true);
+      assert.equal(manager.calls.length, 0);
+    } finally { await manager.restore(); }
+  });
+
+  it('edição mantém associação original inativa retornada pela API e exclui as outras inativas', async () => {
+    const manager = await mountE5(kind, { existing: true, catalog: [e5Active, e5Inactive, { ...e5Inactive, id: 52 }], fetcher: async () => categoriaReply(isAviso ? e5Aviso : e5Foto) });
+    try {
+      await manager.edit();
+      assert.equal(manager.select().props.value, 51); assert.deepEqual(manager.optionIds(), [37, 51]);
+      assert.match(manager.html(), /inativ[oa] \(atual\)/);
+      await manager.submit();
+      assert.equal(manager.calls[0].options.method, 'PATCH');
+      assert.equal(JSON.parse(String(manager.calls[0].options.body))[isAviso ? 'a_aviso' : 'foto_galeria'][manager.foreign], 51);
+      await manager.newRecord(); assert.deepEqual(manager.optionIds(), [37]);
+    } finally { await manager.restore(); }
+  });
+
+  it('associação ausente do catálogo não é fabricada a partir do registro editado', async () => {
+    const manager = await mountE5(kind, { existing: true, catalog: [] });
+    try {
+      await manager.edit(); await manager.submit();
+      assert.deepEqual(manager.optionIds(), ['']); assert.equal(manager.saveDisabled(), true); assert.equal(manager.calls.length, 0);
+    } finally { await manager.restore(); }
+  });
+
+  it('seleção acompanha desativação e exclusão, bloqueando quando não restam opções válidas', async () => {
+    const second = { ...e5Active, id: 73, nome: 'Segunda ativa' };
+    const manager = await mountE5(kind, { catalog: [e5Active, second] });
+    try {
+      await manager.newRecord(); await manager.fill();
+      await manager.change(manager.foreign, '73'); assert.equal(manager.select().props.value, 73);
+      await manager.setCatalog([e5Active, { ...second, ativo: false }]);
+      assert.equal(manager.select().props.value, 37); assert.deepEqual(manager.optionIds(), [37]);
+      await manager.setCatalog([second]); assert.equal(manager.select().props.value, 73);
+      await manager.setCatalog([]); assert.equal(manager.select().props.value, '');
+      await manager.submit(); assert.equal(manager.calls.length, 0);
+    } finally { await manager.restore(); }
+  });
+
+  for (const action of ['delete', 'deactivate'] as const) it(`resposta oficial de ${action} no gerenciador atualiza seleção e preserva o rascunho`, async () => {
+    const second = { ...e5Active, id: 73, nome: 'Segunda ativa' };
+    const manager = await mountE5(kind, { catalog: [e5Active, second], fetcher: async (url, options) => {
+      if (url.pathname.endsWith(catalogPath + '/73')) {
+        assert.equal(options.method, action === 'delete' ? 'DELETE' : 'PATCH');
+        return action === 'delete' ? new Response(null, { status: 204 }) : categoriaReply({ ...second, ativo: false });
+      }
+      return categoriaReply(saved, 201);
+    } });
+    try {
+      await manager.newRecord(); await manager.fill(); await manager.change(manager.foreign, '73');
+      await manager.toggleCatalog();
+      await manager.catalogAction(action === 'delete' ? 'delete' : 'edit', 1);
+      if (action === 'deactivate') await manager.submitCatalog();
+      await manager.click('Fechar');
+      assert.equal(manager.select().props.value, 37); assert.deepEqual(manager.optionIds(), [37]);
+      assert.match(manager.html(), /Conteúdo de apresentação/);
+      await manager.submit();
+      assert.equal(manager.calls.length, 2);
+      assert.equal(JSON.parse(String(manager.calls[1].options.body))[isAviso ? 'a_aviso' : 'foto_galeria'][manager.foreign], 37);
+    } finally { await manager.restore(); }
+  });
+
+  it('exclusão recusada do catálogo mantém a opção existente e mostra o erro', async () => {
+    const manager = await mountE5(kind, { fetcher: async () => categoriaReply({ success: false, message: 'Existem vínculos', errors: ['Não foi possível excluir'] }, 422) });
+    try {
+      await manager.newRecord(); await manager.fill(); await manager.toggleCatalog();
+      await manager.catalogAction('delete', 0); await manager.click('Fechar');
+      assert.equal(manager.select().props.value, 37); assert.deepEqual(manager.optionIds(), [37]);
+      assert.match(manager.alerts.at(-1)!, /Existem vínculos/); assert.doesNotMatch(manager.alerts.at(-1)!, /sucesso/);
+      assert.equal(manager.calls.length, 1);
+    } finally { await manager.restore(); }
+  });
+
+  it('carregamento ou erro bloqueia envio mesmo mantendo catálogo previamente válido e rascunho', async () => {
+    const manager = await mountE5(kind);
+    try {
+      await manager.newRecord(); await manager.fill();
+      await manager.setLoading(true); assert.equal(manager.saveDisabled(), true); await manager.submit();
+      await manager.setLoading(false); await manager.setError('Falha simulada');
+      assert.equal(manager.saveDisabled(), true); await manager.submit();
+      assert.equal(manager.calls.length, 0); assert.match(manager.html(), /Conteúdo de apresentação/);
+      await manager.setError(null); assert.equal(manager.saveDisabled(), false);
+    } finally { await manager.restore(); }
+  });
+
+  for (const failure of [401, 403, 500, 'network', 'invalid'] as const) it(`página distingue falha ${failure} de vazio e permite recarregar catálogo e lista`, async () => {
+    let failed = true;
+    const manager = await mountE5(kind, { page: true, fetcher: async url => {
+      assert.equal(url.searchParams.get('page'), 'all');
+      if (failed && url.pathname.endsWith(catalogPath)) {
+        if (failure === 'network') throw new TypeError('Failed to fetch');
+        if (failure === 'invalid') return categoriaReply({ success: true, data: { items: null } });
+        return categoriaReply({ success: false, message: 'Falha simulada', errors: ['sem_permissao'] }, failure);
+      }
+      return url.pathname.endsWith(catalogPath) ? e5List([e5Active]) : e5List([]);
+    } });
+    try {
+      assert.match(manager.html(), /role="alert"/);
+      assert.doesNotMatch(manager.html(), /Nenhum aviso cadastrado|Nenhuma foto cadastrada/);
+      await manager.newRecord(); await manager.fill(); assert.equal(manager.saveDisabled(), true); await manager.submit();
+      assert.equal(manager.calls.filter(call => call.options.method !== 'GET').length, 0);
+      if (failure === 401) {
+        assert.equal(getStoredAccessToken(), null);
+        // Simula autenticação renovada pelo usuário antes de repetir a leitura.
+        setStoredTokens({ access_token: 'category-ui-user', refresh_token: 'category-ui-refresh' });
+      }
+      failed = false; await manager.click('Tentar novamente');
+      assert.equal(manager.select().props.value, 37); assert.equal(manager.saveDisabled(), false);
+      assert.match(manager.html(), /Conteúdo de apresentação/); assert.doesNotMatch(manager.html(), /role="alert"/);
+      assert.equal(manager.calls.length, 4);
+      await manager.click('Cancelar');
+      assert.match(manager.html(), isAviso ? /Nenhum aviso cadastrado/ : /Nenhuma foto cadastrada/);
+    } finally { await manager.restore(); }
+  });
+
+  it('falha na leitura dos registros também bloqueia envio e não se apresenta como lista vazia', async () => {
+    const manager = await mountE5(kind, { page: true, fetcher: async url => url.pathname.endsWith(catalogPath)
+      ? e5List([e5Active]) : categoriaReply({ success: false, message: 'Lista indisponível' }, 503) });
+    try {
+      assert.match(manager.html(), /role="alert"/);
+      assert.doesNotMatch(manager.html(), /Nenhum aviso cadastrado|Nenhuma foto cadastrada/);
+      await manager.newRecord(); await manager.fill(); await manager.submit();
+      assert.equal(manager.saveDisabled(), true); assert.equal(manager.calls.length, 2);
+    } finally { await manager.restore(); }
+  });
+
+  it('página aguarda catálogo pendente, sem tratar carregamento como vazio ou permitir salvar', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountE5(kind, { page: true, fetcher: async url => url.pathname.endsWith(catalogPath) ? pending.promise : e5List([]) });
+    try {
+      assert.match(manager.html(), /Carregando/); assert.doesNotMatch(manager.html(), /Nenhum aviso cadastrado|Nenhuma foto cadastrada/);
+      await manager.newRecord(); await manager.fill(); await manager.submit(); assert.equal(manager.saveDisabled(), true);
+      await manager.act(() => pending.resolve(e5List([e5Active])));
+      assert.equal(manager.select().props.value, 37); assert.equal(manager.saveDisabled(), false);
+      assert.equal(manager.calls.length, 2);
+    } finally { await manager.restore(); }
+  });
+
+  it('exclusão mantém confirmação, cancelamento e tratamento de 204 sem corpo', async () => {
+    const manager = await mountE5(kind, { existing: true, fetcher: async () => new Response(null, { status: 204 }) });
+    try {
+      manager.confirm(false); await manager.remove(); assert.equal(manager.calls.length, 0);
+      manager.confirm(true); await manager.remove();
+      assert.equal(manager.calls.length, 1); assert.equal(manager.calls[0].options.method, 'DELETE');
+      assert.match(manager.alerts.at(-1)!, /sucesso/);
+    } finally { await manager.restore(); }
+  });
+});
+
+for (const existing of [false, true]) it(`E5 — upload da Galeria preserva multipart e seleção oficial na ${existing ? 'edição' : 'criação'}`, async () => {
+  const manager = await mountE5('galeria', { existing, catalog: [e5Active, e5Inactive], fetcher: async (_url, options) => {
+    assert.ok(options.body instanceof FormData);
+    assert.equal(new Headers(options.headers).get('Content-Type'), null);
+    assert.equal(options.body.get('foto_galeria[categoria_galeria_id]'), existing ? '51' : '37');
+    assert.equal(options.body.get('foto_galeria[titulo]'), existing ? e5Foto.titulo : 'Conteúdo de apresentação');
+    const file = options.body.get('foto_galeria[imagem]'); assert.ok(file instanceof File); assert.equal(file.name, 'apresentacao.png');
+    assert.equal(options.method, existing ? 'PATCH' : 'POST');
+    return categoriaReply(e5Foto, existing ? 200 : 201);
+  } });
+  try {
+    if (existing) await manager.edit(); else { await manager.newRecord(); await manager.fill(); }
+    const input = manager.nodes().find(node => node.type === 'input' && node.props.type === 'file'); assert.ok(input);
+    await manager.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { files: [new File(['png'], 'apresentacao.png', { type: 'image/png' })] } }]));
+    await manager.submit(); assert.equal(manager.calls.length, 1); assert.match(manager.alerts.at(-1)!, /sucesso/);
+  } finally { await manager.restore(); }
+});
+
+const e6News: NewsItem = {
+  id: '91', title: 'Notícia devolvida para correção', slug: 'noticia-devolvida',
+  excerpt: 'Resumo oficial', content: 'Conteúdo original da notícia.',
+  coverImage: 'https://api.example.test/rails/active_storage/blobs/redirect/original/capa.png',
+  author: 'Autora oficial', category: 'Pedagógico', publishedAt: '2026-10-31',
+  featured: false, published: false, rejected: true, rejectionReason: 'Informe a fonte da fotografia.',
+};
+
+async function mountE6(config: {
+  news?: Partial<NewsItem>; create?: boolean; list?: boolean; canEdit?: boolean;
+  fetcher?: (url: URL, options: RequestInit) => Promise<Response>;
+} = {}) {
+  const news = { ...e6News, ...config.news };
+  const alerts: string[] = [];
+  const refresh = mock.fn(async () => {});
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'alert');
+  Object.defineProperty(globalThis, 'alert', { configurable: true, value: (message: string) => alerts.push(message) });
+  function Component() {
+    const [mode, setMode] = React.useState<'lista' | 'editor'>(config.list ? 'lista' : 'editor');
+    return NewsModule({
+      effectiveNews: [news], apiNewsCategories: [{ id: 37, nome: 'Pedagógico', slug: 'pedagogico', ativo: true }],
+      initialEditingNews: config.create || config.list ? undefined : news, initialNew: config.create,
+      loadingNews: false, errorNews: null, userSession: { name: 'Autora oficial' },
+      canCreate: true, canEdit: config.canEdit ?? true, canDelete: true, canPublish: false,
+      newsViewMode: mode, setNewsViewMode: setMode, onRefresh: refresh,
+      onTogglePublished: async () => {}, onPreview() {},
+    });
+  }
+  const restoreAlert = () => {
+    if (descriptor) Object.defineProperty(globalThis, 'alert', descriptor); else Reflect.deleteProperty(globalThis, 'alert');
+  };
+  try {
+    const manager = await mountCategories(config.fetcher ?? (async () => categoriaReply({ id: 91 }, config.create ? 201 : 200)), false, {
+      component: Component, allowedPaths: /\/n_noticias(?:\/\d+)?$/,
+    });
+    Object.defineProperty(window, 'scrollTo', { configurable: true, value() {} });
+    return {
+      ...manager, alerts,
+      refreshes: () => refresh.mock.callCount(),
+      restore: async () => {
+        // O módulo mantém o aviso de sucesso existente, agendado em 50 ms.
+        try { if (refresh.mock.callCount()) await new Promise(resolve => setTimeout(resolve, 60)); await manager.restore(); }
+        finally { restoreAlert(); }
+      },
+      async text(placeholder: string, value: string) {
+        const input = manager.nodes().find(node => node.props.placeholder === placeholder); assert.ok(input);
+        await manager.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { value } }]));
+      },
+      async upload() {
+        const input = manager.nodes().find(node => node.type === 'input' && node.props.name === 'imagem_capa'); assert.ok(input);
+        await manager.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { files: [new File(['nova-capa'], 'nova.png', { type: 'image/png' })] } }]));
+      },
+      async edit() {
+        const button = manager.nodes().find(node => node.type === 'button' && node.props.title === 'Editar notícia'); assert.ok(button);
+        await manager.act(() => Reflect.apply(button.props.onClick as () => unknown, undefined, []));
+      },
+      coverPreview: () => manager.nodes().find(node => node.type === 'img' && node.props.alt === 'Preview')?.props.src,
+      coverInput: () => manager.nodes().find(node => node.type === 'input' && node.props.name === 'imagem_capa_url')!,
+    };
+  } catch (error) { restoreAlert(); throw error; }
+}
+
+function assertE6Preserved(body: unknown) {
+  const payload = JSON.parse(String(body)).n_noticia;
+  assert.ok(!Object.hasOwn(payload, 'imagem_capa_url'));
+  assert.ok(!Object.hasOwn(payload, 'imagem_capa'));
+  assert.ok(!Object.hasOwn(payload, 'remove_imagem_capa'));
+  return payload;
+}
+
+describe('E6 — preservação da capa e motivo de reprovação de Notícias', () => {
+  for (const coverImage of [e6News.coverImage, 'https://example.test/capa-externa.jpg', '']) {
+    it(`editar texto preserva capa ${coverImage.includes('/rails/') ? 'enviada por upload' : coverImage ? 'externa' : 'ausente'} e omite todos os campos de imagem no PATCH`, async () => {
+      const manager = await mountE6({ news: { coverImage } });
+      try {
+        assert.equal(manager.coverInput().props.value, '');
+        assert.equal(manager.coverPreview(), coverImage || undefined);
+        await manager.text('Ex: Polo ribeirinho recebe novos computadores do MEDTEC...', 'Título corrigido');
+        await manager.text('Escreva aqui os parágrafos completos da notícia...', 'Conteúdo corrigido.');
+        await manager.submit(); assert.equal(manager.calls.length, 1);
+        const call = manager.calls[0]; assert.ok(call.url.pathname.endsWith('/n_noticias/91')); assert.equal(call.options.method, 'PATCH');
+        assert.deepEqual(assertE6Preserved(call.options.body), {
+          titulo: 'Título corrigido', conteudo: 'Conteúdo corrigido.', n_categoria_noticia_id: 37,
+          resumo: 'Resumo oficial', data_publicacao: '2026-10-31',
+        });
+        assert.equal(manager.refreshes(), 1);
+      } finally { await manager.restore(); }
+    });
+  }
+
+  it('substituição explícita por URL envia somente os campos oficiais do Rails', async () => {
+    const manager = await mountE6();
+    try {
+      await manager.change('imagem_capa_url', ' https://example.test/nova-capa.jpg ');
+      assert.equal(manager.coverPreview(), 'https://example.test/nova-capa.jpg');
+      await manager.submit();
+      assert.deepEqual(JSON.parse(String(manager.calls[0].options.body)), { n_noticia: {
+        titulo: e6News.title, conteudo: e6News.content, n_categoria_noticia_id: 37, resumo: e6News.excerpt,
+        data_publicacao: e6News.publishedAt, imagem_capa_url: 'https://example.test/nova-capa.jpg',
+      } });
+      assert.equal(manager.refreshes(), 1);
+    } finally { await manager.restore(); }
+  });
+
+  it('repetir a URL atual não converte o anexo em link nem envia substituição', async () => {
+    const manager = await mountE6();
+    try {
+      await manager.change('imagem_capa_url', ' ' + e6News.coverImage + ' '); await manager.submit();
+      assertE6Preserved(manager.calls[0].options.body);
+    } finally { await manager.restore(); }
+  });
+
+  it('limpar a nova URL restaura a prévia atual e não solicita remoção de capa', async () => {
+    const manager = await mountE6();
+    try {
+      await manager.change('imagem_capa_url', 'https://example.test/temporaria.jpg');
+      await manager.change('imagem_capa_url', '');
+      assert.equal(manager.coverPreview(), e6News.coverImage);
+      assert.match(manager.html(), /capa atual será mantida/);
+      await manager.submit(); assertE6Preserved(manager.calls[0].options.body);
+    } finally { await manager.restore(); }
+  });
+
+  it('novo upload substitui a capa por multipart sem enviar a URL anterior ou a URL digitada antes do arquivo', async () => {
+    const manager = await mountE6();
+    try {
+      await manager.change('imagem_capa_url', 'https://example.test/temporaria.jpg'); await manager.upload();
+      assert.equal(manager.coverInput().props.value, ''); assert.equal(manager.coverInput().props.disabled, true);
+      await manager.submit();
+      const call = manager.calls[0]; assert.equal(call.options.method, 'PATCH'); assert.ok(call.options.body instanceof FormData);
+      assert.equal(new Headers(call.options.headers).get('Content-Type'), null);
+      const form = call.options.body;
+      assert.deepEqual([...form.keys()], ['n_noticia[titulo]', 'n_noticia[n_categoria_noticia_id]', 'n_noticia[conteudo]', 'n_noticia[resumo]', 'n_noticia[data_publicacao]', 'n_noticia[imagem_capa]']);
+      assert.equal(form.get('n_noticia[n_categoria_noticia_id]'), '37');
+      const image = form.get('n_noticia[imagem_capa]'); assert.ok(image instanceof File); assert.equal(image.name, 'nova.png');
+      assert.equal(form.has('n_noticia[imagem_capa_url]'), false);
+    } finally { await manager.restore(); }
+  });
+
+  it('remover somente o arquivo recém-selecionado preserva a capa anterior ao salvar', async () => {
+    const manager = await mountE6();
+    try {
+      await manager.upload(); assert.match(String(manager.coverPreview()), /^blob:/);
+      await manager.click('Remover arquivo');
+      assert.equal(manager.coverPreview(), e6News.coverImage); assert.equal(manager.coverInput().props.disabled, false);
+      await manager.submit(); assertE6Preserved(manager.calls[0].options.body);
+    } finally { await manager.restore(); }
+  });
+
+  it('abertura pela lista e cancelamento descartam a substituição pendente sem alterar o registro', async () => {
+    const manager = await mountE6({ list: true });
+    try {
+      await manager.edit(); assert.match(manager.html(), /Informe a fonte da fotografia/);
+      await manager.change('imagem_capa_url', 'https://example.test/descartada.jpg');
+      await manager.click('Cancelar e Voltar'); assert.equal(manager.calls.length, 0);
+      await manager.edit(); assert.equal(manager.coverInput().props.value, ''); assert.equal(manager.coverPreview(), e6News.coverImage);
+      await manager.submit(); assertE6Preserved(manager.calls[0].options.body);
+    } finally { await manager.restore(); }
+  });
+
+  for (const selection of ['none', 'url', 'file'] as const) it(`novo cadastro mantém o fluxo existente com capa ${selection}`, async () => {
+    const manager = await mountE6({ create: true });
+    try {
+      await manager.text('Ex: Polo ribeirinho recebe novos computadores do MEDTEC...', 'Notícia nova');
+      await manager.text('Escreva aqui os parágrafos completos da notícia...', 'Conteúdo novo');
+      if (selection === 'url') await manager.change('imagem_capa_url', 'https://example.test/nova.jpg');
+      if (selection === 'file') await manager.upload();
+      await manager.submit(); assert.equal(manager.calls.length, 1); assert.equal(manager.calls[0].options.method, 'POST');
+      assert.ok(manager.calls[0].url.pathname.endsWith('/n_noticias'));
+      const body = manager.calls[0].options.body;
+      if (selection === 'file') { assert.ok(body instanceof FormData); assert.ok(body.get('n_noticia[imagem_capa]') instanceof File); }
+      else if (selection === 'url') assert.equal(JSON.parse(String(body)).n_noticia.imagem_capa_url, 'https://example.test/nova.jpg');
+      else assertE6Preserved(body);
+      assert.equal(manager.refreshes(), 1);
+    } finally { await manager.restore(); }
+  });
+
+  it('exibe a justificativa real como texto, preservando quebras de linha e escapando marcação', async () => {
+    const reason = 'Inclua a fonte oficial.\nConfira o crédito <img src=x onerror=alert(1)>.';
+    const manager = await mountE6({ news: { rejectionReason: reason } });
+    try {
+      const section = manager.nodes().find(node => node.type === 'section' && node.props['aria-label'] === 'Motivo da reprovação'); assert.ok(section);
+      const paragraph = noticeNodes(section).find(node => node.type === 'p'); assert.ok(paragraph);
+      assert.equal(paragraph.props.children, reason);
+      assert.match(String(paragraph.props.className), /whitespace-pre-wrap/);
+      assert.match(manager.html(), /&lt;img src=x onerror=alert\(1\)&gt;/);
+      assert.equal(manager.calls.length, 0);
+    } finally { await manager.restore(); }
+  });
+
+  for (const reason of [undefined, '', '   ']) it(`motivo ${reason === undefined ? 'ausente' : reason ? 'em branco' : 'vazio'} mostra somente a ausência informada`, async () => {
+    const manager = await mountE6({ news: { rejectionReason: reason } });
+    try {
+      assert.match(manager.html(), /Motivo de reprovação não informado pela API/);
+      assert.doesNotMatch(manager.html(), /Informe a fonte da fotografia/); assert.equal(manager.calls.length, 0);
+    } finally { await manager.restore(); }
+  });
+
+  it('não apresenta motivo obsoleto quando a notícia não está reprovada', async () => {
+    const manager = await mountE6({ news: { rejected: false } });
+    try {
+      assert.doesNotMatch(manager.html(), /Motivo da reprovação|Informe a fonte da fotografia/);
+    } finally { await manager.restore(); }
+  });
+
+  it('mantém a restrição de edição para quem não possui permissão', async () => {
+    const manager = await mountE6({ canEdit: false });
+    try {
+      assert.equal(manager.nodes().some(node => node.type === 'form'), false); assert.equal(manager.calls.length, 0);
+    } finally { await manager.restore(); }
+  });
+
+  for (const status of [403, 422]) it(`recusa ${status} mantém o rascunho e a nova URL, sem sucesso ou recarregamento`, async () => {
+    const manager = await mountE6({ fetcher: async () => categoriaReply({ success: false, message: 'Alteração recusada', errors: ['erro_simulado'] }, status) });
+    try {
+      await manager.change('imagem_capa_url', 'https://example.test/revisar.jpg'); await manager.submit();
+      assert.equal(manager.calls.length, 1); assert.equal(manager.refreshes(), 0);
+      assert.equal(manager.coverInput().props.value, 'https://example.test/revisar.jpg');
+      assert.match(manager.alerts.at(-1)!, /erro_simulado/); assert.doesNotMatch(manager.alerts.join(' '), /sucesso/);
+      assert.match(manager.html(), /Informe a fonte da fotografia/);
+    } finally { await manager.restore(); }
   });
 });

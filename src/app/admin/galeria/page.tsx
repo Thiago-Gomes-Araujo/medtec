@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { medtecApi, FotoGaleria, CategoriaGaleria } from '@/lib/api';
+import { ApiError, medtecApi, FotoGaleria, CategoriaGaleria } from '@/lib/api';
 import GalleryModule from '@/components/admin/GalleryModule';
 import AdminShell from '@/components/admin/AdminShell';
 import { PreviewItemData, PreviewContentType } from '@/components/AdminLiveSimulator';
@@ -30,15 +30,14 @@ export default function AdminGaleriaSubroutePage() {
         medtecApi.categoriasGaleria.list({ page: 'all' }),
         medtecApi.fotosGaleria.list({ page: 'all' }),
       ]);
-      if (catsRes.success && catsRes.data?.items) {
-        setApiCategorias(catsRes.data.items);
+      if (!catsRes.success || !Array.isArray(catsRes.data?.items) ||
+          !fotosRes.success || !Array.isArray(fotosRes.data?.items)) {
+        throw new Error('Resposta inválida da API de Galeria.');
       }
-      if (fotosRes.success && fotosRes.data?.items) {
-        setApiFotos(fotosRes.data.items);
-      }
+      setApiCategorias(catsRes.data.items);
+      setApiFotos(fotosRes.data.items);
     } catch (err) {
-      console.warn('API v1: Erro ao listar galeria/categorias na subrota /admin/galeria:', err);
-      setErrorFotos('Falha ao comunicar com a API oficial da Galeria.');
+      setErrorFotos(ApiError.getFriendlyMessage(err));
     } finally {
       setLoadingFotos(false);
     }
@@ -62,6 +61,7 @@ export default function AdminGaleriaSubroutePage() {
         setApiCategorias={setApiCategorias}
         loadingFotos={loadingFotos}
         errorFotos={errorFotos}
+        onReload={loadGalleryData}
         onPreview={(photoData) =>
           setPreviewModal({
             isOpen: true,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { medtecApi, AAviso, ATipoAviso } from '@/lib/api';
+import { ApiError, medtecApi, AAviso, ATipoAviso } from '@/lib/api';
 import AnnouncementsModule from '@/components/admin/AnnouncementsModule';
 import AdminShell from '@/components/admin/AdminShell';
 import { PreviewItemData, PreviewContentType } from '@/components/AdminLiveSimulator';
@@ -30,15 +30,14 @@ export default function AdminAvisosSubroutePage() {
         medtecApi.tiposAviso.list({ page: 'all' }),
         medtecApi.avisos.list({ page: 'all' }),
       ]);
-      if (tiposRes.success && tiposRes.data?.items) {
-        setApiTiposAviso(tiposRes.data.items);
+      if (!tiposRes.success || !Array.isArray(tiposRes.data?.items) ||
+          !avisosRes.success || !Array.isArray(avisosRes.data?.items)) {
+        throw new Error('Resposta inválida da API de Avisos.');
       }
-      if (avisosRes.success && avisosRes.data?.items) {
-        setApiAvisos(avisosRes.data.items);
-      }
+      setApiTiposAviso(tiposRes.data.items);
+      setApiAvisos(avisosRes.data.items);
     } catch (err) {
-      console.warn('API v1: Erro ao listar avisos/tipos na subrota /admin/avisos:', err);
-      setErrorAvisos('Falha ao comunicar com a API oficial de Avisos.');
+      setErrorAvisos(ApiError.getFriendlyMessage(err));
     } finally {
       setLoadingAvisos(false);
     }
@@ -62,6 +61,7 @@ export default function AdminAvisosSubroutePage() {
         setApiTiposAviso={setApiTiposAviso}
         loadingAvisos={loadingAvisos}
         errorAvisos={errorAvisos}
+        onReload={loadAvisosData}
         onPreview={(avisoData) =>
           setPreviewModal({
             isOpen: true,

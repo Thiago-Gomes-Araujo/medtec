@@ -40,6 +40,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
   const [saving, setSaving] = useState(false);
   const [selectedNewsCategoriaId, setSelectedNewsCategoriaId] = useState<number | null>(() => apiNewsCategories.find(c => c.nome === initialEditingNews?.category)?.id || apiNewsCategories[0]?.id || null);
   const [newsCoverFile, setNewsCoverFile] = useState<File | null>(null);
+  const [newsCoverUrl, setNewsCoverUrl] = useState('');
   // Estado para formulário de Notícia (novo ou edição)
   const [editingNews, setEditingNews] = useState<NewsItem | null>(initialEditingNews || null);
   const [newsForm, setNewsForm] = useState<Partial<NewsItem>>(() => initialEditingNews ? { ...initialEditingNews } : {
@@ -107,7 +108,9 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
             n_categoria_noticia_id: catId,
             resumo: newsForm.excerpt?.trim() || undefined,
             data_publicacao: newsForm.publishedAt?.trim() || undefined,
-            imagem_capa_url: newsForm.coverImage?.trim() || undefined,
+            // Omitir preserva o anexo; reenviar sua URL pode apagá-lo no Rails.
+            imagem_capa_url: newsCoverUrl.trim() && newsCoverUrl.trim() !== editingNews?.coverImage?.trim()
+              ? newsCoverUrl.trim() : undefined,
           },
         };
 
@@ -124,6 +127,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
 
       setEditingNews(null);
       setNewsCoverFile(null);
+      setNewsCoverUrl('');
       setNewsForm({
         title: '',
         category: 'Pedagógico',
@@ -178,6 +182,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
     setEditingNews(item);
     setNewsForm({ ...item });
     setNewsCoverFile(null);
+    setNewsCoverUrl('');
     const cat = apiNewsCategories.find(c => c.nome === item.category);
     if (cat) {
       setSelectedNewsCategoriaId(cat.id);
@@ -190,6 +195,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
     if (!canCreate) return;
     setEditingNews(null);
     setNewsCoverFile(null);
+    setNewsCoverUrl('');
     setNewsForm({
       title: '',
       category: apiNewsCategories[0]?.nome || 'Pedagógico',
@@ -283,6 +289,8 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                 type="button"
                 onClick={() => {
                   setEditingNews(null);
+                  setNewsCoverFile(null);
+                  setNewsCoverUrl('');
                   setNewsViewMode('lista');
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition cursor-pointer"
@@ -309,6 +317,8 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                 type="button"
                 onClick={() => {
                   setEditingNews(null);
+                  setNewsCoverFile(null);
+                  setNewsCoverUrl('');
                   setNewsForm({
                     title: '',
                     category: 'Pedagógico',
@@ -329,6 +339,15 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                 Cancelar e Voltar
               </button>
             </div>
+
+            {editingNews?.rejected && (
+              <section aria-label="Motivo da reprovação" className="mb-6 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-4 text-amber-950 dark:text-amber-100">
+                <h3 className="text-sm font-bold">Motivo da reprovação</h3>
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm">
+                  {editingNews.rejectionReason?.trim() ? editingNews.rejectionReason : 'Motivo de reprovação não informado pela API.'}
+                </p>
+              </section>
+            )}
 
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
               <div className="xl:col-span-7 min-w-0">
@@ -439,11 +458,13 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                         </span>
                         <input
                           type="file"
+                          name="imagem_capa"
                           accept="image/png,image/jpeg,image/webp"
                           onChange={e => {
                             const file = e.target.files?.[0];
                             if (file) {
                               setNewsCoverFile(file);
+                              setNewsCoverUrl('');
                               setNewsForm(prev => ({ ...prev, coverImage: URL.createObjectURL(file) }));
                             }
                           }}
@@ -454,21 +475,28 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
 
                     <div>
                       <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
-                        2. Ou colar link direto de imagem:
+                        2. Ou informar um novo link de imagem:
                       </span>
                       <input
                         type="url"
-                        value={newsCoverFile ? '' : (newsForm.coverImage || '')}
+                        name="imagem_capa_url"
+                        aria-label="Nova URL da capa"
+                        value={newsCoverUrl}
                         disabled={!!newsCoverFile}
                         onChange={e => {
                           setNewsCoverFile(null);
-                          setNewsForm({ ...newsForm, coverImage: e.target.value });
+                          setNewsCoverUrl(e.target.value);
+                          setNewsForm({ ...newsForm, coverImage: e.target.value.trim() || editingNews?.coverImage || '' });
                         }}
                         placeholder="https://exemplo.com/foto.jpg"
                         className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-xs text-slate-900 dark:text-slate-100 disabled:opacity-50"
                       />
                     </div>
                   </div>
+
+                  {editingNews && <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Sem um novo arquivo ou link, a capa atual será mantida. Este formulário não remove a capa existente.
+                  </p>}
 
                   {newsForm.coverImage && (
                     <div className="pt-2 flex items-center gap-3">
@@ -485,7 +513,8 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                           type="button"
                           onClick={() => {
                             setNewsCoverFile(null);
-                            setNewsForm(prev => ({ ...prev, coverImage: '' }));
+                            setNewsCoverUrl('');
+                            setNewsForm(prev => ({ ...prev, coverImage: editingNews?.coverImage || '' }));
                           }}
                           className="text-[11px] text-rose-500 hover:underline cursor-pointer"
                         >

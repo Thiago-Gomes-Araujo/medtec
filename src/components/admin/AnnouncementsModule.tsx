@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Bell,
   Plus,
@@ -25,6 +25,7 @@ export interface AnnouncementsModuleProps {
   loadingAvisos?: boolean;
   errorAvisos?: string | null;
   initialMode?: 'lista' | 'editor';
+  onReload?: () => Promise<void>;
   onPreview: (data: PreviewAnnouncementData) => void;
 }
 
@@ -37,12 +38,11 @@ export default function AnnouncementsModule({
   errorAvisos = null,
   initialMode = 'lista',
   onPreview,
+  onReload,
 }: AnnouncementsModuleProps) {
   // Modos de visualização interna
   const [announcementViewMode, setAnnouncementViewMode] = useState<'lista' | 'editor'>(initialMode);
-  const [selectedTipoAvisoId, setSelectedTipoAvisoId] = useState<number | null>(
-    () => apiTiposAviso[0]?.id ?? null
-  );
+  const [tipoAvisoSelection, setSelectedTipoAvisoId] = useState<number | null>(null);
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null);
   const [savingAnnouncement, setSavingAnnouncement] = useState(false);
 
@@ -72,12 +72,13 @@ export default function AnnouncementsModule({
     ativo: true,
   });
 
-  // Sincroniza o primeiro tipo de aviso quando a lista é carregada
-  useEffect(() => {
-    if (!selectedTipoAvisoId && apiTiposAviso.length > 0) {
-      setSelectedTipoAvisoId(apiTiposAviso[0].id);
-    }
-  }, [apiTiposAviso, selectedTipoAvisoId]);
+  // Na edição, permite manter a opção original inativa que ainda existe na API.
+  const originalTipoAvisoId = apiAvisos.find(item => item.id === editingAnnouncementId)?.a_tipo_aviso_id;
+  const tipoAvisoOptions = apiTiposAviso.filter(item => Number.isSafeInteger(item.id) && item.id > 0 &&
+    (item.ativo === true || (Boolean(editingAnnouncementId) && item.id === originalTipoAvisoId)));
+  const selectedTipoAvisoId = tipoAvisoOptions.find(item => item.id === tipoAvisoSelection)?.id ??
+    tipoAvisoOptions.find(item => item.ativo === true)?.id ?? tipoAvisoOptions[0]?.id ?? null;
+  const selectionBlocked = loadingAvisos || Boolean(errorAvisos) || selectedTipoAvisoId === null;
 
   // Handlers de Inicialização / Edição
   const handleNewAnnouncement = () => {
@@ -91,9 +92,7 @@ export default function AnnouncementsModule({
       linkUrl: '',
       active: true,
     });
-    if (apiTiposAviso.length > 0) {
-      setSelectedTipoAvisoId(apiTiposAviso[0].id);
-    }
+    setSelectedTipoAvisoId(null);
     setAnnouncementViewMode('editor');
   };
 
@@ -114,15 +113,18 @@ export default function AnnouncementsModule({
       linkUrl: 'link_url' in aviso ? (aviso.link_url || '') : ((aviso as AnnouncementItem).linkUrl || ''),
       active: 'ativo' in aviso ? aviso.ativo !== false : (aviso as AnnouncementItem).active !== false,
     });
-    if (isApi && aviso.a_tipo_aviso_id) {
-      setSelectedTipoAvisoId(aviso.a_tipo_aviso_id);
-    }
+    setSelectedTipoAvisoId(isApi ? aviso.a_tipo_aviso_id ?? null : null);
     setAnnouncementViewMode('editor');
   };
 
   // Salvar Comunicado (API v1)
   const handleSaveAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingAnnouncement) return;
+    if (selectionBlocked || selectedTipoAvisoId === null) {
+      alert('Carregue e selecione um tipo de aviso válido antes de salvar.');
+      return;
+    }
     if (!announcementForm.title?.trim() || !announcementForm.content?.trim()) {
       alert('Informe o título e o conteúdo do comunicado.');
       return;
@@ -130,7 +132,7 @@ export default function AnnouncementsModule({
 
     setSavingAnnouncement(true);
     try {
-      const tipoId = selectedTipoAvisoId || (apiTiposAviso[0] ? apiTiposAviso[0].id : 1);
+      const tipoId = selectedTipoAvisoId;
 
       let savedAviso: AAviso | null = null;
       try {
@@ -256,7 +258,7 @@ export default function AnnouncementsModule({
     }
   };
 
-  const activeTipo = apiTiposAviso.find(t => t.id === selectedTipoAvisoId) || apiTiposAviso[0];
+  const activeTipo = tipoAvisoOptions.find(t => t.id === selectedTipoAvisoId);
   const displayAvisosCount = apiAvisos.length;
 
   // Filtragem dos avisos para exibição na lista
@@ -269,9 +271,11 @@ export default function AnnouncementsModule({
     <div className="space-y-6">
       {/* Alerta de erro de conexão com a API se houver */}
       {errorAvisos && (
-        <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2.5">
+        <div role="alert" className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2.5">
           <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <span>{errorAvisos}</span>
+          {onReload && <button type="button" disabled={loadingAvisos} onClick={() => void onReload()}
+            className="ml-auto underline font-bold cursor-pointer disabled:opacity-50">Tentar novamente</button>}
         </div>
       )}
 
@@ -534,7 +538,7 @@ export default function AnnouncementsModule({
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
             <div className="xl:col-span-7 min-w-0">
-              <form onSubmit={handleSaveAnnouncement} className="space-y-5">
+              <form aria-label="Formulário de aviso" onSubmit={handleSaveAnnouncement} className="space-y-5">
                 {/* PASSO 1: TÍTULO E CLASSIFICAÇÃO */}
                 <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-3">
                   <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
@@ -552,6 +556,7 @@ export default function AnnouncementsModule({
                       <input
                         type="text"
                         required
+                        name="titulo"
                         value={announcementForm.title || ''}
                         onChange={e => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
                         placeholder="Ex: Suspensão de transmissões na data..."
@@ -565,7 +570,10 @@ export default function AnnouncementsModule({
                       </label>
                       <div className="relative">
                         <select
-                          value={selectedTipoAvisoId || ''}
+                          aria-label="Tipo de aviso"
+                          name="a_tipo_aviso_id"
+                          disabled={loadingAvisos || Boolean(errorAvisos) || savingAnnouncement}
+                          value={selectedTipoAvisoId ?? ''}
                           onChange={e => {
                             const id = Number(e.target.value);
                             setSelectedTipoAvisoId(id);
@@ -582,16 +590,18 @@ export default function AnnouncementsModule({
                           }}
                           className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
                         >
-                          {apiTiposAviso.length === 0 ? (
-                            <option value="1">Padrão Oficial (Azul)</option>
+                          {tipoAvisoOptions.length === 0 ? (
+                            <option value="">Nenhum tipo de aviso disponível</option>
                           ) : (
-                            apiTiposAviso.map(t => (
-                              <option key={t.id} value={t.id}>
-                                {t.nome} ({t.slug})
+                            tipoAvisoOptions.map(item => (
+                              <option key={item.id} value={item.id}>
+                                {item.nome} ({item.slug}){item.ativo ? '' : ' — inativo (atual)'}
                               </option>
                             ))
                           )}
                         </select>
+                        {!loadingAvisos && !errorAvisos && tipoAvisoOptions.length === 0 &&
+                          <p role="status" className="mt-2 text-xs text-amber-700 dark:text-amber-300">Cadastre ou ative um tipo de aviso para continuar.</p>}
                       </div>
                     </div>
                   </div>
@@ -613,6 +623,7 @@ export default function AnnouncementsModule({
                     <textarea
                       rows={4}
                       required
+                      name="conteudo"
                       value={announcementForm.content || ''}
                       onChange={e => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
                       placeholder="Detalhes e orientações para as escolas, professores e estudantes..."
@@ -684,7 +695,7 @@ export default function AnnouncementsModule({
                   </button>
                   <button
                     type="submit"
-                    disabled={savingAnnouncement}
+                    disabled={savingAnnouncement || selectionBlocked}
                     className="px-6 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition cursor-pointer"
                   >
                     {savingAnnouncement ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
@@ -777,6 +788,8 @@ export default function AnnouncementsModule({
               <Loader2 className="h-6 w-6 animate-spin text-[#004A99]" />
               <span>Carregando comunicados oficiais...</span>
             </div>
+          ) : errorAvisos ? (
+            <p className="p-8 text-center text-sm text-slate-500">Listagem indisponível. Tente carregar novamente.</p>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {filteredAvisos.length === 0 ? (
