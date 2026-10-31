@@ -14,6 +14,10 @@ import AdminLoginPage from '../src/app/admin/login/page';
 import PublicAvisosPage from '../src/app/avisos/page';
 import PublicAoVivoPage from '../src/app/ao-vivo/page';
 import AvisosView from '../src/components/AvisosView';
+import { useDialogFocus } from '../src/components/useDialogFocus';
+import HomeProjectsAccordionSection from '../src/components/HomeProjectsAccordionSection';
+import CommunityMuralSection from '../src/components/CommunityMuralSection';
+import ExecutiveDossierModal from '../src/components/ExecutiveDossierModal';
 import LiveBroadcastSection from '../src/components/LiveBroadcastSection';
 import type { AvisoPublico, PublicoAvisosParams } from '../src/lib/api/types';
 import * as adminAuthNavigation from '../src/lib/admin-auth-navigation';
@@ -69,7 +73,7 @@ import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG,
 import { SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
 import { useAdminTheme } from '../src/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '../src/lib/admin-navigation-filter';
-import type { BannerItem, FaqItem, NewsItem, ProjectMission } from '../src/types';
+import type { Professor, Aluno, BannerItem, FaqItem, NewsItem, ProjectMission } from '../src/types';
 
 import {
   buildQueryString,
@@ -2995,8 +2999,11 @@ describe('Avisos públicos Lote B — apresentação e limites', () => {
       return [(initial === null ? selected : value) as S, () => {}];
     };
     const state = mock.method(React, 'useState', replacement as typeof React.useState);
+    const refs = mock.method(React, 'useRef', ((value: unknown) => ({ current: value })) as typeof React.useRef);
+    const effects = mock.method(React, 'useEffect', () => {});
+    const ids = mock.method(React, 'useId', () => 'aviso-busca-teste');
     try { return AvisosView({ announcements, error }); }
-    finally { state.mock.restore(); }
+    finally { state.mock.restore(); refs.mock.restore(); effects.mock.restore(); ids.mock.restore(); }
   }
   it('chaves não dependem de id, posição ou ordem de propriedades; duplicatas são distintas', () => {
     const a = { ...publicAvisoFixture };
@@ -3624,6 +3631,7 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
   });
 
   type MenuProps = {
+    role?: string; 'aria-label'?: string; 'aria-modal'?: boolean | 'true' | 'false'; tabIndex?: number; ref?: React.Ref<HTMLDivElement>;
     children?: ReactNode; placeholder?: string; title?: string; href?: string; label?: string;
     onChange?: (event: { target: { value: string } }) => void; onClick?: () => void;
     folder?: { id: string; items: { section: AdminSection; visible: boolean }[] };
@@ -3720,6 +3728,17 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
     const restored = shell.render();
     assert.ok(restored.nodes.some(node => node.props.href === '/admin/noticias'));
     assert.ok(!restored.nodes.some(node => node.props.href === '/admin/redes'));
+  });
+
+  it('E10.2 — gaveta tem diálogo nomeado, referências de foco e fechamento acessível', () => {
+    const page = navigation('page', admin, true);
+    const nodes = page.render().nodes;
+    const dialog = nodes.find(node => node.props.role === 'dialog');
+    assert.ok(dialog); assert.equal(dialog.props['aria-label'], 'Navegação administrativa');
+    assert.equal(dialog.props['aria-modal'], 'true'); assert.equal(dialog.props.tabIndex, -1);
+    assert.ok(dialog.props.ref);
+    const close = nodes.find(node => node.props['aria-label'] === 'Fechar menu lateral');
+    assert.ok(close?.props.onClick); close.props.onClick(); assert.equal(page.isMobileOpen(), false);
   });
 
   it('preserva router.push e fechamento da gaveta mobile da página ao selecionar um resultado', () => {
@@ -4051,7 +4070,8 @@ describe('Tema administrativo compartilhado', () => {
           const control = controls[0];
           const dark = initialClass === 'dark';
           assert.equal(control.props.title, dark ? 'Mudar para tema claro' : 'Mudar para tema escuro');
-          assert.equal(control.props.className, 'p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer');
+          const touchClass = kind === 'page' ? 'inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 items-center justify-center ' : '';
+          assert.equal(control.props.className, touchClass + 'p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer');
           assert.ok(isValidElement<{ className: string }>(control.props.children));
           assert.equal(control.props.children.type, dark ? Sun : Moon);
           assert.equal(control.props.children.props.className, dark ? 'h-4 w-4 text-amber-400' : 'h-4 w-4 text-slate-600');
@@ -9484,7 +9504,7 @@ describe('Lote E3 — correção das notícias públicas e remoção de dados fi
 
       // Abrir o leitor rápido também preserva apenas dados oficiais e link para detalhes
       const coverTrigger = manager.nodes().find(
-        (node) => node.type === 'div' && typeof node.props.onClick === 'function' && String(node.props.className).includes('cursor-pointer'),
+        (node) => node.type === 'button' && node.props['aria-haspopup'] === 'dialog',
       );
       assert.ok(coverTrigger);
       await manager.act(() => Reflect.apply(coverTrigger.props.onClick as () => unknown, undefined, []));
@@ -10251,5 +10271,247 @@ describe('E6 — preservação da capa e motivo de reprovação de Notícias', (
       assert.match(manager.alerts.at(-1)!, /erro_simulado/); assert.doesNotMatch(manager.alerts.join(' '), /sucesso/);
       assert.match(manager.html(), /Informe a fonte da fotografia/);
     } finally { await manager.restore(); }
+  });
+});
+
+// Small DOM substitute for the shared focus hook; native keyboard activation is
+// additionally checked in Chrome. No requests or authenticated sessions involved.
+function mountE102Dialog(options: { empty?: boolean; disconnectedOpener?: boolean; open?: boolean } = {}) {
+  const listeners = new Map<string, (event: { key?: string; shiftKey?: boolean; target?: unknown; preventDefault(): void; stopPropagation(): void }) => void>();
+  class FocusElement {
+    inert = false; isConnected = true; tabIndex = 0; hidden = false; disabled = false;
+    parentElement: FocusElement | null = null; children: FocusElement[] = []; style = { overflow: 'auto' };
+    focus() { if (!this.closest('[inert]')) doc.activeElement = this; }
+    contains(node: unknown): boolean { return this === node || this.children.some(child => child.contains(node)); }
+    closest(_selector: string): FocusElement | null { return this.inert ? this : this.parentElement?.closest(_selector) || null; }
+    matches() { return this.disabled; }
+    getClientRects() { return this.hidden ? [] : [{}]; }
+    querySelectorAll(): FocusElement[] { return this.children.flatMap(child => [child, ...child.querySelectorAll()]); }
+    append(...items: FocusElement[]) { for (const item of items) { item.parentElement = this; this.children.push(item); } }
+  }
+  const body = new FocusElement(), background = new FocusElement(), alreadyInert = new FocusElement();
+  const overlay = new FocusElement(), dialog = new FocusElement(), opener = new FocusElement(), fallback = new FocusElement();
+  const first = new FocusElement(), last = new FocusElement(), disabled = new FocusElement(), hidden = new FocusElement();
+  disabled.disabled = true; hidden.hidden = true; dialog.tabIndex = -1; alreadyInert.inert = true;
+  body.append(background, alreadyInert, overlay); background.append(opener, fallback); overlay.append(dialog);
+  if (!options.empty) dialog.append(first, last, disabled, hidden);
+  opener.isConnected = !options.disconnectedOpener;
+  const doc: { activeElement: FocusElement; body: FocusElement; addEventListener: unknown; removeEventListener: unknown; querySelector: unknown } = { body, activeElement: opener,
+    addEventListener: (type: string, callback: typeof listeners extends Map<string, infer V> ? V : never) => listeners.set(type, callback),
+    removeEventListener: (type: string) => listeners.delete(type), querySelector: () => fallback };
+  const values = { document: doc, HTMLElement: FocusElement, getComputedStyle: () => ({ visibility: 'visible' }) };
+  const descriptors = new Map(Object.keys(values).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(values)) Object.defineProperty(globalThis, key, { configurable: true, value });
+  let closed = 0;
+  const effects: React.EffectCallback[] = [];
+  const refs = [dialog, overlay, () => { closed++; }];
+  const refMock = mock.method(React, 'useRef', (() => ({ current: refs.shift() })) as typeof React.useRef);
+  const effectMock = mock.method(React, 'useEffect', (effect: React.EffectCallback) => { effects.push(effect); });
+  let cleanup: ReturnType<React.EffectCallback>;
+  function FocusProbe() {
+    useDialogFocus(options.open ?? true, () => { closed++; }, '#fallback');
+    return null;
+  }
+  try {
+    FocusProbe();
+    for (const effect of effects) { const result = effect(); if (result) cleanup = result; }
+  } finally { refMock.mock.restore(); effectMock.mock.restore(); }
+  let stopped = false;
+  const stop = () => { if (!stopped) { stopped = true; if (cleanup) cleanup(); } };
+  return { doc, dialog, first, last, opener, fallback, background, alreadyInert, body, get closed() { return closed; }, stop,
+    key(key: string, shiftKey = false) {
+      let prevented = false;
+      listeners.get('keydown')?.({ key, shiftKey, preventDefault() { prevented = true; }, stopPropagation() {} });
+      return prevented;
+    },
+    outsideFocus() { doc.activeElement = opener; listeners.get('focusin')?.({ target: opener, preventDefault() {}, stopPropagation() {} }); },
+    restore() { stop(); for (const [key, value] of descriptors) { if (value) Object.defineProperty(globalThis, key, value); else Reflect.deleteProperty(globalThis, key); } },
+  };
+}
+
+describe('E10.2 — foco e teclado dos diálogos', () => {
+  it('direciona foco ao diálogo e isola o fundo sem perder o estado anterior', () => {
+    const view = mountE102Dialog();
+    try {
+      assert.equal(view.doc.activeElement, view.dialog); assert.equal(view.background.inert, true);
+      assert.equal(view.body.style.overflow, 'hidden');
+      view.stop(); assert.equal(view.background.inert, false); assert.equal(view.alreadyInert.inert, true);
+      assert.equal(view.body.style.overflow, 'auto');
+    } finally { view.restore(); }
+  });
+  it('Tab e Shift+Tab percorrem e envolvem somente controles disponíveis', () => {
+    const view = mountE102Dialog();
+    try {
+      assert.equal(view.key('Tab'), true); assert.equal(view.doc.activeElement, view.first);
+      view.key('Tab', true); assert.equal(view.doc.activeElement, view.last);
+      view.key('Tab'); assert.equal(view.doc.activeElement, view.first);
+      view.dialog.focus(); view.key('Tab', true); assert.equal(view.doc.activeElement, view.last);
+    } finally { view.restore(); }
+  });
+  it('sem controles mantém o foco no painel', () => {
+    const view = mountE102Dialog({ empty: true });
+    try { assert.equal(view.key('Tab'), true); assert.equal(view.key('Tab', true), true); assert.equal(view.doc.activeElement, view.dialog); }
+    finally { view.restore(); }
+  });
+  it('Escape solicita fechamento uma vez; outras teclas não fecham', () => {
+    const view = mountE102Dialog();
+    try { assert.equal(view.key('Enter'), false); assert.equal(view.closed, 0); assert.equal(view.key('Escape'), true); assert.equal(view.closed, 1); }
+    finally { view.restore(); }
+  });
+  it('fechamento restaura o acionador e remove os listeners', () => {
+    const view = mountE102Dialog();
+    try { view.stop(); assert.equal(view.doc.activeElement, view.opener); view.key('Escape'); assert.equal(view.closed, 0); }
+    finally { view.restore(); }
+  });
+  it('acionador removido usa o retorno persistente do menu', () => {
+    const view = mountE102Dialog({ disconnectedOpener: true });
+    try { view.stop(); assert.equal(view.doc.activeElement, view.fallback); } finally { view.restore(); }
+  });
+  it('foco externo é devolvido ao painel', () => {
+    const view = mountE102Dialog();
+    try { view.outsideFocus(); assert.equal(view.doc.activeElement, view.dialog); } finally { view.restore(); }
+  });
+  it('fechado não prende foco nem rolagem', () => {
+    const view = mountE102Dialog({ open: false });
+    try { assert.equal(view.doc.activeElement, view.opener); assert.equal(view.background.inert, false); assert.equal(view.key('Tab'), false); }
+    finally { view.restore(); }
+  });
+});
+
+describe('E10.2 — controles semânticos dos cards', () => {
+  it('projetos têm botão nativo de expansão e link separado', () => {
+    let selected = '';
+    const project = { id: 'p1', title: 'Projeto real no teste', shortTitle: 'Projeto', image: '', quote: '', school: '' };
+    const states = mock.method(React, 'useState', ((value: unknown) => [Array.isArray(value) ? [project] : value === true ? false : typeof value === 'string' ? selected : value,
+      (id: string) => { selected = id; }]) as typeof React.useState);
+    const effects = mock.method(React, 'useEffect', () => {});
+    try {
+      const nodes = noticeNodes(HomeProjectsAccordionSection());
+      const button = nodes.find(node => node.type === 'button' && String(node.props['aria-label']).startsWith('Expandir projeto'));
+      assert.ok(button); assert.equal(button.props.type, 'button'); assert.equal(button.props['aria-expanded'], false);
+      assert.equal(noticeNodes(button.props.children as ReactNode).some(node => node.type === NextLink || node.type === 'a'), false);
+      Reflect.apply(button.props.onClick as () => unknown, undefined, []); assert.equal(selected, 'p1');
+      const expanded = noticeNodes(HomeProjectsAccordionSection());
+      assert.ok(expanded.some(node => node.type === NextLink && node.props.href === '/projetos'));
+      assert.equal(expanded.find(node => node.type === 'button')?.props['aria-expanded'], true);
+    } finally { states.mock.restore(); effects.mock.restore(); }
+  });
+  it('mural abre perfis por botões nativos nomeados', async () => {
+    const teacher: Professor = { id: 1, nome: 'Professora do teste', funcao: 'Ministrante', disciplina: 'Ciências', municipio: 'Teste', escola: 'Escola', resumo: 'Resumo', entrevista: 'Entrevista' };
+    const student: Aluno = { id: 2, nome: 'Estudante do teste', categoria: 'Vestibular', idade: 18, comunidade: 'Comunidade', municipio: 'Teste', conquista: 'Conquista', resumo: 'Resumo' };
+    const view = await mountCategories(async () => { throw new Error('Não deve chamar a API'); }, false, {
+      component: () => CommunityMuralSection({ initialTeachers: [teacher], initialStudents: [student] }), allowedPaths: /never/,
+    });
+    try {
+      for (const name of [teacher.nome, student.nome]) {
+        await view.click('Abrir perfil de ' + name);
+        const dialog = view.nodes().find(node => node.props.role === 'dialog');
+        assert.ok(dialog); assert.equal(dialog.props['aria-modal'], 'true'); assert.equal(dialog.props['aria-label'], 'Perfil de ' + name);
+        await view.click('Fechar modal'); assert.equal(view.nodes().some(node => node.props.role === 'dialog'), false);
+      }
+      assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
+  });
+});
+
+
+describe('E10.2 — abertura e fechamento dos modais públicos', () => {
+  it('Avisos usa diálogo nomeado com foco programável e mantém o fechamento', async () => {
+    const view = await mountCategories(async () => { throw new Error('Chamada inesperada'); }, false, {
+      component: () => AvisosView({ announcements: [publicAvisoFixture] }), allowedPaths: /never/,
+    });
+    try {
+      const opener = view.nodes().find(node => node.type === 'article')?.props.children;
+      const button = noticeNodes(opener as ReactNode).find(node => node.type === 'button');
+      assert.ok(button);
+      await view.act(() => Reflect.apply(button.props.onClick as () => unknown, undefined, [{ stopPropagation() {} }]));
+      const dialog = view.nodes().find(node => node.props.role === 'dialog');
+      assert.ok(dialog); assert.equal(dialog.props.tabIndex, -1); assert.ok(dialog.props.ref);
+      assert.equal(dialog.props['aria-label'], 'Comunicado: ' + publicAvisoFixture.titulo);
+      await view.click('Fechar comunicado'); assert.equal(view.nodes().some(node => node.props.role === 'dialog'), false);
+      assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
+  });
+  it('dossiê usa diálogo nomeado e preserva a ação existente de fechamento', async () => {
+    let closed = 0;
+    const view = await mountCategories(async () => { throw new Error('Chamada inesperada'); }, false, {
+      component: () => ExecutiveDossierModal({ isOpen: true, onClose: () => { closed++; } }), allowedPaths: /never/,
+    });
+    try {
+      const dialog = view.nodes().find(node => node.props.role === 'dialog');
+      assert.ok(dialog); assert.equal(dialog.props['aria-modal'], 'true'); assert.equal(dialog.props.tabIndex, -1);
+      assert.ok(dialog.props.ref); assert.equal(dialog.props['aria-label'], 'Dossiê institucional MEDTEC');
+      await view.click('Fechar modal'); assert.equal(closed, 1); assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
+  });
+});
+
+describe('E10.3 — busca de avisos e categorias recolhíveis do FAQ', () => {
+  it('busca de avisos tem rótulo visível associado e preserva filtro local e links oficiais', async () => {
+    const pagination = { current_page: 2, total_pages: 3, total_count: 21, per_page: 10 };
+    const view = await mountCategories(async () => { throw new Error('Nenhuma requisição esperada'); }, false, {
+      component: () => AvisosView({ announcements: [publicAvisoFixture], pagination, tipo: 'urgente' }), allowedPaths: /never/,
+    });
+    try {
+      const input = view.nodes().find(node => node.type === 'input' && node.props.name === 'busca');
+      assert.ok(input); assert.equal(input.props.type, 'search');
+      const label = view.nodes().find(node => node.type === 'label' && node.props.htmlFor === input.props.id);
+      assert.ok(label); assert.equal(label.props.children, 'Buscar avisos nesta página');
+      assert.ok(!String(label.props.className).includes('sr-only'));
+      const previousHref = view.nodes().find(node => node.type === NextLink && node.props.children === 'Anterior')?.props.href;
+      assert.equal(previousHref, '/avisos?page=1&per_page=10&tipo=urgente');
+      await view.change('busca', 'texto sem correspondência');
+      assert.match(view.html(), /Nenhum comunicado nesta página corresponde à busca/);
+      assert.ok(view.nodes().some(node => node.type === 'label' && node.props.htmlFor === input.props.id));
+      await view.change('busca', ''); assert.match(view.html(), /Comunicado recebido da API/);
+      assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
+  });
+  it('abre e recolhe categorias por botão sem novas consultas nem perda das perguntas', async () => {
+    const categories = Array.from({ length: 30 }, (_, index) => ({ nome: `Categoria ${index + 1}`, slug: `categoria-${index + 1}` }));
+    const view = await mountPublicFaq(async url => url.pathname.endsWith('/d_categorias_duvida') ? publicCategoryReply(categories) : publicDuvidaList());
+    try {
+      const trigger = () => view.nodes().find(node => node.type === 'button' && node.props['aria-label'] === 'Categorias');
+      const panel = () => view.nodes().find(node => node.props.id === trigger()?.props['aria-controls']);
+      assert.equal(trigger()?.props['aria-expanded'], false); assert.ok(panel());
+      const calls = view.calls.length;
+      await view.click('Categorias'); assert.equal(trigger()?.props['aria-expanded'], true);
+      assert.equal(noticeNodes(panel()?.props.children as ReactNode).filter(node => node.type === 'button').length, 31);
+      assert.ok(noticeNodes(panel()?.props.children as ReactNode).every(node => node.type !== 'button' || node.props.type === 'button'));
+      await view.click('Categorias'); assert.equal(trigger()?.props['aria-expanded'], false);
+      assert.equal(view.calls.length, calls); assert.match(view.html(), /Como faço minha matrícula/);
+    } finally { await view.restore(); }
+  });
+  it('recolher categorias mantém seleção, busca, paginação e acordeão de perguntas', async () => {
+    const view = await mountPublicFaq(publicFaqBackend(async url => publicDuvidaList([publicDuvidaFixture], {
+      current_page: Number(url.searchParams.get('page')), total_pages: 3, total_count: 25, per_page: 10,
+    })));
+    try {
+      await view.change('busca', 'matrícula'); await view.submit('Buscar perguntas');
+      await view.click('Categorias'); await view.click('Matrícula'); await view.click('Próxima');
+      const question = view.nodes().find(node => typeof node.props.id === 'string' && node.props.id.endsWith('-pergunta-501'));
+      assert.ok(question); await view.act(() => Reflect.apply(question.props.onClick as () => unknown, undefined, []));
+      const calls = view.calls.length;
+      await view.click('Categorias');
+      assert.match(view.html(), /Selecionada: Matrícula/); assert.match(view.html(), /Página 2 de 3/);
+      assert.equal(view.calls.length, calls);
+      const url = view.calls.at(-1)!.url;
+      assert.equal(url.searchParams.get('categoria'), 'matricula'); assert.equal(url.searchParams.get('busca'), 'matrícula');
+      assert.equal(view.nodes().find(node => node.props.id === question.props['aria-controls'])?.props.hidden, false);
+      await view.click('Categorias'); assert.ok(view.nodes().some(node => node.props['aria-pressed'] === true && node.props.children === 'Matrícula'));
+    } finally { await view.restore(); }
+  });
+  it('categorias recolhidas mantêm erro e tentativa de recuperação visíveis', async () => {
+    let failed = true;
+    const view = await mountPublicFaq(async url => url.pathname.endsWith('/d_categorias_duvida')
+      ? failed ? categoriaReply({ success: false }, 503) : publicCategoryReply() : publicDuvidaList());
+    try {
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Categorias')?.props['aria-expanded'], false);
+      assert.match(view.html(), /Categorias indisponíveis/); assert.match(view.html(), /Como faço minha matrícula/);
+      failed = false; await view.click('Recarregar categorias');
+      assert.doesNotMatch(view.html(), /Categorias indisponíveis/);
+      assert.equal(view.calls.filter(call => call.url.pathname.endsWith('/d_duvidas')).length, 1);
+      await view.click('Categorias'); assert.ok(view.nodes().some(node => node.type === 'button' && node.props.children === 'Matrícula'));
+    } finally { await view.restore(); }
   });
 });

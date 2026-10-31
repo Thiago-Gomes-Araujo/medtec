@@ -191,7 +191,7 @@ export default function GallerySection({
 
   return (
     <div className="relative w-full bg-[#F8FAFC] dark:bg-[#0B1528] text-slate-800 dark:text-slate-100 transition-colors">
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-8">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-12 sm:pb-24 space-y-6 sm:space-y-8">
 
         {/* BARRA DE FERRAMENTAS INSTITUCIONAL (exibida apenas quando há itens carregados) */}
         {!loading && !unavailable && !error && gallery.length > 0 && (
@@ -264,7 +264,7 @@ export default function GallerySection({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-12 text-center"
+              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 min-w-0 max-w-full [overflow-wrap:anywhere] p-5 sm:p-12 text-center"
             >
               <Camera className="mx-auto h-10 w-10 text-[#004A99] dark:text-sky-400 mb-3 animate-pulse" aria-hidden="true" />
               <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -278,7 +278,7 @@ export default function GallerySection({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-white dark:bg-slate-900/60 p-12 text-center space-y-2"
+              className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-white dark:bg-slate-900/60 min-w-0 max-w-full [overflow-wrap:anywhere] p-5 sm:p-12 text-center space-y-2"
             >
               <Camera className="mx-auto h-10 w-10 text-amber-600 dark:text-amber-400 mb-3" aria-hidden="true" />
               <p className="text-base font-semibold text-slate-900 dark:text-white">
@@ -294,7 +294,7 @@ export default function GallerySection({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-12 text-center"
+              className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40 min-w-0 max-w-full [overflow-wrap:anywhere] p-5 sm:p-12 text-center"
             >
               <Camera className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" aria-hidden="true" />
               <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -307,7 +307,7 @@ export default function GallerySection({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-12 text-center"
+              className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40 min-w-0 max-w-full [overflow-wrap:anywhere] p-5 sm:p-12 text-center"
             >
               <Camera className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" />
               <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -315,7 +315,7 @@ export default function GallerySection({
               </p>
               <button
                 onClick={() => setSelectedCategory('Todas')}
-                className="mt-3 text-xs text-[#004A99] dark:text-sky-400 hover:underline cursor-pointer"
+                className="mt-3 inline-flex min-h-11 lg:min-h-0 max-w-full items-center justify-center px-2 text-sm lg:text-xs text-[#004A99] dark:text-sky-400 hover:underline cursor-pointer"
               >
                 Ver todos os registros
               </button>
