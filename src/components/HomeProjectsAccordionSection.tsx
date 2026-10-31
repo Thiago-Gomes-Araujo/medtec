@@ -96,13 +96,15 @@ export default function HomeProjectsAccordionSection() {
                 <div
                   key={proj.id}
                   onMouseEnter={() => setHoveredId(proj.id)}
-                  onClick={() => setHoveredId(proj.id)}
                   className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ease-out flex flex-col justify-between p-4 sm:p-5 touch-manipulation select-none ${
                     isHovered
                       ? 'lg:flex-[3.5] min-h-[320px] lg:min-h-0 ring-2 ring-[#004A99] dark:ring-[#00D8FF] shadow-xl'
                       : 'lg:flex-[0.8] min-h-[80px] lg:min-h-0 bg-slate-900/90 hover:brightness-110 active:scale-[0.99]'
                   }`}
                 >
+                <button type="button" aria-label={`Expandir projeto ${proj.title}`} aria-expanded={isHovered}
+                  onClick={() => setHoveredId(proj.id)}
+                  className="absolute inset-0 z-10 w-full rounded-xl cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-sky-300" />
                 {/* Imagem de Fundo em Alta Resolução */}
                 <img
                   src={proj.image}
@@ -120,7 +122,7 @@ export default function HomeProjectsAccordionSection() {
 
                 {/* Conteúdo da Lâmina Expandida */}
                 {isHovered ? (
-                  <div className="relative z-10 flex flex-col justify-between h-full space-y-3">
+                  <div className="relative z-20 pointer-events-none flex flex-col justify-between h-full space-y-3">
                     
                     {/* Topo da Lâmina */}
                     <div className="flex items-center justify-between gap-2">
@@ -154,7 +156,7 @@ export default function HomeProjectsAccordionSection() {
 
                         <Link
                           href="/projetos"
-                          className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-white text-slate-950 hover:bg-[#00D8FF] transition-all duration-150 ease-out text-xs font-bold cursor-pointer shadow-sm shrink-0 whitespace-nowrap touch-manipulation select-none active:scale-[0.97]"
+                          className="relative z-30 pointer-events-auto inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-white text-slate-950 hover:bg-[#00D8FF] transition-all duration-150 ease-out text-xs font-bold cursor-pointer shadow-sm shrink-0 whitespace-nowrap touch-manipulation select-none active:scale-[0.97]"
                         >
                           <span>Ver detalhes</span>
                           <ArrowUpRight className="h-3.5 w-3.5" />
@@ -165,7 +167,7 @@ export default function HomeProjectsAccordionSection() {
                   </div>
                 ) : (
                   /* Conteúdo da Lâmina Recolhida */
-                  <div className="relative z-10 flex lg:flex-col justify-between items-center h-full w-full">
+                  <div className="relative z-20 pointer-events-none flex lg:flex-col justify-between items-center h-full w-full">
                     
                     {/* Número Compacto Vertical */}
                     <span className="text-xl lg:text-2xl font-black text-white/50 tabular-nums">

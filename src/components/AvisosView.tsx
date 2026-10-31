@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import type { AvisoPublico, PaginationMeta } from '@/lib/api/types';
 import Link from 'next/link';
+import { useDialogFocus } from './useDialogFocus';
 import { sanitizeSearchInput } from '@/lib/security';
 import { 
   AlertCircle, 
@@ -25,9 +26,12 @@ interface AvisosViewProps {
 }
 
 export default function AvisosView({ announcements, pagination, tipo = '', loading = false, error = null }: AvisosViewProps) {
+  const searchId = useId();
   const [searchTerm, setSearchTerm] = useState('');
   const selectedType = tipo;
   const [selectedAviso, setSelectedAviso] = useState<AvisoPublico | null>(null);
+
+  const { dialogRef, overlayRef } = useDialogFocus(!!selectedAviso, () => setSelectedAviso(null));
 
   const hrefFor = (page: number, type = tipo) => {
     const params = new URLSearchParams({ page: String(page), per_page: String(pagination?.per_page || 10) });
@@ -145,7 +149,7 @@ export default function AvisosView({ announcements, pagination, tipo = '', loadi
                 key={cat.key}
                 href={hrefFor(1, cat.key)}
                 aria-current={selectedType === cat.key ? 'page' : undefined}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
+                className={`inline-flex min-h-11 lg:min-h-0 max-w-full items-center gap-1.5 px-3 py-2 lg:py-1.5 rounded-lg text-sm lg:text-xs [overflow-wrap:anywhere] font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                   isSelected
                     ? 'bg-[#004A99] text-white dark:bg-[#00D8FF] dark:text-slate-950 font-bold shadow-xs'
                     : 'bg-white dark:bg-[#0C1E38] border border-slate-200 dark:border-[#1A365D] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#0F2647]'
@@ -166,16 +170,21 @@ export default function AvisosView({ announcements, pagination, tipo = '', loadi
           })}
         </div>
 
-        <div className="relative w-full md:w-72">
-          <input
-            type="text"
-            placeholder="Buscar nesta página..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
-            maxLength={100}
-            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-[#004A99]/20 dark:focus:ring-cyan-500/20 focus:border-[#004A99] dark:focus:border-[#00D8FF] transition-all duration-150"
-          />
-          <Search size={14} className="absolute left-2.5 top-2 text-slate-400 dark:text-slate-500" />
+        <div className="w-full min-w-0 md:w-72 md:shrink-0 space-y-1.5">
+          <label htmlFor={searchId} className="block text-sm font-semibold text-slate-800 dark:text-slate-100">Buscar avisos nesta página</label>
+          <div className="relative">
+            <input
+              id={searchId}
+              name="busca"
+              type="search"
+              placeholder="Buscar nesta página..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
+              maxLength={100}
+              className="min-h-11 lg:min-h-0 w-full pl-9 pr-3 py-2 lg:py-1.5 text-base lg:text-xs rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-hidden focus:ring-2 focus:ring-[#004A99]/20 dark:focus:ring-cyan-500/20 focus:border-[#004A99] dark:focus:border-[#00D8FF] transition-all duration-150"
+            />
+            <Search aria-hidden="true" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
+          </div>
         </div>
       </div>
 
@@ -201,7 +210,10 @@ export default function AvisosView({ announcements, pagination, tipo = '', loadi
             return (
               <article
                 key={JSON.stringify([signature, occurrence])}
-                onClick={() => setSelectedAviso(item)}
+                onClick={(event) => {
+                  event.currentTarget.querySelector('button')?.focus();
+                  setSelectedAviso(item);
+                }}
                 style={style.cardInlineStyle}
                 className={`bg-white dark:bg-[#0C1E38] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group active:scale-[0.99] touch-manipulation select-none cursor-pointer ${style.cardBorder}`}
               >
@@ -239,7 +251,7 @@ export default function AvisosView({ announcements, pagination, tipo = '', loadi
                       e.stopPropagation();
                       setSelectedAviso(item);
                     }}
-                    className="text-xs font-semibold text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1 group/link transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] rounded-md px-1.5 py-0.5 cursor-pointer"
+                    className="min-h-11 lg:min-h-0 text-sm lg:text-xs font-semibold text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1 group/link transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] rounded-md px-1.5 py-0.5 cursor-pointer"
                   >
                     <span>{item.link_texto || 'Ler comunicado completo'}</span>
                     <ArrowUpRight size={13} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
@@ -254,11 +266,11 @@ export default function AvisosView({ announcements, pagination, tipo = '', loadi
       {pagination && pagination.total_pages > 0 && (
         <nav aria-label="Paginação de avisos" className="flex flex-wrap items-center justify-between gap-3 text-sm">
           {pagination.current_page > 1
-            ? <Link href={hrefFor(pagination.current_page - 1)} className="font-semibold underline">Anterior</Link>
+            ? <Link href={hrefFor(pagination.current_page - 1)} className="inline-flex min-h-11 lg:min-h-0 items-center px-2 font-semibold underline">Anterior</Link>
             : <span aria-disabled="true" className="text-slate-400">Anterior</span>}
           <span>Página {pagination.current_page} de {pagination.total_pages}</span>
           {pagination.current_page < pagination.total_pages
-            ? <Link href={hrefFor(pagination.current_page + 1)} className="font-semibold underline">Próxima</Link>
+            ? <Link href={hrefFor(pagination.current_page + 1)} className="inline-flex min-h-11 lg:min-h-0 items-center px-2 font-semibold underline">Próxima</Link>
             : <span aria-disabled="true" className="text-slate-400">Próxima</span>}
         </nav>
       )}
@@ -266,12 +278,13 @@ export default function AvisosView({ announcements, pagination, tipo = '', loadi
       {/* Modal de Leitura Completa de Aviso */}
       {selectedAviso && (
         <div
-          role="dialog"
-          aria-modal="true"
+          ref={overlayRef}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn"
           onClick={() => setSelectedAviso(null)}
         >
           <div
+            ref={dialogRef}
+            role="dialog" aria-modal="true" aria-label={`Comunicado: ${selectedAviso.titulo}`} tabIndex={-1}
             className="relative w-full max-w-lg rounded-2xl bg-white dark:bg-[#0C1E38] border border-slate-200 dark:border-[#1A365D] p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >

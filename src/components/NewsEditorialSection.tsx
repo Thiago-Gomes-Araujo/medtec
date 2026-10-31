@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback, useId, type FormEvent } from 'react';
 import Link from 'next/link';
+import { useDialogFocus } from './useDialogFocus';
 import {
   ApiError,
   getMediaUrl,
@@ -219,6 +220,7 @@ export default function NewsEditorialSection() {
     if (!activeArticleSlug) return null;
     return items.find((item) => item.slug === activeArticleSlug) || null;
   }, [activeArticleSlug, items]);
+  const { dialogRef, overlayRef } = useDialogFocus(!!activeNews, () => setActiveArticleSlug(null));
 
   // Notícias da página atual para "Leia Também"
   const relatedNews = useMemo(() => {
@@ -265,9 +267,7 @@ export default function NewsEditorialSection() {
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setActiveArticleSlug(null);
-      } else if (e.key === 'ArrowLeft') {
+      if (e.key === 'ArrowLeft') {
         handlePrev();
       } else if (e.key === 'ArrowRight') {
         handleNext();
@@ -277,16 +277,10 @@ export default function NewsEditorialSection() {
     if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
       window.addEventListener('keydown', handleKeyDown);
     }
-    if (typeof document !== 'undefined' && document.body?.style) {
-      document.body.style.overflow = 'hidden';
-    }
 
     return () => {
       if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
         window.removeEventListener('keydown', handleKeyDown);
-      }
-      if (typeof document !== 'undefined' && document.body?.style) {
-        document.body.style.overflow = 'auto';
       }
     };
   }, [activeArticleSlug, handlePrev, handleNext]);
@@ -387,19 +381,19 @@ export default function NewsEditorialSection() {
                     onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
                     maxLength={100}
                     placeholder="Pesquisar reportagem..."
-                    className="w-full rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-[#004A99] dark:focus:border-[#00D8FF] focus:outline-hidden focus:ring-1 focus:ring-[#004A99] dark:focus:ring-[#00D8FF] transition-all duration-150"
+                    className="w-full rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] pl-9 pr-3 min-h-11 lg:min-h-0 py-2 text-base lg:text-xs text-slate-900 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-[#004A99] dark:focus:border-[#00D8FF] focus:outline-hidden focus:ring-1 focus:ring-[#004A99] dark:focus:ring-[#00D8FF] transition-all duration-150"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="rounded-lg border border-slate-300 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-3 py-2 text-xs font-semibold text-[#004A99] dark:text-[#00D8FF] hover:bg-sky-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="min-h-11 lg:min-h-0 rounded-lg border border-slate-300 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-3 py-2 text-xs font-semibold text-[#004A99] dark:text-[#00D8FF] hover:bg-sky-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   Buscar
                 </button>
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="rounded-lg border border-slate-300 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="min-h-11 lg:min-h-0 rounded-lg border border-slate-300 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   Limpar filtros
                 </button>
@@ -410,7 +404,7 @@ export default function NewsEditorialSection() {
                 <button
                   type="button"
                   onClick={() => setViewMode('magazine')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
+                  className={`inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 justify-center items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                     viewMode === 'magazine'
                       ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs border border-slate-200 dark:border-cyan-400/30 font-bold'
                       : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
@@ -424,7 +418,7 @@ export default function NewsEditorialSection() {
                 <button
                   type="button"
                   onClick={() => setViewMode('list')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
+                  className={`inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 justify-center items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                     viewMode === 'list'
                       ? 'bg-white dark:bg-[#0C1E38] text-[#004A99] dark:text-[#00D8FF] shadow-xs border border-slate-200 dark:border-cyan-400/30 font-bold'
                       : 'text-slate-500 dark:text-[#6482A6] hover:text-slate-900 dark:hover:text-white'
@@ -486,7 +480,7 @@ export default function NewsEditorialSection() {
               type="button"
               disabled={loading}
               onClick={() => void load(query)}
-              className="rounded-lg border border-slate-300 dark:border-slate-700 px-3.5 py-2 text-xs font-semibold text-[#004A99] dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-50"
+              className="min-h-11 lg:min-h-0 rounded-lg border border-slate-300 dark:border-slate-700 px-3.5 py-2 text-xs font-semibold text-[#004A99] dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-50"
             >
               Tentar novamente
             </button>
@@ -523,16 +517,16 @@ export default function NewsEditorialSection() {
                 onMouseLeave={() => setIsPaused(false)}
                 onFocus={() => setIsPaused(true)}
                 onBlur={() => setIsPaused(false)}
-                className="group relative overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-xs hover:shadow-md transition-all duration-200 max-h-[340px] lg:h-[320px]"
+                className="group relative overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-xs hover:shadow-md transition-all duration-200 lg:h-[320px]"
               >
                 <div
                   key={currentSlideArticle.slug}
-                  className="grid grid-cols-1 lg:grid-cols-12 items-stretch h-full transition-opacity duration-200"
+                  className="grid grid-cols-1 lg:grid-cols-12 items-stretch lg:h-full transition-opacity duration-200"
                 >
                     {/* Coluna da Imagem (5 colunas no desktop) */}
-                    <div
+                    <button type="button" aria-haspopup="dialog" aria-label={`Abrir leitura de ${currentSlideArticle.titulo}`}
                       onClick={() => setActiveArticleSlug(currentSlideArticle.slug)}
-                      className="relative lg:col-span-5 h-44 sm:h-52 lg:h-full overflow-hidden bg-slate-900 cursor-pointer flex items-center justify-center"
+                      className="relative lg:col-span-5 h-44 sm:h-52 lg:h-full overflow-hidden bg-slate-900 cursor-pointer flex items-center justify-center focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-sky-400"
                     >
                       {currentSlideCover ? (
                         <img
@@ -546,16 +540,16 @@ export default function NewsEditorialSection() {
                       ) : (
                         <Newspaper className="h-12 w-12 text-slate-600" aria-hidden="true" />
                       )}
-                    </div>
+                    </button>
 
                     {/* Coluna Editorial (7 colunas no desktop) */}
-                    <div className="lg:col-span-7 p-4 sm:p-5 flex flex-col justify-between h-full bg-white dark:bg-[#0C1E38]">
+                    <div className="lg:col-span-7 min-w-0 p-4 sm:p-5 flex flex-col justify-between gap-4 lg:gap-0 lg:h-full bg-white dark:bg-[#0C1E38]">
                       <div className="space-y-2">
                         {/* Kicker Oficial: Categoria • Data + Indicador Numérico */}
                         <div className="flex items-center justify-between gap-2 text-xs">
-                          <div className="flex items-center gap-1.5 text-[#004A99] dark:text-[#00D8FF] font-semibold text-xs truncate">
+                          <div className="flex min-w-0 flex-wrap lg:flex-nowrap items-center gap-1.5 text-[#004A99] dark:text-[#00D8FF] font-semibold text-xs lg:truncate">
                             {currentSlideArticle.categoria_nome && (
-                              <span className="truncate shrink-0 font-bold">
+                              <span className="min-w-0 break-words [overflow-wrap:anywhere] lg:truncate lg:shrink-0 font-bold">
                                 {currentSlideArticle.categoria_nome}
                               </span>
                             )}
@@ -579,7 +573,7 @@ export default function NewsEditorialSection() {
                         </div>
 
                         {/* Título */}
-                        <h3 className="font-display text-base sm:text-lg lg:text-xl font-bold tracking-tight text-slate-900 dark:text-white hover:text-[#004A99] dark:hover:text-[#00D8FF] transition-colors leading-snug line-clamp-2 text-balance pt-0.5">
+                        <h3 className="font-display text-base sm:text-lg lg:text-xl font-bold tracking-tight text-slate-900 dark:text-white hover:text-[#004A99] dark:hover:text-[#00D8FF] transition-colors leading-snug break-words [overflow-wrap:anywhere] lg:line-clamp-2 text-balance pt-0.5">
                           <Link href={`/noticias/${encodeURIComponent(currentSlideArticle.slug)}`}>
                             {currentSlideArticle.titulo}
                           </Link>
@@ -587,17 +581,17 @@ export default function NewsEditorialSection() {
 
                         {/* Resumo Oficial */}
                         {currentSlideArticle.resumo && (
-                          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed line-clamp-2 font-sans text-pretty">
+                          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm leading-relaxed break-words [overflow-wrap:anywhere] lg:line-clamp-2 font-sans text-pretty">
                             {currentSlideArticle.resumo}
                           </p>
                         )}
                       </div>
 
                       {/* Rodapé do Card: Autor Oficial + Navegação + Link Detalhes */}
-                      <div className="pt-3 border-t border-slate-100 dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-                        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-xs truncate">
+                      <div className="pt-3 border-t border-slate-100 dark:border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 text-xs">
+                        <div className="flex min-w-0 items-center gap-2 text-slate-500 dark:text-slate-400 text-xs lg:truncate">
                           {currentSlideArticle.autor_nome && (
-                            <span className="truncate">
+                            <span className="break-words [overflow-wrap:anywhere] lg:truncate">
                               Por{' '}
                               <strong className="text-slate-700 dark:text-slate-300 font-semibold">
                                 {currentSlideArticle.autor_nome}
@@ -606,7 +600,7 @@ export default function NewsEditorialSection() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
+                        <div className="flex max-w-full flex-wrap items-center justify-end gap-2.5 lg:shrink-0 self-end lg:self-auto">
                           <div className="flex items-center gap-1" role="tablist" aria-label="Navegação dos destaques">
                             {carouselArticles.map((slideItem, idx) => {
                               const isActive = idx === activeSlide;
@@ -621,12 +615,12 @@ export default function NewsEditorialSection() {
                                   role="tab"
                                   aria-selected={isActive}
                                   aria-label={`Ir para destaque ${idx + 1}`}
-                                  className={`h-1.5 rounded-full transition-all duration-300 ease-out touch-manipulation select-none active:scale-[0.95] cursor-pointer ${
-                                    isActive
-                                      ? 'w-5 bg-[#004A99] dark:bg-[#00D8FF]'
-                                      : 'w-2 bg-slate-200 dark:bg-[#1A365D] hover:bg-slate-300 dark:hover:bg-slate-600'
-                                  }`}
-                                />
+                                  className="flex h-11 w-11 lg:h-auto lg:w-auto items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:outline-[#004A99] dark:focus-visible:outline-sky-400 touch-manipulation cursor-pointer"
+                                >
+                                  <span aria-hidden="true" className={`block h-1.5 rounded-full transition-all duration-300 ease-out ${
+                                    isActive ? 'w-5 bg-[#004A99] dark:bg-[#00D8FF]' : 'w-2 bg-slate-200 dark:bg-[#1A365D] hover:bg-slate-300 dark:hover:bg-slate-600'
+                                  }`} />
+                                </button>
                               );
                             })}
                           </div>
@@ -636,7 +630,7 @@ export default function NewsEditorialSection() {
                               type="button"
                               onClick={handlePrevSlide}
                               aria-label="Destaque anterior"
-                              className="p-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] hover:border-slate-300 dark:hover:border-cyan-500/40 transition-all duration-150 ease-out active:scale-[0.95] touch-manipulation select-none cursor-pointer"
+                              className="inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 items-center justify-center p-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] hover:border-slate-300 dark:hover:border-cyan-500/40 transition-all duration-150 ease-out active:scale-[0.95] touch-manipulation select-none cursor-pointer"
                             >
                               <ChevronLeft className="h-3.5 w-3.5" />
                             </button>
@@ -644,7 +638,7 @@ export default function NewsEditorialSection() {
                               type="button"
                               onClick={handleNextSlide}
                               aria-label="Próximo destaque"
-                              className="p-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] hover:border-slate-300 dark:hover:border-cyan-500/40 transition-all duration-150 ease-out active:scale-[0.95] touch-manipulation select-none cursor-pointer"
+                              className="inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 items-center justify-center p-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] hover:border-slate-300 dark:hover:border-cyan-500/40 transition-all duration-150 ease-out active:scale-[0.95] touch-manipulation select-none cursor-pointer"
                             >
                               <ChevronRight className="h-3.5 w-3.5" />
                             </button>
@@ -687,7 +681,7 @@ export default function NewsEditorialSection() {
                       key={item.slug}
                       className="group flex flex-col justify-between overflow-hidden rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-xs hover:shadow-md transition-all duration-200 ease-out"
                     >
-                      <div
+                      <button type="button" aria-haspopup="dialog" aria-label={`Abrir leitura de ${item.titulo}`}
                         onClick={() => setActiveArticleSlug(item.slug)}
                         className="relative h-44 w-full overflow-hidden bg-slate-900 shrink-0 cursor-pointer flex items-center justify-center"
                       >
@@ -703,7 +697,7 @@ export default function NewsEditorialSection() {
                         ) : (
                           <Newspaper className="h-10 w-10 text-slate-600" aria-hidden="true" />
                         )}
-                      </div>
+                      </button>
 
                       <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
                         <div className="space-y-2">
@@ -780,7 +774,7 @@ export default function NewsEditorialSection() {
                   key={item.slug}
                   className="group rounded-xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-3.5 sm:p-4 flex flex-col sm:flex-row gap-4 items-stretch hover:shadow-md transition-all duration-200"
                 >
-                  <div
+                  <button type="button" aria-haspopup="dialog" aria-label={`Abrir leitura de ${item.titulo}`}
                     onClick={() => setActiveArticleSlug(item.slug)}
                     className="relative w-full sm:w-52 h-36 sm:h-auto aspect-[16/10] sm:aspect-auto rounded-lg overflow-hidden shrink-0 bg-slate-900 cursor-pointer flex items-center justify-center"
                   >
@@ -796,7 +790,7 @@ export default function NewsEditorialSection() {
                     ) : (
                       <Newspaper className="h-8 w-8 text-slate-600" aria-hidden="true" />
                     )}
-                  </div>
+                  </button>
 
                   <div className="flex-1 min-w-0 flex flex-col justify-between space-y-1.5">
                     <div>
@@ -859,7 +853,7 @@ export default function NewsEditorialSection() {
               type="button"
               disabled={loading || query.page <= 1}
               onClick={() => updateQuery({ ...query, page: query.page - 1 })}
-              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0C1E38] px-3.5 py-2 text-xs font-semibold text-[#004A99] dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="min-h-11 lg:min-h-0 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0C1E38] px-3.5 py-2 text-xs font-semibold text-[#004A99] dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Anterior
             </button>
@@ -870,7 +864,7 @@ export default function NewsEditorialSection() {
               type="button"
               disabled={loading || query.page >= pagination.total_pages}
               onClick={() => updateQuery({ ...query, page: query.page + 1 })}
-              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0C1E38] px-3.5 py-2 text-xs font-semibold text-[#004A99] dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="min-h-11 lg:min-h-0 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0C1E38] px-3.5 py-2 text-xs font-semibold text-[#004A99] dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Próxima
             </button>
@@ -883,10 +877,13 @@ export default function NewsEditorialSection() {
       ======================================================== */}
       {activeNews && (
           <div
+            ref={overlayRef}
             className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
             onClick={() => setActiveArticleSlug(null)}
           >
             <div
+              ref={dialogRef}
+              role="dialog" aria-modal="true" aria-label={`Leitura da notícia: ${activeNews.titulo}`} tabIndex={-1}
               onClick={(e) => e.stopPropagation()}
               className="relative w-full max-w-4xl max-h-[92vh] rounded-2xl border border-slate-200/90 dark:border-[#1A365D] bg-white dark:bg-[#071326] shadow-2xl overflow-hidden flex flex-col text-slate-900 dark:text-[#E6F4FF]"
             >
@@ -899,24 +896,24 @@ export default function NewsEditorialSection() {
               </div>
 
               {/* 2. BARRA DE CONTROLE SUPERIOR */}
-              <div className="border-b border-slate-200 dark:border-[#1A365D] px-5 py-3.5 flex items-center justify-between gap-4 bg-slate-50/80 dark:bg-[#0C1E38]/80 backdrop-blur-sm shrink-0">
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-500/30 text-[#004A99] dark:text-sky-300 font-bold uppercase text-[10px]">
+              <div className="border-b border-slate-200 dark:border-[#1A365D] px-3 sm:px-5 py-3.5 flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 dark:bg-[#0C1E38]/80 backdrop-blur-sm shrink-0">
+                <div className="flex min-w-0 basis-full md:basis-auto flex-wrap items-center gap-2 text-xs">
+                  <span className="inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-50 dark:bg-sky-950/40 border border-sky-300 dark:border-sky-500/30 text-[#004A99] dark:text-sky-300 font-bold uppercase text-[10px]">
                     Notícia Oficial
                   </span>
                   {activeNews.categoria_nome && (
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                    <span className="min-w-0 break-words [overflow-wrap:anywhere] font-semibold text-slate-700 dark:text-slate-300">
                       {activeNews.categoria_nome}
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2">
                   <div className="flex items-center bg-white dark:bg-[#061224] border border-slate-200 dark:border-[#1A365D] rounded-lg p-0.5 text-xs">
                     <button
                       type="button"
                       onClick={() => setFontSize('sm')}
-                      className={`px-2 py-1 rounded transition-all duration-150 ease-out touch-manipulation select-none active:scale-[0.92] ${
+                      className={`min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 px-2 py-1 text-sm lg:text-xs rounded transition-all duration-150 ease-out touch-manipulation select-none active:scale-[0.92] ${
                         fontSize === 'sm'
                           ? 'bg-[#004A99] text-white font-bold'
                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -928,7 +925,7 @@ export default function NewsEditorialSection() {
                     <button
                       type="button"
                       onClick={() => setFontSize('base')}
-                      className={`px-2 py-1 rounded transition-all duration-150 ease-out touch-manipulation select-none active:scale-[0.92] ${
+                      className={`min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 px-2 py-1 text-sm lg:text-xs rounded transition-all duration-150 ease-out touch-manipulation select-none active:scale-[0.92] ${
                         fontSize === 'base'
                           ? 'bg-[#004A99] text-white font-bold'
                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -940,7 +937,7 @@ export default function NewsEditorialSection() {
                     <button
                       type="button"
                       onClick={() => setFontSize('lg')}
-                      className={`px-2 py-1 rounded transition-all duration-150 ease-out touch-manipulation select-none active:scale-[0.92] ${
+                      className={`min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 px-2 py-1 text-sm lg:text-xs rounded transition-all duration-150 ease-out touch-manipulation select-none active:scale-[0.92] ${
                         fontSize === 'lg'
                           ? 'bg-[#004A99] text-white font-bold'
                           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -952,10 +949,10 @@ export default function NewsEditorialSection() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <Link
                     href={`/noticias/${encodeURIComponent(activeNews.slug)}`}
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2.5 py-1.5 text-xs text-[#004A99] dark:text-[#00D8FF] hover:underline font-semibold"
+                    className="inline-flex min-h-11 lg:min-h-0 items-center gap-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2.5 py-1.5 text-xs text-[#004A99] dark:text-[#00D8FF] hover:underline font-semibold"
                   >
                     <span>Página da notícia</span>
                     <ArrowUpRight className="h-3.5 w-3.5" />
@@ -964,7 +961,7 @@ export default function NewsEditorialSection() {
                   <button
                     type="button"
                     onClick={handleShare}
-                    className="p-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99]"
+                    className="inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 items-center justify-center p-1.5 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] text-slate-600 dark:text-slate-300 hover:text-[#004A99] dark:hover:text-[#00D8FF] transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99]"
                     title="Copiar link da reportagem"
                   >
                     {copiedLink ? <Check className="h-4 w-4 text-emerald-500" /> : <Share2 className="h-4 w-4" />}
@@ -973,7 +970,7 @@ export default function NewsEditorialSection() {
                   <button
                     type="button"
                     onClick={() => setActiveArticleSlug(null)}
-                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none cursor-pointer font-semibold"
+                    className="inline-flex min-h-11 lg:min-h-0 items-center gap-1 rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white transition-all duration-150 ease-out active:scale-[0.92] touch-manipulation select-none cursor-pointer font-semibold"
                   >
                     <span>Fechar</span>
                     <X className="h-3.5 w-3.5" />
@@ -985,7 +982,7 @@ export default function NewsEditorialSection() {
               <div
                 ref={articleScrollRef}
                 onScroll={handleArticleScroll}
-                className="overflow-y-auto p-6 sm:p-8 md:p-10 space-y-8 flex-1"
+                className="min-h-0 min-w-0 overflow-y-auto p-6 sm:p-8 md:p-10 space-y-8 flex-1"
               >
                 <div className="space-y-4 max-w-3xl">
                   {activeNews.data_publicacao && (

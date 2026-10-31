@@ -6,7 +6,7 @@ import { ChevronDown, HelpCircle, Search } from 'lucide-react';
 import { ApiError, medtecApi, type CategoriaDuvidaPublica, type DuvidaPublica, type PaginationMeta } from '@/lib/api';
 import DuvidaVisitanteForm from '@/components/DuvidaVisitanteForm';
 
-const buttonClass = 'rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm font-semibold text-[#004A99] dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
+const buttonClass = 'min-h-11 lg:min-h-0 max-w-full [overflow-wrap:anywhere] rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm font-semibold text-[#004A99] dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
 type FaqQuery = { page: number; per_page: number; categoria: string; busca: string };
 
 function readError(cause: unknown, subject: string): string {
@@ -23,6 +23,7 @@ export default function FaqCentralSection() {
   const [query, setQuery] = useState<FaqQuery>({ page: 1, per_page: 10, categoria: '', busca: '' });
   const [searchTerm, setSearchTerm] = useState('');
   const [openFaqId, setOpenFaqId] = useState<number | null>(null);
+  const [categoriesExpanded, setCategoriesExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +84,7 @@ export default function FaqCentralSection() {
       <form aria-label="Buscar perguntas" onSubmit={search} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 space-y-3">
         <label htmlFor={`${id}-busca`} className="block text-sm font-semibold text-slate-800 dark:text-slate-100">Buscar por pergunta</label>
         <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
+          <div className="relative min-w-0 flex-1">
             <Search aria-hidden="true" className="absolute left-3 top-3 h-5 w-5 text-[#004A99] dark:text-sky-400" />
             <input id={`${id}-busca`} name="busca" type="search" value={searchTerm} onChange={event => setSearchTerm(event.target.value)}
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 pl-10 pr-3 py-2 text-base text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#004A99] dark:focus:ring-sky-400" />
@@ -95,13 +96,21 @@ export default function FaqCentralSection() {
       </form>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <aside aria-labelledby={`${id}-categorias`} className="lg:col-span-4 lg:sticky lg:top-28 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 space-y-4">
-          <h2 id={`${id}-categorias`} className="text-base font-semibold text-slate-900 dark:text-white">Categorias</h2>
+        <aside aria-labelledby={`${id}-categorias`} className="min-w-0 lg:col-span-4 lg:sticky lg:top-28 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 space-y-4">
+          <h2 id={`${id}-categorias`} className="hidden lg:block text-base font-semibold text-slate-900 dark:text-white">Categorias</h2>
+          <button type="button" aria-label="Categorias" aria-expanded={categoriesExpanded} aria-controls={`${id}-lista-categorias`}
+            className={`${buttonClass} flex w-full items-center justify-between gap-3 text-left lg:hidden`}
+            onClick={() => setCategoriesExpanded(previous => !previous)}>
+            <span>Categorias</span><ChevronDown aria-hidden="true" className={`h-5 w-5 shrink-0 ${categoriesExpanded ? 'rotate-180' : ''}`} />
+          </button>
+          <p className="lg:hidden text-sm text-slate-600 dark:text-slate-300 [overflow-wrap:anywhere]">
+            Selecionada: {query.categoria ? categories.find(category => category.slug === query.categoria)?.nome || query.categoria : 'Todas as categorias'}
+          </p>
           {categoriesLoading && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Carregando categorias...</p>}
           {categoriesError && <div role="alert" className="space-y-2 text-sm text-red-700 dark:text-red-300">
             <p>{categoriesError}</p><button type="button" className={buttonClass} disabled={categoriesLoading} onClick={() => void loadCategories()}>Recarregar categorias</button>
           </div>}
-          <div className="flex flex-col gap-2">
+          <div id={`${id}-lista-categorias`} className={`${categoriesExpanded ? 'flex' : 'hidden'} lg:flex max-h-64 lg:max-h-none overflow-y-auto lg:overflow-visible flex-col gap-2 p-1 -m-1`}>
             <button type="button" aria-pressed={query.categoria === ''} className={`${buttonClass} text-left ${!query.categoria ? 'bg-sky-50 dark:bg-slate-800' : ''}`}
               onClick={() => updateQuery({ ...query, categoria: '', page: 1 })}>Todas as categorias</button>
             {!categoriesLoading && !categoriesError && categories.map(category => <button key={category.slug} type="button" aria-pressed={query.categoria === category.slug}

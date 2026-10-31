@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useDialogFocus } from './useDialogFocus';
 import Link from 'next/link';
 import {
   X,
@@ -41,25 +42,7 @@ export default function ExecutiveDossierModal({
     setActiveTab(initialTab);
   }
 
-  // Fecha com a tecla ESC e trava o scroll do body
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
+  const { dialogRef, overlayRef } = useDialogFocus(isOpen, onClose, 'header button[aria-expanded]');
 
   const handlePrint = () => {
     window.print();
@@ -75,7 +58,7 @@ export default function ExecutiveDossierModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5">
+        <div ref={overlayRef} className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5">
           {/* Backdrop Escuro com Blur Raycast/Linear */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -88,15 +71,20 @@ export default function ExecutiveDossierModal({
 
           {/* Modal Command Center Split-Screen */}
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Dossiê institucional MEDTEC"
+            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-            className="relative z-10 flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-cyan-400/30 bg-[#040B16]/95 dark:bg-[#040B16]/95 text-slate-100 shadow-[0_25px_80px_rgba(0,0,0,0.85)] backdrop-blur-2xl max-h-[90vh]"
+            className="relative z-10 flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-cyan-400/30 bg-[#040B16]/95 dark:bg-[#040B16]/95 text-slate-100 shadow-[0_25px_80px_rgba(0,0,0,0.85)] backdrop-blur-2xl max-h-[90dvh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* ================= 1. HEADER TÉCNICO DO MODAL ================= */}
-            <div className="flex items-center justify-between border-b border-[#1A365D] bg-[#07162C]/80 px-5 py-3.5 sm:px-6">
+            <div className="flex shrink-0 items-center justify-between border-b border-[#1A365D] bg-[#07162C]/80 px-5 py-3.5 sm:px-6">
               {/* Esquerda: Ícone de Escudo + Código Monoespaçado */}
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cyan-400/40 bg-cyan-400/10 text-cyan-300 shadow-[0_0_12px_rgba(0,216,255,0.25)]">
@@ -132,9 +120,9 @@ export default function ExecutiveDossierModal({
             </div>
 
             {/* ================= 2. CORPO EM 2 COLUNAS (SIDEBAR 30% + ÁREA 70%) ================= */}
-            <div className="grid grid-cols-1 md:grid-cols-12 flex-1 overflow-hidden min-h-[440px]">
+            <div className="grid grid-cols-1 grid-rows-[auto_minmax(0,1fr)] md:grid-cols-12 md:grid-rows-1 flex-1 min-h-0 overflow-hidden">
               {/* SIDEBAR ESQUERDA (Menu de Abas - 30% / 4 colunas em md) */}
-              <div className="md:col-span-4 border-b md:border-b-0 md:border-r border-[#1A365D] bg-[#0C1E38]/50 p-3 sm:p-4 flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-x-visible shrink-0">
+              <div className="md:col-span-4 min-w-0 min-h-0 border-b md:border-b-0 md:border-r border-[#1A365D] bg-[#0C1E38]/50 p-3 sm:p-4 flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto">
                 <p className="hidden md:block px-2.5 pb-2 font-mono text-[10px] font-bold uppercase tracking-wider text-cyan-300/80">
                   Navegação Estratégica
                 </p>
@@ -179,7 +167,7 @@ export default function ExecutiveDossierModal({
               </div>
 
               {/* ÁREA PRINCIPAL DIREITA (Conteúdo Dinâmico - 70% / 8 colunas em md) */}
-              <div className="md:col-span-8 p-5 sm:p-7 overflow-y-auto max-h-[62vh] sm:max-h-[65vh]">
+              <div className="md:col-span-8 min-w-0 min-h-0 p-5 sm:p-7 overflow-y-auto">
                 
                 {/* ================= ABA 01: RESUMO EXECUTIVO ================= */}
                 {activeTab === 0 && (

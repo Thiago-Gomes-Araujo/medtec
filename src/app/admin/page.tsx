@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
+import { useDialogFocus } from '@/components/useDialogFocus';
 import SidebarNavItem from '@/components/admin/SidebarNavItem';
 import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter from '@/components/admin/MobileDrawerFooter';
@@ -122,6 +123,14 @@ export default function AdminDashboardPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { dialogRef: mobileDrawerRef, overlayRef: mobileOverlayRef } = useDialogFocus(isMobileOpen, () => setIsMobileOpen(false));
+  useEffect(() => {
+    if (!isMobileOpen || typeof window.matchMedia !== 'function') return;
+    const desktop = window.matchMedia('(min-width: 1024px)');
+    const closeOnDesktop = () => { if (desktop.matches) setIsMobileOpen(false); };
+    desktop.addEventListener('change', closeOnDesktop);
+    return () => desktop.removeEventListener('change', closeOnDesktop);
+  }, [isMobileOpen]);
   const [sidebarSearch, setSidebarSearch] = useState('');
   const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
     publicacoes: false,
@@ -620,12 +629,12 @@ export default function AdminDashboardPage() {
           2. GAVETA MOBILE (OFF-CANVAS PARA TELAS < LG COM ACCORDION)
       ======================================================== */}
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div ref={mobileOverlayRef} className="fixed inset-0 z-50 lg:hidden">
           <div
             className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs"
             onClick={() => setIsMobileOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 w-72 h-full h-[100dvh] bg-[#07152B] text-slate-200 border-r border-slate-800 flex flex-col z-50 shadow-2xl">
+          <div ref={mobileDrawerRef} role="dialog" aria-modal="true" aria-label="Navegação administrativa" tabIndex={-1} className="fixed inset-y-0 left-0 w-72 h-full h-[100dvh] bg-[#07152B] text-slate-200 border-r border-slate-800 flex flex-col z-50 shadow-2xl">
             <div className="h-16 px-4 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-[#004A99] flex items-center justify-center text-white font-bold">
@@ -639,7 +648,8 @@ export default function AdminDashboardPage() {
               <button
                 type="button"
                 onClick={() => setIsMobileOpen(false)}
-                className="text-slate-400 hover:text-white p-1.5 rounded-md hover:bg-slate-800"
+                aria-label="Fechar menu lateral"
+                className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center text-slate-400 hover:text-white p-1.5 rounded-md hover:bg-slate-800"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -745,7 +755,7 @@ export default function AdminDashboardPage() {
             <button
               type="button"
               onClick={() => setIsMobileOpen(true)}
-              className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              className="lg:hidden inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               aria-label="Abrir menu lateral"
             >
               <Menu className="h-5 w-5" />
@@ -774,7 +784,7 @@ export default function AdminDashboardPage() {
               type="button"
               onClick={toggleTheme}
               title={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-              className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              className="inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 items-center justify-center p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
             >
               {isDark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-600" />}
             </button>

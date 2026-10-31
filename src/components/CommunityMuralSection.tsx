@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useDialogFocus } from './useDialogFocus';
 import { motion } from 'framer-motion';
 import {
   Presentation,
@@ -89,23 +90,8 @@ export default function CommunityMuralSection({ initialTeachers, initialStudents
     };
   }, [initialTeachers, initialStudents]);
 
-  // Close modals on Escape key
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setSelectedTeacher(null);
-        setSelectedStudent(null);
-      }
-    };
-    if (selectedTeacher || selectedStudent) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
-    };
-  }, [selectedTeacher, selectedStudent]);
+  const { dialogRef: teacherDialogRef, overlayRef: teacherOverlayRef } = useDialogFocus(!!selectedTeacher, () => setSelectedTeacher(null));
+  const { dialogRef: studentDialogRef, overlayRef: studentOverlayRef } = useDialogFocus(!!selectedStudent, () => setSelectedStudent(null));
 
   return (
     <section
@@ -196,9 +182,11 @@ export default function CommunityMuralSection({ initialTeachers, initialStudents
                     return (
                       <div
                         key={prof.id}
-                        onClick={() => setSelectedTeacher(prof)}
-                        className="group p-4 rounded-lg border border-slate-200/90 dark:border-slate-800/90 bg-slate-50/60 dark:bg-[#061224]/60 hover:bg-slate-50 dark:hover:bg-[#0F2647]/50 hover:border-[#004A99]/40 dark:hover:border-[#00D8FF]/40 transition-all cursor-pointer shadow-2xs"
+                        className="relative group p-4 rounded-lg border border-slate-200/90 dark:border-slate-800/90 bg-slate-50/60 dark:bg-[#061224]/60 hover:bg-slate-50 dark:hover:bg-[#0F2647]/50 hover:border-[#004A99]/40 dark:hover:border-[#00D8FF]/40 transition-all cursor-pointer shadow-2xs"
                       >
+                        <button type="button" aria-label={`Abrir perfil de ${prof.nome}`} aria-haspopup="dialog"
+                          onClick={() => setSelectedTeacher(prof)}
+                          className="absolute inset-0 z-10 w-full rounded-lg cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500" />
                         {/* Linha Superior: Avatar + Nome + Especialidade + Badge de Papel */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                           <div className="flex items-center gap-3">
@@ -320,9 +308,11 @@ export default function CommunityMuralSection({ initialTeachers, initialStudents
                     return (
                       <div
                         key={aluno.id}
-                        onClick={() => setSelectedStudent(aluno)}
-                        className="group p-4 rounded-lg border border-slate-200/90 dark:border-slate-800/90 bg-slate-50/60 dark:bg-[#061224]/60 hover:bg-slate-50 dark:hover:bg-[#0F2647]/50 hover:border-emerald-500/40 dark:hover:border-emerald-400/40 transition-all cursor-pointer shadow-2xs"
+                        className="relative group p-4 rounded-lg border border-slate-200/90 dark:border-slate-800/90 bg-slate-50/60 dark:bg-[#061224]/60 hover:bg-slate-50 dark:hover:bg-[#0F2647]/50 hover:border-emerald-500/40 dark:hover:border-emerald-400/40 transition-all cursor-pointer shadow-2xs"
                       >
+                        <button type="button" aria-label={`Abrir perfil de ${aluno.nome}`} aria-haspopup="dialog"
+                          onClick={() => setSelectedStudent(aluno)}
+                          className="absolute inset-0 z-10 w-full rounded-lg cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500" />
                         {/* Faixa Superior de Conquista (Trophy-first) */}
                         <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 rounded-md px-3 py-2 mb-2.5 flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
@@ -385,8 +375,8 @@ export default function CommunityMuralSection({ initialTeachers, initialStudents
 
       {/* ================= MODAL DE LEITURA RÁPIDA: PROFESSOR ================= */}
       {selectedTeacher && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-xl rounded-xl bg-white dark:bg-[#0C1E38] shadow-2xl border border-slate-200 dark:border-slate-800 p-6 max-h-[90vh] overflow-y-auto">
+        <div ref={teacherOverlayRef} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
+          <div ref={teacherDialogRef} role="dialog" aria-modal="true" aria-label={`Perfil de ${selectedTeacher.nome}`} tabIndex={-1} className="relative w-full max-w-xl rounded-xl bg-white dark:bg-[#0C1E38] shadow-2xl border border-slate-200 dark:border-slate-800 p-6 max-h-[90vh] overflow-y-auto">
             {/* Fechar */}
             <button
               onClick={() => setSelectedTeacher(null)}
@@ -468,8 +458,8 @@ export default function CommunityMuralSection({ initialTeachers, initialStudents
 
       {/* ================= MODAL DE LEITURA RÁPIDA: ALUNO ================= */}
       {selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-xl rounded-xl bg-white dark:bg-[#0C1E38] shadow-2xl border border-slate-200 dark:border-slate-800 p-6 max-h-[90vh] overflow-y-auto">
+        <div ref={studentOverlayRef} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/75 backdrop-blur-xs animate-in fade-in duration-200">
+          <div ref={studentDialogRef} role="dialog" aria-modal="true" aria-label={`Perfil de ${selectedStudent.nome}`} tabIndex={-1} className="relative w-full max-w-xl rounded-xl bg-white dark:bg-[#0C1E38] shadow-2xl border border-slate-200 dark:border-slate-800 p-6 max-h-[90vh] overflow-y-auto">
             {/* Fechar */}
             <button
               onClick={() => setSelectedStudent(null)}
