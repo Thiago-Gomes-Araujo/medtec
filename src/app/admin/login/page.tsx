@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 
 import { setStoredTokens } from '@/lib/api';
+import { getSafeAdminReturnTarget } from '@/lib/admin-auth-navigation';
 
 export default function AdminLoginPage() {
   const [cpf, setCpf] = useState('');
@@ -55,7 +56,7 @@ export default function AdminLoginPage() {
           setStoredTokens(data.tokens);
         }
         const searchParams = new URLSearchParams(window.location.search);
-        const redirectTarget = searchParams.get('redirect') || '/admin';
+        const redirectTarget = getSafeAdminReturnTarget(searchParams.get('redirect'));
         router.push(redirectTarget);
         router.refresh();
         return;

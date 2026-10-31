@@ -1,25 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
-
-export function recordNewsView(id: string) {
-  if (!id || typeof window === 'undefined') return;
-  const key = `medtec-view-${id}`;
-  if (sessionStorage.getItem(key)) return;
-  sessionStorage.setItem(key, '1');
-  fetch('/api/news/view', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id }),
-  }).catch(() => {
-    sessionStorage.removeItem(key);
-  });
+/**
+ * Rastreamento de visualizações desativado no portal público:
+ * o contrato oficial da API Rails não prevê endpoint de incremento de visualizações,
+ * evitando requisições artificiais ou gravação local em sessionStorage.
+ */
+export function recordNewsView(_id: string) {
+  void _id;
 }
 
-export default function NewsViewTracker({ id }: { id: string }) {
-  useEffect(() => {
-    recordNewsView(id);
-  }, [id]);
-
+export default function NewsViewTracker(_props: { id: string }) {
+  void _props;
   return null;
 }

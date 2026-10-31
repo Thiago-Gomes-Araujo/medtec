@@ -4,15 +4,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  WhatsAppIcon,
   InstagramIcon,
   FacebookIcon,
   YoutubeIcon,
 } from '@/components/SocialIcons';
-import { medtecApi } from '@/lib/api';
 
 interface SocialItem {
-  id: 'whatsapp' | 'instagram' | 'facebook' | 'youtube';
+  id: 'instagram' | 'facebook' | 'youtube';
   name: string;
   actionLabel: string;
   url: string;
@@ -23,16 +21,6 @@ interface SocialItem {
 }
 
 const SOCIAL_NETWORKS: SocialItem[] = [
-  {
-    id: 'whatsapp',
-    name: 'WhatsApp',
-    actionLabel: 'Falar no WhatsApp',
-    url: 'https://wa.me/5569999999999',
-    bgColor: 'bg-[#25D366]',
-    hoverColor: 'hover:bg-[#1ebe5d]',
-    ariaLabel: 'Falar no canal de atendimento do WhatsApp da SEDUC Rondônia (abre em nova aba)',
-    Icon: WhatsAppIcon,
-  },
   {
     id: 'instagram',
     name: 'Instagram',
@@ -69,27 +57,8 @@ export default function FloatingSocialRotator() {
   const pathname = usePathname();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const [socialNetworks, setSocialNetworks] = useState<SocialItem[]>(SOCIAL_NETWORKS);
+  const socialNetworks = SOCIAL_NETWORKS;
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    medtecApi.canaisContato.list({ 'q[ativo_true]': 1, page: 'all' })
-      .then((res) => {
-        if (res.success && res.data?.items?.length) {
-          const map: Record<string, string> = {};
-          res.data.items.forEach((c) => {
-            if (c.ativo && c.valor) {
-              map[c.rede.toLowerCase()] = c.valor;
-            }
-          });
-
-          setSocialNetworks((prev) =>
-            prev.map((item) => (map[item.id] ? { ...item, url: map[item.id] } : item))
-          );
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   // 1. Rotação automática a cada 4 segundos (4000ms)
   // Quando o mouse estiver sobre o botão (isHovered === true), o cronômetro pausa imediatamente

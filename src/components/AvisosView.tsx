@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AnnouncementItem, AnnouncementType } from '@/types';
+import type { AvisoPublico, PaginationMeta } from '@/lib/api/types';
+import Link from 'next/link';
 import { sanitizeSearchInput } from '@/lib/security';
 import { 
   AlertCircle, 
@@ -16,17 +17,37 @@ import {
 } from 'lucide-react';
 
 interface AvisosViewProps {
-  announcements: AnnouncementItem[];
+  announcements: AvisoPublico[];
+  pagination?: PaginationMeta;
+  tipo?: string;
+  loading?: boolean;
+  error?: string | null;
 }
 
-export default function AvisosView({ announcements }: AvisosViewProps) {
+export default function AvisosView({ announcements, pagination, tipo = '', loading = false, error = null }: AvisosViewProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedType, setSelectedType] = useState<string>('Todas');
-  const [selectedAviso, setSelectedAviso] = useState<AnnouncementItem | null>(null);
+  const selectedType = tipo;
+  const [selectedAviso, setSelectedAviso] = useState<AvisoPublico | null>(null);
 
-  const activeItems = announcements.filter((a) => a.active !== false);
+  const hrefFor = (page: number, type = tipo) => {
+    const params = new URLSearchParams({ page: String(page), per_page: String(pagination?.per_page || 10) });
+    if (type) params.set('tipo', type);
+    return '/avisos?' + params.toString();
+  };
+  const dateLabel = (value: string) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? 'Data não informada'
+      : date.toLocaleDateString('pt-BR', { timeZone: 'America/Porto_Velho' });
+  };
+  if (loading) return <p role="status" className="py-8 text-sm text-slate-500">Carregando avisos...</p>;
+  if (error) return <div role="alert" className="py-8 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+    <p>{error}</p>
+    <button type="button" onClick={() => window.location.reload()} className="font-semibold underline cursor-pointer">
+      Tentar novamente
+    </button>
+  </div>;
 
-  const getTypeStyle = (type: AnnouncementType | string) => {
+  const getTypeStyle = (type: string) => {
     switch (type) {
       case 'urgente':
         return {
@@ -55,10 +76,10 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
     }
   };
 
-  const getAnnouncementStyle = (item: AnnouncementItem) => {
-    const base = getTypeStyle(item.type);
-    const hexColor = item.a_tipo_aviso?.cor || item.typeColor;
-    const label = item.a_tipo_aviso?.nome || item.typeName || base.label;
+  const getAnnouncementStyle = (item: AvisoPublico) => {
+    const base = getTypeStyle(item.tipo_slug);
+    const hexColor = item.tipo_cor;
+    const label = item.tipo_nome || base.label;
 
     if (hexColor && /^#[0-9A-Fa-f]{6}$/.test(hexColor)) {
       return {
@@ -91,24 +112,25 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
   };
 
   const categories = [
-    { key: 'Todas', label: 'Todos os Avisos' },
+    { key: '', label: 'Todos os Avisos' },
     { key: 'urgente', label: 'Urgentes' },
     { key: 'aviso', label: 'Avisos Importantes' },
     { key: 'informativo', label: 'Informativos' },
   ];
 
-  const filteredItems = activeItems.filter((item) => {
-    const matchesType = selectedType === 'Todas' || item.type === selectedType;
-    const matchesSearch = 
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.content.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesType && matchesSearch;
-  });
-
-  const getCount = (type: string) => {
-    if (type === 'Todas') return activeItems.length;
-    return activeItems.filter((item) => item.type === type).length;
-  };
+  // Tipos adicionais vêm dos dados oficiais, sem consultar o catálogo protegido.
+  for (const item of announcements) {
+    if (!categories.some(category => category.key === item.tipo_slug)) {
+      categories.push({ key: item.tipo_slug, label: item.tipo_nome });
+    }
+  }
+  if (tipo && !categories.some(category => category.key === tipo)) categories.push({ key: tipo, label: tipo });
+  const filteredItems = announcements.filter(item =>
+    item.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.conteudo.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Chaves de apresentação, nunca IDs: conteúdo canônico + ocorrência apenas
+  // entre duplicatas idênticas. Inserções/reordenações de outros avisos não mudam a chave.
+  const occurrences = new Map<string, number>();
 
   return (
     <div className="space-y-6">
@@ -116,12 +138,13 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
       <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between pb-4 border-b border-slate-200 dark:border-[#1A365D] transition-colors">
         <div className="flex flex-wrap items-center gap-1.5">
           {categories.map((cat) => {
-            const count = getCount(cat.key);
+            const count = selectedType === cat.key ? pagination?.total_count : undefined;
             const isSelected = selectedType === cat.key;
             return (
-              <button
+              <Link
                 key={cat.key}
-                onClick={() => setSelectedType(cat.key)}
+                href={hrefFor(1, cat.key)}
+                aria-current={selectedType === cat.key ? 'page' : undefined}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150 ease-out cursor-pointer touch-manipulation select-none active:scale-[0.97] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] ${
                   isSelected
                     ? 'bg-[#004A99] text-white dark:bg-[#00D8FF] dark:text-slate-950 font-bold shadow-xs'
@@ -129,7 +152,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
                 }`}
               >
                 <span>{cat.label}</span>
-                <span
+                {count !== undefined && <span
                   className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${
                     isSelected 
                       ? 'bg-sky-200 text-slate-950 dark:bg-slate-950 dark:text-[#00D8FF]' 
@@ -137,8 +160,8 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
                   }`}
                 >
                   {count}
-                </span>
-              </button>
+                </span>}
+              </Link>
             );
           })}
         </div>
@@ -146,7 +169,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
         <div className="relative w-full md:w-72">
           <input
             type="text"
-            placeholder="Buscar avisos..."
+            placeholder="Buscar nesta página..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
             maxLength={100}
@@ -164,16 +187,20 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
           </div>
           <h3 className="text-xs font-bold text-slate-800 dark:text-white font-display">Nenhum aviso encontrado</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto text-pretty">
-            Não há comunicados correspondentes ao filtro ou busca selecionada no momento.
+            {searchTerm ? 'Nenhum comunicado nesta página corresponde à busca.' : 'Não há comunicados para o filtro selecionado nesta página.'}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredItems.map((item) => {
             const style = getAnnouncementStyle(item);
+            const signature = JSON.stringify([item.created_at, item.tipo_slug, item.titulo, item.conteudo,
+              item.link_texto, item.link_url, item.tipo_nome, item.tipo_cor]);
+            const occurrence = occurrences.get(signature) || 0;
+            occurrences.set(signature, occurrence + 1);
             return (
               <article
-                key={item.id}
+                key={JSON.stringify([signature, occurrence])}
                 onClick={() => setSelectedAviso(item)}
                 style={style.cardInlineStyle}
                 className={`bg-white dark:bg-[#0C1E38] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group active:scale-[0.99] touch-manipulation select-none cursor-pointer ${style.cardBorder}`}
@@ -192,16 +219,16 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
                     </span>
                     <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
                       <Calendar size={12} />
-                      {item.date}
+                      {dateLabel(item.created_at)}
                     </span>
                   </div>
 
                   <h3 className="font-semibold text-slate-900 dark:text-white text-base leading-snug group-hover:text-[#004A99] dark:group-hover:text-[#00D8FF] transition-colors duration-150 mb-1.5 text-balance">
-                    {item.title}
+                    {item.titulo}
                   </h3>
 
                   <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2 text-pretty">
-                    {item.content}
+                    {item.conteudo}
                   </p>
                 </div>
 
@@ -214,7 +241,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
                     }}
                     className="text-xs font-semibold text-[#004A99] dark:text-[#00D8FF] hover:underline flex items-center gap-1 group/link transition-all duration-150 ease-out active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-[#00D8FF] rounded-md px-1.5 py-0.5 cursor-pointer"
                   >
-                    <span>{item.linkText || 'Ler comunicado completo'}</span>
+                    <span>{item.link_texto || 'Ler comunicado completo'}</span>
                     <ArrowUpRight size={13} className="group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 transition-transform" />
                   </button>
                 </div>
@@ -222,6 +249,18 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
             );
           })}
         </div>
+      )}
+
+      {pagination && pagination.total_pages > 0 && (
+        <nav aria-label="Paginação de avisos" className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          {pagination.current_page > 1
+            ? <Link href={hrefFor(pagination.current_page - 1)} className="font-semibold underline">Anterior</Link>
+            : <span aria-disabled="true" className="text-slate-400">Anterior</span>}
+          <span>Página {pagination.current_page} de {pagination.total_pages}</span>
+          {pagination.current_page < pagination.total_pages
+            ? <Link href={hrefFor(pagination.current_page + 1)} className="font-semibold underline">Próxima</Link>
+            : <span aria-disabled="true" className="text-slate-400">Próxima</span>}
+        </nav>
       )}
 
       {/* Modal de Leitura Completa de Aviso */}
@@ -254,7 +293,7 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
                   );
                 })()}
                 <span className="block text-xs font-mono text-slate-500 dark:text-slate-400">
-                  Publicado em: {selectedAviso.date} • SEDUC-RO
+                  Publicado em: {dateLabel(selectedAviso.created_at)} • SEDUC-RO
                 </span>
               </div>
               <button
@@ -268,11 +307,11 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
 
             <div className="space-y-3">
               <h2 className="text-xl font-bold font-display text-slate-900 dark:text-white leading-tight">
-                {selectedAviso.title}
+                {selectedAviso.titulo}
               </h2>
 
               <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
-                {selectedAviso.content}
+                {selectedAviso.conteudo}
               </p>
             </div>
 
@@ -287,6 +326,11 @@ export default function AvisosView({ announcements }: AvisosViewProps) {
             </div>
 
             <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200 dark:border-white/10">
+              {selectedAviso.link_texto && selectedAviso.link_url &&
+                (/^https?:\/\//i.test(selectedAviso.link_url) ||
+                  (selectedAviso.link_url.startsWith('/') && !selectedAviso.link_url.startsWith('//'))) && (
+                <a href={selectedAviso.link_url} className="text-xs font-semibold underline">{selectedAviso.link_texto}</a>
+              )}
               <button
                 type="button"
                 onClick={() => setSelectedAviso(null)}

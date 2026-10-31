@@ -15,7 +15,10 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface GallerySectionProps {
-  gallery: GalleryItem[];
+  gallery?: GalleryItem[];
+  loading?: boolean;
+  unavailable?: boolean;
+  error?: string | null;
 }
 
 interface PhotoMetadata {
@@ -79,7 +82,14 @@ const CATALOG_INFO: Record<string, PhotoMetadata> = {
   }
 };
 
-export default function GallerySection({ gallery }: GallerySectionProps) {
+const EMPTY_GALLERY: GalleryItem[] = [];
+
+export default function GallerySection({
+  gallery = EMPTY_GALLERY,
+  loading = false,
+  unavailable = false,
+  error = null,
+}: GallerySectionProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [viewMode, setViewMode] = useState<'bento' | 'list'>('bento');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -183,68 +193,115 @@ export default function GallerySection({ gallery }: GallerySectionProps) {
     <div className="relative w-full bg-[#F8FAFC] dark:bg-[#0B1528] text-slate-800 dark:text-slate-100 transition-colors">
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 pb-24 space-y-8">
 
-        {/* BARRA DE FERRAMENTAS INSTITUCIONAL */}
-        <div className="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          
-          {/* Filtros de Categoria */}
-          <div className="flex flex-wrap items-center gap-2">
-            {categoriesList.map((cat) => {
-              const isSelected = selectedCategory === cat;
-              const count = categoryCounts[cat] || 0;
+        {/* BARRA DE FERRAMENTAS INSTITUCIONAL (exibida apenas quando há itens carregados) */}
+        {!loading && !unavailable && !error && gallery.length > 0 && (
+          <div className="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
 
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-150 ease-out cursor-pointer active:scale-[0.98] ${
-                    isSelected
-                      ? 'border border-[#004A99] dark:border-sky-500 bg-[#004A99] dark:bg-sky-600 text-white font-semibold shadow-xs'
-                      : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  <span>{cat}</span>
-                  <span className={`text-[11px] font-semibold tabular-nums ${isSelected ? 'text-sky-100' : 'text-slate-400 dark:text-slate-500'}`}>
-                    ({count})
-                  </span>
-                </button>
-              );
-            })}
+            {/* Filtros de Categoria */}
+            <div className="flex flex-wrap items-center gap-2">
+              {categoriesList.map((cat) => {
+                const isSelected = selectedCategory === cat;
+                const count = categoryCounts[cat] || 0;
+
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all duration-150 ease-out cursor-pointer active:scale-[0.98] ${
+                      isSelected
+                        ? 'border border-[#004A99] dark:border-sky-500 bg-[#004A99] dark:bg-sky-600 text-white font-semibold shadow-xs'
+                        : 'border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <span>{cat}</span>
+                    <span className={`text-[11px] font-semibold tabular-nums ${isSelected ? 'text-sky-100' : 'text-slate-400 dark:text-slate-500'}`}>
+                      ({count})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Alternador de Modo de Visualização */}
+            <div className="flex items-center gap-1.5 self-start md:self-auto shrink-0 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+              <button
+                onClick={() => setViewMode('bento')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ease-out cursor-pointer ${
+                  viewMode === 'bento'
+                    ? 'bg-white dark:bg-slate-800 text-[#004A99] dark:text-sky-400 border border-slate-200 dark:border-slate-700 shadow-xs font-semibold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Visualizar em grade"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span>Grade</span>
+              </button>
+
+              <button
+                onClick={() => setViewMode('list')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ease-out cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-white dark:bg-slate-800 text-[#004A99] dark:text-sky-400 border border-slate-200 dark:border-slate-700 shadow-xs font-semibold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Visualizar em lista"
+              >
+                <List className="h-3.5 w-3.5" />
+                <span>Lista</span>
+              </button>
+            </div>
+
           </div>
-
-          {/* Alternador de Modo de Visualização */}
-          <div className="flex items-center gap-1.5 self-start md:self-auto shrink-0 bg-slate-100 dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
-            <button
-              onClick={() => setViewMode('bento')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ease-out cursor-pointer ${
-                viewMode === 'bento'
-                  ? 'bg-white dark:bg-slate-800 text-[#004A99] dark:text-sky-400 border border-slate-200 dark:border-slate-700 shadow-xs font-semibold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title="Visualizar em grade"
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-              <span>Grade</span>
-            </button>
-
-            <button
-              onClick={() => setViewMode('list')}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 ease-out cursor-pointer ${
-                viewMode === 'list'
-                  ? 'bg-white dark:bg-slate-800 text-[#004A99] dark:text-sky-400 border border-slate-200 dark:border-slate-700 shadow-xs font-semibold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-              title="Visualizar em lista"
-            >
-              <List className="h-3.5 w-3.5" />
-              <span>Lista</span>
-            </button>
-          </div>
-
-        </div>
+        )}
 
         {/* CONTEÚDO */}
         <AnimatePresence mode="wait">
-          {filteredGallery.length === 0 ? (
+          {loading ? (
+            <motion.div
+              key="loading"
+              role="status"
+              aria-live="polite"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-12 text-center"
+            >
+              <Camera className="mx-auto h-10 w-10 text-[#004A99] dark:text-sky-400 mb-3 animate-pulse" aria-hidden="true" />
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                Carregando acervo fotográfico...
+              </p>
+            </motion.div>
+          ) : unavailable || error ? (
+            <motion.div
+              key="unavailable"
+              role="alert"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-white dark:bg-slate-900/60 p-12 text-center space-y-2"
+            >
+              <Camera className="mx-auto h-10 w-10 text-amber-600 dark:text-amber-400 mb-3" aria-hidden="true" />
+              <p className="text-base font-semibold text-slate-900 dark:text-white">
+                Acervo fotográfico indisponível no momento
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-300 max-w-lg mx-auto">
+                {error || 'A consulta pública de fotografias ainda não está disponível para visitantes. Tente novamente mais tarde.'}
+              </p>
+            </motion.div>
+          ) : gallery.length === 0 ? (
+            <motion.div
+              key="empty-gallery"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900/40 p-12 text-center"
+            >
+              <Camera className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" aria-hidden="true" />
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Nenhum registro fotográfico publicado até o momento.
+              </p>
+            </motion.div>
+          ) : filteredGallery.length === 0 ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0 }}

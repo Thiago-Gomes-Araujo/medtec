@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { SocialLinks, AnnouncementItem, NewsItem } from '@/types';
+import { SocialLinks, NewsItem } from '@/types';
+import type { AvisoPublico } from '@/lib/api/types';
 import { 
   Satellite, 
   Clock, 
@@ -23,17 +24,21 @@ import {
 
 interface LiveBroadcastSectionProps {
   socials?: SocialLinks;
-  announcements?: AnnouncementItem[];
+  announcements?: AvisoPublico[];
+  announcementsLoading?: boolean;
+  announcementsError?: string | null;
   news?: NewsItem[];
 }
 
-const EMPTY_ANNOUNCEMENTS: AnnouncementItem[] = [];
+const EMPTY_ANNOUNCEMENTS: AvisoPublico[] = [];
 const EMPTY_NEWS: NewsItem[] = [];
 
 export default function LiveBroadcastSection({ 
   socials: propSocials,
   announcements: propAnnouncements = EMPTY_ANNOUNCEMENTS,
   news: propNews = EMPTY_NEWS,
+  announcementsLoading = false,
+  announcementsError = null,
 }: LiveBroadcastSectionProps) {
   // Derivação de dados: utiliza diretamente as props passadas
   const effectiveSocials = propSocials || null;
@@ -66,15 +71,15 @@ export default function LiveBroadcastSection({
   ];
 
   // Dados com tratamento defensivo e resiliência vindos da API
-  const urgentAnnouncement: AnnouncementItem | undefined = 
-    effectiveAnnouncements.find((a) => a.active && a.type === 'urgente') || effectiveAnnouncements[0];
+  const urgentAnnouncement: AvisoPublico | undefined =
+    effectiveAnnouncements.find((a) => a.tipo_slug === 'urgente') || effectiveAnnouncements[0];
 
   const recentNews: NewsItem[] = effectiveNews.slice(0, 2);
 
   const socials = effectiveSocials;
 
   const youtubeUrl = socials?.youtube?.trim() || 'https://www.youtube.com/@SeducRondonia';
-  const whatsappUrl = socials?.whatsapp?.trim() || 'https://wa.me/5569999999999';
+  const whatsappUrl = socials?.whatsapp?.trim() || '';
 
   return (
     <section 
@@ -161,17 +166,26 @@ export default function LiveBroadcastSection({
                     <ExternalLink className="h-3 w-3 opacity-80 shrink-0" aria-hidden="true" />
                   </a>
 
-                  <a
-                    href={whatsappUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Contatar suporte técnico das salas conectadas via WhatsApp (abre em nova aba)"
-                    className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-lg border border-emerald-500/40 bg-emerald-50/90 dark:bg-emerald-500/10 hover:bg-emerald-100/90 dark:hover:bg-emerald-500/20 active:scale-[0.97] px-4 py-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 shadow-2xs transition-all duration-150 ease-out touch-manipulation select-none cursor-pointer"
-                  >
-                    <WhatsAppIcon size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                    <span>Suporte Técnico da Sala</span>
-                    <ExternalLink className="h-3 w-3 opacity-75 shrink-0" aria-hidden="true" />
-                  </a>
+                  {whatsappUrl ? (
+                    <a
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Contatar suporte técnico das salas conectadas via WhatsApp (abre em nova aba)"
+                      className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-lg border border-emerald-500/40 bg-emerald-50/90 dark:bg-emerald-500/10 hover:bg-emerald-100/90 dark:hover:bg-emerald-500/20 active:scale-[0.97] px-4 py-2.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300 shadow-2xs transition-all duration-150 ease-out touch-manipulation select-none cursor-pointer"
+                    >
+                      <WhatsAppIcon size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>Suporte Técnico da Sala</span>
+                      <ExternalLink className="h-3 w-3 opacity-75 shrink-0" aria-hidden="true" />
+                    </a>
+                  ) : (
+                    <span
+                      className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-lg border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-white/5 px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300"
+                    >
+                      <WhatsAppIcon size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>Suporte SEDUC: {socials?.phone || '(69) 3216-5300'}</span>
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -257,7 +271,16 @@ export default function LiveBroadcastSection({
               </div>
 
               {/* 1. Aviso Urgente do Mural */}
-              {urgentAnnouncement ? (
+              {announcementsLoading ? (
+                <p role="status" className="py-4 text-sm text-slate-500">Carregando avisos...</p>
+              ) : announcementsError ? (
+                <div role="alert" className="py-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                  <p>{announcementsError}</p>
+                  <button type="button" onClick={() => window.location.reload()} className="font-semibold underline cursor-pointer">
+                    Tentar novamente
+                  </button>
+                </div>
+              ) : urgentAnnouncement ? (
                 <article className="border-l-4 border-amber-500 bg-amber-500/10 dark:bg-amber-500/15 rounded-r-xl p-4 space-y-2">
                   <div className="flex items-center justify-between gap-2 min-w-0">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500 text-slate-950 uppercase tracking-wider shrink-0">
@@ -265,19 +288,20 @@ export default function LiveBroadcastSection({
                       Aviso Mural
                     </span>
                     <time className="text-[11px] tabular-nums text-slate-600 dark:text-slate-400 shrink-0">
-                      {urgentAnnouncement.date}
+                      {Number.isNaN(new Date(urgentAnnouncement.created_at).getTime()) ? 'Data não informada'
+                        : new Date(urgentAnnouncement.created_at).toLocaleDateString('pt-BR', { timeZone: 'America/Porto_Velho' })}
                     </time>
                   </div>
                   
                   <h4 
-                    title={urgentAnnouncement.title}
+                    title={urgentAnnouncement.titulo}
                     className="font-bold text-sm text-slate-900 dark:text-white leading-snug line-clamp-2 [overflow-wrap:anywhere] break-words"
                   >
-                    {urgentAnnouncement.title}
+                    {urgentAnnouncement.titulo}
                   </h4>
                   
                   <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-2 [overflow-wrap:anywhere] break-words">
-                    {urgentAnnouncement.content}
+                    {urgentAnnouncement.conteudo}
                   </p>
                 </article>
               ) : (
@@ -286,10 +310,10 @@ export default function LiveBroadcastSection({
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" aria-hidden="true" />
                   <div className="space-y-1 min-w-0">
                     <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                      Nenhum comunicado urgente no momento
+                      Nenhum comunicado no momento
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      As transmissões e salas operam regularmente conforme a grade horária.
+                      Consulte o mural para acompanhar novas publicações.
                     </p>
                   </div>
                 </div>

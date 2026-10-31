@@ -183,35 +183,102 @@ export const noticiasService = {
    * Endpoint: GET /publico/n_noticias
    */
   async listPublico(
-    params?: PublicoNoticiasParams | Record<string, unknown>
+    params?: PublicoNoticiasParams | Record<string, unknown>,
+    signal?: AbortSignal
   ): Promise<ApiResponse<PaginatedData<NoticiaPublica>>> {
-    return apiFetch<ApiResponse<PaginatedData<NoticiaPublica>>>('/publico/n_noticias', {
+    const response = await apiFetch<ApiResponse<PaginatedData<NoticiaPublica>>>('/publico/n_noticias', {
       method: 'GET',
-      params,
+      params: params
+        ? {
+            categoria: params.categoria,
+            busca: params.busca,
+            page: params.page,
+            per_page: params.per_page,
+          }
+        : undefined,
       skipAuth: true,
+      credentials: 'omit',
+      cache: 'no-store',
+      signal,
     });
+    const pagination = response?.data?.pagination;
+    if (
+      response?.success !== true ||
+      !Array.isArray(response.data?.items) ||
+      !pagination ||
+      !Number.isSafeInteger(pagination.current_page) ||
+      pagination.current_page < 1 ||
+      !Number.isSafeInteger(pagination.total_pages) ||
+      pagination.total_pages < 0 ||
+      !Number.isSafeInteger(pagination.total_count) ||
+      pagination.total_count < 0 ||
+      (pagination.per_page !== undefined && (!Number.isSafeInteger(pagination.per_page) || pagination.per_page < 1)) ||
+      response.data.items.some(
+        (item) =>
+          !item ||
+          typeof item.slug !== 'string' ||
+          !item.slug.trim() ||
+          typeof item.titulo !== 'string' ||
+          !item.titulo.trim()
+      )
+    ) {
+      throw new Error('Resposta inválida da API pública de Notícias.');
+    }
+    return response;
   },
 
   /**
    * Consulta notícia pública completa pelo slug
    * Endpoint: GET /publico/n_noticias/:slug
    */
-  async getPublicoBySlug(slug: string): Promise<ApiResponse<NoticiaPublica>> {
+  async getPublicoBySlug(slug: string, signal?: AbortSignal): Promise<ApiResponse<NoticiaPublica>> {
     const cleanSlug = encodeURIComponent(slug.trim());
-    return apiFetch<ApiResponse<NoticiaPublica>>(`/publico/n_noticias/${cleanSlug}`, {
+    const response = await apiFetch<ApiResponse<NoticiaPublica>>(`/publico/n_noticias/${cleanSlug}`, {
       method: 'GET',
       skipAuth: true,
+      credentials: 'omit',
+      cache: 'no-store',
+      signal,
     });
+    if (
+      response?.success !== true ||
+      !response.data ||
+      typeof response.data.slug !== 'string' ||
+      !response.data.slug.trim() ||
+      typeof response.data.titulo !== 'string' ||
+      !response.data.titulo.trim()
+    ) {
+      throw new Error('Resposta inválida da API pública de Detalhes da Notícia.');
+    }
+    return response;
   },
 
   /**
    * Lista categorias ativas no portal público em ordem alfabética
    * Endpoint: GET /publico/n_categorias_noticia
    */
-  async listCategoriasPublico(): Promise<ApiResponse<CategoriaPublica[]>> {
-    return apiFetch<ApiResponse<CategoriaPublica[]>>('/publico/n_categorias_noticia', {
+  async listCategoriasPublico(signal?: AbortSignal): Promise<ApiResponse<CategoriaPublica[]>> {
+    const response = await apiFetch<ApiResponse<CategoriaPublica[]>>('/publico/n_categorias_noticia', {
       method: 'GET',
       skipAuth: true,
+      credentials: 'omit',
+      cache: 'no-store',
+      signal,
     });
+    if (
+      response?.success !== true ||
+      !Array.isArray(response.data) ||
+      response.data.some(
+        (item) =>
+          !item ||
+          typeof item.nome !== 'string' ||
+          !item.nome.trim() ||
+          typeof item.slug !== 'string' ||
+          !item.slug.trim()
+      )
+    ) {
+      throw new Error('Resposta inválida da API pública de Categorias de Notícias.');
+    }
+    return response;
   },
 };

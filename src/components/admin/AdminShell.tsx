@@ -1,6 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAdminTheme } from '@/components/admin/useAdminTheme';
+import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
+import MobileDrawerFooter from '@/components/admin/MobileDrawerFooter';
+import { filterAdminNavigation } from '@/lib/admin-navigation-filter';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -37,99 +41,12 @@ import {
   Lock,
 } from 'lucide-react';
 import { medtecApi, clearStoredTokens, type AuthUser } from '@/lib/api';
+import { getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
+import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
+import { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
-export type AdminSection =
-  | 'visaoGeral'
-  | 'kanban'
-  | 'fotos'
-  | 'noticias'
-  | 'avisos'
-  | 'galeria'
-  | 'redes'
-  | 'siteInfo'
-  | 'usuarios'
-  | 'projetos'
-  | 'duvidas'
-  | 'estadosCidades';
-
-export const SECTION_CONFIG: Record<
-  AdminSection,
-  { group: string; title: string; subtitle: string; href: string }
-> = {
-  visaoGeral: {
-    group: 'Início',
-    title: 'Início (Resumo do Painel)',
-    subtitle: 'Visão executiva unificada, indicadores em tempo real e atalhos didáticos de acesso rápido.',
-    href: '/admin',
-  },
-  noticias: {
-    group: 'Publicações do Site',
-    title: 'Notícias e Matérias',
-    subtitle: 'Aqui você escreve novas matérias, escolhe a foto de capa e edita notícias já publicadas no portal.',
-    href: '/admin/noticias',
-  },
-  projetos: {
-    group: 'Publicações do Site',
-    title: 'Projetos Pedagógicos e Práticas Escolares',
-    subtitle: 'Cadastre, edite e gerencie os projetos pedagógicos, práticas de campo e missões escolares dos 52 municípios.',
-    href: '/admin/projetos',
-  },
-  duvidas: {
-    group: 'Publicações do Site',
-    title: 'Dúvidas Frequentes (FAQ)',
-    subtitle: 'Cadastre, edite e organize as perguntas e respostas que aparecem na Central de Dúvidas do portal.',
-    href: '/admin/faq',
-  },
-  avisos: {
-    group: 'Publicações do Site',
-    title: 'Avisos e Comunicados',
-    subtitle: 'Use esta área para postar comunicados oficiais, calendários e avisos urgentes para as escolas.',
-    href: '/admin/avisos',
-  },
-  fotos: {
-    group: 'Publicações do Site',
-    title: 'Banners da Página Inicial',
-    subtitle: 'Gerencie as imagens grandes que passam no topo da Página Inicial do site.',
-    href: '/admin/banners',
-  },
-  galeria: {
-    group: 'Publicações do Site',
-    title: 'Galeria de Fotos',
-    subtitle: 'Envie fotografias das salas de aula, estúdios e projetos realizados nos municípios.',
-    href: '/admin/galeria',
-  },
-  kanban: {
-    group: 'Aprovação e Revisão',
-    title: 'Fila de Aprovação (Passo a Passo)',
-    subtitle: 'Acompanhe as reportagens em rascunho, envie para revisão e publique oficialmente no portal.',
-    href: '/admin/kanban',
-  },
-  siteInfo: {
-    group: 'Dados e Contatos do Site',
-    title: 'Números de Alunos e Escolas',
-    subtitle: 'Atualize a quantidade oficial de estudantes, escolas, turmas e municípios atendidos.',
-    href: '/admin/institucional',
-  },
-  redes: {
-    group: 'Dados e Contatos do Site',
-    title: 'Redes Sociais e WhatsApp',
-    subtitle: 'Atualize os links oficiais de transmissão, redes sociais e canais de atendimento.',
-    href: '/admin/redes',
-  },
-  usuarios: {
-    group: 'Usuários e Acessos',
-    title: 'Gerenciar Equipe e Senhas',
-    subtitle: 'Cadastre operadores por CPF, redefina senhas e gerencie permissões de acesso ao sistema.',
-    href: '/admin/usuarios',
-  },
-  estadosCidades: {
-    group: 'Dados e Contatos do Site',
-    title: 'Estados e Municípios',
-    subtitle: 'Cadastre e gerencie a base de unidades federativas (UF) e municípios atendidos pelo MEDTEC.',
-    href: '/admin/estados-cidades',
-  },
-};
+export { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
 export function getFolderIdForSection(sec: AdminSection): string | null {
   if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas'].includes(sec)) return 'publicacoes';
@@ -203,32 +120,11 @@ export default function AdminShell({
   const [userSession, setUserSession] = useState<AdminSession>({ isGestor: false });
 
   // Sincronização do tema escuro
-  const isDark = useSyncExternalStore(
-    (onStoreChange) => {
-      if (typeof window === 'undefined') return () => {};
-      const observer = new MutationObserver(onStoreChange);
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-      return () => observer.disconnect();
-    },
-    () => (typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : false),
-    () => false
-  );
-
-  const toggleTheme = () => {
-    const nextDark = !isDark;
-    if (nextDark) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-      localStorage.setItem('medtec-theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-      localStorage.setItem('medtec-theme', 'light');
-    }
-  };
+  const { isDark, toggleTheme } = useAdminTheme();
 
   // Verificação de sessão
-  const checkAuth = useCallback(async () => {
+  const checkAuth = useCallback(async (isCurrent: () => boolean) => {
+    if (!isCurrent()) return;
     setLoadingAuth(true);
     try {
       let authenticated = false;
@@ -237,23 +133,22 @@ export default function AdminShell({
       if (medtecApi.auth.isAuthenticated()) {
         try {
           const meRes = await medtecApi.auth.me();
+          if (!isCurrent()) return;
           if (meRes.success && meRes.data) {
             authenticated = true;
-            const isGestor =
-              meRes.data.perfil_nome === 'Administrador' ||
-              meRes.data.perfil_id === 3 ||
-              meRes.data.id === 1;
+            const { isGestor, username, name, profileType } = getRailsSessionFields(meRes.data);
             setIsLoggedIn(true);
             setUserSession({
               isGestor,
-              username: meRes.data.cpf,
+              username,
               role: meRes.data.perfil_nome,
-              name: meRes.data.nome,
-              profileType: meRes.data.perfil_nome,
+              name,
+              profileType,
               apiUser: meRes.data,
             });
           }
         } catch (meErr) {
+          if (!isCurrent()) return;
           console.warn('AdminShell: GET /auth/me falhou ou token expirou:', meErr);
         }
       }
@@ -261,16 +156,18 @@ export default function AdminShell({
       // 2. Fallback de sessão local
       if (!authenticated) {
         const authRes = await fetch('/api/auth');
+        if (!isCurrent()) return;
         if (authRes.ok) {
           const authJson = await authRes.json();
-          const isGestor = authJson.isGestor !== false;
+          if (!isCurrent()) return;
+          const { isGestor, username, name, profileType } = getLocalSessionFields(authJson);
           setIsLoggedIn(true);
           setUserSession({
             isGestor,
-            username: authJson.user,
+            username,
             role: authJson.role,
-            name: authJson.name,
-            profileType: authJson.profileType,
+            name,
+            profileType,
           });
           authenticated = true;
         }
@@ -278,18 +175,22 @@ export default function AdminShell({
 
       if (!authenticated) {
         setIsLoggedIn(false);
-        router.push(`/admin/login?redirect=${encodeURIComponent(pathname || '/admin')}`);
+        router.push(getAdminLoginHref(pathname || '/admin', window.location.search));
       }
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('AdminShell: Erro ao verificar autenticação:', err);
       router.push('/admin/login');
     } finally {
-      setLoadingAuth(false);
+      if (isCurrent()) setLoadingAuth(false);
     }
   }, [router, pathname]);
 
   useEffect(() => {
-    void checkAuth();
+    // O cleanup invalida somente este setup, inclusive após ocultar e reativar.
+    let active = true;
+    void checkAuth(() => active);
+    return () => { active = false; };
   }, [checkAuth]);
 
   // Fecha o drawer mobile ao mudar de rota
@@ -487,33 +388,7 @@ export default function AdminShell({
   ];
 
   // Pesquisa rápida da Sidebar
-  const searchQuery = sidebarSearch.trim().toLowerCase();
-  const isSearching = searchQuery.length > 0;
-  const homeMatchesSearch = !isSearching || 'início resumo do painel visão geral home'.includes(searchQuery);
-
-  const filteredFolders = folders
-    .map((folder) => {
-      if (!folder.visible) return { ...folder, items: [] };
-
-      const folderNameMatches = folder.label.toLowerCase().includes(searchQuery);
-      const matchedItems = folder.items.filter((item) => {
-        if (!item.visible) return false;
-        if (!isSearching || folderNameMatches) return true;
-        return (
-          item.label.toLowerCase().includes(searchQuery) ||
-          item.tooltip.toLowerCase().includes(searchQuery)
-        );
-      });
-
-      return {
-        ...folder,
-        items: matchedItems,
-        visible: matchedItems.length > 0,
-      };
-    })
-    .filter((folder) => folder.visible);
-
-  const hasAnySearchResult = homeMatchesSearch || filteredFolders.length > 0;
+  const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
 
   // Tela de carregamento enquanto valida sessão
   if (loadingAuth || !isLoggedIn) {
@@ -566,11 +441,7 @@ export default function AdminShell({
       {/* ========================================================
           1. SIDEBAR DESKTOP (FIXA E RETRÁTIL COM ACCORDION JOER)
       ======================================================== */}
-      <aside
-        className={`hidden lg:flex flex-col shrink-0 h-full bg-[#07152B] text-slate-200 border-r border-slate-800 select-none z-30 transition-all duration-300 ease-in-out ${
-          isCollapsed ? 'w-20' : 'w-64'
-        }`}
-      >
+      <DesktopSidebarContainer isCollapsed={isCollapsed}>
         {/* Topo da Sidebar: Identidade + Botão de Recolher */}
         <div className="h-16 px-4 border-b border-slate-800/80 flex items-center justify-between shrink-0">
           {!isCollapsed ? (
@@ -802,7 +673,7 @@ export default function AdminShell({
             </button>
           </div>
         </div>
-      </aside>
+      </DesktopSidebarContainer>
 
       {/* ========================================================
           2. DRAWER MOBILE
@@ -879,35 +750,11 @@ export default function AdminShell({
               ))}
             </div>
 
-            <div className="shrink-0 border-t border-slate-800 p-3 space-y-2 bg-[#051021]">
-              <Link
-                href="/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white text-xs"
-              >
-                <ExternalLink className="h-3.5 w-3.5 text-sky-400" />
-                <span>Ver Portal Público</span>
-              </Link>
-
-              <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold text-white truncate">
-                    {userSession.name || userSession.username}
-                  </p>
-                  <p className="text-[10px] text-slate-400">
-                    {userSession.isGestor ? 'Gestor Geral' : userSession.profileType || 'Operador'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="text-rose-400 p-1.5 cursor-pointer"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
+            <MobileDrawerFooter
+              userName={userSession.name || userSession.username}
+              roleLabel={userSession.isGestor ? 'Gestor Geral' : userSession.profileType || 'Operador'}
+              onLogout={handleLogout}
+            />
           </div>
         </div>
       )}

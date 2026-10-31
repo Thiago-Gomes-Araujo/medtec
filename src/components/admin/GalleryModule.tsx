@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Camera,
   Plus,
@@ -29,6 +29,7 @@ export interface GalleryModuleProps {
   setApiCategorias: React.Dispatch<React.SetStateAction<CategoriaGaleria[]>>;
   loadingFotos?: boolean;
   errorFotos?: string | null;
+  onReload?: () => Promise<void>;
   onPreview: (data: PreviewGalleryData) => void;
 }
 
@@ -49,12 +50,11 @@ export default function GalleryModule({
   loadingFotos = false,
   errorFotos = null,
   onPreview,
+  onReload,
 }: GalleryModuleProps) {
   // Modos de visualização internos da Galeria
   const [galleryViewMode, setGalleryViewMode] = useState<'lista' | 'editor'>('lista');
-  const [selectedCategoriaId, setSelectedCategoriaId] = useState<number | null>(
-    () => apiCategorias[0]?.id ?? null
-  );
+  const [categoriaSelection, setSelectedCategoriaId] = useState<number | null>(null);
   const [editingPhotoId, setEditingPhotoId] = useState<number | null>(null);
   const [galleryFile, setGalleryFile] = useState<File | null>(null);
   const [savingPhoto, setSavingPhoto] = useState(false);
@@ -82,12 +82,13 @@ export default function GalleryModule({
     ativo: true,
   });
 
-  // Sincroniza categoria inicial quando categorias são carregadas
-  useEffect(() => {
-    if (!selectedCategoriaId && apiCategorias.length > 0) {
-      setSelectedCategoriaId(apiCategorias[0].id);
-    }
-  }, [apiCategorias, selectedCategoriaId]);
+  // Na edição, permite manter a opção original inativa que ainda existe na API.
+  const originalCategoriaId = apiFotos.find(item => item.id === editingPhotoId)?.categoria_galeria_id;
+  const categoriaOptions = apiCategorias.filter(item => Number.isSafeInteger(item.id) && item.id > 0 &&
+    (item.ativo === true || (Boolean(editingPhotoId) && item.id === originalCategoriaId)));
+  const selectedCategoriaId = categoriaOptions.find(item => item.id === categoriaSelection)?.id ??
+    categoriaOptions.find(item => item.ativo === true)?.id ?? categoriaOptions[0]?.id ?? null;
+  const selectionBlocked = loadingFotos || Boolean(errorFotos) || selectedCategoriaId === null;
 
   // Handlers de Abertura / Reset
   const handleNewPhoto = () => {
@@ -100,9 +101,7 @@ export default function GalleryModule({
       category: 'Salas de Aula',
       date: 'Outubro 2026',
     });
-    if (apiCategorias.length > 0) {
-      setSelectedCategoriaId(apiCategorias[0].id);
-    }
+    setSelectedCategoriaId(null);
     setGalleryViewMode('editor');
   };
 
@@ -123,15 +122,18 @@ export default function GalleryModule({
       date: 'Outubro 2026',
     });
 
-    if (foto.categoria_galeria_id) {
-      setSelectedCategoriaId(foto.categoria_galeria_id);
-    }
+    setSelectedCategoriaId(foto.categoria_galeria_id ?? null);
     setGalleryViewMode('editor');
   };
 
   // Salvar Foto (Upload multipart ou JSON imagem_url)
   const handleSavePhoto = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingPhoto) return;
+    if (selectionBlocked || selectedCategoriaId === null) {
+      alert('Carregue e selecione uma categoria válida antes de salvar.');
+      return;
+    }
     if (!galleryForm.title?.trim()) {
       alert('Informe o título da foto.');
       return;
@@ -143,7 +145,7 @@ export default function GalleryModule({
 
     setSavingPhoto(true);
     try {
-      const catId = selectedCategoriaId || (apiCategorias[0] ? apiCategorias[0].id : 1);
+      const catId = selectedCategoriaId;
 
       let savedFoto: FotoGaleria | null = null;
       try {
@@ -263,7 +265,7 @@ export default function GalleryModule({
   };
 
   const displayFotosCount = apiFotos.length;
-  const selectedCatObj = apiCategorias.find(c => c.id === selectedCategoriaId) || apiCategorias[0];
+  const selectedCatObj = categoriaOptions.find(c => c.id === selectedCategoriaId);
 
   // Fotos filtradas para a exibição na lista
   const filteredFotos = apiFotos.filter(photo => {
@@ -275,9 +277,11 @@ export default function GalleryModule({
     <div className="space-y-6">
       {/* Alerta de Erro de Conexão com a API se houver */}
       {errorFotos && (
-        <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2.5">
+        <div role="alert" className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2.5">
           <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <span>{errorFotos}</span>
+          {onReload && <button type="button" disabled={loadingFotos} onClick={() => void onReload()}
+            className="ml-auto underline font-bold cursor-pointer disabled:opacity-50">Tentar novamente</button>}
         </div>
       )}
 
@@ -521,7 +525,7 @@ export default function GalleryModule({
               </button>
             </div>
 
-            <form onSubmit={handleSavePhoto} className="space-y-5">
+            <form aria-label="Formulário de foto" onSubmit={handleSavePhoto} className="space-y-5">
               {/* PASSO 1: IDENTIFICAÇÃO E CATEGORIA */}
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-200 dark:border-slate-800 space-y-3">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-800">
@@ -539,6 +543,7 @@ export default function GalleryModule({
                     <input
                       type="text"
                       required
+                      name="titulo"
                       value={galleryForm.title}
                       onChange={e => setGalleryForm({ ...galleryForm, title: e.target.value })}
                       placeholder="Ex: Turma da E.E.E.F.M no Rio Madeira acompanhando aula"
@@ -551,7 +556,10 @@ export default function GalleryModule({
                       Categoria da Galeria (API)
                     </label>
                     <select
-                      value={selectedCategoriaId || ''}
+                      aria-label="Categoria da galeria"
+                      name="categoria_galeria_id"
+                      disabled={loadingFotos || Boolean(errorFotos) || savingPhoto}
+                      value={selectedCategoriaId ?? ''}
                       onChange={e => {
                         const id = Number(e.target.value);
                         setSelectedCategoriaId(id);
@@ -566,16 +574,18 @@ export default function GalleryModule({
                       }}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-[#004A99]/20 focus:border-[#004A99]"
                     >
-                      {apiCategorias.length === 0 ? (
-                        <option value="1">Salas de Aula (Padrão)</option>
+                      {categoriaOptions.length === 0 ? (
+                        <option value="">Nenhuma categoria disponível</option>
                       ) : (
-                        apiCategorias.map(c => (
-                          <option key={c.id} value={c.id}>
-                            {c.nome} ({c.slug})
+                        categoriaOptions.map(item => (
+                          <option key={item.id} value={item.id}>
+                            {item.nome} ({item.slug}){item.ativo ? '' : ' — inativa (atual)'}
                           </option>
                         ))
                       )}
                     </select>
+                    {!loadingFotos && !errorFotos && categoriaOptions.length === 0 &&
+                      <p role="status" className="mt-2 text-xs text-amber-700 dark:text-amber-300">Cadastre ou ative uma categoria para continuar.</p>}
                   </div>
                 </div>
               </div>
@@ -633,6 +643,7 @@ export default function GalleryModule({
                     </span>
                     <input
                       type="url"
+                      name="imagem_url"
                       value={galleryForm.imageUrl && !galleryFile ? galleryForm.imageUrl : ''}
                       onChange={e => {
                         setGalleryFile(null);
@@ -694,7 +705,7 @@ export default function GalleryModule({
                 </button>
                 <button
                   type="submit"
-                  disabled={savingPhoto}
+                  disabled={savingPhoto || selectionBlocked}
                   className="px-6 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white font-bold text-xs flex items-center gap-2 shadow-xs transition cursor-pointer"
                 >
                   {savingPhoto ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
@@ -771,6 +782,8 @@ export default function GalleryModule({
               <Loader2 className="h-6 w-6 animate-spin text-[#004A99]" />
               <span>Carregando fotografias do acervo...</span>
             </div>
+          ) : errorFotos ? (
+            <p className="p-8 text-center text-sm text-slate-500">Listagem indisponível. Tente carregar novamente.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredFotos.length === 0 ? (
