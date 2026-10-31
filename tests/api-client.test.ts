@@ -48,8 +48,10 @@ import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
 import SitePhotosManager from '../src/components/SitePhotosManager';
 import FaqModule from '../src/components/admin/FaqModule';
+import DuvidasVisitanteModule from '../src/components/admin/DuvidasVisitanteModule';
 import DuvidaCategoriesManager from '../src/components/admin/DuvidaCategoriesManager';
 import type { DCategoriaDuvida, DDuvida, DDuvidaInput } from '../src/lib/api/types';
+import type { DDuvidaVisitante } from '../src/lib/api/types';
 import ProjectsModule, { type ProjectViewMode } from '../src/components/admin/ProjectsModule';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
@@ -8115,6 +8117,357 @@ describe('Dúvidas C2 — interface e fluxo editorial', () => {
     try {
       await manager.click('Próxima'); await manager.click('Excluir ' + duvidaFixture.pergunta); await manager.click('Confirmar exclusão');
       assert.match(manager.html(), /Página 1 de 1 · 10 dúvidas/);
+    } finally { await manager.restore(); }
+  });
+});
+
+// Lote C3 — fixtures exclusivas dos testes, sem comunicação com o backend.
+const visitanteFixture: DDuvidaVisitante = {
+  id: 41, nome: 'Ana sintética', email: 'ana@example.invalid', telefone: null,
+  descricao: 'Tem curso de informática no meu polo?', respondida: false,
+  respondida_por_id: null, respondida_por_nome: null, respondida_em: null,
+  created_at: '2026-10-31T12:00:00Z', updated_at: '2026-10-31T12:00:00Z',
+};
+const visitanteRespondida: DDuvidaVisitante = { ...visitanteFixture, respondida: true,
+  respondida_por_id: 9, respondida_por_nome: 'Atendente sintética', respondida_em: '2026-10-31T13:30:00Z' };
+function visitanteList(items = [visitanteFixture], pagination = {
+  current_page: 1, total_pages: items.length ? 1 : 0, total_count: items.length, per_page: 10,
+}) {
+  return categoriaReply({ success: true, message: 'Resultado sintético', data: { items, pagination } });
+}
+function mountVisitantes(fetcher: (url: URL, options: RequestInit) => Promise<Response>, strict = false) {
+  return mountCategories(fetcher, strict, { component: () => DuvidasVisitanteModule(), allowedPaths: /\/d_duvidas_visitante(?:\/\d+(?:\/responder)?)?$/ });
+}
+
+describe('Visitantes C3 — quatro endpoints autenticados', () => {
+  const service = medtecApi.duvidasVisitante;
+  const operations = { list: () => service.list({ page: 2, per_page: 5 }), get: () => service.get(41),
+    responder: () => service.responder(41), delete: () => service.delete(41) };
+  for (const operation of ['list', 'get', 'responder', 'delete'] as const) {
+    it(operation + ': URL, Bearer, método e resposta oficiais; nenhum corpo', async () => {
+      setStoredTokens({ access_token: 'visitor-user', refresh_token: 'visitor-refresh' });
+      const calls: { url: URL; options: RequestInit }[] = [];
+      const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options: RequestInit = {}) => {
+        calls.push({ url: new URL(String(input)), options });
+        return operation === 'list' ? visitanteList([visitanteFixture], { current_page: 2, total_pages: 4, total_count: 18, per_page: 5 })
+          : categoriaReply(operation === 'responder' ? visitanteRespondida : visitanteFixture, operation === 'delete' ? 204 : 200);
+      });
+      try {
+        const result = await operations[operation](); assert.equal(calls.length, 1);
+        const { url, options } = calls[0];
+        assert.ok(url.pathname.endsWith('/d_duvidas_visitante' + (operation === 'list' ? '' : '/41') + (operation === 'responder' ? '/responder' : '')));
+        assert.equal(options.method, { list: 'GET', get: 'GET', responder: 'PATCH', delete: 'DELETE' }[operation]);
+        assert.equal(new Headers(options.headers).get('Authorization'), 'Bearer visitor-user'); assert.equal(options.body, undefined);
+        if (operation === 'list') {
+          assert.equal(url.searchParams.get('page'), '2'); assert.equal(url.searchParams.get('per_page'), '5');
+          assert.deepEqual(result, { success: true, message: 'Resultado sintético', data: { items: [visitanteFixture], pagination: { current_page: 2, total_pages: 4, total_count: 18, per_page: 5 } } });
+        } else assert.deepEqual(result, operation === 'delete' ? undefined : operation === 'responder' ? visitanteRespondida : visitanteFixture);
+      } finally { fetcher.mock.restore(); clearStoredTokens(); }
+    });
+  }
+  for (const key of ['q[respondida_false]', 'q[respondida_true]']) {
+    it('serializa o filtro ' + key + '=1', async () => {
+      const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) => {
+        const url = new URL(String(input)); assert.equal(url.searchParams.get(key), '1'); return visitanteList([]);
+      });
+      try { assert.equal((await service.list({ [key]: 1 })).data.pagination.total_count, 0); }
+      finally { fetcher.mock.restore(); }
+    });
+  }
+  it('leituras aceitam signal e preservam campos nulos', async () => {
+    const controller = new AbortController();
+    const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+      assert.equal(options?.signal, controller.signal); return String(input).includes('/41') ? categoriaReply(visitanteFixture) : visitanteList();
+    });
+    try {
+      assert.deepEqual((await service.list({ page: 1 }, controller.signal)).data.items, [visitanteFixture]);
+      assert.deepEqual(await service.get(41, controller.signal), visitanteFixture);
+    } finally { fetcher.mock.restore(); }
+  });
+  for (const [status, operation] of [[401, 'list'], [403, 'responder'], [404, 'get'], [422, 'delete']] as const) {
+    it(operation + ' propaga HTTP ' + status + ' sem fallback', async () => {
+      let count = 0;
+      const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) => {
+        count++; assert.ok(String(input).includes('/d_duvidas_visitante'));
+        return categoriaReply({ success: false, message: 'Falha sintética', errors: [status === 401 ? 'nao_autenticado' : status === 403 ? 'sem_permissao' : 'Operação inválida'] }, status);
+      });
+      try { await assert.rejects(operations[operation](), error => error instanceof ApiError && error.status === status); assert.equal(count, 1); }
+      finally { fetcher.mock.restore(); }
+    });
+  }
+  it('erro de rede propaga ApiError de conexão', async () => {
+    const fetcher = mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
+    try { await assert.rejects(service.list(), error => error instanceof ApiError && error.status === 0); }
+    finally { fetcher.mock.restore(); }
+  });
+  for (const payload of [null, { success: false }, { success: true, data: { items: [] } },
+    { success: true, data: { items: [visitanteFixture], pagination: { current_page: 1, total_pages: 1, total_count: -1, per_page: 10 } } },
+    { success: true, data: { items: [{ ...visitanteFixture, respondida: 'sim' }], pagination: { current_page: 1, total_pages: 1, total_count: 1, per_page: 10 } } }]) {
+    it('rejeita resposta inválida: ' + JSON.stringify(payload), async () => {
+      const fetcher = mock.method(globalThis, 'fetch', async () => categoriaReply(payload));
+      try { await assert.rejects(service.list(), /Resposta inválida/); } finally { fetcher.mock.restore(); }
+    });
+  }
+  it('objeto individual não aceita envelope no lugar do DTO', async () => {
+    const fetcher = mock.method(globalThis, 'fetch', async () => categoriaReply({ success: true, data: visitanteFixture }));
+    try { await assert.rejects(service.get(41), /Resposta inválida/); } finally { fetcher.mock.restore(); }
+  });
+});
+
+describe('Visitantes C3 — interface administrativa', () => {
+  it('aba Visitantes fica dentro da guarda atual, com C1/C2 preservados e montagem sob demanda', () => {
+    const page = AdminFaqSubroutePage(); assert.equal(page.type, AdminShell); assert.equal(page.props.activeSection, 'duvidas');
+    const workspace = page.props.children();
+    const html = renderToStaticMarkup(workspace); assert.match(html, />Visitantes</); assert.match(html, />Categorias</);
+    for (const section of ['duvidas', 'categorias', 'visitantes']) {
+      const state = mock.method(React, 'useState', (<S,>(initial?: S | (() => S)) => {
+        const value = typeof initial === 'function' ? (initial as () => S)() : initial;
+        return [value === 'duvidas' ? section : value, () => {}];
+      }) as typeof React.useState);
+      try {
+        const tree = Reflect.apply(workspace.type as () => ReactNode, undefined, [workspace.props]);
+        const nodes = noticeNodes(tree);
+        assert.equal(nodes.filter(node => node.type === DuvidasVisitanteModule).length, section === 'visitantes' ? 1 : 0);
+        assert.equal(nodes.filter(node => node.type === DuvidaCategoriesManager).length, section === 'categorias' ? 1 : 0);
+        const faq = nodes.find(node => node.type === FaqModule); assert.ok(faq); assert.equal(faq.props.active, section === 'duvidas');
+      } finally { state.mock.restore(); }
+    }
+  });
+  it('carregamento não exibe falso vazio; vazio confirmado não vira erro', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountVisitantes(() => pending.promise);
+    try {
+      assert.match(manager.html(), /Carregando dúvidas de visitantes/); assert.doesNotMatch(manager.html(), /Nenhuma dúvida de visitante/);
+      await manager.act(() => pending.resolve(visitanteList([])));
+      assert.match(manager.html(), /Nenhuma dúvida de visitante/); assert.doesNotMatch(manager.html(), /role="alert"/);
+    } finally { await manager.restore(); }
+  });
+  it('filtros oficiais são exclusivos, reiniciam a página e persistem na paginação', async () => {
+    const manager = await mountVisitantes(async url => visitanteList([visitanteFixture], { current_page: Number(url.searchParams.get('page')), total_pages: 3, total_count: 25, per_page: 10 }));
+    try {
+      assert.equal(manager.calls[0].url.searchParams.has('q[respondida_false]'), false);
+      assert.equal(manager.calls[0].url.searchParams.has('q[respondida_true]'), false);
+      await manager.click('Próxima'); assert.match(manager.html(), /Página 2 de 3 · 25 envios/);
+      await manager.change('situacaoVisitante', 'pendentes');
+      assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1'); assert.equal(manager.calls.at(-1)!.url.searchParams.get('page'), '1');
+      assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_true]'), false);
+      await manager.click('Próxima'); assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1');
+      await manager.change('situacaoVisitante', 'respondidas');
+      assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_true]'), '1'); assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_false]'), false);
+      assert.match(manager.html(), /Tem curso de informática/, 'A coleção da API é a fonte de verdade, sem filtro local');
+      await manager.change('situacaoVisitante', 'todas'); assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_true]'), false);
+    } finally { await manager.restore(); }
+  });
+  it('detalhes consultam ID e exibem a descrição completa e os contatos recebidos', async () => {
+    const detailed = { ...visitanteFixture, telefone: '(69) 99999-0000', descricao: 'Descrição completa recebida na consulta individual.\nSegunda linha.' };
+    const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(detailed) : visitanteList());
+    try {
+      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
+      assert.equal(manager.calls.at(-1)!.url.pathname.endsWith('/d_duvidas_visitante/41'), true);
+      assert.match(manager.html(), /Descrição completa recebida na consulta individual/); assert.match(manager.html(), /Segunda linha/);
+      assert.match(manager.html(), /ana@example.invalid/); assert.match(manager.html(), /99999-0000/);
+      await manager.click('Fechar detalhes'); assert.doesNotMatch(manager.html(), /Detalhes do envio/);
+      assert.equal(manager.calls.filter(call => call.options.method !== 'GET').length, 0);
+    } finally { await manager.restore(); }
+  });
+  it('marcar respondida usa PATCH sem corpo e apenas registra atendimento externo', async () => {
+    let marked = false;
+    const manager = await mountVisitantes(async (url, options) => {
+      if (options.method === 'PATCH') {
+        assert.ok(url.pathname.endsWith('/41/responder')); assert.equal(options.body, undefined);
+        marked = true; return categoriaReply(visitanteRespondida);
+      }
+      return visitanteList([marked ? visitanteRespondida : visitanteFixture]);
+    });
+    try {
+      assert.match(manager.html(), /contato com o visitante é feito externamente/); assert.match(manager.html(), /nenhuma mensagem é enviada/);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      assert.match(manager.html(), /Dúvida marcada como respondida/);
+      assert.deepEqual(manager.calls.map(call => call.options.method), ['GET', 'PATCH', 'GET']);
+      assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome), false);
+    } finally { await manager.restore(); }
+  });
+  it('marcação pelo detalhe atualiza atendente e data exclusivamente com o retorno do servidor', async () => {
+    let marked = false;
+    const manager = await mountVisitantes(async (url, options) => {
+      if (options.method === 'PATCH') { marked = true; return categoriaReply(visitanteRespondida); }
+      if (url.pathname.endsWith('/41')) return categoriaReply(visitanteFixture);
+      return visitanteList([marked ? visitanteRespondida : visitanteFixture]);
+    });
+    try {
+      await manager.click('Ver detalhes de ' + visitanteFixture.nome); await manager.click('Marcar detalhe como respondido');
+      assert.match(manager.html(), /Atendente sintética/); assert.match(manager.html(), /31\/10\/2026/);
+      assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar detalhe como respondido'), false);
+    } finally { await manager.restore(); }
+  });
+  it('filtro pendente pode ficar vazio após marcação bem-sucedida', async () => {
+    let marked = false;
+    const manager = await mountVisitantes(async (_url, options) => {
+      if (options.method === 'PATCH') { marked = true; return categoriaReply(visitanteRespondida); }
+      return visitanteList(marked ? [] : [visitanteFixture]);
+    });
+    try {
+      await manager.change('situacaoVisitante', 'pendentes'); await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      assert.match(manager.html(), /Nenhuma dúvida de visitante/); assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1');
+    } finally { await manager.restore(); }
+  });
+  it('exclusão exige confirmação, permite cancelar e aceita 204 sem conteúdo', async () => {
+    let deleted = false;
+    const manager = await mountVisitantes(async (_url, options) => {
+      if (options.method === 'DELETE') { deleted = true; return categoriaReply(null, 204); }
+      return visitanteList(deleted ? [] : [visitanteFixture]);
+    });
+    try {
+      await manager.click('Excluir envio de ' + visitanteFixture.nome); assert.equal(manager.calls.length, 1);
+      await manager.click('Cancelar exclusão'); assert.equal(manager.calls.length, 1);
+      await manager.click('Excluir envio de ' + visitanteFixture.nome); await manager.click('Confirmar exclusão');
+      assert.match(manager.html(), /Envio excluído com sucesso/); assert.match(manager.html(), /Nenhuma dúvida de visitante/);
+      assert.deepEqual(manager.calls.map(call => call.options.method), ['GET', 'DELETE', 'GET']);
+    } finally { await manager.restore(); }
+  });
+  it('excluir pelos detalhes fecha o registro somente após sucesso', async () => {
+    let deleted = false;
+    const manager = await mountVisitantes(async (url, options) => {
+      if (options.method === 'DELETE') { deleted = true; return categoriaReply(null, 204); }
+      return url.pathname.endsWith('/41') ? categoriaReply(visitanteFixture) : visitanteList(deleted ? [] : [visitanteFixture]);
+    });
+    try {
+      await manager.click('Ver detalhes de ' + visitanteFixture.nome); await manager.click('Excluir este envio');
+      assert.match(manager.html(), /Detalhes do envio/); await manager.click('Confirmar exclusão');
+      assert.doesNotMatch(manager.html(), /Detalhes do envio/); assert.match(manager.html(), /Envio excluído com sucesso/);
+    } finally { await manager.restore(); }
+  });
+  for (const status of [401, 403, 404, 422, 'network'] as const) {
+    it('listagem com ' + status + ' não vira vazio e permite nova leitura', async () => {
+      let failed = false;
+      const manager = await mountVisitantes(async () => {
+        if (failed) return visitanteList(); failed = true;
+        if (status === 'network') throw new TypeError('Failed to fetch');
+        return categoriaReply({ success: false, message: 'Falha na consulta', errors: [status === 401 ? 'nao_autenticado' : status === 403 ? 'sem_permissao' : 'Consulta inválida'] }, status);
+      });
+      try {
+        assert.match(manager.html(), /role="alert"/); assert.doesNotMatch(manager.html(), /Nenhuma dúvida de visitante/);
+        if (status === 401) setStoredTokens({ access_token: 'category-ui-user', refresh_token: 'category-ui-refresh' });
+        await manager.click('Tentar novamente'); assert.match(manager.html(), /Ana sintética/);
+      } finally { await manager.restore(); }
+    });
+  }
+  for (const status of [403, 404]) {
+    it('detalhes HTTP ' + status + ' não abrem um registro da lista como se fosse consulta válida', async () => {
+      const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply({ success: false, errors: [status === 403 ? 'sem_permissao' : 'http_404'] }, status) : visitanteList());
+      try {
+        await manager.click('Ver detalhes de ' + visitanteFixture.nome);
+        assert.match(manager.html(), /role="alert"/); assert.doesNotMatch(manager.html(), /Detalhes do envio/);
+      } finally { await manager.restore(); }
+    });
+  }
+  for (const status of [401, 403, 404, 422, 'network'] as const) {
+    it('marcação com ' + status + ' não mostra sucesso nem altera situação localmente', async () => {
+      const manager = await mountVisitantes(async (_url, options) => {
+        if (options.method === 'GET') return visitanteList();
+        if (status === 'network') throw new TypeError('Failed to fetch');
+        return categoriaReply({ success: false, message: 'Não foi possível registrar o atendimento', errors: [status === 401 ? 'nao_autenticado' : status === 403 ? 'sem_permissao' : 'Atendimento inválido'] }, status);
+      });
+      try {
+        await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+        assert.match(manager.html(), /role="alert"/); assert.doesNotMatch(manager.html(), /Dúvida marcada como respondida/);
+        assert.ok(manager.nodes().some(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome));
+        assert.equal(manager.calls.length, 2);
+      } finally { await manager.restore(); }
+    });
+  }
+  for (const status of [403, 422]) {
+    it('exclusão com ' + status + ' preserva registro e confirmação sem sucesso fictício', async () => {
+      const manager = await mountVisitantes(async (_url, options) => options.method === 'DELETE'
+        ? categoriaReply({ success: false, message: 'Não foi possível excluir', errors: [status === 403 ? 'sem_permissao' : 'Exclusão recusada'] }, status) : visitanteList());
+      try {
+        await manager.click('Excluir envio de ' + visitanteFixture.nome); await manager.click('Confirmar exclusão');
+        assert.match(manager.html(), /role="alert"/); assert.match(manager.html(), /Confirmar exclusão do envio/);
+        assert.match(manager.html(), /Ana sintética/); assert.doesNotMatch(manager.html(), /Envio excluído com sucesso/);
+        assert.equal(manager.calls.length, 2);
+      } finally { await manager.restore(); }
+    });
+  }
+  it('registro já respondido não apresenta outra ação de marcação', async () => {
+    const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(visitanteRespondida) : visitanteList([visitanteRespondida]));
+    try {
+      assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome), false);
+      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
+      assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar detalhe como respondido'), false);
+    } finally { await manager.restore(); }
+  });
+  it('resposta 200 ainda não respondida não produz marcação artificial', async () => {
+    const manager = await mountVisitantes(async (_url, options) => options.method === 'PATCH' ? categoriaReply(visitanteFixture) : visitanteList());
+    try {
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      assert.match(manager.html(), /A dúvida permanece não respondida/); assert.doesNotMatch(manager.html(), /Dúvida marcada como respondida/);
+    } finally { await manager.restore(); }
+  });
+  it('telefone/atendente nulos e data inválida são apresentados sem inventar dados', async () => {
+    const value = { ...visitanteFixture, created_at: 'data-invalida' };
+    const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(value) : visitanteList([value]));
+    try {
+      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
+      assert.match(manager.html(), /Não informado/); assert.match(manager.html(), /Data não informada/);
+      assert.doesNotMatch(manager.html(), /Invalid Date|undefined/);
+    } finally { await manager.restore(); }
+  });
+  it('falha de recarga após marcação não repete PATCH nem apaga o sucesso confirmado', async () => {
+    let marked = false;
+    const manager = await mountVisitantes(async (_url, options) => {
+      if (options.method === 'PATCH') { marked = true; return categoriaReply(visitanteRespondida); }
+      return marked ? categoriaReply({ success: false }, 503) : visitanteList();
+    });
+    try {
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      assert.match(manager.html(), /Dúvida marcada como respondida/); assert.match(manager.html(), /role="alert"/);
+      assert.equal(manager.calls.filter(call => call.options.method === 'PATCH').length, 1);
+    } finally { await manager.restore(); }
+  });
+  it('resposta anterior ao filtro não substitui a coleção vigente', async () => {
+    const pending = adminReturnDeferred<Response>(); let reads = 0;
+    const manager = await mountVisitantes(async () => ++reads === 1 ? pending.promise : visitanteList([{ ...visitanteFixture, nome: 'Visitante vigente' }]));
+    try {
+      await manager.change('situacaoVisitante', 'respondidas'); assert.match(manager.html(), /Visitante vigente/);
+      await manager.act(() => pending.resolve(visitanteList([{ ...visitanteFixture, nome: 'Visitante obsoleta' }])));
+      assert.match(manager.html(), /Visitante vigente/); assert.doesNotMatch(manager.html(), /Visitante obsoleta/);
+    } finally { await manager.restore(); }
+  });
+  it('duplo clique não duplica PATCH pendente', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountVisitantes(async (_url, options) => options.method === 'PATCH' ? pending.promise : visitanteList());
+    try {
+      const button = manager.nodes().find(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome); assert.ok(button);
+      await manager.act(() => { for (let i = 0; i < 2; i++) void Reflect.apply(button.props.onClick as () => unknown, undefined, []); });
+      assert.equal(manager.calls.filter(call => call.options.method === 'PATCH').length, 1);
+      await manager.act(() => pending.resolve(categoriaReply(visitanteRespondida)));
+    } finally { await manager.restore(); }
+  });
+  it('desmontagem ignora marcação tardia sem iniciar nova consulta', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountVisitantes(async (_url, options) => options.method === 'PATCH' ? pending.promise : visitanteList());
+    try {
+      const button = manager.nodes().find(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome); assert.ok(button);
+      await manager.act(() => { void Reflect.apply(button.props.onClick as () => unknown, undefined, []); });
+      await manager.unmount(); await manager.act(() => pending.resolve(categoriaReply(visitanteRespondida)));
+      assert.equal(manager.calls.length, 2);
+    } finally { await manager.restore(); }
+  });
+  it('Strict Mode não duplica a consulta inicial', async () => {
+    const manager = await mountVisitantes(async () => visitanteList(), true);
+    try { assert.equal(manager.calls.length, 1); } finally { await manager.restore(); }
+  });
+  it('exclusão do último item da última página retorna à página válida', async () => {
+    let deleted = false;
+    const manager = await mountVisitantes(async (url, options) => {
+      if (options.method === 'DELETE') { deleted = true; return categoriaReply(null, 204); }
+      const page = Number(url.searchParams.get('page'));
+      return visitanteList(deleted && page === 2 ? [] : [visitanteFixture], { current_page: page, total_pages: deleted ? 1 : 2, total_count: deleted ? 10 : 11, per_page: 10 });
+    });
+    try {
+      await manager.click('Próxima'); await manager.click('Excluir envio de ' + visitanteFixture.nome); await manager.click('Confirmar exclusão');
+      assert.match(manager.html(), /Página 1 de 1 · 10 envios/);
+      assert.equal(manager.calls.at(-1)!.url.searchParams.get('page'), '1');
     } finally { await manager.restore(); }
   });
 });

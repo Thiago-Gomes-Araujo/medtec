@@ -2,6 +2,7 @@
 import { apiFetch } from '../client';
 import type { ApiResponse, PaginatedData, DCategoriaDuvida, DCategoriaDuvidaInput, QueryParams } from '../types';
 import type { DDuvida, DDuvidaInput } from '../types';
+import type { DDuvidaVisitante } from '../types';
 
 function validateCategory(value: DCategoriaDuvida): DCategoriaDuvida {
   if (!value || !Number.isSafeInteger(value.id) || value.id < 1 ||
@@ -109,5 +110,47 @@ export const duvidasService = {
   },
   async despublicar(id: number): Promise<DDuvida> {
     return validateDuvida(await apiFetch<DDuvida>(`/d_duvidas/${id}/despublicar`, { method: 'PATCH' }));
+  },
+};
+
+function validateVisitante(value: DDuvidaVisitante): DDuvidaVisitante {
+  if (!value || !Number.isSafeInteger(value.id) || value.id < 1 || typeof value.respondida !== 'boolean' ||
+      !['nome', 'email', 'descricao', 'created_at', 'updated_at']
+        .every(key => typeof value[key as keyof DDuvidaVisitante] === 'string') ||
+      !['telefone', 'respondida_por_nome', 'respondida_em']
+        .every(key => value[key as keyof DDuvidaVisitante] === null || typeof value[key as keyof DDuvidaVisitante] === 'string') ||
+      !(value.respondida_por_id === null || (Number.isSafeInteger(value.respondida_por_id) && value.respondida_por_id > 0))) {
+    throw new Error('Resposta inválida da API de Dúvidas de Visitantes.');
+  }
+  return value;
+}
+
+// Caixa administrativa: responder apenas registra o atendimento externo.
+export const duvidasVisitanteService = {
+  async list(params?: QueryParams | Record<string, unknown>, signal?: AbortSignal): Promise<ApiResponse<PaginatedData<DDuvidaVisitante>>> {
+    const response = await apiFetch<ApiResponse<PaginatedData<DDuvidaVisitante>>>('/d_duvidas_visitante', {
+      method: 'GET', params, signal, cache: 'no-store',
+    });
+    const pagination = response?.data?.pagination;
+    if (response?.success !== true || !Array.isArray(response.data?.items) || !pagination ||
+        !Number.isSafeInteger(pagination.current_page) || pagination.current_page < 1 ||
+        !Number.isSafeInteger(pagination.total_pages) || pagination.total_pages < 0 ||
+        !Number.isSafeInteger(pagination.total_count) || pagination.total_count < 0 ||
+        !Number.isSafeInteger(pagination.per_page) || pagination.per_page < 1) {
+      throw new Error('Resposta inválida da API de Dúvidas de Visitantes.');
+    }
+    response.data.items.forEach(validateVisitante);
+    return response;
+  },
+  async get(id: number, signal?: AbortSignal): Promise<DDuvidaVisitante> {
+    return validateVisitante(await apiFetch<DDuvidaVisitante>(`/d_duvidas_visitante/${id}`, {
+      method: 'GET', signal, cache: 'no-store',
+    }));
+  },
+  async responder(id: number): Promise<DDuvidaVisitante> {
+    return validateVisitante(await apiFetch<DDuvidaVisitante>(`/d_duvidas_visitante/${id}/responder`, { method: 'PATCH' }));
+  },
+  async delete(id: number): Promise<void> {
+    await apiFetch<void>(`/d_duvidas_visitante/${id}`, { method: 'DELETE' });
   },
 };

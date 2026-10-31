@@ -281,6 +281,20 @@ export interface DDuvidaInput {
   resposta: string;
 }
 
+export interface DDuvidaVisitante {
+  id: number;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  descricao: string;
+  respondida: boolean;
+  respondida_por_id: number | null;
+  respondida_por_nome: string | null;
+  respondida_em: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================================================
 // Galeria de Fotos
 // ============================================================================
