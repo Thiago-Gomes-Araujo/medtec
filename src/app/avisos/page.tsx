@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import AvisosView from '@/components/AvisosView';
-import { medtecApi } from '@/lib/api';
-import { AnnouncementItem, AnnouncementType } from '@/types';
+import { ApiError, medtecApi, type AvisoPublico, type PaginatedData } from '@/lib/api';
 
 export const metadata: Metadata = {
   title: 'Mural de Avisos Oficiais | MEDTEC Rondônia - SEDUC-RO',
@@ -18,31 +17,33 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function AvisosPage() {
-  let announcements: AnnouncementItem[] = [];
+type AvisosSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+async function PublicAvisosContent({ searchParams }: { searchParams?: AvisosSearchParams }) {
+  const params = await searchParams || {};
+  const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
+  const positiveInteger = (value: string | undefined, fallback: number) => {
+    const parsed = Number(value);
+    return value && /^[1-9]\d*$/.test(value) && Number.isSafeInteger(parsed) ? parsed : fallback;
+  };
+  const page = positiveInteger(first(params.page), 1);
+  const perPage = Math.min(positiveInteger(first(params.per_page), 10), 100);
+  const tipo = first(params.tipo)?.trim() || undefined;
+  let data: PaginatedData<AvisoPublico> | undefined;
+  let loadError: string | null = null;
   try {
-    const res = await medtecApi.avisos.list({ 'q[ativo_true]': 1, page: 'all' });
-    if (res.success && res.data?.items) {
-      announcements = res.data.items.map((a) => ({
-        id: String(a.id),
-        title: a.titulo,
-        content: a.conteudo,
-        type: (a.a_tipo_aviso?.slug || 'informativo') as AnnouncementType,
-        date: a.created_at ? new Date(a.created_at).toLocaleDateString('pt-BR') : '',
-        linkText: a.link_texto || undefined,
-        linkUrl: a.link_url || undefined,
-        active: a.ativo !== false,
-        typeColor: a.a_tipo_aviso?.cor,
-        typeName: a.a_tipo_aviso?.nome,
-        a_tipo_aviso_id: a.a_tipo_aviso_id,
-        a_tipo_aviso: a.a_tipo_aviso,
-      }));
-    }
-  } catch (err) {
-    console.warn('[AvisosPage] Erro ao carregar avisos da API oficial:', err);
+    const response = await medtecApi.avisos.listPublico({ page, per_page: perPage, tipo });
+    data = response.data;
+  } catch (error) {
+    const message = ApiError.getFriendlyMessage(error);
+    const status = error instanceof ApiError && error.status > 0 ? ' (HTTP ' + error.status + ')' : '';
+    loadError = message + status;
   }
+  return <AvisosView key={JSON.stringify([page, perPage, tipo])}
+    announcements={data?.items || []} pagination={data?.pagination} tipo={tipo} error={loadError} />;
+}
 
+export default function AvisosPage({ searchParams }: { searchParams?: AvisosSearchParams } = {}) {
   return (
     <div className="flex flex-col min-h-screen bg-[#F0F4F9] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
@@ -55,7 +56,9 @@ export default async function AvisosPage() {
         />
 
         <div className="mx-auto max-w-7xl px-4 pt-8">
-          <AvisosView announcements={announcements} />
+          <Suspense fallback={<AvisosView announcements={[]} loading />}>
+            <PublicAvisosContent searchParams={searchParams} />
+          </Suspense>
         </div>
       </main>
 

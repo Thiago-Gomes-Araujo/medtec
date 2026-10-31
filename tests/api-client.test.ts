@@ -11,6 +11,11 @@ import { ModuleKind, transpileModule } from 'typescript';
 import nextConfig from '../next.config';
 import { NextRequest, NextResponse } from 'next/server';
 import AdminLoginPage from '../src/app/admin/login/page';
+import PublicAvisosPage from '../src/app/avisos/page';
+import PublicAoVivoPage from '../src/app/ao-vivo/page';
+import AvisosView from '../src/components/AvisosView';
+import LiveBroadcastSection from '../src/components/LiveBroadcastSection';
+import type { AvisoPublico, PublicoAvisosParams } from '../src/lib/api/types';
 import * as adminAuthNavigation from '../src/lib/admin-auth-navigation';
 import { Sun, Moon } from 'lucide-react';
 import React, { createElement, isValidElement, type ReactNode } from 'react';
@@ -42,7 +47,9 @@ import OverviewStats from '../src/components/admin/OverviewStats';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
 import SitePhotosManager from '../src/components/SitePhotosManager';
-import FaqModule, { type FaqViewMode } from '../src/components/admin/FaqModule';
+import FaqModule from '../src/components/admin/FaqModule';
+import DuvidaCategoriesManager from '../src/components/admin/DuvidaCategoriesManager';
+import type { DCategoriaDuvida, DDuvida, DDuvidaInput } from '../src/lib/api/types';
 import ProjectsModule, { type ProjectViewMode } from '../src/components/admin/ProjectsModule';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
@@ -2907,6 +2914,25 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     } finally { await shell.restore(); }
   });
 
+  for (const [profile, allowed] of [
+    ['Administrador', true], ['Operador de Conteúdo', true], ['Editor de Notícias', false],
+    ['Curador de Fotos', false], ['Publicador de Avisos', false],
+  ] as const) {
+    it('C1 preserva a guarda do FAQ para ' + profile, async () => {
+      let renders = 0;
+      const shell = await mountShell({ section: 'duvidas', pathname: '/admin/faq', children: () => {
+        renders++; return 'B2: conteúdo protegido';
+      } });
+      try {
+        assert.equal(renders, 0);
+        await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
+        assert.equal(shell.view?.content, allowed);
+        assert.equal(shell.view?.restricted, !allowed);
+        assert.equal(renders > 0, allowed);
+      } finally { await shell.restore(); }
+    });
+  }
+
   for (const section of ['usuarios', 'kanban'] as const) {
     it(`preserva a autorização de ${section} com sessões Rails e locais vigentes`, async () => {
       const cases = [
@@ -2933,6 +2959,325 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
       }
     });
   }
+});
+
+
+describe('Avisos públicos Lote B — apresentação e limites', () => {
+  function inspectView(announcements: AvisoPublico[], selected: AvisoPublico | null = null, error: string | null = null) {
+    const replacement = <S,>(initial?: S | (() => S)): [S, React.Dispatch<React.SetStateAction<S>>] => {
+      const value = typeof initial === 'function' ? (initial as () => S)() : initial;
+      return [(initial === null ? selected : value) as S, () => {}];
+    };
+    const state = mock.method(React, 'useState', replacement as typeof React.useState);
+    try { return AvisosView({ announcements, error }); }
+    finally { state.mock.restore(); }
+  }
+  it('chaves não dependem de id, posição ou ordem de propriedades; duplicatas são distintas', () => {
+    const a = { ...publicAvisoFixture };
+    const b = { ...publicAvisoFixture, titulo: 'Outro comunicado' };
+    const cards = (items: AvisoPublico[]) => noticeNodes(inspectView(items)).filter(node => node.type === 'article');
+    const original = cards([a, b]);
+    const reordered = cards([b, { created_at: a.created_at, tipo_cor: a.tipo_cor, tipo_slug: a.tipo_slug,
+      tipo_nome: a.tipo_nome, link_url: a.link_url, link_texto: a.link_texto, conteudo: a.conteudo, titulo: a.titulo }]);
+    assert.equal(original[0].key, reordered[1].key);assert.equal(original[1].key, reordered[0].key);
+    const duplicates = cards([a, a, b]);assert.equal(new Set(duplicates.map(node => node.key)).size, 3);
+    const before = JSON.stringify([a, b]);inspectView([Object.freeze(a), Object.freeze(b)]);
+    assert.equal(JSON.stringify([a, b]), before);assert.ok(!Object.hasOwn(a, 'id'));
+  });
+  for (const links of [null, 'https://example.com/orientacoes', 'javascript:alert(1)']) {
+    it('modal respeita campos nulos e link permitido: ' + links, () => {
+      const item = { ...publicAvisoFixture, link_texto: links ? 'Consultar orientação' : null, link_url: links };
+      const html = renderToStaticMarkup(inspectView([item], item));
+      assert.match(html, /role="dialog"/);assert.match(html, /Comunicado recebido da API/);
+      assert.doesNotMatch(html, /undefined|Invalid Date|javascript:/);
+      assert.equal(html.includes('href="https://example.com/orientacoes"'), links?.startsWith('https:') || false);
+    });
+  }
+  it('tipos oficiais adicionais e data inválida não criam campos de CMS', () => {
+    const html = renderToStaticMarkup(inspectView([{ ...publicAvisoFixture, tipo_slug: 'plantao', tipo_nome: 'Plantão oficial', created_at: 'data-invalida' }]));
+    assert.match(html, /Plantão oficial/);assert.match(html, /tipo=plantao/);assert.match(html, /Data não informada/);
+    assert.doesNotMatch(html, /Invalid Date/);
+  });
+  for (const name of ['avisos', 'ao-vivo']) {
+    it(name + ': tentar novamente recarrega a consulta preservando a URL atual', () => {
+      const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
+      const href = 'https://medtec.invalid/' + name + '?tipo=urgente&page=2&per_page=5';
+      let reloads = 0;
+      const location = { href, reload() { reloads++; } };
+      Object.defineProperty(globalThis, 'window', { configurable: true, value: { location } });
+      try {
+        const tree = name === 'avisos'
+          ? inspectView([], null, 'Falha HTTP 503')
+          : LiveBroadcastSection({ announcementsError: 'Falha HTTP 503' });
+        const retry = noticeNodes(tree).find(node => node.props.children === 'Tentar novamente');
+        assert.ok(retry);
+        assert.equal(retry.type, 'button');
+        assert.equal(retry.props.type, 'button');
+        assert.equal(typeof retry.props.onClick, 'function');
+        Reflect.apply(retry.props.onClick as () => void, undefined, []);
+        assert.equal(reloads, 1);
+        assert.equal(location.href, href);
+      } finally {
+        if (descriptor) Object.defineProperty(globalThis, 'window', descriptor);
+        else Reflect.deleteProperty(globalThis, 'window');
+      }
+    });
+  }
+  for (const [query, page, perPage, tipo] of [
+    [{ page: '-2', per_page: '0' }, '1', '10', null],
+    [{ page: '2abc', per_page: '999999' }, '1', '100', null],
+    [{ page: ['3', '7'], per_page: ['5', '50'], tipo: ['urgente', 'aviso'] }, '3', '5', 'urgente'],
+  ] as const) {
+    it('URL normaliza limites e usa primeiro valor: ' + JSON.stringify(query), async () => {
+      const calls: URL[] = [];
+      const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) => {
+        calls.push(new URL(String(input)));return publicAvisosReply([]);
+      });
+      try {
+        await resolvePublicNoticePage(PublicAvisosPage, query as Record<string, string | string[]>);
+        assert.equal(calls[0].searchParams.get('page'), page);assert.equal(calls[0].searchParams.get('per_page'), perPage);
+        assert.equal(calls[0].searchParams.get('tipo'), tipo);
+      } finally { fetchMock.mock.restore(); }
+    });
+  }
+  it('/ao-vivo não converte falha na consulta urgente em nova consulta ou vazio', async () => {
+    let notices = 0;
+    const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) => {
+      if (String(input).includes('/canais_contato')) return publicAvisosReply([]);
+      notices++;return new Response('{}', { status: 503, headers: { 'Content-Type': 'application/json' } });
+    });
+    try {
+      const view = await resolvePublicNoticePage(PublicAoVivoPage);assert.equal(notices, 1);
+      const html = renderToStaticMarkup(view);assert.match(html, /role="alert"/);assert.match(html, /HTTP 503/);
+      assert.doesNotMatch(html, /Nenhum comunicado no momento/);
+    } finally { fetchMock.mock.restore(); }
+  });
+});
+
+
+// Novas rotas — Lote B: dados sintéticos, rede sempre interceptada.
+const publicAvisoFixture: AvisoPublico = {
+  titulo: 'Comunicado recebido da API', conteudo: 'Conteúdo oficial recebido.',
+  link_texto: null, link_url: null, tipo_nome: 'Urgente', tipo_slug: 'urgente',
+  tipo_cor: '#DC2626', created_at: '2026-10-30T10:00:00-03:00',
+};
+function publicAvisosReply(items = [publicAvisoFixture], pagination = {
+  current_page: 1, total_pages: 1, total_count: items.length, per_page: 10,
+}) {
+  return new Response(JSON.stringify({ success: true, message: 'Resultado sintético', data: { items, pagination } }), {
+    status: 200, headers: { 'Content-Type': 'application/json' },
+  });
+}
+type NoticeNodeProps = Record<string, unknown> & { children?: ReactNode };
+function noticeNodes(node: ReactNode): React.ReactElement<NoticeNodeProps>[] {
+  if (Array.isArray(node)) return node.flatMap(noticeNodes);
+  if (!isValidElement<NoticeNodeProps>(node)) return [];
+  return [node, ...noticeNodes(node.props.children)];
+}
+// Resolve apenas os Server Components assíncronos destas páginas, sem montar
+// cabeçalho, rodapé, efeitos do navegador ou autenticação.
+async function resolvePublicNoticePage(page: typeof PublicAvisosPage | typeof PublicAoVivoPage,
+  query: Record<string, string | string[]> = {}) {
+  const tree: ReactNode = await Reflect.apply(page, undefined, [{ searchParams: Promise.resolve(query) }]);
+  async function find(node: ReactNode): Promise<React.ReactElement<NoticeNodeProps> | null> {
+    for (const element of noticeNodes(node)) {
+      if (element.type === AvisosView || element.type === LiveBroadcastSection) return element;
+      if (typeof element.type === 'function' && element.type.constructor.name === 'AsyncFunction') {
+        const result = await find(await Reflect.apply(element.type, undefined, [element.props]));
+        if (result) return result;
+      }
+    }
+    return null;
+  }
+  const view = await find(tree);
+  assert.ok(view);
+  return view;
+}
+
+describe('Avisos públicos Lote B — caracterização', () => {
+  for (const [name, page] of [['avisos', PublicAvisosPage], ['ao-vivo', PublicAoVivoPage]] as const) {
+    it('regressão: ' + name + ' consulta avisos públicos sem Bearer', async () => {
+      const requests: { path: string; authorization: boolean; params: URLSearchParams }[] = [];
+      setStoredTokens({ access_token: 'synthetic-only', refresh_token: 'synthetic-only' });
+      const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+        const url = new URL(String(input));
+        requests.push({ path: url.pathname, authorization: new Headers(options?.headers).has('Authorization'), params: url.searchParams });
+        return publicAvisosReply();
+      });
+      try {
+        await resolvePublicNoticePage(page);
+        const request = requests.find(request => request.path.endsWith('/a_avisos'));
+        assert.ok(request);
+        assert.equal(request.path.endsWith('/publico/a_avisos'), true);
+        assert.equal(request.authorization, false);
+        assert.equal(request.params.get('page'), '1');
+      } finally { fetchMock.mock.restore(); clearStoredTokens(); }
+    });
+    it('regressão: ' + name + ' informa HTTP 503 sem falso vazio', async () => {
+      const fetchMock = mock.method(globalThis, 'fetch', async () => new Response('{}', {
+        status: 503, headers: { 'Content-Type': 'application/json' },
+      }));
+      const warn = mock.method(console, 'warn', () => {});
+      try {
+        const view = await resolvePublicNoticePage(page);
+        assert.deepEqual(view.props.announcements, []);
+        assert.equal(Boolean(view.props.error || view.props.announcementsError), true);
+      } finally { fetchMock.mock.restore(); warn.mock.restore(); }
+    });
+  }
+  for (const kind of ['avisos', 'tiposAviso'] as const) {
+    for (const operation of ['list', 'get', 'create', 'update', 'delete'] as const) {
+      it('CMS mantém ' + kind + '.' + operation + ' protegido', async () => {
+        const endpoint = kind === 'avisos' ? '/a_avisos' : '/a_tipos_aviso';
+        const root = kind === 'avisos' ? 'a_aviso' : 'a_tipo_aviso';
+        const body = kind === 'avisos'
+          ? { titulo: 'Sintético', conteudo: 'Conteúdo sintético', a_tipo_aviso_id: 7 }
+          : { nome: 'Tipo sintético', slug: 'sintetico', cor: '#123456' };
+        const requests: { url: URL; options?: RequestInit }[] = [];
+        setStoredTokens({ access_token: 'synthetic-only', refresh_token: 'synthetic-only' });
+        const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+          requests.push({ url: new URL(String(input)), options });
+          if (operation === 'delete') return new Response(null, { status: 204 });
+          return new Response(JSON.stringify(operation === 'list' ? {
+            success: true, data: { items: [], pagination: { current_page: 1, total_pages: 0, total_count: 0, per_page: 10 } },
+          } : { id: 7, ...body }), { status: operation === 'create' ? 201 : 200, headers: { 'Content-Type': 'application/json' } });
+        });
+        try {
+          const service = medtecApi[kind];
+          if (operation === 'list') await service.list({ page: 'all' });
+          else if (operation === 'get' || operation === 'delete') await service[operation](7);
+          else await Reflect.apply(service[operation], service, operation === 'create' ? [body] : [7, body]);
+          assert.equal(requests.length, 1);
+          const { url, options } = requests[0];
+          assert.ok(url.pathname.endsWith(endpoint + (['get', 'update', 'delete'].includes(operation) ? '/7' : '')));
+          assert.ok(!url.pathname.includes('/publico/'));
+          assert.equal(options?.method, { list: 'GET', get: 'GET', create: 'POST', update: 'PATCH', delete: 'DELETE' }[operation]);
+          assert.equal(new Headers(options?.headers).get('Authorization'), 'Bearer synthetic-only');
+          if (operation === 'create' || operation === 'update') assert.deepEqual(JSON.parse(String(options?.body)), { [root]: body });
+          else assert.equal(options?.body, undefined);
+        } finally { fetchMock.mock.restore(); clearStoredTokens(); }
+      });
+    }
+  }
+});
+
+describe('Avisos públicos Lote B — contrato e integração', () => {
+  for (const params of [undefined, { tipo: 'urgente', page: 2, per_page: 5 }, { page: 'all' }] satisfies (PublicoAvisosParams | undefined)[]) {
+    it('GET sem Bearer, parâmetros e DTO: ' + JSON.stringify(params), async () => {
+      setStoredTokens({ access_token: 'synthetic-only', refresh_token: 'synthetic-only' });
+      const calls: URL[] = [];
+      const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+        calls.push(new URL(String(input)));
+        assert.equal(options?.method, 'GET');assert.equal(options?.body, undefined);
+        assert.equal(new Headers(options?.headers).get('Authorization'), null);
+        return publicAvisosReply();
+      });
+      try {
+        const response = await medtecApi.avisos.listPublico(params);
+        assert.equal(calls.length, 1);assert.ok(calls[0].pathname.endsWith('/publico/a_avisos'));
+        for (const [key, value] of Object.entries(params || {})) assert.equal(calls[0].searchParams.get(key), String(value));
+        assert.deepEqual(response.data.items, [publicAvisoFixture]);
+        assert.deepEqual(response.data.pagination, { current_page: 1, total_pages: 1, total_count: 1, per_page: 10 });
+        for (const key of ['id', 'ativo', 'a_tipo_aviso_id', 'a_tipo_aviso']) assert.ok(!Object.hasOwn(response.data.items[0], key));
+      } finally { fetchMock.mock.restore(); clearStoredTokens(); }
+    });
+  }
+  it('vazio oficial preserva sucesso e metadados', async () => {
+    const fetchMock = mock.method(globalThis, 'fetch', async () => publicAvisosReply([], { current_page: 1, total_pages: 0, total_count: 0, per_page: 10 }));
+    try { const result = await medtecApi.avisos.listPublico();assert.deepEqual(result.data.items, []);assert.equal(result.data.pagination.total_count, 0); }
+    finally { fetchMock.mock.restore(); }
+  });
+  for (const status of [401, 403, 404, 422, 429, 500]) {
+    it('HTTP ' + status + ' público não faz refresh, retry ou logout', async () => {
+      setStoredTokens({ access_token: 'synthetic-only', refresh_token: 'synthetic-only' });let calls = 0;
+      const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+        calls++;assert.ok(String(input).includes('/publico/a_avisos'));
+        assert.equal(new Headers(options?.headers).has('Authorization'), false);
+        return new Response(JSON.stringify({ success: false, errors: [status === 401 ? 'token_expirado' : 'simulado'] }), { status, headers: { 'Content-Type': 'application/json' } });
+      });
+      try {
+        await assert.rejects(medtecApi.avisos.listPublico(), error => error instanceof ApiError && error.status === status);
+        assert.equal(calls, 1);assert.equal(getStoredAccessToken(), 'synthetic-only');assert.equal(getStoredRefreshToken(), 'synthetic-only');
+      } finally { fetchMock.mock.restore(); clearStoredTokens(); }
+    });
+  }
+  it('erro de rede é ApiError de conexão', async () => {
+    const fetchMock = mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
+    try { await assert.rejects(medtecApi.avisos.listPublico(), error => error instanceof ApiError && error.status === 0); }
+    finally { fetchMock.mock.restore(); }
+  });
+  for (const payload of [null, {}, { success: false }, { success: true, data: { items: [] } },
+    { success: true, data: { items: [publicAvisoFixture], pagination: { current_page: 1, total_pages: 1, total_count: 1, per_page: 0 } } },
+    { success: true, data: { items: [{ titulo: 'Incompleto' }], pagination: { current_page: 1, total_pages: 1, total_count: 1, per_page: 10 } } }]) {
+    it('resposta inválida não vira vazio: ' + JSON.stringify(payload), async () => {
+      const fetchMock = mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify(payload), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      try { await assert.rejects(medtecApi.avisos.listPublico(), /Resposta inválida/); }
+      finally { fetchMock.mock.restore(); }
+    });
+  }
+  for (const [name, page] of [['avisos', PublicAvisosPage], ['ao-vivo', PublicAoVivoPage]] as const) {
+    it(name + ' declara carregamento antes da consulta', async () => {
+      const fetchMock = mock.method(globalThis, 'fetch', async () => publicAvisosReply([]));
+      let tree: ReactNode | Promise<ReactNode> = null;
+      try {
+        tree = Reflect.apply(page, undefined, [{ searchParams: Promise.resolve({}) }]);
+        assert.ok(!(tree instanceof Promise));
+        const boundary = noticeNodes(tree).find(node => node.type === React.Suspense);assert.ok(boundary);
+        const html = renderToStaticMarkup(boundary.props.fallback as ReactNode);
+        assert.match(html, /role="status"/);assert.match(html, /Carregando avisos/);
+        assert.doesNotMatch(html, /Nenhum comunicado|Nenhum aviso encontrado/);
+      } finally { await tree; fetchMock.mock.restore(); }
+    });
+    for (const outcome of ['success', 'empty', 'http', 'network'] as const) {
+      it(name + ': ' + outcome + ' usa DTO ou mostra erro', async () => {
+        const paths: string[] = [];
+        const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+          const url = new URL(String(input));paths.push(url.pathname);
+          if (url.pathname.endsWith('/canais_contato')) return publicAvisosReply([]);
+          assert.ok(url.pathname.endsWith('/publico/a_avisos'));
+          assert.equal(new Headers(options?.headers).has('Authorization'), false);
+          if (outcome === 'network') throw new TypeError('Failed to fetch');
+          if (outcome === 'http') return new Response('{}', { status: 404, headers: { 'Content-Type': 'application/json' } });
+          return publicAvisosReply(outcome === 'empty' ? [] : [publicAvisoFixture]);
+        });
+        try {
+          const view = await resolvePublicNoticePage(page);const html = renderToStaticMarkup(view);
+          assert.ok(!paths.some(path => path.endsWith('/a_avisos') && !path.endsWith('/publico/a_avisos')));
+          if (outcome === 'success') { assert.deepEqual(view.props.announcements, [publicAvisoFixture]);assert.match(html, /Comunicado recebido da API/);assert.doesNotMatch(html, /Invalid Date/); }
+          else if (outcome === 'empty') { assert.match(html, /Nenhum aviso encontrado|Nenhum comunicado no momento/);assert.doesNotMatch(html, /role="alert"/); }
+          else { assert.match(html, /role="alert"/);assert.doesNotMatch(html, /Nenhum aviso encontrado|Nenhum comunicado no momento/);assert.match(html, outcome === 'http' ? /HTTP 404/ : /conexão|conectar/i); }
+        } finally { fetchMock.mock.restore(); }
+      });
+    }
+  }
+  it('/avisos transporta filtro e paginação da URL e conserva links', async () => {
+    const calls: URL[] = [];
+    const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) => {
+      calls.push(new URL(String(input)));return publicAvisosReply([publicAvisoFixture], { current_page: 2, total_pages: 4, total_count: 18, per_page: 5 });
+    });
+    try {
+      const view = await resolvePublicNoticePage(PublicAvisosPage, { tipo: 'urgente', page: '2', per_page: '5' });
+      assert.equal(calls.length, 1);
+      for (const [key, value] of Object.entries({ tipo: 'urgente', page: '2', per_page: '5' })) assert.equal(calls[0].searchParams.get(key), value);
+      const html = renderToStaticMarkup(view);assert.match(html, /Página 2 de 4/);
+      const links = [...html.matchAll(/href="([^"]+)"/g)].map(match => new URL(match[1].replaceAll('&amp;', '&'), 'https://medtec.invalid'));
+      for (const direction of ['1', '3']) assert.ok(links.some(link => link.searchParams.get('page') === direction && link.searchParams.get('tipo') === 'urgente' && link.searchParams.get('per_page') === '5'));
+      assert.ok(links.some(link => link.searchParams.get('tipo') === 'aviso' && link.searchParams.get('page') === '1'));assert.match(html, /Buscar nesta página/);
+    } finally { fetchMock.mock.restore(); }
+  });
+  it('/ao-vivo prioriza urgente e consulta mais recente apenas quando vazio', async () => {
+    const calls: URL[] = [];
+    const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));if (url.pathname.endsWith('/canais_contato')) return publicAvisosReply([]);
+      calls.push(url);return publicAvisosReply(url.searchParams.has('tipo') ? [] : [{ ...publicAvisoFixture, tipo_slug: 'informativo' }]);
+    });
+    try {
+      const view = await resolvePublicNoticePage(PublicAoVivoPage);assert.equal(calls.length, 2);
+      assert.equal(calls[0].searchParams.get('tipo'), 'urgente');assert.equal(calls[1].searchParams.has('tipo'), false);
+      for (const url of calls) { assert.equal(url.searchParams.get('page'), '1');assert.equal(url.searchParams.get('per_page'), '1'); }
+      assert.match(renderToStaticMarkup(view), /Comunicado recebido da API/);
+    } finally { fetchMock.mock.restore(); }
+  });
 });
 
 describe('Componentes extraídos da navegação administrativa', () => {
@@ -5450,41 +5795,32 @@ describe('Subrota administrativa de FAQ', () => {
   });
 });
 
-describe('FAQ administrativo extraído', () => {
-  function renderFaq(faqs: FaqItem[] = [], viewMode: FaqViewMode = 'lista') {
-    return renderToStaticMarkup(createElement(FaqModule, {
-      faqs, viewMode, onViewModeChange: () => {},
-    }));
-  }
-
-  it('exibe estado vazio e explica o bloqueio de gravação sem dados substitutos', () => {
-    const html = renderFaq();
-    assert.ok(html.includes('Dúvidas Cadastradas (0)'));
-    assert.ok(html.includes('Nenhuma dúvida encontrada'));
-    assert.ok(html.includes('criação, edição e exclusão'));
-    assert.ok(html.includes('desabilitadas aguardando suporte oficial do backend Rails'));
+describe('FAQ administrativo migrado para Rails (C2)', () => {
+  it('mostra carregamento inicial sem falso vazio nem bloqueio legado', () => {
+    const html = renderToStaticMarkup(createElement(FaqModule));
+    assert.match(html, /Carregando dúvidas/); assert.match(html, /Carregando categorias/);
+    assert.doesNotMatch(html, /Nenhuma dúvida encontrada|Aguardando Endpoint da API|Prévia sem publicação/);
   });
 
-  it('renderiza a coleção recebida com categoria, público, tags e link', () => {
-    const html = renderFaq([{
-      id: 'faq-test', index: '07', question: 'Pergunta recebida', answer: 'Resposta recebida',
-      category: 'Legislação & Diretrizes', personas: ['gestores'], tags: ['normas'],
-      actionLink: { label: 'Consultar orientações', href: '/transparencia' },
-    }]);
-    for (const text of ['Pergunta recebida', 'Resposta recebida', 'gestores', '#normas', 'Consultar orientações']) {
-      assert.ok(html.includes(text));
-    }
-    assert.ok(html.includes('Dúvidas Cadastradas (1)'));
-    assert.ok(!html.includes('Nenhuma dúvida encontrada'));
+  it('renderiza o DTO oficial com pergunta, resposta, categoria, autor e situação', async () => {
+    const manager = await mountDuvidas(async url => url.pathname.endsWith('/d_categorias_duvida') ? categoriaList() : duvidaList());
+    try {
+      for (const text of ['Como faço minha matrícula?', 'Procure a secretaria.', 'Matrícula', 'Autora sintética', 'Aguardando aprovação']) {
+        assert.ok(manager.html().includes(text));
+      }
+      assert.doesNotMatch(manager.html(), /personas|Tags e Palavras|Prévia sem publicação|Aguardando Endpoint/);
+    } finally { await manager.restore(); }
   });
 
-  it('mantém envio desabilitado e a prévia sem promessa de publicação', () => {
-    const html = renderFaq([], 'editor');
-    assert.ok(/<button[^>]*type="submit"[^>]*disabled=""/.test(html));
-    assert.ok(html.includes('Aguardando Endpoint da API'));
-    assert.ok(html.includes('Prévia sem publicação'));
-    assert.ok(html.includes('Esta prévia não altera o portal.'));
-    assert.ok(!html.includes('Disponibilidade Imediata'));
+  it('formulário válido habilita envio e não promete publicação automática', async () => {
+    const manager = await mountDuvidas(async url => url.pathname.endsWith('/d_categorias_duvida') ? categoriaList() : duvidaList([]));
+    try {
+      await manager.click('Nova dúvida');
+      assert.match(manager.html(), /Salvar dúvida/); assert.match(manager.html(), /situação será definida ao salvar/);
+      const form = manager.nodes().find(node => node.type === 'form' && node.props['aria-label'] === 'Criar dúvida'); assert.ok(form);
+      assert.doesNotMatch(renderToStaticMarkup(form), /autor|status|motivo|tags|personas|actionLink/i);
+      assert.equal(manager.calls.filter(call => call.options.method !== 'GET').length, 0);
+    } finally { await manager.restore(); }
   });
 });
 
@@ -7006,4 +7342,779 @@ describe('12D-5 Lote 4: segurança do retorno administrativo', () => {
       await simulateAdminReturnLogin(url.search.slice(1), expected);
     });
   }
+});
+
+// Lote C1: somente respostas sintéticas; nenhum teste acessa o backend.
+const categoriaDuvidaFixture: DCategoriaDuvida = {
+  id: 21, nome: 'Matrícula', slug: 'matricula', ativo: true,
+  created_by: '9', updated_by: null, created_at: '2026-10-31T12:00:00Z', updated_at: '2026-10-31T12:00:00Z',
+};
+function categoriaReply(body: unknown, status = 200) {
+  return status === 204 ? new Response(null, { status })
+    : new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+}
+function categoriaList(items = [categoriaDuvidaFixture], pagination = {
+  current_page: 1, total_pages: items.length ? 1 : 0, total_count: items.length, per_page: 10,
+}) {
+  return categoriaReply({ success: true, message: 'Resultado sintético', data: { items, pagination } });
+}
+
+describe('Categorias de Dúvidas C1 — serviço autenticado', () => {
+  const service = medtecApi.categoriasDuvida;
+  const operations = {
+    list: () => service.list({ page: 2, per_page: 5, 'q[ativo_true]': 1 }),
+    get: () => service.get(21),
+    create: () => service.create({ nome: 'Matrícula', slug: 'matricula', ativo: true }),
+    update: () => service.update(21, { nome: 'Matrícula', slug: 'matricula', ativo: false }),
+    delete: () => service.delete(21),
+  };
+  for (const operation of ['list', 'get', 'create', 'update', 'delete'] as const) {
+    it(operation + ' respeita Bearer, URL, payload e formato da resposta', async () => {
+      setStoredTokens({ access_token: 'category-user-only', refresh_token: 'category-refresh-only' });
+      const calls: { url: URL; options?: RequestInit }[] = [];
+      const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+        calls.push({ url: new URL(String(input)), options });
+        if (operation === 'list') return categoriaList([categoriaDuvidaFixture], { current_page: 2, total_pages: 4, total_count: 18, per_page: 5 });
+        if (operation === 'delete') return categoriaReply(null, 204);
+        return categoriaReply(categoriaDuvidaFixture, operation === 'create' ? 201 : 200);
+      });
+      try {
+        const result = await operations[operation]();
+        assert.equal(calls.length, 1);
+        const { url, options } = calls[0];
+        assert.ok(url.pathname.endsWith('/d_categorias_duvida' + (['get', 'update', 'delete'].includes(operation) ? '/21' : '')));
+        assert.equal(new Headers(options?.headers).get('Authorization'), 'Bearer category-user-only');
+        assert.equal(options?.method, { list: 'GET', get: 'GET', create: 'POST', update: 'PATCH', delete: 'DELETE' }[operation]);
+        if (operation === 'list') {
+          assert.equal(url.searchParams.get('page'), '2'); assert.equal(url.searchParams.get('per_page'), '5');
+          assert.equal(url.searchParams.get('q[ativo_true]'), '1');
+          assert.deepEqual(result, { success: true, message: 'Resultado sintético', data: { items: [categoriaDuvidaFixture], pagination: { current_page: 2, total_pages: 4, total_count: 18, per_page: 5 } } });
+        } else if (operation === 'delete') assert.equal(result, undefined);
+        else assert.deepEqual(result, categoriaDuvidaFixture);
+        if (operation === 'create' || operation === 'update') {
+          assert.deepEqual(JSON.parse(String(options?.body)), { d_categoria_duvida: { nome: 'Matrícula', slug: 'matricula', ativo: operation === 'create' } });
+        } else assert.equal(options?.body, undefined);
+      } finally { fetcher.mock.restore(); clearStoredTokens(); }
+    });
+  }
+  it('omite slug e ativo opcionais sem inventar padrões no cliente', async () => {
+    const fetcher = mock.method(globalThis, 'fetch', async (_input: RequestInfo | URL, options?: RequestInit) => {
+      assert.deepEqual(JSON.parse(String(options?.body)), { d_categoria_duvida: { nome: 'Matrícula' } });
+      return categoriaReply(categoriaDuvidaFixture, 201);
+    });
+    try { await service.create({ nome: 'Matrícula' }); } finally { fetcher.mock.restore(); }
+  });
+  it('listagem e consulta aceitam cancelamento; vazio oficial preserva total zero', async () => {
+    const controller = new AbortController();
+    const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+      assert.equal(options?.signal, controller.signal);
+      return String(input).endsWith('/21') ? categoriaReply(categoriaDuvidaFixture) : categoriaList([]);
+    });
+    try {
+      const result = await service.list({ page: 1 }, controller.signal);
+      assert.deepEqual(result.data.items, []); assert.equal(result.data.pagination.total_count, 0);
+      assert.deepEqual(await service.get(21, controller.signal), categoriaDuvidaFixture);
+    } finally { fetcher.mock.restore(); }
+  });
+  for (const [status, operation] of [[401, 'list'], [403, 'create'], [404, 'get'], [422, 'delete']] as const) {
+    it('propaga HTTP ' + status + ' sem persistência alternativa', async () => {
+      const requests: string[] = [];
+      const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) => {
+        requests.push(String(input));
+        return categoriaReply({ success: false, message: 'Falha sintética', errors: [status === 401 ? 'nao_autenticado' : status === 403 ? 'sem_permissao' : 'Categoria possui dúvidas vinculadas'] }, status);
+      });
+      try {
+        await assert.rejects(operations[operation](), error => error instanceof ApiError && error.status === status);
+        assert.equal(requests.length, 1); assert.ok(requests[0].includes('/d_categorias_duvida'));
+      } finally { fetcher.mock.restore(); }
+    });
+  }
+  it('propaga erro de rede como ApiError sem resposta vazia', async () => {
+    const fetcher = mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
+    try { await assert.rejects(service.list(), error => error instanceof ApiError && error.status === 0); }
+    finally { fetcher.mock.restore(); }
+  });
+  for (const payload of [null, { success: true, data: { items: [] } },
+    { success: true, data: { items: [categoriaDuvidaFixture], pagination: { current_page: 1, total_pages: 1, total_count: -1, per_page: 10 } } },
+    { success: true, data: { items: [{ ...categoriaDuvidaFixture, ativo: 'sim' }], pagination: { current_page: 1, total_pages: 1, total_count: 1, per_page: 10 } } }]) {
+    it('rejeita envelope inválido: ' + JSON.stringify(payload), async () => {
+      const fetcher = mock.method(globalThis, 'fetch', async () => categoriaReply(payload));
+      try { await assert.rejects(service.list(), /Resposta inválida/); } finally { fetcher.mock.restore(); }
+    });
+  }
+  it('rejeita envelope de objeto individual indevido', async () => {
+    const fetcher = mock.method(globalThis, 'fetch', async () => categoriaReply({ success: true, data: categoriaDuvidaFixture }));
+    try { await assert.rejects(service.get(21), /Resposta inválida/); } finally { fetcher.mock.restore(); }
+  });
+});
+
+// Executa hooks, efeitos e eventos reais com o reconciliador existente. O DOM
+// visual é capturado como árvore React, seguindo os testes de sessão do projeto.
+async function mountCategories(fetcher: (url: URL, options: RequestInit) => Promise<Response>, strict = false, config?: { component: () => ReactNode; allowedPaths: RegExp }) {
+  let tree: ReactNode = null;
+  const calls: { url: URL; options: RequestInit }[] = [];
+  const doc = { nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null,
+    defaultView: null as unknown, documentElement: { classList: { contains() { return false; } } } };
+  const browser = { document: doc, HTMLIFrameElement: class {} };
+  doc.defaultView = browser;
+  const globals = { window: browser, document: doc, IS_REACT_ACT_ENVIRONMENT: true };
+  const descriptors = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  setStoredTokens({ access_token: 'category-ui-user', refresh_token: 'category-ui-refresh' });
+  const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options: RequestInit = {}) => {
+    const url = new URL(String(input)); calls.push({ url, options });
+    return fetcher(url, options);
+  });
+  function Capture() { tree = config ? config.component() : DuvidaCategoriesManager(); return null; }
+  const root = createRoot({ nodeType: 1, tagName: 'DIV', namespaceURI: 'http://www.w3.org/1999/xhtml', ownerDocument: doc,
+    addEventListener() {}, removeEventListener() {}, textContent: '' } as unknown as Element);
+  let disposed = false;
+  async function unmount() { if (!disposed) { disposed = true; await React.act(async () => root.unmount()); } }
+  async function restore() {
+    try {
+      await unmount();
+      for (const call of calls) {
+        assert.match(call.url.pathname, config?.allowedPaths || /\/d_categorias_duvida(?:\/\d+)?$/);
+        assert.equal(new Headers(call.options.headers).get('Authorization'), 'Bearer category-ui-user');
+      }
+    } finally {
+      fetchMock.mock.restore(); clearStoredTokens();
+      for (const [key, descriptor] of descriptors) {
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key);
+      }
+    }
+  }
+  async function act(action: () => unknown) { await React.act(async () => { await action(); }); }
+  try { await act(() => root.render(strict ? createElement(React.StrictMode, null, createElement(Capture)) : createElement(Capture))); }
+  catch (error) { await restore(); throw error; }
+  return {
+    calls, act, restore, unmount,
+    render: () => act(() => root.render(strict ? createElement(React.StrictMode, null, createElement(Capture)) : createElement(Capture))),
+    html: () => renderToStaticMarkup(tree),
+    nodes: () => noticeNodes(tree),
+    async click(label: string) {
+      const node = noticeNodes(tree).find(node => node.type === 'button' && (node.props['aria-label'] === label || node.props.children === label));
+      assert.ok(node, 'Botão: ' + label); assert.ok(!node.props.disabled, 'Botão habilitado: ' + label);
+      await act(() => Reflect.apply(node.props.onClick as () => unknown, undefined, []));
+    },
+    async change(name: string, value: string | boolean) {
+      const node = noticeNodes(tree).find(node => ['input', 'textarea', 'select'].includes(String(node.type)) && node.props.name === name);
+      assert.ok(node, 'Campo: ' + name);
+      await act(() => Reflect.apply(node.props.onChange as () => unknown, undefined, [{ target: { value, checked: value } }]));
+    },
+    async submit(label?: string) {
+      const node = noticeNodes(tree).find(node => node.type === 'form' && (!label || node.props['aria-label'] === label)); assert.ok(node);
+      await act(() => Reflect.apply(node.props.onSubmit as () => unknown, undefined, [{ preventDefault() {} }]));
+    },
+  };
+}
+
+describe('Categorias de Dúvidas C1 — interface e integração', () => {
+  it('aba de categorias está dentro da guarda existente e independe da leitura legada', () => {
+    const page = AdminFaqSubroutePage();
+    assert.equal(page.type, AdminShell); assert.equal(page.props.activeSection, 'duvidas');
+    assert.equal(typeof page.props.children, 'function');
+    const workspace = page.props.children();
+    const html = renderToStaticMarkup(workspace);
+    assert.match(html, /Seções do FAQ/); assert.match(html, />Categorias</);
+    const state = mock.method(React, 'useState', (<S,>(initial?: S | (() => S)) => {
+      const value = typeof initial === 'function' ? (initial as () => S)() : initial;
+      return [value === 'duvidas' ? 'categorias' : value, () => {}];
+    }) as typeof React.useState);
+    try {
+      const tree = Reflect.apply(workspace.type as () => ReactNode, undefined, [workspace.props]);
+      assert.equal(noticeNodes(tree).filter(node => node.type === DuvidaCategoriesManager).length, 1);
+    } finally { state.mock.restore(); }
+  });
+  it('mostra carregamento e não inventa vazio enquanto a leitura está pendente', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountCategories(() => pending.promise);
+    try {
+      assert.match(manager.html(), /Carregando categorias/); assert.doesNotMatch(manager.html(), /Nenhuma categoria/);
+      await manager.act(() => pending.resolve(categoriaList([])));
+      assert.match(manager.html(), /Nenhuma categoria cadastrada/); assert.doesNotMatch(manager.html(), /Carregando categorias/);
+    } finally { await manager.restore(); }
+  });
+  it('paginação usa metadados oficiais e solicita a próxima página', async () => {
+    const manager = await mountCategories(async url => {
+      const current = Number(url.searchParams.get('page'));
+      assert.equal(url.searchParams.get('per_page'), '10');
+      return categoriaList([{ ...categoriaDuvidaFixture, nome: current === 1 ? 'Matrícula' : 'Certificados' }], { current_page: current, total_pages: 3, total_count: 25, per_page: 10 });
+    });
+    try {
+      assert.match(manager.html(), /Página 1 de 3 · 25 categorias/);
+      await manager.click('Próxima'); assert.match(manager.html(), /Página 2 de 3 · 25 categorias/); assert.match(manager.html(), /Certificados/);
+      await manager.click('Anterior'); assert.equal(manager.calls.length, 3);
+    } finally { await manager.restore(); }
+  });
+  it('formulário inválido não envia escrita; criação omite slug vazio e atualiza a lista', async () => {
+    let created = false;
+    const manager = await mountCategories(async (_url, options) => {
+      if (options.method === 'POST') {
+        assert.deepEqual(JSON.parse(String(options.body)), { d_categoria_duvida: { nome: 'Certificados', ativo: true } });
+        created = true; return categoriaReply({ ...categoriaDuvidaFixture, nome: 'Certificados' }, 201);
+      }
+      return categoriaList(created ? [{ ...categoriaDuvidaFixture, nome: 'Certificados' }] : []);
+    });
+    try {
+      await manager.click('Nova categoria'); await manager.change('nome', '   '); await manager.submit();
+      assert.match(manager.html(), /Informe o nome da categoria/); assert.equal(manager.calls.length, 1);
+      await manager.change('nome', ' Certificados '); await manager.submit();
+      assert.equal(created, true); assert.match(manager.html(), /Categoria salva com sucesso/);
+      assert.match(manager.html(), /Certificados/); assert.doesNotMatch(manager.html(), /aria-label="Criar categoria"/);
+      assert.deepEqual(manager.calls.map(call => call.options.method), ['GET', 'POST', 'GET']);
+    } finally { await manager.restore(); }
+  });
+  it('edição consulta por ID, permite nome/slug/ativo e recarrega a listagem', async () => {
+    let edited = false;
+    const changed = { ...categoriaDuvidaFixture, nome: 'Matrículas 2027', slug: 'matriculas-2027', ativo: false };
+    const manager = await mountCategories(async (url, options) => {
+      if (options.method === 'PATCH') {
+        assert.deepEqual(JSON.parse(String(options.body)), { d_categoria_duvida: { nome: changed.nome, slug: changed.slug, ativo: false } });
+        edited = true; return categoriaReply(changed);
+      }
+      if (url.pathname.endsWith('/21')) return categoriaReply(categoriaDuvidaFixture);
+      return categoriaList([edited ? changed : categoriaDuvidaFixture]);
+    });
+    try {
+      await manager.click('Editar Matrícula');
+      assert.match(manager.html(), /aria-label="Editar categoria"/);
+      await manager.change('nome', changed.nome); await manager.change('slug', changed.slug); await manager.change('ativo', false);
+      await manager.submit(); assert.match(manager.html(), /Matrículas 2027/); assert.match(manager.html(), /Inativa/);
+      assert.deepEqual(manager.calls.map(call => call.options.method), ['GET', 'GET', 'PATCH', 'GET']);
+    } finally { await manager.restore(); }
+  });
+  for (const initial of [true, false]) {
+    it((initial ? 'desativa' : 'ativa') + ' somente após PATCH bem-sucedido', async () => {
+      let active = initial;
+      const manager = await mountCategories(async (_url, options) => {
+        if (options.method === 'PATCH') {
+          assert.deepEqual(JSON.parse(String(options.body)), { d_categoria_duvida: { ativo: !initial } });
+          active = !initial; return categoriaReply({ ...categoriaDuvidaFixture, ativo: active });
+        }
+        return categoriaList([{ ...categoriaDuvidaFixture, ativo: active }]);
+      });
+      try {
+        await manager.click((initial ? 'Desativar' : 'Ativar') + ' Matrícula');
+        assert.equal(active, !initial); assert.equal(manager.calls.length, 3);
+        assert.match(manager.html(), initial ? /Categoria desativada/ : /Categoria ativada/);
+      } finally { await manager.restore(); }
+    });
+  }
+  it('exclusão exige confirmação e recarrega após 204 sem corpo', async () => {
+    let deleted = false;
+    const manager = await mountCategories(async (_url, options) => {
+      if (options.method === 'DELETE') { deleted = true; return categoriaReply(null, 204); }
+      return categoriaList(deleted ? [] : [categoriaDuvidaFixture]);
+    });
+    try {
+      await manager.click('Excluir Matrícula'); assert.equal(manager.calls.length, 1);
+      await manager.click('Cancelar exclusão'); assert.equal(manager.calls.length, 1);
+      await manager.click('Excluir Matrícula'); await manager.click('Confirmar exclusão');
+      assert.match(manager.html(), /Categoria excluída com sucesso/); assert.match(manager.html(), /Nenhuma categoria cadastrada/);
+      assert.deepEqual(manager.calls.map(call => call.options.method), ['GET', 'DELETE', 'GET']);
+    } finally { await manager.restore(); }
+  });
+  it('422 ao excluir preserva a categoria e informa o vínculo', async () => {
+    const manager = await mountCategories(async (_url, options) => options.method === 'DELETE'
+      ? categoriaReply({ success: false, message: 'Não foi possível excluir', errors: ['Categoria possui dúvidas vinculadas'] }, 422)
+      : categoriaList());
+    try {
+      await manager.click('Excluir Matrícula'); await manager.click('Confirmar exclusão');
+      assert.match(manager.html(), /Não foi possível excluir/); assert.match(manager.html(), /Categoria possui dúvidas vinculadas/);
+      assert.match(manager.html(), /aria-label="Editar Matrícula"/); assert.doesNotMatch(manager.html(), /Categoria excluída com sucesso/);
+      assert.equal(manager.calls.length, 2);
+    } finally { await manager.restore(); }
+  });
+  for (const status of [403, 422]) {
+    it('falha HTTP ' + status + ' ao criar mantém formulário e conteúdo sem falso sucesso', async () => {
+      const manager = await mountCategories(async (_url, options) => options.method === 'POST'
+        ? categoriaReply({ success: false, message: 'Erro de validação', errors: [status === 403 ? 'sem_permissao' : 'Slug já está em uso'] }, status)
+        : categoriaList([]));
+      try {
+        await manager.click('Nova categoria'); await manager.change('nome', 'Novo assunto'); await manager.submit();
+        assert.match(manager.html(), /value="Novo assunto"/); assert.match(manager.html(), /role="alert"/);
+        assert.match(manager.html(), status === 403 ? /não possui permissão/ : /Slug já está em uso/);
+        assert.doesNotMatch(manager.html(), /salva com sucesso/); assert.equal(manager.calls.length, 2);
+      } finally { await manager.restore(); }
+    });
+  }
+  it('formulário aberto bloqueia ações que descartariam seu conteúdo', async () => {
+    const manager = await mountCategories(async () => categoriaList());
+    try {
+      await manager.click('Nova categoria'); await manager.change('nome', 'Rascunho da categoria');
+      for (const label of ['Nova categoria', 'Editar Matrícula', 'Desativar Matrícula', 'Excluir Matrícula', 'Próxima']) {
+        const button = manager.nodes().find(node => node.type === 'button' && (node.props['aria-label'] === label || node.props.children === label));
+        assert.ok(button); assert.equal(button.props.disabled, true);
+      }
+      assert.match(manager.html(), /value="Rascunho da categoria"/);
+      await manager.click('Cancelar'); assert.equal(manager.calls.length, 1);
+    } finally { await manager.restore(); }
+  });
+  it('envios concorrentes não duplicam uma criação enquanto a resposta está pendente', async () => {
+    const pending = adminReturnDeferred<Response>();
+    let written = false;
+    const manager = await mountCategories(async (_url, options) => {
+      if (options.method === 'POST') { written = true; return pending.promise; }
+      return categoriaList(written ? [categoriaDuvidaFixture] : []);
+    });
+    try {
+      await manager.click('Nova categoria'); await manager.change('nome', 'Matrícula');
+      const form = manager.nodes().find(node => node.type === 'form'); assert.ok(form);
+      await manager.act(() => {
+        const submit = form.props.onSubmit as () => unknown;
+        void Reflect.apply(submit, undefined, [{ preventDefault() {} }]);
+        void Reflect.apply(submit, undefined, [{ preventDefault() {} }]);
+      });
+      assert.equal(manager.calls.filter(call => call.options.method === 'POST').length, 1);
+      await manager.act(() => pending.resolve(categoriaReply(categoriaDuvidaFixture, 201)));
+      assert.match(manager.html(), /Categoria salva com sucesso/);
+      assert.equal(manager.calls.filter(call => call.options.method === 'POST').length, 1);
+    } finally { await manager.restore(); }
+  });
+  it('404 na consulta de edição não abre formulário com dados antigos', async () => {
+    const manager = await mountCategories(async url => url.pathname.endsWith('/21')
+      ? categoriaReply({ success: false }, 404) : categoriaList());
+    try {
+      await manager.click('Editar Matrícula'); assert.match(manager.html(), /não foi encontrado/);
+      assert.equal(manager.nodes().some(node => node.type === 'form'), false);
+    } finally { await manager.restore(); }
+  });
+  for (const outcome of [401, 403, 404, 'network'] as const) {
+    it('leitura com ' + outcome + ' mostra erro, nunca lista vazia; permite repetição', async () => {
+      let failed = false;
+      const manager = await mountCategories(async () => {
+        if (failed) return categoriaList(); failed = true;
+        if (outcome === 'network') throw new TypeError('Failed to fetch');
+        return categoriaReply({ success: false, errors: [outcome === 401 ? 'nao_autenticado' : outcome === 403 ? 'sem_permissao' : 'http_404'] }, outcome);
+      });
+      try {
+        assert.match(manager.html(), /role="alert"/); assert.doesNotMatch(manager.html(), /Nenhuma categoria cadastrada/);
+        // O cliente existente encerra a sessão em 401; a repetição simula um novo login.
+        if (outcome === 401) setStoredTokens({ access_token: 'category-ui-user', refresh_token: 'category-ui-refresh' });
+        await manager.click('Tentar novamente'); assert.match(manager.html(), /Matrícula/); assert.equal(manager.calls.length, 2);
+      } finally { await manager.restore(); }
+    });
+  }
+  it('falha de recarga após gravação não repete POST nem desfaz sucesso confirmado', async () => {
+    let written = false;
+    const manager = await mountCategories(async (_url, options) => {
+      if (options.method === 'POST') { written = true; return categoriaReply(categoriaDuvidaFixture, 201); }
+      return written ? categoriaReply({ success: false }, 503) : categoriaList([]);
+    });
+    try {
+      await manager.click('Nova categoria'); await manager.change('nome', 'Matrícula'); await manager.submit();
+      assert.match(manager.html(), /Categoria salva com sucesso/); assert.match(manager.html(), /role="alert"/);
+      assert.equal(manager.calls.filter(call => call.options.method === 'POST').length, 1);
+    } finally { await manager.restore(); }
+  });
+  it('excluir último item de página volta à última página oficial disponível', async () => {
+    let deleted = false;
+    const manager = await mountCategories(async (url, options) => {
+      if (options.method === 'DELETE') { deleted = true; return categoriaReply(null, 204); }
+      const page = Number(url.searchParams.get('page'));
+      return categoriaList(deleted && page === 2 ? [] : [categoriaDuvidaFixture], {
+        current_page: page, total_pages: deleted ? 1 : 2, total_count: deleted ? 10 : 11, per_page: 10,
+      });
+    });
+    try {
+      await manager.click('Próxima'); await manager.click('Excluir Matrícula'); await manager.click('Confirmar exclusão');
+      assert.match(manager.html(), /Página 1 de 1 · 10 categorias/);
+      assert.equal(manager.calls.at(-1)?.url.searchParams.get('page'), '1');
+    } finally { await manager.restore(); }
+  });
+  it('Strict Mode não duplica a leitura inicial', async () => {
+    const manager = await mountCategories(async () => categoriaList(), true);
+    try { assert.equal(manager.calls.length, 1); } finally { await manager.restore(); }
+  });
+  it('resposta de gravação após desmontagem não dispara nova listagem', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountCategories(async (_url, options) => options.method === 'PATCH' ? pending.promise : categoriaList());
+    try {
+      const toggle = manager.nodes().find(node => node.props['aria-label'] === 'Desativar Matrícula'); assert.ok(toggle);
+      await manager.act(() => { void Reflect.apply(toggle.props.onClick as () => unknown, undefined, []); });
+      await manager.unmount(); await manager.act(() => pending.resolve(categoriaReply({ ...categoriaDuvidaFixture, ativo: false })));
+      assert.equal(manager.calls.length, 2);
+    } finally { await manager.restore(); }
+  });
+});
+
+// Lote C2 — fixtures restritas aos testes e rede integralmente interceptada.
+const duvidaFixture: DDuvida = {
+  id: 31, pergunta: 'Como faço minha matrícula?', resposta: 'Procure a secretaria.',
+  d_categoria_duvida_id: 21, categoria_nome: 'Matrícula', n_status_noticia_id: 1,
+  status: 'aguardando', status_nome: 'Aguardando aprovação', autor_id: 9, autor_nome: 'Autora sintética',
+  avaliado_por_id: null, avaliado_por_nome: null, created_by: '9', updated_by: null,
+  created_at: '2026-10-31T12:00:00Z', updated_at: '2026-10-31T12:00:00Z',
+};
+const duvidaInput: DDuvidaInput = { d_categoria_duvida_id: 21, pergunta: duvidaFixture.pergunta, resposta: duvidaFixture.resposta };
+function duvidaList(items = [duvidaFixture], pagination = {
+  current_page: 1, total_pages: items.length ? 1 : 0, total_count: items.length, per_page: 10,
+}) {
+  return categoriaReply({ success: true, message: 'Resultado sintético', data: { items, pagination } });
+}
+function mountDuvidas(fetcher: (url: URL, options: RequestInit) => Promise<Response>, strict = false, component = () => FaqModule()) {
+  return mountCategories(fetcher, strict, { component, allowedPaths: /\/(?:d_categorias_duvida|d_duvidas(?:\/\d+(?:\/(?:publicar|reprovar|despublicar))?)?)$/ });
+}
+
+describe('Dúvidas C2 — oito endpoints autenticados', () => {
+  const service = medtecApi.duvidas;
+  const operations = {
+    list: () => service.list({ page: 2, per_page: 5, 'q[pergunta_cont]': 'matrícula', 'q[d_categoria_duvida_id_eq]': 21, 'q[n_status_noticia_slug_eq]': 'aguardando' }),
+    get: () => service.get(31), create: () => service.create(duvidaInput), update: () => service.update(31, duvidaInput),
+    delete: () => service.delete(31), publicar: () => service.publicar(31), reprovar: () => service.reprovar(31), despublicar: () => service.despublicar(31),
+  };
+  for (const operation of ['list', 'get', 'create', 'update', 'delete', 'publicar', 'reprovar', 'despublicar'] as const) {
+    it(operation + ': método, Bearer, formato e corpo oficiais', async () => {
+      setStoredTokens({ access_token: 'duvida-user', refresh_token: 'duvida-refresh' });
+      const calls: { url: URL; options: RequestInit }[] = [];
+      const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options: RequestInit = {}) => {
+        calls.push({ url: new URL(String(input)), options });
+        if (operation === 'list') return duvidaList([duvidaFixture], { current_page: 2, total_pages: 4, total_count: 18, per_page: 5 });
+        return categoriaReply(duvidaFixture, operation === 'create' ? 201 : operation === 'delete' ? 204 : 200);
+      });
+      try {
+        const result = await operations[operation](); assert.equal(calls.length, 1);
+        const { url, options } = calls[0];
+        const editorial = ['publicar', 'reprovar', 'despublicar'].includes(operation);
+        const suffix = ['get', 'update', 'delete'].includes(operation) || editorial ? '/31' : '';
+        assert.ok(url.pathname.endsWith('/d_duvidas' + suffix + (editorial ? '/' + operation : '')));
+        assert.equal(options.method, { list: 'GET', get: 'GET', create: 'POST', update: 'PATCH', delete: 'DELETE', publicar: 'PATCH', reprovar: 'PATCH', despublicar: 'PATCH' }[operation]);
+        assert.equal(new Headers(options.headers).get('Authorization'), 'Bearer duvida-user');
+        if (operation === 'create' || operation === 'update') assert.deepEqual(JSON.parse(String(options.body)), { d_duvida: duvidaInput });
+        else assert.equal(options.body, undefined, 'Consulta, exclusão e decisões editoriais não enviam corpo ou motivo');
+        if (operation === 'list') {
+          assert.deepEqual(url.searchParams.get('q[pergunta_cont]'), 'matrícula');
+          assert.equal(url.searchParams.get('q[d_categoria_duvida_id_eq]'), '21');
+          assert.equal(url.searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+          assert.equal(url.searchParams.get('page'), '2'); assert.equal(url.searchParams.get('per_page'), '5');
+          assert.deepEqual(result, { success: true, message: 'Resultado sintético', data: { items: [duvidaFixture], pagination: { current_page: 2, total_pages: 4, total_count: 18, per_page: 5 } } });
+        } else if (operation === 'delete') assert.equal(result, undefined);
+        else assert.deepEqual(result, duvidaFixture);
+      } finally { fetcher.mock.restore(); clearStoredTokens(); }
+    });
+  }
+  for (const method of ['create', 'update'] as const) {
+    it(method + ' descarta campos extras do modelo legado e campos controlados pelo servidor', async () => {
+      const fetcher = mock.method(globalThis, 'fetch', async (_input: RequestInfo | URL, options?: RequestInit) => {
+        assert.deepEqual(JSON.parse(String(options?.body)), { d_duvida: duvidaInput });
+        return categoriaReply(duvidaFixture);
+      });
+      const extra = { ...duvidaInput, autor_id: 999, status: 'publicada', motivo: 'não permitido', motivo_reprovacao: 'não permitido', tags: ['legado'], personas: ['gestores'], actionLink: { href: '/faq' } };
+      try { if (method === 'create') await service.create(extra); else await service.update(31, extra); }
+      finally { fetcher.mock.restore(); }
+    });
+  }
+  it('reutiliza cancelamento do cliente e preserva avaliador nulo', async () => {
+    const controller = new AbortController();
+    const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+      assert.equal(options?.signal, controller.signal);
+      return String(input).includes('/31') ? categoriaReply(duvidaFixture) : duvidaList([]);
+    });
+    try {
+      const result = await service.list({ page: 1 }, controller.signal);
+      assert.equal(result.data.pagination.total_count, 0); assert.deepEqual(result.data.items, []);
+      assert.equal((await service.get(31, controller.signal)).avaliado_por_id, null);
+    } finally { fetcher.mock.restore(); }
+  });
+  for (const [status, operation] of [[401, 'list'], [403, 'publicar'], [403, 'reprovar'], [403, 'delete'], [404, 'get'], [422, 'create'], [422, 'update']] as const) {
+    it(operation + ' propaga HTTP ' + status, async () => {
+      let count = 0;
+      const fetcher = mock.method(globalThis, 'fetch', async () => {
+        count++; return categoriaReply({ success: false, message: 'Falha sintética', errors: [status === 401 ? 'nao_autenticado' : status === 403 ? 'sem_permissao' : 'Pergunta inválida'] }, status);
+      });
+      try {
+        await assert.rejects(operations[operation](), error => error instanceof ApiError && error.status === status);
+        assert.equal(count, 1);
+      } finally { fetcher.mock.restore(); }
+    });
+  }
+  it('erro de rede não vira sucesso ou vazio', async () => {
+    const fetcher = mock.method(globalThis, 'fetch', async () => { throw new TypeError('Failed to fetch'); });
+    try { await assert.rejects(service.list(), error => error instanceof ApiError && error.status === 0); }
+    finally { fetcher.mock.restore(); }
+  });
+  for (const payload of [null, {}, { success: false }, { success: true, data: { items: [] } },
+    { success: true, data: { items: [duvidaFixture], pagination: { current_page: 1, total_pages: 1, total_count: 1, per_page: 0 } } },
+    { success: true, data: { items: [{ ...duvidaFixture, status: 'rascunho' }], pagination: { current_page: 1, total_pages: 1, total_count: 1, per_page: 10 } } }]) {
+    it('rejeita resposta inválida: ' + JSON.stringify(payload), async () => {
+      const fetcher = mock.method(globalThis, 'fetch', async () => categoriaReply(payload));
+      try { await assert.rejects(service.list(), /Resposta inválida/); } finally { fetcher.mock.restore(); }
+    });
+  }
+  it('objeto individual não aceita envelope indevido', async () => {
+    const fetcher = mock.method(globalThis, 'fetch', async () => categoriaReply({ success: true, data: duvidaFixture }));
+    try { await assert.rejects(service.get(31), /Resposta inválida/); } finally { fetcher.mock.restore(); }
+  });
+});
+
+describe('Dúvidas C2 — interface e fluxo editorial', () => {
+  function backend(read: (url: URL, options: RequestInit) => Promise<Response>) {
+    return async (url: URL, options: RequestInit) => url.pathname.endsWith('/d_categorias_duvida') ? categoriaList() : read(url, options);
+  }
+  async function fill(manager: Awaited<ReturnType<typeof mountDuvidas>>) {
+    await manager.change('d_categoria_duvida_id', '21');
+    await manager.change('pergunta', duvidaFixture.pergunta); await manager.change('resposta', duvidaFixture.resposta);
+  }
+  it('listagem pendente apresenta carregamento; vazio oficial aparece somente após sucesso', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountDuvidas(backend(() => pending.promise));
+    try {
+      assert.match(manager.html(), /Carregando dúvidas/); assert.doesNotMatch(manager.html(), /Nenhuma dúvida/);
+      await manager.act(() => pending.resolve(duvidaList([])));
+      assert.match(manager.html(), /Nenhuma dúvida encontrada/); assert.doesNotMatch(manager.html(), /role="alert"/);
+    } finally { await manager.restore(); }
+  });
+  it('pagina e envia os três filtros ao backend, reiniciando a página e preservando-os na navegação', async () => {
+    const manager = await mountDuvidas(backend(async url => duvidaList([duvidaFixture], {
+      current_page: Number(url.searchParams.get('page')), total_pages: 3, total_count: 25, per_page: 10,
+    })));
+    try {
+      await manager.click('Próxima'); assert.match(manager.html(), /Página 2 de 3 · 25 dúvidas/);
+      const before = manager.calls.length;
+      await manager.change('busca', ' certificado '); await manager.change('categoriaFiltro', '21'); await manager.change('situacaoFiltro', 'reprovada');
+      assert.equal(manager.calls.length, before, 'Alterar campos só consulta ao aplicar os filtros');
+      await manager.submit('Filtros de dúvidas');
+      const url = manager.calls.at(-1)!.url;
+      assert.equal(url.searchParams.get('page'), '1'); assert.equal(url.searchParams.get('per_page'), '10');
+      assert.equal(url.searchParams.get('q[pergunta_cont]'), 'certificado');
+      assert.equal(url.searchParams.get('q[d_categoria_duvida_id_eq]'), '21');
+      assert.equal(url.searchParams.get('q[n_status_noticia_slug_eq]'), 'reprovada');
+      assert.match(manager.html(), /Como faço minha matrícula/, 'A interface usa a coleção recebida e não um filtro local da página');
+      await manager.click('Próxima'); assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[pergunta_cont]'), 'certificado');
+      await manager.click('Limpar filtros');
+      assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[pergunta_cont]'), false);
+      assert.equal(manager.calls.at(-1)!.url.searchParams.get('page'), '1');
+    } finally { await manager.restore(); }
+  });
+  for (const status of ['aguardando', 'publicada'] as const) {
+    it('cadastro aceita a situação ' + status + ' definida pelo Rails', async () => {
+      let created = false;
+      const value = { ...duvidaFixture, status, status_nome: status === 'publicada' ? 'Publicada' : 'Aguardando aprovação' };
+      const manager = await mountDuvidas(backend(async (_url, options) => {
+        if (options.method === 'POST') { assert.deepEqual(JSON.parse(String(options.body)), { d_duvida: duvidaInput }); created = true; return categoriaReply(value, 201); }
+        return duvidaList(created ? [value] : []);
+      }));
+      try {
+        await manager.click('Nova dúvida'); await fill(manager); await manager.submit('Criar dúvida');
+        assert.match(manager.html(), new RegExp('Situação: ' + value.status_nome)); assert.equal(created, true);
+        assert.deepEqual(manager.calls.filter(call => call.url.pathname.endsWith('/d_duvidas')).map(call => call.options.method), ['GET', 'POST', 'GET']);
+      } finally { await manager.restore(); }
+    });
+  }
+  it('formulário exige categoria, pergunta e resposta sem enviar dados inválidos', async () => {
+    const manager = await mountDuvidas(backend(async () => duvidaList([])));
+    try {
+      await manager.click('Nova dúvida'); await manager.submit('Criar dúvida');
+      assert.match(manager.html(), /Selecione a categoria e preencha/);
+      await fill(manager); await manager.change('resposta', '   '); await manager.submit('Criar dúvida');
+      assert.equal(manager.calls.filter(call => call.options.method !== 'GET').length, 0);
+    } finally { await manager.restore(); }
+  });
+  it('edição usa GET individual e mostra reprovada → aguardando conforme resposta oficial', async () => {
+    let saved = false;
+    const rejected = { ...duvidaFixture, status: 'reprovada' as const, status_nome: 'Reprovada' };
+    const manager = await mountDuvidas(backend(async (url, options) => {
+      if (options.method === 'PATCH') {
+        assert.deepEqual(JSON.parse(String(options.body)), { d_duvida: { ...duvidaInput, resposta: 'Resposta corrigida.' } });
+        saved = true; return categoriaReply({ ...duvidaFixture, resposta: 'Resposta corrigida.' });
+      }
+      if (url.pathname.endsWith('/31')) return categoriaReply(rejected);
+      return duvidaList([saved ? { ...duvidaFixture, resposta: 'Resposta corrigida.' } : rejected]);
+    }));
+    try {
+      await manager.click('Editar ' + duvidaFixture.pergunta);
+      assert.ok(manager.calls.some(call => call.url.pathname.endsWith('/d_duvidas/31') && call.options.method === 'GET'));
+      await manager.change('resposta', 'Resposta corrigida.'); await manager.submit('Editar dúvida');
+      assert.match(manager.html(), /Situação: Aguardando aprovação/); assert.match(manager.html(), /Resposta corrigida/);
+    } finally { await manager.restore(); }
+  });
+  for (const [action, initial, status, label] of [
+    ['publicar', 'aguardando', 'publicada', 'Publicar'],
+    ['reprovar', 'aguardando', 'reprovada', 'Reprovar'],
+    ['despublicar', 'publicada', 'aguardando', 'Despublicar'],
+  ] as const) {
+    it(label + ' usa PATCH próprio sem corpo e recarrega o resultado', async () => {
+      let done = false;
+      const value = { ...duvidaFixture, status, status_nome: status === 'publicada' ? 'Publicada' : status === 'reprovada' ? 'Reprovada' : 'Aguardando aprovação', avaliado_por_id: 7, avaliado_por_nome: 'Avaliadora sintética' };
+      const manager = await mountDuvidas(backend(async (url, options) => {
+        if (options.method === 'PATCH') {
+          assert.ok(url.pathname.endsWith('/31/' + action)); assert.equal(options.body, undefined);
+          done = true; return categoriaReply(value);
+        }
+        return duvidaList([done ? value : { ...duvidaFixture, status: initial }]);
+      }));
+      try {
+        await manager.click(label + ' ' + duvidaFixture.pergunta);
+        assert.match(manager.html(), new RegExp('Situação: ' + value.status_nome)); assert.match(manager.html(), /Avaliadora sintética/);
+        assert.equal(manager.calls.filter(call => call.url.pathname.endsWith('/d_duvidas')).length, 2);
+        assert.equal(manager.nodes().some(node => node.props.name === 'motivo'), false);
+      } finally { await manager.restore(); }
+    });
+  }
+  it('não presume publicação pelo botão acionado quando a API retorna aguardando', async () => {
+    const manager = await mountDuvidas(backend(async (_url, options) => options.method === 'PATCH' ? categoriaReply(duvidaFixture) : duvidaList()));
+    try {
+      await manager.click('Publicar ' + duvidaFixture.pergunta);
+      assert.match(manager.html(), /Situação: Aguardando aprovação/); assert.doesNotMatch(manager.html(), /publicada com sucesso/i);
+    } finally { await manager.restore(); }
+  });
+  it('exclusão requer confirmação, aceita 204 e atualiza a lista', async () => {
+    let deleted = false;
+    const manager = await mountDuvidas(backend(async (_url, options) => {
+      if (options.method === 'DELETE') { deleted = true; return categoriaReply(null, 204); }
+      return duvidaList(deleted ? [] : [duvidaFixture]);
+    }));
+    try {
+      await manager.click('Excluir ' + duvidaFixture.pergunta); assert.equal(deleted, false);
+      await manager.click('Cancelar exclusão'); assert.equal(deleted, false);
+      await manager.click('Excluir ' + duvidaFixture.pergunta); await manager.click('Confirmar exclusão');
+      assert.match(manager.html(), /Dúvida excluída com sucesso/); assert.match(manager.html(), /Nenhuma dúvida/);
+    } finally { await manager.restore(); }
+  });
+  for (const action of ['Publicar', 'Reprovar', 'Despublicar', 'Excluir'] as const) {
+    it('403 em ' + action + ' não produz sucesso nem muda a situação', async () => {
+      const value = { ...duvidaFixture, status: action === 'Despublicar' ? 'publicada' as const : 'aguardando' as const,
+        status_nome: action === 'Despublicar' ? 'Publicada' : 'Aguardando aprovação' };
+      const manager = await mountDuvidas(backend(async (_url, options) => options.method === 'GET' ? duvidaList([value])
+        : categoriaReply({ success: false, errors: ['sem_permissao'] }, 403)));
+      try {
+        await manager.click(action + ' ' + duvidaFixture.pergunta);
+        if (action === 'Excluir') await manager.click('Confirmar exclusão');
+        assert.match(manager.html(), /não possui permissão/); assert.doesNotMatch(manager.html(), /Dúvida atualizada|Dúvida excluída com sucesso/);
+        assert.match(manager.html(), /Como faço minha matrícula/);
+        assert.ok(manager.nodes().some(node => node.props['aria-label'] === (action === 'Despublicar' ? 'Despublicar ' : 'Publicar ') + duvidaFixture.pergunta));
+        assert.equal(manager.calls.filter(call => call.url.pathname.endsWith('/d_duvidas')).length, 1);
+      } finally { await manager.restore(); }
+    });
+  }
+  for (const status of [401, 403, 404, 422, 'network'] as const) {
+    it('leitura com ' + status + ' informa falha sem falso vazio e permite repetir', async () => {
+      let failed = false;
+      const manager = await mountDuvidas(backend(async () => {
+        if (failed) return duvidaList(); failed = true;
+        if (status === 'network') throw new TypeError('Failed to fetch');
+        return categoriaReply({ success: false, message: 'Falha de leitura', errors: [status === 401 ? 'nao_autenticado' : status === 403 ? 'sem_permissao' : 'Filtro inválido'] }, status);
+      }));
+      try {
+        assert.match(manager.html(), /role="alert"/); assert.doesNotMatch(manager.html(), /Nenhuma dúvida/);
+        if (status === 401) setStoredTokens({ access_token: 'category-ui-user', refresh_token: 'category-ui-refresh' });
+        await manager.click('Tentar novamente'); assert.match(manager.html(), /Como faço minha matrícula/);
+      } finally { await manager.restore(); }
+    });
+  }
+  for (const [method, status] of [['create', 422], ['create', 403], ['edit', 422], ['edit', 404]] as const) {
+    it(method + ': HTTP ' + status + ' preserva formulário e resposta sem sucesso falso', async () => {
+      const manager = await mountDuvidas(backend(async (url, options) => {
+        if (options.method === 'POST' || options.method === 'PATCH') return categoriaReply({ success: false, message: 'Não foi possível salvar', errors: [status === 403 ? 'sem_permissao' : 'Pergunta inválida'] }, status);
+        return url.pathname.endsWith('/31') ? categoriaReply(duvidaFixture) : duvidaList();
+      }));
+      try {
+        await manager.click(method === 'create' ? 'Nova dúvida' : 'Editar ' + duvidaFixture.pergunta);
+        if (method === 'create') await fill(manager);
+        await manager.change('resposta', 'Conteúdo preservado.'); await manager.submit(method === 'create' ? 'Criar dúvida' : 'Editar dúvida');
+        assert.match(manager.html(), /role="alert"/); assert.match(manager.html(), /Conteúdo preservado/);
+        assert.doesNotMatch(manager.html(), /Dúvida cadastrada\.|Dúvida salva\./);
+      } finally { await manager.restore(); }
+    });
+  }
+  it('consulta individual 404 não abre editor com dados obsoletos', async () => {
+    const manager = await mountDuvidas(backend(async url => url.pathname.endsWith('/31') ? categoriaReply({ success: false }, 404) : duvidaList()));
+    try {
+      await manager.click('Editar ' + duvidaFixture.pergunta); assert.match(manager.html(), /não foi encontrado/);
+      assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Editar dúvida'), false);
+    } finally { await manager.restore(); }
+  });
+  it('reutiliza a listagem C1 e isola falha de categorias sem apagar dúvidas', async () => {
+    let failed = true;
+    const manager = await mountDuvidas(async url => {
+      if (url.pathname.endsWith('/d_categorias_duvida')) {
+        assert.equal(url.searchParams.get('page'), 'all');
+        return failed ? categoriaReply({ success: false, errors: ['sem_permissao'] }, 403) : categoriaList();
+      }
+      return duvidaList();
+    });
+    try {
+      assert.match(manager.html(), /Não foi possível carregar as categorias/); assert.match(manager.html(), /Como faço minha matrícula/);
+      const create = manager.nodes().find(node => node.props.children === 'Nova dúvida'); assert.equal(create?.props.disabled, true);
+      failed = false; await manager.click('Recarregar categorias'); await manager.click('Nova dúvida');
+      assert.ok(manager.nodes().some(node => node.type === 'option' && node.props.value === 21));
+      assert.equal(manager.calls.filter(call => call.url.pathname.endsWith('/d_duvidas')).length, 1);
+    } finally { await manager.restore(); }
+  });
+  it('catálogo vazio impede cadastro sem inventar categorias', async () => {
+    const manager = await mountDuvidas(async url => url.pathname.endsWith('/d_categorias_duvida') ? categoriaList([]) : duvidaList());
+    try {
+      assert.match(manager.html(), /Cadastre uma categoria na aba Categorias/);
+      assert.equal(manager.nodes().find(node => node.props.children === 'Nova dúvida')?.props.disabled, true);
+    } finally { await manager.restore(); }
+  });
+  it('retornar da aba C1 atualiza categorias sem perder o rascunho de dúvida', async () => {
+    let active = true; let name = 'Matrícula';
+    const manager = await mountDuvidas(async url => url.pathname.endsWith('/d_categorias_duvida')
+      ? categoriaList([{ ...categoriaDuvidaFixture, nome: name }]) : duvidaList(), false, () => FaqModule({ active }));
+    try {
+      await manager.click('Nova dúvida'); await fill(manager); await manager.change('resposta', 'Rascunho mantido.');
+      active = false; await manager.render(); const reads = manager.calls.length;
+      name = 'Matrículas atualizadas'; active = true; await manager.render();
+      assert.equal(manager.calls.length, reads + 2); assert.match(manager.html(), /Matrículas atualizadas/); assert.match(manager.html(), /Rascunho mantido/);
+    } finally { await manager.restore(); }
+  });
+  it('sucesso de escrita com recarga falha informa ambos sem repetir a escrita', async () => {
+    let written = false;
+    const manager = await mountDuvidas(backend(async (_url, options) => {
+      if (options.method === 'POST') { written = true; return categoriaReply(duvidaFixture, 201); }
+      return written ? categoriaReply({ success: false }, 503) : duvidaList([]);
+    }));
+    try {
+      await manager.click('Nova dúvida'); await fill(manager); await manager.submit('Criar dúvida');
+      assert.match(manager.html(), /Dúvida cadastrada/); assert.match(manager.html(), /role="alert"/);
+      assert.equal(manager.calls.filter(call => call.options.method === 'POST').length, 1);
+    } finally { await manager.restore(); }
+  });
+  it('Strict Mode não duplica leituras iniciais de dúvidas e categorias', async () => {
+    const manager = await mountDuvidas(backend(async () => duvidaList()), true);
+    try { assert.equal(manager.calls.length, 2); } finally { await manager.restore(); }
+  });
+  it('resposta anterior aos filtros não substitui a leitura vigente', async () => {
+    const pending = adminReturnDeferred<Response>(); let reads = 0;
+    const manager = await mountDuvidas(backend(async () => ++reads === 1 ? pending.promise : duvidaList([{ ...duvidaFixture, pergunta: 'Resultado vigente' }])));
+    try {
+      await manager.change('busca', 'vigente'); await manager.submit('Filtros de dúvidas'); assert.match(manager.html(), /Resultado vigente/);
+      await manager.act(() => pending.resolve(duvidaList([{ ...duvidaFixture, pergunta: 'Resposta obsoleta' }])));
+      assert.match(manager.html(), /Resultado vigente/); assert.doesNotMatch(manager.html(), /Resposta obsoleta/);
+    } finally { await manager.restore(); }
+  });
+  it('duplo clique em decisão editorial não duplica PATCH pendente', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountDuvidas(backend(async (_url, options) => options.method === 'PATCH' ? pending.promise : duvidaList()));
+    try {
+      const button = manager.nodes().find(node => node.props['aria-label'] === 'Publicar ' + duvidaFixture.pergunta); assert.ok(button);
+      await manager.act(() => { for (let i = 0; i < 2; i++) void Reflect.apply(button.props.onClick as () => unknown, undefined, []); });
+      assert.equal(manager.calls.filter(call => call.options.method === 'PATCH').length, 1);
+      await manager.act(() => pending.resolve(categoriaReply(duvidaFixture)));
+    } finally { await manager.restore(); }
+  });
+  it('decisão concluída após desmontagem não dispara recarga', async () => {
+    const pending = adminReturnDeferred<Response>();
+    const manager = await mountDuvidas(backend(async (_url, options) => options.method === 'PATCH' ? pending.promise : duvidaList()));
+    try {
+      const button = manager.nodes().find(node => node.props['aria-label'] === 'Reprovar ' + duvidaFixture.pergunta); assert.ok(button);
+      await manager.act(() => { void Reflect.apply(button.props.onClick as () => unknown, undefined, []); });
+      await manager.unmount(); await manager.act(() => pending.resolve(categoriaReply({ ...duvidaFixture, status: 'reprovada' })));
+      assert.equal(manager.calls.filter(call => call.url.pathname.endsWith('/d_duvidas')).length, 1);
+    } finally { await manager.restore(); }
+  });
+  it('exclusão do último item de página retorna à última página válida', async () => {
+    let deleted = false;
+    const manager = await mountDuvidas(backend(async (url, options) => {
+      if (options.method === 'DELETE') { deleted = true; return categoriaReply(null, 204); }
+      const page = Number(url.searchParams.get('page'));
+      return duvidaList(deleted && page === 2 ? [] : [duvidaFixture], { current_page: page, total_pages: deleted ? 1 : 2, total_count: deleted ? 10 : 11, per_page: 10 });
+    }));
+    try {
+      await manager.click('Próxima'); await manager.click('Excluir ' + duvidaFixture.pergunta); await manager.click('Confirmar exclusão');
+      assert.match(manager.html(), /Página 1 de 1 · 10 dúvidas/);
+    } finally { await manager.restore(); }
+  });
 });

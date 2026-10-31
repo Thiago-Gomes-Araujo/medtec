@@ -23,6 +23,7 @@ import { avisosService, tiposAvisoService } from './services/avisos.service';
 import { categoriasGaleriaService, fotosGaleriaService } from './services/galeria.service';
 import { canaisService } from './services/canais.service';
 import { noticiasService } from './services/noticias.service';
+import { categoriasDuvidaService, duvidasService } from './services/duvidas.service';
 
 export const medtecApi = {
   // Autenticação e Sessão (/auth)
@@ -62,6 +63,10 @@ export const medtecApi = {
 
   // Notícias e Fila Editorial (Contrato Previsto)
   noticias: noticiasService,
+
+  // Categorias de Dúvidas (/d_categorias_duvida)
+  categoriasDuvida: categoriasDuvidaService,
+  duvidas: duvidasService,
 };
 
 // Exportações de infraestrutura e utilitários

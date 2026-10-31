@@ -12,6 +12,8 @@ import {
   AAviso,
   AAvisoInput,
   QueryParams,
+  AvisoPublico,
+  PublicoAvisosParams,
 } from '../types';
 
 export const tiposAvisoService = {
@@ -66,6 +68,28 @@ export const tiposAvisoService = {
 };
 
 export const avisosService = {
+  /** Leitura anônima do site; mantém os métodos autenticados do CMS abaixo. */
+  async listPublico(params?: PublicoAvisosParams): Promise<ApiResponse<PaginatedData<AvisoPublico>>> {
+    const response = await apiFetch<ApiResponse<PaginatedData<AvisoPublico>>>('/publico/a_avisos', {
+      method: 'GET', params: { ...params }, skipAuth: true, cache: 'no-store',
+    });
+    const items = response?.data?.items;
+    const pagination = response?.data?.pagination;
+    if (response?.success !== true || !Array.isArray(items) || !pagination ||
+        !Number.isSafeInteger(pagination.current_page) || pagination.current_page < 1 ||
+        !Number.isSafeInteger(pagination.total_pages) || pagination.total_pages < 0 ||
+        !Number.isSafeInteger(pagination.total_count) || pagination.total_count < 0 ||
+        !Number.isSafeInteger(pagination.per_page) || pagination.per_page < 1 ||
+        items.some(item => !item ||
+          !['titulo', 'conteudo', 'tipo_nome', 'tipo_slug', 'tipo_cor', 'created_at']
+            .every(key => typeof item[key as keyof AvisoPublico] === 'string') ||
+          !(item.link_texto === null || typeof item.link_texto === 'string') ||
+          !(item.link_url === null || typeof item.link_url === 'string'))) {
+      throw new Error('Resposta inválida da API pública de Avisos.');
+    }
+    return response;
+  },
+
   /**
    * Lista os avisos ativos ou filtrados por tipo (mais recentes primeiro)
    * Endpoint: GET /a_avisos

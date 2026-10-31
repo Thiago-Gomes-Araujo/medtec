@@ -218,6 +218,69 @@ export interface AAvisoInput {
   ativo?: boolean;
 }
 
+// DTO do site: não contém identificador, ativo ou associação do CMS.
+export interface AvisoPublico {
+  titulo: string;
+  conteudo: string;
+  link_texto: string | null;
+  link_url: string | null;
+  tipo_nome: string;
+  tipo_slug: string;
+  tipo_cor: string;
+  created_at: string;
+}
+
+export interface PublicoAvisosParams {
+  page?: number | 'all';
+  per_page?: number;
+  tipo?: string;
+}
+
+// Categorias de dúvidas — contrato ROTAS_NOVAS_AVISOS_DUVIDAS.md.
+export interface DCategoriaDuvida {
+  id: number;
+  nome: string;
+  slug: string;
+  ativo: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DCategoriaDuvidaInput {
+  nome: string;
+  slug?: string;
+  ativo?: boolean;
+}
+
+export type DuvidaStatus = 'aguardando' | 'reprovada' | 'publicada';
+
+export interface DDuvida {
+  id: number;
+  pergunta: string;
+  resposta: string;
+  d_categoria_duvida_id: number;
+  categoria_nome: string;
+  n_status_noticia_id: number;
+  status: DuvidaStatus;
+  status_nome: string;
+  autor_id: number;
+  autor_nome: string;
+  avaliado_por_id: number | null;
+  avaliado_por_nome: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DDuvidaInput {
+  d_categoria_duvida_id: number;
+  pergunta: string;
+  resposta: string;
+}
+
 // ============================================================================
 // Galeria de Fotos
 // ============================================================================
