@@ -41,6 +41,8 @@ import {
   Lock,
 } from 'lucide-react';
 import { medtecApi, clearStoredTokens, type AuthUser } from '@/lib/api';
+import { getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
+import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
 import { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
@@ -121,7 +123,8 @@ export default function AdminShell({
   const { isDark, toggleTheme } = useAdminTheme();
 
   // Verificação de sessão
-  const checkAuth = useCallback(async () => {
+  const checkAuth = useCallback(async (isCurrent: () => boolean) => {
+    if (!isCurrent()) return;
     setLoadingAuth(true);
     try {
       let authenticated = false;
@@ -130,23 +133,22 @@ export default function AdminShell({
       if (medtecApi.auth.isAuthenticated()) {
         try {
           const meRes = await medtecApi.auth.me();
+          if (!isCurrent()) return;
           if (meRes.success && meRes.data) {
             authenticated = true;
-            const isGestor =
-              meRes.data.perfil_nome === 'Administrador' ||
-              meRes.data.perfil_id === 3 ||
-              meRes.data.id === 1;
+            const { isGestor, username, name, profileType } = getRailsSessionFields(meRes.data);
             setIsLoggedIn(true);
             setUserSession({
               isGestor,
-              username: meRes.data.cpf,
+              username,
               role: meRes.data.perfil_nome,
-              name: meRes.data.nome,
-              profileType: meRes.data.perfil_nome,
+              name,
+              profileType,
               apiUser: meRes.data,
             });
           }
         } catch (meErr) {
+          if (!isCurrent()) return;
           console.warn('AdminShell: GET /auth/me falhou ou token expirou:', meErr);
         }
       }
@@ -154,16 +156,18 @@ export default function AdminShell({
       // 2. Fallback de sessão local
       if (!authenticated) {
         const authRes = await fetch('/api/auth');
+        if (!isCurrent()) return;
         if (authRes.ok) {
           const authJson = await authRes.json();
-          const isGestor = authJson.isGestor !== false;
+          if (!isCurrent()) return;
+          const { isGestor, username, name, profileType } = getLocalSessionFields(authJson);
           setIsLoggedIn(true);
           setUserSession({
             isGestor,
-            username: authJson.user,
+            username,
             role: authJson.role,
-            name: authJson.name,
-            profileType: authJson.profileType,
+            name,
+            profileType,
           });
           authenticated = true;
         }
@@ -171,18 +175,22 @@ export default function AdminShell({
 
       if (!authenticated) {
         setIsLoggedIn(false);
-        router.push(`/admin/login?redirect=${encodeURIComponent(pathname || '/admin')}`);
+        router.push(getAdminLoginHref(pathname || '/admin', window.location.search));
       }
     } catch (err) {
+      if (!isCurrent()) return;
       console.error('AdminShell: Erro ao verificar autenticação:', err);
       router.push('/admin/login');
     } finally {
-      setLoadingAuth(false);
+      if (isCurrent()) setLoadingAuth(false);
     }
   }, [router, pathname]);
 
   useEffect(() => {
-    void checkAuth();
+    // O cleanup invalida somente este setup, inclusive após ocultar e reativar.
+    let active = true;
+    void checkAuth(() => active);
+    return () => { active = false; };
   }, [checkAuth]);
 
   // Fecha o drawer mobile ao mudar de rota

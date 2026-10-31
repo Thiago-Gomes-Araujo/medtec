@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import SidebarNavItem from '@/components/admin/SidebarNavItem';
 import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter from '@/components/admin/MobileDrawerFooter';
 import SidebarFolderAccordion, { type NavFolderDef } from '@/components/admin/SidebarFolderAccordion';
 import { useAdminTheme } from '@/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '@/lib/admin-navigation-filter';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Tv, 
@@ -42,14 +42,79 @@ import {
 } from 'lucide-react';
 import { useAdminOverview } from '@/components/admin/useAdminOverview';
 import AdminOverview from '@/components/admin/AdminOverview';
-import { getLegacyFaqHref } from '@/lib/admin-faq';
 import { getLegacyProjectsHref } from '@/lib/admin-projects';
-import { getLegacyBannersHref } from '@/lib/admin-banners';
+import { getAdminStaticAlias } from '@/lib/admin-aliases';
+import { getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
+import { getAdminEditorialDestination } from '@/lib/admin-auth-navigation';
 import { SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
 import {
   medtecApi,
   clearStoredTokens,
 } from '@/lib/api';
+
+function getAdminNavigationIntent(params: URLSearchParams) {
+  const tabParam = params.get('tab') || params.get('section');
+  const staticHref = getAdminStaticAlias(tabParam);
+  const projectsHref = getLegacyProjectsHref(params);
+  let method: 'push' | 'replace' | 'select' | null = null;
+  let target: string | null = null;
+
+  if (staticHref && ['fotos', 'banners', 'duvidas', 'faq', 'usuarios', 'kanban'].includes(tabParam || '')) {
+    method = 'replace';
+    target = staticHref;
+  } else if (projectsHref) {
+    method = 'replace';
+    target = projectsHref;
+  } else if (tabParam === 'noticias') {
+    const create = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
+    method = 'replace';
+    target = create ? '/admin/noticias?action=new' : '/admin/noticias';
+  } else if (staticHref && ['avisos', 'galeria', 'estadosCidades', 'siteInfo', 'redes'].includes(tabParam || '')) {
+    method = 'push';
+    target = staticHref;
+  } else if (tabParam && Object.prototype.hasOwnProperty.call(SECTION_CONFIG, tabParam)) {
+    method = 'select';
+    target = tabParam;
+  }
+
+  return { method, target };
+}
+
+function hasCanonicalAdminAlias(params: URLSearchParams): boolean {
+  const { method } = getAdminNavigationIntent(params);
+  return method === 'push' || method === 'replace';
+}
+
+function AdminAliasNavigation({ onSelectSection: handleSelectSection, onLoadData: loadData }: {
+  onSelectSection: (section: AdminSection) => void;
+  onLoadData: (isCurrent: () => boolean) => Promise<void>;
+}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { method, target } = getAdminNavigationIntent(new URLSearchParams(searchParams));
+  const hasCanonicalAlias = method === 'push' || method === 'replace';
+
+  // A decisão efetiva evita repetir navegação por parâmetros sem efeito no destino.
+  // Montagens, reativações e mudanças de contexto continuam executando o efeito.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !method || !target) return;
+    if (method === 'select') handleSelectSection(target as AdminSection);
+    else if (method === 'replace') router.replace(target);
+    else router.push(target);
+  }, [router, method, target, handleSelectSection]);
+
+  useEffect(() => {
+    // O destino canônico valida sua sessão e autorização. Início e aliases
+    // desconhecidos retomam a validação desta página, sem disputar com o alias.
+    if (hasCanonicalAlias) return;
+    let active = true;
+    const isCurrent = () => active && !hasCanonicalAdminAlias(new URLSearchParams(window.location.search));
+    void loadData(isCurrent);
+    return () => { active = false; };
+  }, [loadData, hasCanonicalAlias]);
+
+  return null;
+}
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -65,13 +130,13 @@ export default function AdminDashboardPage() {
     usuarios: false,
   });
 
-  const getFolderIdForSection = (sec: AdminSection): string | null => {
+  const getFolderIdForSection = useCallback((sec: AdminSection): string | null => {
     if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas'].includes(sec)) return 'publicacoes';
     if (['kanban'].includes(sec)) return 'aprovacao';
     if (['siteInfo', 'redes'].includes(sec)) return 'dados';
     if (['usuarios'].includes(sec)) return 'usuarios';
     return null;
-  };
+  }, []);
 
   const toggleFolder = (folderId: string) => {
     setOpenFolders((prev) => {
@@ -84,7 +149,7 @@ export default function AdminDashboardPage() {
     });
   };
 
-  const handleSelectSection = (sec: AdminSection) => {
+  const handleSelectSection = useCallback((sec: AdminSection) => {
     const href = SECTION_HREFS.get(sec);
     if (href) {
       router.push(href);
@@ -95,7 +160,7 @@ export default function AdminDashboardPage() {
     if (activeFolder) {
       setOpenFolders((prev) => ({ ...prev, [activeFolder]: true }));
     }
-  };
+  }, [router, getFolderIdForSection]);
 
   const [userSession, setUserSession] = useState<{
     isGestor: boolean;
@@ -120,14 +185,12 @@ export default function AdminDashboardPage() {
   const { isDark, toggleTheme } = useAdminTheme();
 
   // Carrega dados iniciais e verifica sessão
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (isCurrent: () => boolean) => {
     await Promise.resolve();
-    const params = new URLSearchParams(window.location.search);
-    // O efeito de compatibilidade encaminha os módulos migrados para suas rotas.
-    // Não carrega sessão/dados dos demais módulos para esse acesso legado.
-    if (getLegacyBannersHref(params) || getLegacyProjectsHref(params) || getLegacyFaqHref(params) || ['kanban', 'usuarios'].includes(params.get('tab') || params.get('section') || '')) return;
-    const createNews = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
-    const newsTarget = createNews ? '/admin/noticias?action=new' : '/admin/noticias';
+    if (!isCurrent()) return;
+    // Mantém a guarda também na carga: nenhum alias canônico consulta sessão
+    // ou overview nesta página, inclusive se a URL mudar antes do microtask.
+    if (hasCanonicalAdminAlias(new URLSearchParams(window.location.search))) return;
     try {
       let authenticated = false;
       let overviewAuthorized = false;
@@ -136,38 +199,33 @@ export default function AdminDashboardPage() {
       if (medtecApi.auth.isAuthenticated()) {
         try {
           const meRes = await medtecApi.auth.me();
+          if (!isCurrent()) return;
           if (meRes.success && meRes.data) {
             authenticated = true;
-            const isGestor = meRes.data.perfil_nome === 'Administrador' || meRes.data.perfil_id === 3 || meRes.data.id === 1;
+            const { isGestor, username, name, profileType } = getRailsSessionFields(meRes.data);
             overviewAuthorized = isGestor;
             setIsLoggedIn(true);
             setUserSession({
               isGestor,
-              username: meRes.data.cpf,
-              name: meRes.data.nome,
-              profileType: meRes.data.perfil_nome,
+              username,
+              name,
+              profileType,
               editorialProfile: meRes.data.perfil_nome,
             });
 
-            if (!isGestor) {
-              if (meRes.data.perfil_nome === 'Editor de Notícias') {
-                router.replace(newsTarget);
-                return;
-              } else if (meRes.data.perfil_nome === 'Curador de Fotos') {
-                router.replace('/admin/banners');
-                return;
-              } else if (meRes.data.perfil_nome === 'Publicador de Avisos') {
-                router.push('/admin/avisos');
-                return;
-              } else {
-                router.replace(newsTarget);
-                return;
-              }
+            const destination = getAdminEditorialDestination(
+              isGestor, profileType, new URLSearchParams(window.location.search),
+            );
+            if (destination) {
+              if (destination.method === 'push') router.push(destination.href);
+              else router.replace(destination.href);
+              return;
             } else {
               setCurrentSection('visaoGeral');
             }
           }
         } catch (meErr) {
+          if (!isCurrent()) return;
           console.warn('GET /auth/me falhou ou token expirou:', meErr);
         }
       }
@@ -175,35 +233,29 @@ export default function AdminDashboardPage() {
       // 2. Fallback de sessão local caso o token ainda não exista
       if (!authenticated) {
         const authRes = await fetch('/api/auth');
+        if (!isCurrent()) return;
         if (authRes.ok) {
           const authJson = await authRes.json();
-          const isGestor = authJson.isGestor !== false;
+          if (!isCurrent()) return;
+          const { isGestor, username, name, profileType } = getLocalSessionFields(authJson);
           overviewAuthorized = isGestor;
-          const profileType = authJson.profileType;
 
           setIsLoggedIn(true);
           setUserSession({
             isGestor,
-            username: authJson.user,
-            name: authJson.name,
+            username,
+            name,
             profileType,
           });
           authenticated = true;
 
-          if (!isGestor) {
-            if (profileType === 'Editor de Notícias') {
-              router.replace(newsTarget);
-              return;
-            } else if (profileType === 'Curador de Fotos') {
-              router.replace('/admin/banners');
-              return;
-            } else if (profileType === 'Publicador de Avisos') {
-              router.push('/admin/avisos');
-              return;
-            } else {
-              router.replace(newsTarget);
-              return;
-            }
+          const destination = getAdminEditorialDestination(
+            isGestor, profileType, new URLSearchParams(window.location.search),
+          );
+          if (destination) {
+            if (destination.method === 'push') router.push(destination.href);
+            else router.replace(destination.href);
+            return;
           } else {
             setCurrentSection('visaoGeral');
           }
@@ -217,56 +269,14 @@ export default function AdminDashboardPage() {
       }
 
       // A autenticação e os redirecionamentos acima continuam pertencendo à página.
+      if (!isCurrent()) return;
       await loadOverview(overviewAuthorized);
     } catch (err) {
+      if (!isCurrent()) return;
       console.error(err);
       router.push('/admin/login');
     }
   }, [router, loadOverview]);
-
-  useEffect(() => {
-    const run = async () => {
-      await loadData();
-    };
-    void run();
-  }, [loadData]);
-
-  // Sincroniza subrotas legadas ou transição de abas via query param ?tab= ou ?section=
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const tabParam = params.get('tab') || params.get('section');
-      const faqHref = getLegacyFaqHref(params);
-      const projectsHref = getLegacyProjectsHref(params);
-      const bannersHref = getLegacyBannersHref(params);
-      if (bannersHref) {
-        router.replace(bannersHref);
-      } else if (projectsHref) {
-        router.replace(projectsHref);
-      } else if (faqHref) {
-        router.replace(faqHref);
-      } else if (tabParam === 'usuarios') {
-        router.replace('/admin/usuarios');
-      } else if (tabParam === 'kanban') {
-        router.replace('/admin/kanban');
-      } else if (tabParam === 'noticias') {
-        const create = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
-        router.replace(create ? '/admin/noticias?action=new' : '/admin/noticias');
-      } else if (tabParam === 'avisos') {
-        router.push('/admin/avisos');
-      } else if (tabParam === 'galeria') {
-        router.push('/admin/galeria');
-      } else if (tabParam === 'estadosCidades') {
-        router.push('/admin/estados-cidades');
-      } else if (tabParam === 'siteInfo') {
-        router.push('/admin/institucional');
-      } else if (tabParam === 'redes') {
-        router.push('/admin/redes');
-      } else if (tabParam && tabParam in SECTION_CONFIG) {
-        handleSelectSection(tabParam as AdminSection);
-      }
-    }
-  }, [router]);
 
   const handleLogout = async () => {
     try {
@@ -414,10 +424,17 @@ export default function AdminDashboardPage() {
 
   // Pesquisa Rápida da Sidebar (Filtro Instantâneo Didático)
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
+  const aliasNavigation = (
+    <Suspense fallback={null}>
+      <AdminAliasNavigation onSelectSection={handleSelectSection} onLoadData={loadData} />
+    </Suspense>
+  );
 
   // Loading State
   if (!isLoggedIn) {
     return (
+      <>
+      {aliasNavigation}
       <div className="min-h-screen bg-[#07152B] flex flex-col items-center justify-center space-y-4 text-white">
         <div className="w-9 h-9 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
         <div className="text-center space-y-1">
@@ -425,12 +442,15 @@ export default function AdminDashboardPage() {
           <p className="text-xs text-slate-400">Autenticando e carregando painel de gestão...</p>
         </div>
       </div>
+      </>
     );
   }
 
   const currentConfig = SECTION_CONFIG[currentSection];
 
   return (
+    <>
+    {aliasNavigation}
     <div translate="no" className="notranslate h-screen h-[100dvh] w-full flex overflow-hidden bg-slate-50 dark:bg-[#060D1A] text-slate-800 dark:text-slate-100">
       
       {/* ========================================================
@@ -823,5 +843,6 @@ export default function AdminDashboardPage() {
       </div>
 
     </div>
+    </>
   );
 }

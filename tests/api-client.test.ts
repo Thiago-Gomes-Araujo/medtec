@@ -7,19 +7,34 @@ import { describe, it, beforeEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
+import { ModuleKind, transpileModule } from 'typescript';
+import nextConfig from '../next.config';
+import { NextRequest, NextResponse } from 'next/server';
+import AdminLoginPage from '../src/app/admin/login/page';
+import * as adminAuthNavigation from '../src/lib/admin-auth-navigation';
 import { Sun, Moon } from 'lucide-react';
 import React, { createElement, isValidElement, type ReactNode } from 'react';
+import { jsx } from 'react/jsx-runtime';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { createRoot } from 'react-dom/client';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
-import { PathnameContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
+import { PathnameContext, SearchParamsContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 import AdminFaqSubroutePage from '../src/app/admin/faq/page';
 import AdminProjetosSubroutePage from '../src/app/admin/projetos/page';
 import AdminBannersSubroutePage from '../src/app/admin/banners/page';
-import AdminDashboardPage from '../src/app/admin/page';
+import AdminDashboardRoute from '../src/app/admin/page';
 import DesktopSidebarContainer from '../src/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter, { type MobileDrawerFooterProps } from '../src/components/admin/MobileDrawerFooter';
 import NextLink from 'next/link';
 import { ExternalLink, LogOut } from 'lucide-react';
+import {
+  ADMIN_STATIC_TAB_ALIASES,
+  ADMIN_STATIC_ROUTE_ALIASES,
+  getAdminStaticAlias,
+  resolveAdminStaticAlias,
+  getAdminStaticAliasFromParams,
+  getAdminRouteAlias,
+} from '../src/lib/admin-aliases';
 import SidebarNavItem, { type SidebarNavItemProps } from '../src/components/admin/SidebarNavItem';
 import SidebarFolderAccordion, { type SidebarFolderAccordionProps, type NavFolderDef } from '../src/components/admin/SidebarFolderAccordion';
 import AdminOverview, { type AdminOverviewProps } from '../src/components/admin/AdminOverview';
@@ -61,6 +76,271 @@ import AdminRedesSubroutePage from '../src/app/admin/redes/page';
 import SocialChannelsModule, { type SocialChannelsModuleProps } from '../src/components/admin/SocialChannelsModule';
 import { ADMIN_CHANNEL_KEYS, getChannelChanges, readAdminChannels, saveAdminChannels } from '../src/lib/admin-channels';
 import type { CanalContato } from '../src/lib/api';
+
+// Inclui dados fora do contrato Rails para caracterizar as comparações em
+// runtime. O helper de produção continuará usando os tipos Rails existentes.
+const railsGestorCases: [string, Readonly<Record<string, unknown>>, boolean][] = [
+  ['nome Administrador', { id: 100, perfil_id: 2, perfil_nome: 'Administrador' }, true],
+  ['perfil_id numérico 3', { id: 100, perfil_id: 3, perfil_nome: 'Editor de Notícias' }, true],
+  ['id numérico 1', { id: 1, perfil_id: 2, perfil_nome: 'Editor de Notícias' }, true],
+  ['Editor', { id: 100, perfil_id: 2, perfil_nome: 'Editor de Notícias' }, false],
+  ['Curador', { id: 100, perfil_id: 2, perfil_nome: 'Curador de Fotos' }, false],
+  ['Publicador', { id: 100, perfil_id: 2, perfil_nome: 'Publicador de Avisos' }, false],
+  ['Operador', { id: 100, perfil_id: 2, perfil_nome: 'Operador de Conteúdo' }, false],
+  ['Gestor literal', { id: 100, perfil_id: 2, perfil_nome: 'Gestor' }, false],
+  ['Administrador inativo', { id: 100, perfil_id: 2, perfil_nome: 'Administrador', ativo: false }, true],
+  ['campos ausentes', {}, false],
+  ['campos nulos', { id: null, perfil_id: null, perfil_nome: null }, false],
+  ['nome ausente com id 1', { id: 1 }, true],
+  ['nome nulo com perfil_id 3', { id: 100, perfil_id: 3, perfil_nome: null }, true],
+  ['IDs em texto', { id: '1', perfil_id: '3', perfil_nome: 'Gestor' }, false],
+  ['perfil_id em texto', { id: 100, perfil_id: '3', perfil_nome: 'Editor de Notícias' }, false],
+  ['id em texto', { id: '1', perfil_id: 2, perfil_nome: 'Editor de Notícias' }, false],
+  ['Administrador com IDs em texto', { id: '100', perfil_id: '2', perfil_nome: 'Administrador' }, true],
+  ['nome em minúsculas', { id: 100, perfil_id: 2, perfil_nome: 'administrador' }, false],
+  ['nome em maiúsculas', { id: 100, perfil_id: 2, perfil_nome: 'ADMINISTRADOR' }, false],
+  ['espaço antes do nome', { id: 100, perfil_id: 2, perfil_nome: ' Administrador' }, false],
+  ['espaço depois do nome', { id: 100, perfil_id: 2, perfil_nome: 'Administrador ' }, false],
+  ['nome vazio', { id: 100, perfil_id: 2, perfil_nome: '' }, false],
+  ['Gestor literal com id 1', { id: 1, perfil_id: 2, perfil_nome: 'Gestor' }, true],
+  ['Curador com perfil_id 3', { id: 100, perfil_id: 3, perfil_nome: 'Curador de Fotos' }, true],
+  ['id numérico vence perfil_id em texto', { id: 1, perfil_id: '3', perfil_nome: 'Operador de Conteúdo' }, true],
+  ['todas as condições', { id: 1, perfil_id: 3, perfil_nome: 'Administrador' }, true],
+];
+
+function railsClassificationReply(fields: Readonly<Record<string, unknown>>): Awaited<ReturnType<typeof medtecApi.auth.me>> {
+  // Simula a desserialização da resposta HTTP, incluindo campos ausentes ou
+  // inválidos, sem ampliar o contrato AuthUser usado em produção.
+  return JSON.parse(JSON.stringify({ success: true, message: 'Sessão sintética', data: {
+    nome: 'Usuário sintético', cpf: 'identificador-sintetico', ativo: true, ...fields,
+  } }));
+}
+
+describe('Classificação Rails compartilhada (12D-5 Lote 1)', () => {
+  for (const [label, fields, expected] of railsGestorCases) {
+    it(label, async () => {
+      const { isRailsGestor } = await import('../src/lib/admin-session');
+      const input = Object.freeze({ ...fields });
+      const before = JSON.stringify(input);
+      assert.equal(Reflect.apply(isRailsGestor, undefined, [input]), expected);
+      assert.equal(Reflect.apply(isRailsGestor, undefined, [input]), expected);
+      assert.equal(JSON.stringify(input), before);
+    });
+  }
+
+  it('executa isolado sem imports de runtime, React, navegador, sessão ou serviços', () => {
+    const source = readFileSync('src/lib/admin-session.ts', 'utf8');
+    const { outputText } = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS } });
+    const isolated: { exports: { isRailsGestor?: (user: unknown) => boolean } } = { exports: {} };
+    for (const key of ['require', 'window', 'document', 'localStorage', 'sessionStorage', 'fetch',
+      'cookies', 'process', 'React', 'setTimeout', 'setInterval']) {
+      Object.defineProperty(isolated, key, { get() { throw new Error(`Acesso indevido: ${key}`); } });
+    }
+    runInNewContext(outputText, isolated, { timeout: 1000 });
+    const classify = isolated.exports.isRailsGestor;
+    assert.equal(typeof classify, 'function');
+    for (const [, fields, expected] of railsGestorCases) {
+      assert.equal(classify?.(Object.freeze({ ...fields })), expected);
+    }
+  });
+});
+
+type CommonSessionSnapshot = { isGestor: boolean; username: unknown; name: unknown; profileType: unknown };
+type SessionProjectionCase = { label: string; data: unknown; expected: CommonSessionSnapshot; role?: unknown; pageRenderError?: boolean };
+const railsSessionFieldCases: SessionProjectionCase[] = [
+  ...railsGestorCases.map(([label, fields, isGestor]) => ({
+    label, data: railsClassificationReply(fields).data,
+    expected: { isGestor, username: 'identificador-sintetico', name: 'Usuário sintético', profileType: fields.perfil_nome },
+  })),
+  { label: 'nome e identificação ausentes', data: { id: 100, perfil_id: 2, perfil_nome: 'Editor de Notícias' },
+    expected: { isGestor: false, username: undefined, name: undefined, profileType: 'Editor de Notícias' } },
+  { label: 'nome e identificação vazios', data: { id: 100, perfil_id: 2, perfil_nome: 'Editor de Notícias', cpf: '', nome: '' },
+    expected: { isGestor: false, username: '', name: '', profileType: 'Editor de Notícias' } },
+  { label: 'campos comuns nulos', data: { id: null, perfil_id: null, perfil_nome: null, cpf: null, nome: null },
+    expected: { isGestor: false, username: null, name: null, profileType: null } },
+  { label: 'valores inesperados sem coerção', data: { id: '1', perfil_id: '3', perfil_nome: false, cpf: 42, nome: 17 }, pageRenderError: true,
+    expected: { isGestor: false, username: 42, name: 17, profileType: false } },
+  { label: 'campos adicionais não substituem origem Rails',
+    data: { perfil_nome: 'Administrador', cpf: 'rails-sintetico', nome: 'Nome Rails', role: 'Papel extra', editorialProfile: 'Perfil extra', apiUser: {}, user: 'Usuário extra' },
+    expected: { isGestor: true, username: 'rails-sintetico', name: 'Nome Rails', profileType: 'Administrador' } },
+  { label: 'data como texto não vazio', data: 'resposta-sintetica',
+    expected: { isGestor: false, username: undefined, name: undefined, profileType: undefined } },
+  { label: 'data como array', data: [],
+    expected: { isGestor: false, username: undefined, name: undefined, profileType: undefined } },
+];
+const localSessionFieldCases: SessionProjectionCase[] = [
+  { label: 'gestora', data: { isGestor: true, user: 'local-sintetico', name: 'Nome local', profileType: 'Gestor Geral', role: 'gestor' }, role: 'gestor',
+    expected: { isGestor: true, username: 'local-sintetico', name: 'Nome local', profileType: 'Gestor Geral' } },
+  { label: 'isGestor false', data: { isGestor: false, user: 'local-sintetico', name: 'Editor local', profileType: 'Editor de Notícias', role: 'operador' }, role: 'operador',
+    expected: { isGestor: false, username: 'local-sintetico', name: 'Editor local', profileType: 'Editor de Notícias' } },
+  { label: 'isGestor ausente', data: { user: 'local-sintetico', name: 'Nome local', profileType: 'Gestor' },
+    expected: { isGestor: true, username: 'local-sintetico', name: 'Nome local', profileType: 'Gestor' } },
+  { label: 'campos ausentes', data: {},
+    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+  { label: 'authenticated false', data: { authenticated: false },
+    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+  { label: 'nome ausente', data: { isGestor: false, user: 'local-sintetico', profileType: 'Curador de Fotos' },
+    expected: { isGestor: false, username: 'local-sintetico', name: undefined, profileType: 'Curador de Fotos' } },
+  { label: 'nome vazio', data: { isGestor: false, user: '', name: '', profileType: 'Publicador de Avisos' },
+    expected: { isGestor: false, username: '', name: '', profileType: 'Publicador de Avisos' } },
+  { label: 'campos nulos', data: { isGestor: null, user: null, name: null, profileType: null, role: null }, role: null,
+    expected: { isGestor: true, username: null, name: null, profileType: null } },
+  { label: 'isGestor em texto', data: { isGestor: 'false', user: 42, name: 17, profileType: false, role: 9 }, role: 9, pageRenderError: true,
+    expected: { isGestor: true, username: 42, name: 17, profileType: false } },
+  { label: 'isGestor zero', data: { isGestor: 0 },
+    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+  { label: 'campos adicionais não viram apiUser ou editorialProfile',
+    data: { isGestor: false, user: 'local-sintetico', name: 'Operador local', profileType: 'Operador de Conteúdo', role: 'Papel local', apiUser: { perfil_nome: 'Administrador', ativo: true }, editorialProfile: 'Administrador' }, role: 'Papel local',
+    expected: { isGestor: false, username: 'local-sintetico', name: 'Operador local', profileType: 'Operador de Conteúdo' } },
+  { label: 'nomes Rails não são aliases locais', data: { cpf: 'ignorado', nome: 'ignorado', perfil_nome: 'Administrador', username: 'ignorado' },
+    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+  { label: 'resposta em texto', data: 'resposta-sintetica',
+    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+  { label: 'resposta false', data: false,
+    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+  { label: 'resposta zero', data: 0,
+    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+  { label: 'resposta em array', data: [],
+    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+];
+
+describe('Campos comuns de sessão (12D-5 Lote 2)', () => {
+  for (const [source, cases] of [['Rails', railsSessionFieldCases], ['local', localSessionFieldCases]] as const) {
+    for (const { label, data, expected } of cases) {
+      it(`${source}: ${label}`, async () => {
+        const helpers = await import('../src/lib/admin-session');
+        const project = source === 'Rails' ? helpers.getRailsSessionFields : helpers.getLocalSessionFields;
+        const input = Object.freeze(structuredClone(data));
+        const before = structuredClone(input);
+        const result = Reflect.apply(project, undefined, [input]);
+        assert.deepEqual(result, expected);
+        assert.deepEqual(Reflect.apply(project, undefined, [input]), expected);
+        assert.deepEqual(input, before);
+        assert.notEqual(result, input);
+        assert.deepEqual(Object.keys(result), ['isGestor', 'username', 'name', 'profileType']);
+      });
+    }
+  }
+
+  it('não converte entrada nula ou indefinida em uma sessão', async () => {
+    const helpers = await import('../src/lib/admin-session');
+    for (const project of [helpers.getRailsSessionFields, helpers.getLocalSessionFields]) {
+      for (const input of [null, undefined]) {
+        assert.throws(() => Reflect.apply(project, undefined, [input]), TypeError);
+      }
+    }
+  });
+
+  it('projeta em isolamento sem runtime externo nem mutações', () => {
+    const source = readFileSync('src/lib/admin-session.ts', 'utf8');
+    const { outputText } = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS } });
+    const isolated: { exports: Record<string, (input: unknown) => CommonSessionSnapshot> } = { exports: {} };
+    for (const key of ['require', 'window', 'document', 'localStorage', 'sessionStorage', 'fetch', 'cookies', 'process', 'React', 'setTimeout']) {
+      Object.defineProperty(isolated, key, { get() { throw new Error(`Acesso indevido: ${key}`); } });
+    }
+    runInNewContext(outputText, isolated, { timeout: 1000 });
+    for (const [name, cases] of [['getRailsSessionFields', railsSessionFieldCases], ['getLocalSessionFields', localSessionFieldCases]] as const) {
+      for (const { data, expected } of cases) {
+        const input = Object.freeze(structuredClone(data));
+        const before = structuredClone(input);
+        assert.deepEqual({ ...isolated.exports[name](input) }, expected);
+        assert.deepEqual(input, before);
+      }
+    }
+  });
+});
+
+type EditorialTestDecision = { method: 'push' | 'replace'; href: string } | null;
+const editorialProfileCases: {
+  label: string; isGestor: boolean; profileType: string | null | undefined;
+  expected: EditorialTestDecision; localOnly?: boolean; inactive?: boolean;
+}[] = [
+  { label: 'Administrador', isGestor: true, profileType: 'Administrador', expected: null },
+  { label: 'gestor por heurística com perfil Editor', isGestor: true, profileType: 'Editor de Notícias', expected: null },
+  { label: 'gestor sem perfil', isGestor: true, profileType: undefined, expected: null },
+  { label: 'Administrador Rails inativo', isGestor: true, profileType: 'Administrador', expected: null, inactive: true },
+  { label: 'Editor', isGestor: false, profileType: 'Editor de Notícias', expected: { method: 'replace', href: '/admin/noticias' } },
+  { label: 'Curador', isGestor: false, profileType: 'Curador de Fotos', expected: { method: 'replace', href: '/admin/banners' } },
+  { label: 'Publicador', isGestor: false, profileType: 'Publicador de Avisos', expected: { method: 'push', href: '/admin/avisos' } },
+  { label: 'Operador', isGestor: false, profileType: 'Operador de Conteúdo', expected: { method: 'replace', href: '/admin/noticias' } },
+  { label: 'Gestor literal', isGestor: false, profileType: 'Gestor', expected: { method: 'replace', href: '/admin/noticias' } },
+  { label: 'perfil desconhecido', isGestor: false, profileType: 'Perfil sintético', expected: { method: 'replace', href: '/admin/noticias' } },
+  { label: 'perfil ausente', isGestor: false, profileType: undefined, expected: { method: 'replace', href: '/admin/noticias' } },
+  { label: 'perfil nulo', isGestor: false, profileType: null, expected: { method: 'replace', href: '/admin/noticias' } },
+  { label: 'perfil vazio', isGestor: false, profileType: '', expected: { method: 'replace', href: '/admin/noticias' } },
+  { label: 'Curador em minúsculas', isGestor: false, profileType: 'curador de fotos', expected: { method: 'replace', href: '/admin/noticias' } },
+  { label: 'Publicador em maiúsculas', isGestor: false, profileType: 'PUBLICADOR DE AVISOS', expected: { method: 'replace', href: '/admin/noticias' } },
+  { label: 'espaço antes de Curador', isGestor: false, profileType: ' Curador de Fotos', expected: { method: 'replace', href: '/admin/noticias' } },
+  { label: 'espaço depois de Publicador', isGestor: false, profileType: 'Publicador de Avisos ', expected: { method: 'replace', href: '/admin/noticias' } },
+  { label: 'Administrador local explicitamente não gestor', isGestor: false, profileType: 'Administrador', expected: { method: 'replace', href: '/admin/noticias' }, localOnly: true },
+];
+const editorialQueryCases: [string, string][] = [
+  ['', '/admin/noticias'],
+  ['action=new', '/admin/noticias?action=new'],
+  ['mode=editor', '/admin/noticias?action=new'],
+  ['mode=new', '/admin/noticias?action=new'],
+  ['mode=nova', '/admin/noticias?action=new'],
+  ['action=list&mode=editor', '/admin/noticias?action=new'],
+  ['action=new&mode=lista', '/admin/noticias?action=new'],
+  ['action=NEW&mode=EDITOR', '/admin/noticias'],
+  ['action=%20new&mode=editor%20', '/admin/noticias'],
+  ['action=list&action=new&mode=lista', '/admin/noticias'],
+  ['action=new&action=list', '/admin/noticias?action=new'],
+  ['mode=lista&mode=editor', '/admin/noticias'],
+  ['mode=nova&mode=lista', '/admin/noticias?action=new'],
+  ['action=&action=new', '/admin/noticias'],
+  ['mode=&mode=editor', '/admin/noticias'],
+  ['edit=42&extra=1&extra=2', '/admin/noticias'],
+  ['mode=lista&redirect=https%3A%2F%2Finvalid.example', '/admin/noticias'],
+  ['tab=invalido&section=noticias&mode=nova', '/admin/noticias?action=new'],
+];
+
+describe('Decisão editorial pura (12D-5 Lote 3)', () => {
+  for (const { label, isGestor, profileType, expected } of editorialProfileCases) {
+    it(label, async () => {
+      const { getAdminEditorialDestination } = await import('../src/lib/admin-auth-navigation');
+      const params = new URLSearchParams();
+      assert.deepEqual(Reflect.apply(getAdminEditorialDestination, undefined, [isGestor, profileType, params]), expected);
+    });
+  }
+  for (const [query, href] of editorialQueryCases) {
+    it(`query ${query || '(ausente)'} mantém destino, método e entrada`, async () => {
+      const { getAdminEditorialDestination } = await import('../src/lib/admin-auth-navigation');
+      const params = Object.freeze(new URLSearchParams(query));
+      const before = params.toString();
+      for (const profile of ['Editor de Notícias', 'Operador de Conteúdo', 'Gestor', undefined]) {
+        assert.deepEqual(getAdminEditorialDestination(false, profile, params), { method: 'replace', href });
+        assert.deepEqual(getAdminEditorialDestination(false, profile, params), { method: 'replace', href });
+      }
+      assert.deepEqual(getAdminEditorialDestination(false, 'Curador de Fotos', params), { method: 'replace', href: '/admin/banners' });
+      assert.deepEqual(getAdminEditorialDestination(false, 'Publicador de Avisos', params), { method: 'push', href: '/admin/avisos' });
+      assert.equal(getAdminEditorialDestination(true, 'Administrador', params), null);
+      assert.equal(params.toString(), before);
+    });
+  }
+  it('executa sem navegador, router, imports, sessão, serviços ou estado externo', () => {
+    const source = readFileSync('src/lib/admin-auth-navigation.ts', 'utf8');
+    const { outputText } = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS } });
+    const isolated: { exports: { getAdminEditorialDestination?: (isGestor: boolean, profile: unknown, params: URLSearchParams) => EditorialTestDecision } } = { exports: {} };
+    for (const key of ['require', 'window', 'document', 'localStorage', 'sessionStorage', 'fetch', 'cookies', 'router', 'process', 'React', 'setTimeout']) {
+      Object.defineProperty(isolated, key, { get() { throw new Error(`Acesso indevido: ${key}`); } });
+    }
+    runInNewContext(outputText, isolated, { timeout: 1000 });
+    const decide = isolated.exports.getAdminEditorialDestination;
+    assert.equal(typeof decide, 'function');
+    for (const { isGestor, profileType, expected } of editorialProfileCases) {
+      const result = decide?.(isGestor, profileType, new URLSearchParams());
+      assert.deepEqual(result ? { ...result } : result, expected);
+    }
+  });
+});
+
+// Os testes SSR fornecem o snapshot da query; os testes de reatividade abaixo
+// atualizam esse contexto em uma árvore cliente preservada.
+function AdminDashboardPage() {
+  const query = typeof window === 'undefined' ? '' : window.location?.search || '';
+  return createElement(SearchParamsContext.Provider, { value: new URLSearchParams(query) }, AdminDashboardRoute());
+}
 
 function bannerManagerProps(data: AdminBannersData & { news: BannerNewsCover[]; gallery: BannerGalleryPhoto[] }, saving = false): Parameters<typeof SitePhotosManager>[0] {
   const ready = { loading: false, error: null, status: null, retry() {} };
@@ -240,6 +520,2419 @@ describe('Rodapé compartilhado da gaveta mobile', () => {
       } finally { stateMock.mock.restore(); }
     }
   });
+});
+
+describe('Mapeamento puro de aliases administrativos estáticos (12D-4A)', () => {
+  it('resolve todos os 11 aliases válidos de tab/section para seus destinos canônicos exatos', () => {
+    const expected = {
+      fotos: '/admin/banners',
+      banners: '/admin/banners',
+      duvidas: '/admin/faq',
+      faq: '/admin/faq',
+      usuarios: '/admin/usuarios',
+      kanban: '/admin/kanban',
+      avisos: '/admin/avisos',
+      galeria: '/admin/galeria',
+      estadosCidades: '/admin/estados-cidades',
+      siteInfo: '/admin/institucional',
+      redes: '/admin/redes',
+    };
+    for (const [alias, destination] of Object.entries(expected)) {
+      assert.equal(getAdminStaticAlias(alias), destination);
+      assert.equal(resolveAdminStaticAlias(alias), destination);
+      assert.equal(getAdminStaticAliasFromParams(new URLSearchParams({ tab: alias })), destination);
+      assert.equal(getAdminStaticAliasFromParams(new URLSearchParams({ section: alias })), destination);
+    }
+    assert.deepEqual({ ...ADMIN_STATIC_TAB_ALIASES }, expected);
+  });
+
+  it('retorna null para valores desconhecidos, vazios, nulos ou não strings', () => {
+    const unknowns = ['', '   ', 'desconhecido', 'relatorios', 'financeiro', 'dashboard', 'noticia', 'usuario', 'banner'];
+    for (const val of unknowns) {
+      assert.strictEqual(getAdminStaticAlias(val), null);
+      assert.strictEqual(getAdminStaticAliasFromParams(new URLSearchParams({ tab: val })), null);
+    }
+    assert.strictEqual(getAdminStaticAlias(null), null);
+    assert.strictEqual(getAdminStaticAlias(undefined), null);
+    assert.strictEqual(getAdminStaticAlias(123 as unknown as string), null);
+    assert.strictEqual(getAdminStaticAlias({} as unknown as string), null);
+    assert.strictEqual(getAdminStaticAliasFromParams(new URLSearchParams()), null);
+  });
+
+  it('preserva a sensibilidade a maiúsculas/minúsculas e não aceita acentuação', () => {
+    const casingOrAccents = [
+      'Fotos', 'FOTOS', 'Banners', 'BANNERS', 'Duvidas', 'DÚVIDAS', 'dúvidas',
+      'FAQ', 'Faq', 'Usuarios', 'USUARIOS', 'usuários', 'Usuários',
+      'Kanban', 'KANBAN', 'Avisos', 'AVISOS', 'Galeria', 'GALERIA',
+      'EstadosCidades', 'estadoscidades', 'ESTADOSCIDADES',
+      'SiteInfo', 'siteinfo', 'SITEINFO', 'Redes', 'REDES',
+    ];
+    for (const val of casingOrAccents) {
+      assert.strictEqual(getAdminStaticAlias(val), null, `Deveria retornar null para "${val}"`);
+    }
+  });
+
+  it('é estritamente imune a chaves herdadas do Object.prototype (toString, constructor, __proto__)', () => {
+    const protoKeys = ['toString', 'constructor', '__proto__', 'valueOf', 'hasOwnProperty', 'isPrototypeOf', 'propertyIsEnumerable', 'toLocaleString'];
+    for (const key of protoKeys) {
+      assert.strictEqual(getAdminStaticAlias(key), null, `Deveria retornar null para chave herdada "${key}"`);
+      assert.strictEqual(getAdminStaticAliasFromParams(new URLSearchParams({ tab: key })), null);
+      assert.strictEqual(getAdminRouteAlias(key), null);
+      assert.strictEqual(Object.prototype.hasOwnProperty.call(ADMIN_STATIC_TAB_ALIASES, key), false);
+      assert.strictEqual((ADMIN_STATIC_TAB_ALIASES as Record<string, unknown>)[key], undefined);
+    }
+  });
+
+  it('não mapeia módulos dependentes de parâmetros (noticias, projetos) ou seleções locais (visaoGeral) como estáticos', () => {
+    // noticias e projetos dependem de action=new ou mode; visaoGeral permanece seleção local no painel.
+    assert.strictEqual(getAdminStaticAlias('noticias'), null);
+    assert.strictEqual(getAdminStaticAlias('projetos'), null);
+    assert.strictEqual(getAdminStaticAlias('visaoGeral'), null);
+    assert.strictEqual(getAdminStaticAliasFromParams(new URLSearchParams('tab=noticias')), null);
+    assert.strictEqual(getAdminStaticAliasFromParams(new URLSearchParams('tab=projetos')), null);
+    assert.strictEqual(getAdminStaticAliasFromParams(new URLSearchParams('tab=visaoGeral')), null);
+  });
+
+  it('resolve rotas estáticas históricas e é uma função pura e determinística sem efeitos colaterais', () => {
+    assert.deepEqual({ ...ADMIN_STATIC_ROUTE_ALIASES }, {
+      '/auth/login': '/admin/login',
+      '/painel-gestor': '/admin',
+    });
+    assert.equal(getAdminRouteAlias('/auth/login'), '/admin/login');
+    assert.equal(getAdminRouteAlias('/painel-gestor'), '/admin');
+    assert.strictEqual(getAdminRouteAlias('/rota-inexistente'), null);
+    assert.strictEqual(getAdminRouteAlias(''), null);
+    assert.strictEqual(getAdminRouteAlias(null), null);
+    assert.strictEqual(getAdminRouteAlias(undefined), null);
+
+    // Pureza: chamadas repetidas com os mesmos argumentos produzem exatamente o mesmo resultado
+    const p1 = new URLSearchParams('tab=fotos&section=avisos');
+    assert.equal(getAdminStaticAliasFromParams(p1), '/admin/banners');
+    assert.equal(getAdminStaticAliasFromParams(p1), '/admin/banners');
+    // Prioridade ?tab= sobre ?section=:
+    assert.equal(getAdminStaticAliasFromParams(new URLSearchParams('tab=duvidas&section=avisos')), '/admin/faq');
+    assert.equal(getAdminStaticAliasFromParams(new URLSearchParams('section=avisos')), '/admin/avisos');
+  });
+
+  it('confere os destinos estáticos com o efeito atual sem confundir push e replace nem repassar query ou hash', () => {
+    const calls: { method: string; href: string }[] = [];
+    const router = {
+      back() {}, forward() {}, refresh() {}, prefetch() {}, bfcacheId: 'static-alias-audit',
+      push(href: string) { calls.push({ method: 'push', href }); },
+      replace(href: string) { calls.push({ method: 'replace', href }); },
+    };
+    const effects: React.EffectCallback[] = [];
+    const effectMock = mock.method(React, 'useEffect', (effect: React.EffectCallback, dependencies?: React.DependencyList) => {
+      const dependency = dependencies?.[0];
+      if (dependency && typeof dependency === 'object' &&
+        'push' in dependency && dependency.push === router.push) effects.push(effect);
+    });
+    const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    try {
+      renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminDashboardPage)));
+      assert.equal(effects.length, 1);
+      const replacing = new Set(['fotos', 'banners', 'duvidas', 'faq', 'usuarios', 'kanban']);
+      for (const [alias, href] of Object.entries(ADMIN_STATIC_TAB_ALIASES)) {
+        for (const parameter of ['tab', 'section']) {
+          const search = `?${parameter}=${alias}&action=new&mode=editor&edit=42&redirect=https%3A%2F%2Fexample.com&extra=1&extra=2`;
+          Object.defineProperty(globalThis, 'window', {
+            configurable: true, value: { location: { search, hash: '#legado' } },
+          });
+          calls.length = 0;
+          effects.length = 0;
+          renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminDashboardPage)));
+          assert.equal(effects.length, 1);
+          effects[0]();
+          assert.deepEqual(calls, [{ method: replacing.has(alias) ? 'replace' : 'push', href }], search);
+          const params = new URLSearchParams(search);
+          const before = params.toString();
+          assert.equal(getAdminStaticAliasFromParams(params), href);
+          assert.equal(params.toString(), before);
+        }
+      }
+    } finally {
+      effectMock.mock.restore();
+      if (windowDescriptor) Object.defineProperty(globalThis, 'window', windowDescriptor);
+      else Reflect.deleteProperty(globalThis, 'window');
+    }
+  });
+
+  it('preserva prioridade, primeiro valor repetido e fallback somente de tab vazio ou ausente', () => {
+    const cases: [string, string | null][] = [
+      ['tab=fotos&section=redes', '/admin/banners'],
+      ['section=redes&tab=fotos', '/admin/banners'],
+      ['tab=&section=redes', '/admin/redes'],
+      ['tab&section=faq', '/admin/faq'],
+      ['tab=desconhecido&section=redes', null],
+      ['tab=%20&section=redes', null],
+      ['tab=noticias&section=redes', null],
+      ['tab=projetos&section=faq', null],
+      ['tab=fotos&tab=redes', '/admin/banners'],
+      ['tab=desconhecido&tab=fotos', null],
+      ['tab=&tab=fotos&section=redes', '/admin/redes'],
+      ['tab=&tab=fotos', null],
+      ['section=faq&section=redes', '/admin/faq'],
+      ['section=&section=faq', null],
+      ['tab=&section=', null],
+      ['tab=%66otos', '/admin/banners'],
+      ['tab=fotos%20', null],
+      ['module=redes', null],
+    ];
+    for (const [query, destination] of cases) {
+      const params = new URLSearchParams(query);
+      const before = params.toString();
+      assert.equal(getAdminStaticAliasFromParams(params), destination, query);
+      assert.equal(params.toString(), before, query);
+    }
+  });
+
+  it('mantém noticias e projetos nos resolvedores existentes com suas regras distintas de criação', () => {
+    const cases: [string, string | null][] = [
+      ['tab=projetos', '/admin/projetos'],
+      ['tab=projetos&action=new', '/admin/projetos?action=new'],
+      ['tab=projetos&action=new&action=list', '/admin/projetos?action=new'],
+      ['tab=projetos&action=list&action=new', '/admin/projetos'],
+      ['section=projetos&mode=editor', '/admin/projetos'],
+      ['tab=projetos&action=NEW', '/admin/projetos'],
+      ['tab=noticias&action=new', null],
+      ['tab=noticias&mode=nova', null],
+    ];
+    for (const [query, projectHref] of cases) {
+      const params = new URLSearchParams(query);
+      assert.equal(getAdminStaticAliasFromParams(params), null, query);
+      assert.equal(getLegacyProjectsHref(params), projectHref, query);
+    }
+  });
+
+  it('confere os pares de caminhos com os redirects configurados sem assumir sua semântica HTTP', async () => {
+    assert.ok(nextConfig.redirects);
+    const redirects = await nextConfig.redirects();
+    assert.equal(redirects.length, 2);
+    for (const { source, destination } of redirects) {
+      assert.equal(getAdminRouteAlias(source), destination);
+    }
+    // O resolvedor aceita apenas o pathname exato; não interpreta nem reescreve URLs.
+    for (const pathname of ['/admin', '/admin/login', '/AUTH/login', '/painel-gestor/',
+      '/auth/login?redirect=/admin/redes', '/painel-gestor#inicio']) {
+      assert.equal(getAdminRouteAlias(pathname), null, pathname);
+    }
+  });
+
+  it('rejeita destinos externos e entradas herdadas sem fallback para outra seção', () => {
+    for (const alias of ['https://example.com', '//example.com', 'javascript:alert(1)',
+      '/admin/redes', 'toString', 'constructor', '__proto__']) {
+      assert.equal(getAdminStaticAlias(alias), null);
+      assert.equal(getAdminRouteAlias(alias), null);
+      assert.equal(getAdminStaticAliasFromParams(new URLSearchParams({ tab: alias, section: 'redes' })), null);
+    }
+  });
+
+  it('importa e resolve em isolamento com navegador, rede, sessão e imports indisponíveis', () => {
+    const source = readFileSync('src/lib/admin-aliases.ts', 'utf8');
+    const { outputText } = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS } });
+    const isolated: Record<string, unknown> = { exports: {}, URLSearchParams };
+    for (const key of ['window', 'document', 'location', 'localStorage', 'sessionStorage',
+      'fetch', 'process', 'require', 'setTimeout', 'setInterval']) {
+      Object.defineProperty(isolated, key, { get() { throw new Error(`Acesso indevido: ${key}`); } });
+    }
+    runInNewContext(outputText, isolated, { timeout: 1000 });
+    const api = isolated.exports as {
+      getAdminStaticAlias: typeof getAdminStaticAlias;
+      getAdminStaticAliasFromParams: typeof getAdminStaticAliasFromParams;
+      getAdminRouteAlias: typeof getAdminRouteAlias;
+    };
+    for (let repetition = 0; repetition < 2; repetition++) {
+      for (const [alias, href] of Object.entries(ADMIN_STATIC_TAB_ALIASES)) {
+        assert.equal(api.getAdminStaticAlias(alias), href);
+        const params = new URLSearchParams({ section: alias, extra: 'preservado' });
+        const before = params.toString();
+        assert.equal(api.getAdminStaticAliasFromParams(params), href);
+        assert.equal(params.toString(), before);
+      }
+      for (const [pathname, href] of Object.entries(ADMIN_STATIC_ROUTE_ALIASES)) {
+        assert.equal(api.getAdminRouteAlias(pathname), href);
+      }
+      assert.equal(api.getAdminStaticAlias('constructor'), null);
+      assert.equal(api.getAdminRouteAlias('https://example.com'), null);
+    }
+  });
+});
+
+describe('Integração dos aliases estáticos no dashboard (12D-4B)', () => {
+  function captureNavigation() {
+    const calls: { method: string; href: string }[] = [];
+    const router = {
+      back() {}, forward() {}, refresh() {}, prefetch() {}, bfcacheId: 'integrated-alias-test',
+      push(href: string) { calls.push({ method: 'push', href }); },
+      replace(href: string) { calls.push({ method: 'replace', href }); },
+    };
+    const aliasEffects: React.EffectCallback[] = [];
+    const loaders: ((isCurrent: () => boolean) => Promise<void>)[] = [];
+    // Identifica os efeitos por suas dependências, sem índices ou alterações de useState.
+    const effectMock = mock.method(React, 'useEffect', (effect: React.EffectCallback, dependencies?: React.DependencyList) => {
+      if (!dependencies) return;
+      const dependency = dependencies[0];
+      if (dependency && typeof dependency === 'object' && 'push' in dependency && dependency.push === router.push) {
+        aliasEffects.push(effect);
+      } else if (typeof dependency === 'function' && typeof dependencies[1] === 'boolean') {
+        loaders.push(dependency as (isCurrent: () => boolean) => Promise<void>);
+      }
+    });
+    const authCheck = mock.method(medtecApi.auth, 'isAuthenticated', () => false);
+    const me = mock.method(medtecApi.auth, 'me', async () => { throw new Error('Sessão Rails não configurada no teste.'); });
+    const fetchMock = mock.method(globalThis, 'fetch', async () => new Response('{}', { status: 401 }));
+    const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    function restore() {
+      effectMock.mock.restore();
+      authCheck.mock.restore();
+      me.mock.restore();
+      fetchMock.mock.restore();
+      if (windowDescriptor) Object.defineProperty(globalThis, 'window', windowDescriptor);
+      else Reflect.deleteProperty(globalThis, 'window');
+    }
+    try {
+      renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminDashboardPage)));
+      assert.equal(aliasEffects.length, 1);
+      assert.equal(loaders.length, 1);
+    } catch (error) {
+      restore();
+      throw error;
+    }
+    return {
+      calls, authCheck, me, fetchMock, restore, loadData: () => loaders[0](() => true),
+      setQuery(query: string) {
+        Object.defineProperty(globalThis, 'window', {
+          configurable: true, value: { location: { search: '?' + query, hash: '#legado' } },
+        });
+      },
+      runAlias() {
+        aliasEffects.length = 0;
+        renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminDashboardPage)));
+        assert.equal(aliasEffects.length, 1);
+        aliasEffects[0]();
+      },
+    };
+  }
+
+  it('preserva precedência, vazios, desconhecidos e repetições no efeito integrado', () => {
+    const nav = captureNavigation();
+    const cases: [string, string | null, string | null][] = [
+      ['tab=fotos&section=redes', 'replace', '/admin/banners'],
+      ['section=redes&tab=fotos', 'replace', '/admin/banners'],
+      ['tab=&section=redes', 'push', '/admin/redes'],
+      ['tab&section=faq', 'replace', '/admin/faq'],
+      ['tab=desconhecido&section=redes', null, null],
+      ['tab=%20&section=redes', null, null],
+      ['tab=fotos&tab=redes', 'replace', '/admin/banners'],
+      ['tab=desconhecido&tab=fotos', null, null],
+      ['tab=&tab=fotos&section=redes', 'push', '/admin/redes'],
+      ['tab=&tab=fotos', null, null],
+      ['section=faq&section=redes', 'replace', '/admin/faq'],
+      ['section=&section=faq', null, null],
+      ['tab=FOTOS', null, null],
+      ['tab=d%C3%BAvidas', null, null],
+      ['tab=&section=', null, null],
+      ['module=redes', null, null],
+      ['tab=visaoGeral', null, null],
+      ['', null, null],
+    ];
+    try {
+      for (const [query, method, href] of cases) {
+        nav.setQuery(query);
+        nav.calls.length = 0;
+        nav.runAlias();
+        assert.deepEqual(nav.calls, href ? [{ method, href }] : [], query);
+      }
+      assert.equal(nav.authCheck.mock.callCount(), 0);
+      assert.equal(nav.me.mock.callCount(), 0);
+      assert.equal(nav.fetchMock.mock.callCount(), 0);
+    } finally { nav.restore(); }
+  });
+
+  it('mantém Notícias e Projetos com replace e suas regras próprias de action, mode e edit', () => {
+    const nav = captureNavigation();
+    const cases: [string, string][] = [
+      ['tab=noticias&section=redes&action=new&edit=42&extra=1', '/admin/noticias?action=new'],
+      ['tab=noticias&action=NEW&edit=42', '/admin/noticias'],
+      ['tab=noticias&action=list&action=new', '/admin/noticias'],
+      ['tab=noticias&action=new&action=list', '/admin/noticias?action=new'],
+      ['tab=noticias&mode=lista&mode=editor', '/admin/noticias'],
+      ['tab=noticias&mode=nova&mode=lista', '/admin/noticias?action=new'],
+      ['tab=&section=noticias&mode=new', '/admin/noticias?action=new'],
+      ['tab=projetos&section=fotos&action=new&edit=42', '/admin/projetos?action=new'],
+      ['section=projetos&mode=editor&edit=42', '/admin/projetos'],
+      ['tab=projetos&action=NEW', '/admin/projetos'],
+      ['tab=projetos&action=list&action=new', '/admin/projetos'],
+      ['tab=projetos&action=new&action=list', '/admin/projetos?action=new'],
+      ['tab=redes&section=noticias&action=new&mode=editor', '/admin/redes'],
+    ];
+    try {
+      for (const [query, href] of cases) {
+        nav.setQuery(query);
+        nav.calls.length = 0;
+        nav.runAlias();
+        assert.deepEqual(nav.calls, [{ method: href === '/admin/redes' ? 'push' : 'replace', href }], query);
+      }
+      assert.equal(nav.fetchMock.mock.callCount(), 0);
+    } finally { nav.restore(); }
+  });
+
+  it('preserva a guarda antecipada de loadData sem consultar sessão ou carregar dados', async () => {
+    const nav = captureNavigation();
+    try {
+      for (const alias of ['fotos', 'banners', 'projetos', 'duvidas', 'faq', 'usuarios', 'kanban']) {
+        for (const parameter of ['tab', 'section']) {
+          nav.setQuery(`${parameter}=${alias}&action=new`);
+          await nav.loadData();
+        }
+      }
+      nav.setQuery('tab=&section=fotos');
+      await nav.loadData();
+      assert.equal(nav.authCheck.mock.callCount(), 0);
+      assert.equal(nav.me.mock.callCount(), 0);
+      assert.equal(nav.fetchMock.mock.callCount(), 0);
+      assert.deepEqual(nav.calls, []);
+
+      // Um tab não vazio continua bloqueando section também na guarda de sessão.
+      nav.setQuery('tab=desconhecido&section=fotos');
+      await nav.loadData();
+      assert.equal(nav.authCheck.mock.callCount(), 1);
+      assert.equal(nav.fetchMock.mock.callCount(), 1);
+      assert.deepEqual(nav.calls, [{ method: 'push', href: '/admin/login' }]);
+    } finally { nav.restore(); }
+  });
+
+  it('mantém o encaminhamento por perfil das sessões Rails e local separado dos aliases', async () => {
+    const profiles = [
+      { name: 'Editor de Notícias', method: 'replace', href: '/admin/noticias?action=new' },
+      { name: 'Curador de Fotos', method: 'replace', href: '/admin/banners' },
+      { name: 'Publicador de Avisos', method: 'push', href: '/admin/avisos' },
+      { name: 'Operador de Conteúdo', method: 'replace', href: '/admin/noticias?action=new' },
+    ];
+    for (const source of ['Rails', 'local']) for (const profile of profiles) {
+      const nav = captureNavigation();
+      try {
+        nav.authCheck.mock.mockImplementation(() => source === 'Rails');
+        nav.me.mock.mockImplementation(async () => ({ success: true, message: 'Sessão simulada', data: {
+          id: 100, nome: 'Operador', cpf: '00000000000', ativo: true, perfil_id: 2, perfil_nome: profile.name,
+        } }));
+        nav.fetchMock.mock.mockImplementation(async () => new Response(JSON.stringify({
+          isGestor: false, profileType: profile.name, user: 'operador',
+        }), { status: 200 }));
+        nav.setQuery('tab=invalido&action=new');
+        nav.runAlias();
+        assert.equal(nav.authCheck.mock.callCount(), 0);
+        await nav.loadData();
+        assert.deepEqual(nav.calls, [
+          { method: profile.method, href: profile.href },
+        ], `${source}: ${profile.name}`);
+        assert.equal(nav.me.mock.callCount(), source === 'Rails' ? 1 : 0);
+        assert.equal(nav.fetchMock.mock.callCount(), source === 'local' ? 1 : 0);
+        if (source === 'local') assert.equal(nav.fetchMock.mock.calls[0].arguments[0], '/api/auth');
+      } finally { nav.restore(); }
+    }
+  });
+
+  it('delega sessão ao destino canônico e mantém login ao voltar para contexto sem alias', async () => {
+    const nav = captureNavigation();
+    try {
+      nav.setQuery('tab=redes&redirect=https%3A%2F%2Fexample.com');
+      nav.runAlias();
+      assert.deepEqual(nav.calls, [{ method: 'push', href: '/admin/redes' }]);
+      assert.equal(nav.authCheck.mock.callCount(), 0);
+      await nav.loadData();
+      assert.deepEqual(nav.calls, [{ method: 'push', href: '/admin/redes' }]);
+      assert.equal(nav.authCheck.mock.callCount(), 0);
+      assert.equal(nav.fetchMock.mock.callCount(), 0);
+      nav.setQuery('tab=invalido');
+      await nav.loadData();
+      assert.deepEqual(nav.calls, [
+        { method: 'push', href: '/admin/redes' }, { method: 'push', href: '/admin/login' },
+      ]);
+      assert.equal(nav.authCheck.mock.callCount(), 1);
+      assert.equal(nav.me.mock.callCount(), 0);
+      assert.equal(nav.fetchMock.mock.callCount(), 1);
+    } finally { nav.restore(); }
+  });
+});
+
+describe('Fallback seguro de seções administrativas (12D-4C)', () => {
+  function inspectFallback(verify: (evaluate: (query: string) => {
+    selections: unknown[]; navigation: { method: string; href: string }[];
+  }) => void) {
+    const selections: unknown[] = [];
+    const navigation: { method: string; href: string }[] = [];
+    const router = {
+      back() {}, forward() {}, refresh() {}, prefetch() {}, bfcacheId: 'safe-fallback-test',
+      push(href: string) { navigation.push({ method: 'push', href }); },
+      replace(href: string) { navigation.push({ method: 'replace', href }); },
+    };
+    const originalState = React.useState;
+    // Observa a seleção pelo valor inicial da seção, sem depender da posição do hook.
+    const stateMock = mock.method(React, 'useState', (initial: unknown) => {
+      const state = originalState(initial);
+      return initial === 'visaoGeral' ? [state[0], (value: unknown) => { selections.push(value); }] : state;
+    });
+    const effects: React.EffectCallback[] = [];
+    const effectMock = mock.method(React, 'useEffect', (effect: React.EffectCallback, dependencies?: React.DependencyList) => {
+      const dependency = dependencies?.[0];
+      if (dependency && typeof dependency === 'object' &&
+        'push' in dependency && dependency.push === router.push) effects.push(effect);
+    });
+    const fetchMock = mock.method(globalThis, 'fetch', async () => { throw new Error('Fallback não deve consultar serviços.'); });
+    const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
+    try {
+      renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminDashboardPage)));
+      assert.equal(effects.length, 1);
+      verify((query) => {
+        selections.length = 0;
+        navigation.length = 0;
+        Object.defineProperty(globalThis, 'window', {
+          configurable: true, value: { location: { search: '?' + query } },
+        });
+        effects.length = 0;
+        renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminDashboardPage)));
+        assert.equal(effects.length, 1);
+        effects[0]();
+        return { selections: [...selections], navigation: [...navigation] };
+      });
+      assert.equal(fetchMock.mock.callCount(), 0);
+    } finally {
+      stateMock.mock.restore();
+      effectMock.mock.restore();
+      fetchMock.mock.restore();
+      if (windowDescriptor) Object.defineProperty(globalThis, 'window', windowDescriptor);
+      else Reflect.deleteProperty(globalThis, 'window');
+    }
+  }
+
+  it('rejeita propriedades herdadas sem selecionar uma seção nem navegar', () => {
+    inspectFallback((evaluate) => {
+      for (const key of ['toString', 'constructor', '__proto__', 'valueOf',
+        'hasOwnProperty', 'isPrototypeOf', 'propertyIsEnumerable', 'toLocaleString']) {
+        for (const query of [`tab=${key}`, `section=${key}`, `tab=${key}&section=visaoGeral`,
+          `tab=${key}&tab=visaoGeral`, `section=${key}&section=visaoGeral`]) {
+          assert.deepEqual(evaluate(query), { selections: [], navigation: [] }, query);
+        }
+      }
+    });
+  });
+
+  it('preserva visaoGeral como seleção local legítima, a precedência e o primeiro valor repetido', () => {
+    inspectFallback((evaluate) => {
+      for (const query of ['tab=visaoGeral', 'section=visaoGeral', 'tab=&section=visaoGeral',
+        'tab=visaoGeral&section=redes', 'tab=visaoGeral&tab=constructor',
+        'section=visaoGeral&section=constructor']) {
+        assert.deepEqual(evaluate(query), { selections: ['visaoGeral'], navigation: [] }, query);
+      }
+    });
+  });
+
+  it('ignora valores desconhecidos, vazios e grafias divergentes sem fallback implícito', () => {
+    inspectFallback((evaluate) => {
+      for (const query of ['', 'tab=', 'section=', 'tab=&section=',
+        'tab=desconhecido', 'section=desconhecido', 'tab=desconhecido&section=visaoGeral',
+        'tab=%20&section=visaoGeral', 'tab=&tab=visaoGeral', 'section=&section=visaoGeral',
+        'tab=VisaoGeral', 'tab=visaogeral', 'tab=vis%C3%A3oGeral', 'tab=visaoGeral%20']) {
+        assert.deepEqual(evaluate(query), { selections: [], navigation: [] }, query);
+      }
+    });
+  });
+});
+
+describe('Reatividade dos aliases com React e Next reais (12D-4E)', () => {
+  async function mountAliases(query: string, { strict = false } = {}) {
+    const calls: { method: string; href: string }[] = [];
+    const selections: AdminSection[] = [];
+    const instances: number[] = [];
+    const selectionCallbacks: ((section: AdminSection) => void)[] = [];
+    let nextInstance = 0;
+    let activations = 0;
+    const router = {
+      back() {}, forward() {}, refresh() {}, prefetch() {}, bfcacheId: 'reactive-alias-test',
+      push(href: string) { calls.push({ method: 'push', href }); },
+      replace(href: string) { calls.push({ method: 'replace', href }); },
+    };
+    // O controlador não renderiza elementos DOM. O contêiner mínimo permite
+    // executar o reconciliador e os efeitos reais sem instalar um navegador/DOM.
+    const doc = {
+      nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null,
+      defaultView: null as unknown, documentElement: { classList: { contains() { return false; } } },
+    };
+    const browser = { document: doc, HTMLIFrameElement: class {}, location: { pathname: '/admin', search: '' } };
+    doc.defaultView = browser;
+    const globals = {
+      window: browser, document: doc, IS_REACT_ACT_ENVIRONMENT: true,
+      MutationObserver: class { observe() {} disconnect() {} },
+    };
+    const descriptors = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+    for (const [key, value] of Object.entries(globals)) {
+      Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+    }
+    const authCheck = mock.method(medtecApi.auth, 'isAuthenticated', () => false);
+    // Mantém a sessão pendente; nenhum serviço real é consultado e nenhuma
+    // decisão de autenticação interfere na navegação que este teste observa.
+    const fetchMock = mock.method(globalThis, 'fetch', () => new Promise<Response>(() => {}));
+    function ControllerHost() {
+      const [instance] = React.useState(() => ++nextInstance);
+      const dashboard = AdminDashboardRoute();
+      const boundary = React.Children.toArray(dashboard.props.children).find(node =>
+        isValidElement(node) && node.type === React.Suspense);
+      assert.ok(isValidElement<{ children: ReactNode; fallback: ReactNode }>(boundary));
+      assert.equal(boundary.props.fallback, null);
+      const controller = boundary.props.children;
+      assert.ok(isValidElement<{ onSelectSection: (section: AdminSection) => void }>(controller));
+      const select = controller.props.onSelectSection;
+      const observeSelection = React.useCallback((section: AdminSection) => {
+        selections.push(section);
+        select(section);
+      }, [select]);
+      instances.push(instance);
+      selectionCallbacks.push(select);
+      React.useEffect(() => { activations++; }, []);
+      // Executa os hooks da página e o controlador de produção sob Suspense;
+      // omite somente o DOM visual, que continua coberto pelos testes SSR.
+      return React.cloneElement(boundary, {}, React.cloneElement(controller, { onSelectSection: observeSelection }));
+    }
+    const container = {
+      nodeType: 1, tagName: 'DIV', namespaceURI: 'http://www.w3.org/1999/xhtml', ownerDocument: doc,
+      addEventListener() {}, removeEventListener() {}, textContent: '',
+    };
+    const root = createRoot(container as unknown as Element);
+    async function render(nextQuery: string, mode: 'visible' | 'hidden' = 'visible', entry = 'initial') {
+      browser.location.search = '?' + nextQuery;
+      let tree: React.ReactElement = createElement(AppRouterContext.Provider, { value: router },
+        createElement(SearchParamsContext.Provider, { value: new URLSearchParams(nextQuery) },
+          jsx(React.Activity, { mode, children: createElement(ControllerHost, { key: entry }) } satisfies React.ActivityProps)));
+      if (strict) tree = createElement(React.StrictMode, null, tree);
+      await React.act(async () => {
+        root.render(tree);
+      });
+    }
+    async function restore() {
+      try {
+        await React.act(async () => { root.unmount(); });
+        for (const call of fetchMock.mock.calls) {
+          assert.equal(call.arguments[0], '/api/auth');
+          assert.equal(call.arguments[1]?.method || 'GET', 'GET');
+        }
+      } finally {
+        authCheck.mock.restore();
+        fetchMock.mock.restore();
+        for (const [key, descriptor] of descriptors) {
+          if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+          else Reflect.deleteProperty(globalThis, key);
+        }
+      }
+    }
+    try { await render(query); } catch (error) { await restore(); throw error; }
+    return {
+      calls, selections, render, restore,
+      get instanceCount() { return new Set(instances).size; },
+      assertRetained(expectedActivations = 1) {
+        assert.equal(new Set(instances).size, 1, 'A instância deve permanecer montada.');
+        assert.equal(activations, expectedActivations);
+        assert.ok(selectionCallbacks.every(callback => callback === selectionCallbacks[0]), 'O callback deve permanecer estável.');
+      },
+    };
+  }
+
+  for (const [from, to, method, href] of [
+    ['tab=visaoGeral', 'tab=faq', 'replace', '/admin/faq'],
+    ['tab=invalido', 'tab=fotos', 'replace', '/admin/banners'],
+    ['tab=faq', 'tab=avisos', 'push', '/admin/avisos'],
+    ['section=galeria', 'section=redes', 'push', '/admin/redes'],
+  ]) {
+    it(`reage a ${from} → ${to} sem remontagem, inclusive com sessão pendente`, async () => {
+      const page = await mountAliases(from);
+      try {
+        page.calls.length = 0;
+        await page.render(to);
+        assert.deepEqual(page.calls, [{ method, href }]);
+        page.assertRetained();
+      } finally { await page.restore(); }
+    });
+  }
+
+  it('12D-5 Lote 4: simulação de Voltar/Avançar restaura a query e os métodos dos aliases', async () => {
+    const query = (target: string) => new URL(adminAuthNavigation.getSafeAdminReturnTarget(target), 'https://medtec.invalid').search.slice(1);
+    const previous = query('/admin?tab=faq&section=avisos&redirect=x');
+    const next = query('/admin?tab=avisos&section=faq');
+    const page = await mountAliases(previous);
+    try {
+      await page.render(next);
+      await page.render(previous); // Voltar: restaura a entrada anterior.
+      await page.render(next); // Avançar: restaura a entrada seguinte.
+      assert.deepEqual(page.calls, [
+        { method: 'replace', href: '/admin/faq' }, { method: 'push', href: '/admin/avisos' },
+        { method: 'replace', href: '/admin/faq' }, { method: 'push', href: '/admin/avisos' },
+      ]);
+      page.assertRetained();
+    } finally { await page.restore(); }
+  });
+
+  it('não repete navegação com parâmetros equivalentes, reordenados ou alterações irrelevantes', async () => {
+    const page = await mountAliases('tab=fotos&section=redes&action=&mode=editor&edit=1');
+    try {
+      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/banners' }]);
+      await page.render('mode=editor&action=&section=redes&tab=fotos&tab=avisos&edit=2&extra=novo');
+      await page.render('mode=editor&action=&section=redes&tab=fotos&tab=avisos&edit=2&extra=novo');
+      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/banners' }]);
+      page.assertRetained();
+    } finally { await page.restore(); }
+  });
+
+  it('mantém os onze destinos e métodos para tab e section na mesma instância', async () => {
+    const page = await mountAliases('tab=invalido');
+    const routes: [string, string, string][] = [
+      ['fotos', 'replace', '/admin/banners'], ['banners', 'replace', '/admin/banners'],
+      ['duvidas', 'replace', '/admin/faq'], ['faq', 'replace', '/admin/faq'],
+      ['usuarios', 'replace', '/admin/usuarios'], ['kanban', 'replace', '/admin/kanban'],
+      ['avisos', 'push', '/admin/avisos'], ['galeria', 'push', '/admin/galeria'],
+      ['estadosCidades', 'push', '/admin/estados-cidades'], ['siteInfo', 'push', '/admin/institucional'],
+      ['redes', 'push', '/admin/redes'],
+    ];
+    try {
+      for (const parameter of ['tab', 'section']) for (const [alias, method, href] of routes) {
+        // Cada contrato é verificado a partir de uma decisão neutra. A equivalência
+        // entre aliases consecutivos é coberta pela suíte B3.2 abaixo.
+        await page.render('tab=invalido');
+        page.calls.length = 0;
+        await page.render(`${parameter}=${alias}&action=new&extra=descartado`);
+        assert.deepEqual(page.calls, [{ method, href }], `${parameter}=${alias}`);
+      }
+      page.assertRetained();
+    } finally { await page.restore(); }
+  });
+
+  it('preserva precedência, vazios, primeiro valor repetido e rejeição de propriedades herdadas', async () => {
+    const page = await mountAliases('tab=invalido');
+    const cases: [string, string | null, string | null][] = [
+      ['tab=fotos&section=redes', 'replace', '/admin/banners'],
+      ['tab=&section=redes', 'push', '/admin/redes'],
+      ['tab=desconhecido&section=redes', null, null],
+      ['tab=fotos&tab=redes', 'replace', '/admin/banners'],
+      ['tab=&tab=fotos&section=redes', 'push', '/admin/redes'],
+      ['section=&section=faq', null, null], ['tab=&section=', null, null],
+      ['tab=FOTOS', null, null], ['tab=d%C3%BAvidas', null, null],
+      ['tab=toString', null, null], ['section=constructor', null, null],
+      ['tab=__proto__&section=redes', null, null], ['tab=valueOf', null, null],
+    ];
+    try {
+      for (const [query, method, href] of cases) {
+        page.calls.length = 0;
+        page.selections.length = 0;
+        await page.render(query);
+        assert.deepEqual(page.calls, href ? [{ method, href }] : [], query);
+        assert.deepEqual(page.selections, [], query);
+      }
+      await page.render('tab=visaoGeral');
+      assert.deepEqual(page.selections, ['visaoGeral']);
+      page.assertRetained();
+    } finally { await page.restore(); }
+  });
+
+  it('reage também a action e mode preservando as regras distintas de Notícias e Projetos', async () => {
+    const page = await mountAliases('tab=invalido');
+    const cases = [
+      ['tab=noticias', '/admin/noticias'],
+      ['tab=noticias&action=new', '/admin/noticias?action=new'],
+      ['tab=noticias&mode=editor', '/admin/noticias?action=new'],
+      ['tab=noticias&mode=new', '/admin/noticias?action=new'],
+      ['tab=noticias&mode=nova', '/admin/noticias?action=new'],
+      ['tab=noticias&mode=lista&mode=editor', '/admin/noticias'],
+      ['tab=projetos', '/admin/projetos'],
+      ['tab=projetos&action=new', '/admin/projetos?action=new'],
+      ['tab=projetos&mode=editor', '/admin/projetos'],
+      ['tab=projetos&action=list&action=new', '/admin/projetos'],
+    ];
+    try {
+      for (const [query, href] of cases) {
+        await page.render('tab=invalido');
+        page.calls.length = 0;
+        await page.render(query);
+        assert.deepEqual(page.calls, [{ method: 'replace', href }], query);
+      }
+      page.assertRetained();
+    } finally { await page.restore(); }
+  });
+
+  it('mantém a reexecução na reativação de Activity sem deduplicar ou remontar o controlador', async () => {
+    const page = await mountAliases('tab=redes');
+    try {
+      assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/redes' }]);
+      await page.render('tab=redes', 'hidden');
+      assert.equal(page.calls.length, 1);
+      await page.render('tab=redes');
+      assert.deepEqual(page.calls, [
+        { method: 'push', href: '/admin/redes' }, { method: 'push', href: '/admin/redes' },
+      ]);
+      page.assertRetained(2);
+    } finally { await page.restore(); }
+  });
+
+  describe('Decisões equivalentes de aliases (12D-4F-B3.2)', () => {
+    for (const [from, to, method, href] of [
+      ['tab=redes', 'tab=redes&action=new', 'push', '/admin/redes'],
+      ['tab=fotos', 'tab=fotos&mode=editor', 'replace', '/admin/banners'],
+      ['tab=faq', 'tab=faq&mode=lista', 'replace', '/admin/faq'],
+      ['tab=redes&section=avisos', 'tab=redes&section=galeria', 'push', '/admin/redes'],
+      ['tab=noticias&action=new', 'tab=noticias&mode=nova', 'replace', '/admin/noticias?action=new'],
+      ['tab=fotos', 'tab=banners', 'replace', '/admin/banners'],
+      ['tab=duvidas', 'section=faq', 'replace', '/admin/faq'],
+      ['tab=redes', 'section=redes', 'push', '/admin/redes'],
+      ['tab=projetos&mode=editor', 'section=projetos&mode=lista', 'replace', '/admin/projetos'],
+      ['tab=projetos&action=new', 'tab=projetos&action=new&mode=nova', 'replace', '/admin/projetos?action=new'],
+    ]) {
+      it(`${from} → ${to} mantém uma única solicitação`, async () => {
+        const page = await mountAliases(from);
+        try {
+          assert.deepEqual(page.calls, [{ method, href }]);
+          await page.render(to);
+          assert.deepEqual(page.calls, [{ method, href }]);
+          page.assertRetained();
+        } finally { await page.restore(); }
+      });
+    }
+
+    it('ignora reordenação, parâmetros externos e valores repetidos posteriores', async () => {
+      const page = await mountAliases('tab=redes&action=new&extra=1');
+      try {
+        await page.render('extra=2&action=new&tab=redes&tab=fotos&edit=42');
+        await page.render('action=new&tab=redes&extra=3');
+        assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/redes' }]);
+        page.assertRetained();
+      } finally { await page.restore(); }
+    });
+
+    it('mantém a lista de Notícias quando mudam apenas formas equivalentes de não criar', async () => {
+      const page = await mountAliases('tab=noticias');
+      try {
+        await page.render('tab=noticias&action=list');
+        await page.render('tab=noticias&mode=lista&mode=editor');
+        await page.render('section=noticias&action=NEW&mode=EDITOR');
+        assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/noticias' }]);
+        page.assertRetained();
+      } finally { await page.restore(); }
+    });
+
+    it('continua navegando ao mudar destino ou método, inclusive ao voltar ao alias anterior', async () => {
+      const page = await mountAliases('tab=redes');
+      try {
+        await page.render('tab=avisos');
+        await page.render('tab=fotos');
+        await page.render('tab=faq');
+        await page.render('tab=redes');
+        assert.deepEqual(page.calls, [
+          { method: 'push', href: '/admin/redes' }, { method: 'push', href: '/admin/avisos' },
+          { method: 'replace', href: '/admin/banners' }, { method: 'replace', href: '/admin/faq' },
+          { method: 'push', href: '/admin/redes' },
+        ]);
+        page.assertRetained();
+      } finally { await page.restore(); }
+    });
+
+    it('mantém as transições reais de lista/editor de Notícias e de lista/novo de Projetos', async () => {
+      const page = await mountAliases('tab=noticias');
+      try {
+        await page.render('tab=noticias&mode=editor');
+        await page.render('tab=noticias&mode=lista');
+        await page.render('tab=projetos');
+        await page.render('tab=projetos&action=new');
+        await page.render('tab=projetos&mode=editor');
+        assert.deepEqual(page.calls, [
+          { method: 'replace', href: '/admin/noticias' }, { method: 'replace', href: '/admin/noticias?action=new' },
+          { method: 'replace', href: '/admin/noticias' }, { method: 'replace', href: '/admin/projetos' },
+          { method: 'replace', href: '/admin/projetos?action=new' }, { method: 'replace', href: '/admin/projetos' },
+        ]);
+        page.assertRetained();
+      } finally { await page.restore(); }
+    });
+
+    it('permite o mesmo alias após uma decisão neutra e após uma nova montagem', async () => {
+      const page = await mountAliases('tab=redes');
+      try {
+        await page.render('tab=invalido');
+        await page.render('tab=redes');
+        assert.equal(page.calls.length, 2);
+        await page.render('tab=redes', 'visible', 'new-entry');
+        assert.deepEqual(page.calls, Array.from({ length: 3 }, () => ({ method: 'push', href: '/admin/redes' })));
+        assert.equal(page.instanceCount, 2);
+      } finally { await page.restore(); }
+    });
+
+    it('evita seleções locais redundantes e permite selecionar novamente depois de sair da decisão', async () => {
+      const page = await mountAliases('tab=visaoGeral');
+      try {
+        await page.render('section=visaoGeral&action=new');
+        assert.deepEqual(page.selections, ['visaoGeral']);
+        await page.render('tab=invalido');
+        await page.render('tab=visaoGeral');
+        assert.deepEqual(page.selections, ['visaoGeral', 'visaoGeral']);
+        assert.deepEqual(page.calls, []);
+        page.assertRetained();
+      } finally { await page.restore(); }
+    });
+
+    it('preserva o replay inicial do Strict Mode sem repetir por query equivalente', async () => {
+      const page = await mountAliases('tab=redes', { strict: true });
+      try {
+        assert.deepEqual(page.calls, [
+          { method: 'push', href: '/admin/redes' }, { method: 'push', href: '/admin/redes' },
+        ]);
+        await page.render('tab=redes&action=new');
+        assert.equal(page.calls.length, 2);
+        page.assertRetained(2);
+      } finally { await page.restore(); }
+    });
+
+    it('Activity permite nova navegação por reativação e ignora equivalência dentro da ativação', async () => {
+      const page = await mountAliases('tab=redes');
+      try {
+        await page.render('tab=redes', 'hidden');
+        await page.render('section=redes&mode=editor');
+        assert.equal(page.calls.length, 2);
+        await page.render('tab=redes&action=new');
+        assert.equal(page.calls.length, 2);
+        await page.render('tab=redes&action=new', 'hidden');
+        await page.render('tab=redes');
+        assert.equal(page.calls.length, 3);
+        page.assertRetained(3);
+      } finally { await page.restore(); }
+    });
+
+    it('Activity usa a decisão mais recente ao voltar de queries alteradas enquanto oculta', async () => {
+      const page = await mountAliases('tab=redes');
+      try {
+        await page.render('tab=redes', 'hidden');
+        await page.render('tab=fotos&mode=editor', 'hidden');
+        assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/redes' }]);
+        await page.render('tab=banners&action=new');
+        assert.deepEqual(page.calls, [
+          { method: 'push', href: '/admin/redes' }, { method: 'replace', href: '/admin/banners' },
+        ]);
+        page.assertRetained(2);
+      } finally { await page.restore(); }
+    });
+  });
+});
+
+describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
+  type RailsReply = Awaited<ReturnType<typeof medtecApi.auth.me>>;
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason: Error) => void;
+    const promise = new Promise<T>((accept, refuse) => { resolve = accept; reject = refuse; });
+    return { promise, resolve, reject };
+  }
+  function railsSession(profile: string): RailsReply {
+    return { success: true, message: 'Sessão sintética', data: {
+      id: 100, perfil_id: 2, perfil_nome: profile, nome: 'Usuário de teste', cpf: '00000000000', ativo: true,
+    } };
+  }
+  function localSession(profile: string) {
+    return new Response(JSON.stringify({ isGestor: false, profileType: profile, user: 'operador-sintetico' }), { status: 200 });
+  }
+
+  async function mountSession({ source = 'Rails', strict = false, query = 'tab=invalido' } = {}) {
+    const calls: { method: string; href: string }[] = [];
+    const writes: unknown[] = [];
+    const requests: ReturnType<typeof deferred<RailsReply>>[] = [];
+    const localRequests: ReturnType<typeof deferred<Response>>[] = [];
+    const overviewRequests: ReturnType<typeof deferred<Response>>[] = [];
+    const instances: number[] = [];
+    const loadings: boolean[] = [];
+    let nextInstance = 0;
+    let activations = 0;
+    let unmounted = false;
+    let session: Pick<AdminSession, 'isGestor' | 'profileType'> | undefined;
+    const router = {
+      back() {}, forward() {}, refresh() {}, prefetch() {}, bfcacheId: 'current-session-test',
+      push(href: string) { calls.push({ method: 'push', href }); },
+      replace(href: string) { calls.push({ method: 'replace', href }); },
+    };
+    // Como na suíte 12D-4E, monta os hooks reais e o controlador de aliases;
+    // apenas o DOM visual é omitido, sem um navegador ou serviços externos.
+    const doc = {
+      nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null,
+      defaultView: null as unknown, documentElement: { classList: { contains() { return false; } } },
+    };
+    const browser = { document: doc, HTMLIFrameElement: class {}, location: { pathname: '/admin', search: '?' + query } };
+    doc.defaultView = browser;
+    const globals = {
+      window: browser, document: doc, IS_REACT_ACT_ENVIRONMENT: true,
+      MutationObserver: class { observe() {} disconnect() {} },
+    };
+    const descriptors = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+    for (const [key, value] of Object.entries(globals)) {
+      Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+    }
+    const useState = React.useState;
+    const setters = new WeakMap<React.Dispatch<React.SetStateAction<unknown>>, React.Dispatch<React.SetStateAction<unknown>>>();
+    // Delega ao React e observa tentativas de escrita, inclusive as ignoradas
+    // após unmount. Identifica a sessão pelo formato, sem índices de hooks.
+    const stateMock = mock.method(React, 'useState', (<S,>(initial: S | (() => S)) => {
+      const [value, setValue] = useState(initial);
+      if (initial && typeof initial === 'object' && 'isGestor' in initial) {
+        session = value as Pick<AdminSession, 'isGestor' | 'profileType'>;
+      }
+      const dispatch = setValue as React.Dispatch<React.SetStateAction<unknown>>;
+      if (!setters.has(dispatch)) setters.set(dispatch, next => { writes.push(next); dispatch(next); });
+      return [value, setters.get(dispatch)] as [S, React.Dispatch<React.SetStateAction<S>>];
+    }) as typeof React.useState);
+    const authCheck = mock.method(medtecApi.auth, 'isAuthenticated', () => source === 'Rails');
+    const me = mock.method(medtecApi.auth, 'me', () => {
+      const request = deferred<RailsReply>();
+      requests.push(request);
+      return request.promise;
+    });
+    const fetchMock = mock.method(globalThis, 'fetch', (input: RequestInfo | URL, options?: RequestInit) => {
+      assert.equal(options?.method || 'GET', 'GET');
+      const request = deferred<Response>();
+      if (String(input) === '/api/auth') localRequests.push(request);
+      else overviewRequests.push(request);
+      return request.promise;
+    });
+    const warn = mock.method(console, 'warn', () => {});
+    const error = mock.method(console, 'error', () => {});
+    function ControllerHost() {
+      const [instance] = useState(() => ++nextInstance);
+      instances.push(instance);
+      const dashboard = AdminDashboardRoute();
+      const children = React.Children.toArray(dashboard.props.children);
+      const content = children.find(node => isValidElement(node) && typeof node.type === 'string');
+      assert.ok(isValidElement<{ className: string }>(content));
+      loadings.push(content.props.className.includes('items-center justify-center'));
+      const boundary = children.find(node => isValidElement(node) && node.type === React.Suspense);
+      assert.ok(isValidElement(boundary));
+      React.useEffect(() => { activations++; }, []);
+      return boundary;
+    }
+    const container = {
+      nodeType: 1, tagName: 'DIV', namespaceURI: 'http://www.w3.org/1999/xhtml', ownerDocument: doc,
+      addEventListener() {}, removeEventListener() {}, textContent: '',
+    };
+    const root = createRoot(container as unknown as Element);
+    async function render(mode: 'visible' | 'hidden' = 'visible') {
+      let tree: React.ReactElement = createElement(AppRouterContext.Provider, { value: router },
+        createElement(SearchParamsContext.Provider, { value: new URLSearchParams(browser.location.search) },
+          jsx(React.Activity, { mode, children: createElement(ControllerHost) } satisfies React.ActivityProps)));
+      if (strict) tree = createElement(React.StrictMode, null, tree);
+      await React.act(async () => { root.render(tree); });
+    }
+    async function unmount() {
+      if (!unmounted) {
+        await React.act(async () => { root.unmount(); });
+        unmounted = true;
+      }
+    }
+    async function settle(action: () => void) {
+      await React.act(async () => { action(); });
+    }
+    async function restore() {
+      try { await unmount(); }
+      finally {
+        for (const spy of [stateMock, authCheck, me, fetchMock, warn, error]) spy.mock.restore();
+        for (const [key, descriptor] of descriptors) {
+          if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+          else Reflect.deleteProperty(globalThis, key);
+        }
+      }
+    }
+    try { await render(); } catch (cause) { await restore(); throw cause; }
+    return {
+      calls, writes, requests, localRequests, overviewRequests, fetchMock, authCheck, warn, error,
+      render, unmount, settle, restore,
+      async setQuery(nextQuery: string) {
+        browser.location.search = '?' + nextQuery;
+        await render();
+      },
+      setLocationSearch(nextQuery: string) { browser.location.search = '?' + nextQuery; },
+      get session() { return session; },
+      get loading() { return loadings.at(-1) ?? true; },
+      get activations() { return activations; },
+      assertRetained() { assert.equal(new Set(instances).size, 1); },
+    };
+  }
+
+  for (const exit of ['unmount', 'hidden'] as const) for (const profile of ['Administrador', 'Curador de Fotos']) {
+    it(`ignora ${profile} após ${exit}, sem navegar, escrever estado ou iniciar overview`, async () => {
+      const page = await mountSession();
+      try {
+        page.calls.length = 0;
+        if (exit === 'unmount') await page.unmount();
+        else await page.render('hidden');
+        await page.settle(() => page.requests[0].resolve(railsSession(profile)));
+        assert.deepEqual(page.calls, []);
+        assert.deepEqual(page.writes, []);
+        assert.equal(page.session?.isGestor, false);
+        assert.equal(page.loading, true);
+        assert.equal(page.overviewRequests.length, 0);
+      } finally { await page.restore(); }
+    });
+  }
+
+  it('resposta antiga não encerra o loading enquanto a nova sessão ainda está pendente', async () => {
+    const page = await mountSession();
+    try {
+      await page.render('hidden');
+      await page.render();
+      page.calls.length = 0;
+      await page.settle(() => page.requests[0].resolve(railsSession('Editor de Notícias')));
+      assert.equal(page.loading, true);
+      assert.equal(page.session?.isGestor, false);
+      assert.deepEqual(page.writes, []);
+      assert.deepEqual(page.calls, []);
+      await page.settle(() => page.requests[1].resolve(railsSession('Curador de Fotos')));
+      assert.equal(page.loading, false);
+      assert.equal(page.session?.profileType, 'Curador de Fotos');
+      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/banners' }]);
+    } finally { await page.restore(); }
+  });
+
+  it('não aceita novamente a resposta antiga após Activity reativar uma execução legítima', async () => {
+    const page = await mountSession();
+    try {
+      await page.render('hidden');
+      await page.render();
+      assert.equal(page.requests.length, 2);
+      assert.equal(page.activations, 2);
+      page.assertRetained();
+      page.calls.length = 0;
+      await page.settle(() => page.requests[1].resolve(railsSession('Publicador de Avisos')));
+      assert.equal(page.session?.profileType, 'Publicador de Avisos');
+      assert.equal(page.loading, false);
+      assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/avisos' }]);
+      const writes = page.writes.length;
+      await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
+      assert.equal(page.session?.profileType, 'Publicador de Avisos');
+      assert.equal(page.writes.length, writes);
+      assert.equal(page.overviewRequests.length, 0);
+      assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/avisos' }]);
+    } finally { await page.restore(); }
+  });
+
+  it('sessão local antiga ausente não encaminha para login nem reabre o loading atual', async () => {
+    const page = await mountSession({ source: 'local' });
+    try {
+      await page.render('hidden');
+      await page.render();
+      await page.settle(() => page.localRequests[1].resolve(localSession('Editor de Notícias')));
+      const writes = page.writes.length;
+      page.calls.length = 0;
+      await page.settle(() => page.localRequests[0].resolve(new Response('{}', { status: 401 })));
+      assert.deepEqual(page.calls, []);
+      assert.equal(page.writes.length, writes);
+      assert.equal(page.session?.profileType, 'Editor de Notícias');
+      assert.equal(page.loading, false);
+    } finally { await page.restore(); }
+  });
+
+  for (const exit of ['unmount', 'reactivation'] as const) {
+    it(`falha Rails obsoleta após ${exit} não inicia fallback nem interfere na sessão`, async () => {
+      const page = await mountSession();
+      try {
+        if (exit === 'unmount') await page.unmount();
+        else {
+          await page.render('hidden');
+          await page.render();
+          await page.settle(() => page.requests[1].resolve(railsSession('Curador de Fotos')));
+        }
+        page.calls.length = 0;
+        const writes = page.writes.length;
+        await page.settle(() => page.requests[0].reject(new Error('Falha Rails antiga')));
+        assert.equal(page.localRequests.length, 0);
+        assert.equal(page.warn.mock.callCount(), 0);
+        assert.equal(page.error.mock.callCount(), 0);
+        assert.equal(page.writes.length, writes);
+        assert.deepEqual(page.calls, []);
+        if (exit === 'reactivation') assert.equal(page.session?.profileType, 'Curador de Fotos');
+      } finally { await page.restore(); }
+    });
+  }
+
+  it('resposta local após desmontagem não inicia parsing nem aplica sessão', async () => {
+    const page = await mountSession({ source: 'local' });
+    const response = localSession('Editor de Notícias');
+    const parse = mock.method(response, 'json', async () => ({ isGestor: false, profileType: 'Editor de Notícias' }));
+    try {
+      await page.unmount();
+      page.calls.length = 0;
+      await page.settle(() => page.localRequests[0].resolve(response));
+      assert.equal(parse.mock.callCount(), 0);
+      assert.deepEqual(page.writes, []);
+      assert.deepEqual(page.calls, []);
+    } finally { parse.mock.restore(); await page.restore(); }
+  });
+
+  for (const outcome of ['resolve', 'reject'] as const) {
+    it(`parsing local pendente (${outcome}) não altera a sessão após reativação`, async () => {
+      const page = await mountSession({ source: 'local' });
+      const json = deferred<{ isGestor: boolean; profileType: string }>();
+      const response = localSession('Curador de Fotos');
+      const parse = mock.method(response, 'json', () => json.promise);
+      try {
+        await page.settle(() => page.localRequests[0].resolve(response));
+        assert.equal(parse.mock.callCount(), 1);
+        await page.render('hidden');
+        await page.render();
+        await page.settle(() => page.localRequests[1].resolve(localSession('Publicador de Avisos')));
+        const writes = page.writes.length;
+        page.calls.length = 0;
+        await page.settle(() => {
+          if (outcome === 'resolve') json.resolve({ isGestor: false, profileType: 'Curador de Fotos' });
+          else json.reject(new Error('Parsing antigo falhou'));
+        });
+        assert.equal(page.session?.profileType, 'Publicador de Avisos');
+        assert.equal(page.loading, false);
+        assert.equal(page.writes.length, writes);
+        assert.equal(page.error.mock.callCount(), 0);
+        assert.deepEqual(page.calls, []);
+      } finally { parse.mock.restore(); await page.restore(); }
+    });
+  }
+
+  it('falha de fetch local após desmontagem não trata erro nem solicita login', async () => {
+    const page = await mountSession({ source: 'local' });
+    try {
+      await page.unmount();
+      page.calls.length = 0;
+      await page.settle(() => page.localRequests[0].reject(new Error('Rede antiga falhou')));
+      assert.equal(page.error.mock.callCount(), 0);
+      assert.deepEqual(page.writes, []);
+      assert.deepEqual(page.calls, []);
+    } finally { await page.restore(); }
+  });
+
+  it('Strict Mode invalida o primeiro setup antes do microtask e mantém o segundo funcional', async () => {
+    const page = await mountSession({ strict: true });
+    try {
+      assert.equal(page.activations, 2);
+      assert.equal(page.requests.length, 1);
+      page.calls.length = 0;
+      await page.settle(() => page.requests[0].resolve(railsSession('Curador de Fotos')));
+      assert.equal(page.session?.profileType, 'Curador de Fotos');
+      assert.equal(page.loading, false);
+      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/banners' }]);
+    } finally { await page.restore(); }
+  });
+
+  it('preserva fallback local e encaminhamento editorial quando a falha Rails é vigente', async () => {
+    const page = await mountSession({ query: 'tab=invalido&action=new' });
+    try {
+      page.calls.length = 0;
+      await page.settle(() => page.requests[0].reject(new Error('Token recusado simulado')));
+      assert.equal(page.localRequests.length, 1);
+      assert.equal(page.warn.mock.callCount(), 1);
+      await page.settle(() => page.localRequests[0].resolve(localSession('Editor de Notícias')));
+      assert.equal(page.session?.profileType, 'Editor de Notícias');
+      assert.equal(page.loading, false);
+      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/noticias?action=new' }]);
+    } finally { await page.restore(); }
+  });
+
+  it('preserva o login por erro vigente e mantém o loading de sessão', async () => {
+    const page = await mountSession({ source: 'local' });
+    try {
+      page.calls.length = 0;
+      await page.settle(() => page.localRequests[0].reject(new Error('Falha vigente')));
+      assert.equal(page.error.mock.callCount(), 1);
+      assert.equal(page.loading, true);
+      assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/login' }]);
+    } finally { await page.restore(); }
+  });
+
+  it('mantém as seis leituras do overview para o Administrador vigente', async () => {
+    const page = await mountSession();
+    try {
+      page.calls.length = 0;
+      await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
+      assert.equal(page.session?.isGestor, true);
+      assert.equal(page.loading, false);
+      assert.equal(page.overviewRequests.length, 6);
+      assert.equal(page.localRequests.length, 0);
+      assert.deepEqual(page.calls, []);
+    } finally { await page.restore(); }
+  });
+
+  it('mantém a guarda antecipada de aliases com efeitos reais', async () => {
+    for (const alias of ['fotos', 'banners', 'projetos', 'duvidas', 'faq', 'usuarios', 'kanban']) {
+      for (const parameter of ['tab', 'section']) {
+        const page = await mountSession({ query: `${parameter}=${alias}&action=new` });
+        try {
+          assert.equal(page.authCheck.mock.callCount(), 0);
+          assert.equal(page.requests.length, 0);
+          assert.equal(page.fetchMock.mock.callCount(), 0);
+          assert.equal(page.calls.length, 1);
+        } finally { await page.restore(); }
+      }
+    }
+  });
+  it('12D-5 Lote 1: dashboard preserva classificação Rails, estados e destinos anteriores', async () => {
+    for (const [label, fields, expected] of railsGestorCases) {
+      const page = await mountSession();
+      try {
+        await page.settle(() => page.requests[0].resolve(railsClassificationReply(fields)));
+        assert.equal(page.session?.isGestor, expected, label);
+        assert.equal(page.session?.profileType, fields.perfil_nome, label);
+        assert.equal(page.loading, false, label);
+        assert.equal(page.localRequests.length, 0, label);
+        assert.equal(page.overviewRequests.length, expected ? 6 : 0, label);
+        const profile = fields.perfil_nome;
+        assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
+          ? [{ method: 'replace', href: '/admin/banners' }] : profile === 'Publicador de Avisos'
+          ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
+        page.assertRetained();
+      } finally { await page.restore(); }
+    }
+  });
+
+  it('12D-5 Lote 1: dashboard mantém fallback quando data Rails é nulo ou ausente', async () => {
+    for (const reply of [{ success: true, data: null }, { success: true }]) {
+      const page = await mountSession();
+      try {
+        await page.settle(() => page.requests[0].resolve(JSON.parse(JSON.stringify(reply))));
+        assert.equal(page.localRequests.length, 1);
+        assert.equal(page.session?.isGestor, false);
+        assert.equal(page.loading, true);
+        assert.deepEqual(page.calls, []);
+        await page.settle(() => page.localRequests[0].resolve(new Response('{}', { status: 401 })));
+        assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/login' }]);
+      } finally { await page.restore(); }
+    }
+  });
+
+  it('12D-5 Lote 2: dashboard mantém campos Rails e editorialProfile sem incluir role/apiUser', async () => {
+    for (const { label, data, expected, pageRenderError } of railsSessionFieldCases) {
+      const page = await mountSession();
+      const reply: RailsReply = JSON.parse(JSON.stringify({ success: true, message: 'Sessão sintética', data }));
+      Object.freeze(reply.data);
+      const before = structuredClone(reply.data);
+      try {
+        const settle = () => page.settle(() => page.requests[0].resolve(reply));
+        // O avatar legado chama substring no nome. Caracteriza essa limitação
+        // com valores não textuais, sem normalizá-los ou corrigir a interface.
+        if (pageRenderError) await assert.rejects(settle, { name: 'TypeError', message: /substring/ });
+        else await settle();
+        assert.deepEqual(page.session, { ...expected, editorialProfile: expected.profileType }, label);
+        assert.deepEqual(reply.data, before, label);
+        if (!pageRenderError) assert.equal(page.loading, false, label);
+        assert.equal(page.localRequests.length, 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? 6 : 0, label);
+        assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
+          ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
+          ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
+      } finally { await page.restore(); }
+    }
+  });
+
+  it('12D-5 Lote 2: dashboard mantém campos locais e encaminhamento após fallback Rails', async () => {
+    for (const source of ['Rails', 'local']) for (const { label, data, expected, pageRenderError } of localSessionFieldCases) {
+      const page = await mountSession({ source });
+      const response = new Response(JSON.stringify(data), { status: 200 });
+      const input = Object.freeze(structuredClone(data));
+      const parse = mock.method(response, 'json', async () => input);
+      try {
+        if (source === 'Rails') await page.settle(() => page.requests[0].reject(new Error('Falha Rails simulada')));
+        const settle = () => page.settle(() => page.localRequests[0].resolve(response));
+        if (pageRenderError) await assert.rejects(settle, { name: 'TypeError', message: /substring/ });
+        else await settle();
+        assert.deepEqual(page.session, expected, `${source}: ${label}`);
+        assert.deepEqual(input, data, label);
+        if (!pageRenderError) assert.equal(page.loading, false, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? 6 : 0, label);
+        assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
+          ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
+          ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
+        assert.equal(page.warn.mock.callCount(), source === 'Rails' ? 1 : 0);
+      } finally { parse.mock.restore(); await page.restore(); }
+    }
+  });
+
+  it('12D-5 Lote 2: dashboard não aceita body local nulo nem JSON inválido', async () => {
+    for (const body of ['null', '{']) {
+      const page = await mountSession({ source: 'local' });
+      try {
+        await page.settle(() => page.localRequests[0].resolve(new Response(body, { status: 200 })));
+        assert.deepEqual(page.session, { isGestor: false });
+        assert.equal(page.loading, true);
+        assert.equal(page.error.mock.callCount(), 1);
+        assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/login' }]);
+      } finally { await page.restore(); }
+    }
+  });
+
+  describe('12D-5 Lote 4: retorno seguro preserva decisão editorial e E+D', () => {
+    for (const source of ['Rails', 'local']) {
+      for (const [profile, method, href] of [
+        ['Editor de Notícias', 'replace', '/admin/noticias?action=new'],
+        ['Curador de Fotos', 'replace', '/admin/banners'],
+        ['Publicador de Avisos', 'push', '/admin/avisos'],
+        ['Operador de Conteúdo', 'replace', '/admin/noticias?action=new'],
+      ]) {
+        it(`${source}, ${profile}: retorno conserva perfil, método e intenção`, async () => {
+          const safe = adminAuthNavigation.getSafeAdminReturnTarget('/admin?tab=visaoGeral&action=new&redirect=x&section=faq');
+          const query = new URL(safe, 'https://medtec.invalid').search.slice(1);
+          assert.equal(query, 'tab=visaoGeral&action=new&section=faq');
+          const page = await mountSession({ source, query });
+          try {
+            await page.settle(() => {
+              if (source === 'Rails') page.requests[0].resolve(railsSession(profile));
+              else page.localRequests[0].resolve(localSession(profile));
+            });
+            assert.deepEqual(page.calls, [{ method, href }]);
+            assert.equal(page.session?.isGestor, false);
+            assert.equal(page.session?.profileType, profile);
+            assert.equal(page.overviewRequests.length, 0);
+          } finally { await page.restore(); }
+        });
+      }
+      it(`${source}: alias canônico do retorno prevalece e delega autenticação`, async () => {
+        const safe = adminAuthNavigation.getSafeAdminReturnTarget('/admin?tab=faq&section=avisos&redirect=x');
+        const page = await mountSession({ source, query: new URL(safe, 'https://medtec.invalid').search.slice(1) });
+        try {
+          assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/faq' }]);
+          assert.equal(page.authCheck.mock.callCount(), 0);
+          assert.equal(page.requests.length + page.localRequests.length + page.overviewRequests.length, 0);
+        } finally { await page.restore(); }
+      });
+    }
+  });
+
+  describe('12D-5 Lote 3: caracterização editorial nos fluxos Rails e local', () => {
+    for (const source of ['Rails', 'local']) {
+      it(`${source}: mesmos perfis, métodos, destinos e loading`, async () => {
+        for (const { label, isGestor, profileType, expected, localOnly, inactive } of editorialProfileCases) {
+          if (source === 'Rails' && localOnly) continue;
+          const page = await mountSession({ source });
+          try {
+            await page.settle(() => {
+              if (source === 'Rails') page.requests[0].resolve(railsClassificationReply({
+                id: isGestor && profileType !== 'Administrador' ? 1 : 100,
+                perfil_id: 2, perfil_nome: profileType, ativo: !inactive,
+              }));
+              else page.localRequests[0].resolve(new Response(JSON.stringify({
+                isGestor, profileType, user: 'editorial-sintetico', name: 'Nome sintético',
+              }), { status: 200 }));
+            });
+            assert.deepEqual(page.calls, expected ? [expected] : [], label);
+            assert.equal(page.session?.isGestor, isGestor, label);
+            assert.equal(page.session?.profileType, profileType, label);
+            assert.equal(page.loading, false, label);
+            assert.equal(page.overviewRequests.length, isGestor ? 6 : 0, label);
+            assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, label);
+            assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, label);
+          } finally { await page.restore(); }
+        }
+      });
+
+      it(`${source}: query vigente após espera preserva criação, lista, primeiro valor e precedência`, async () => {
+        for (const [query, href] of editorialQueryCases) {
+          const page = await mountSession({ source, query: 'tab=invalido&mode=nova' });
+          try {
+            await page.setQuery(`tab=invalido&${query}`);
+            assert.deepEqual(page.calls, []);
+            assert.equal(page.authCheck.mock.callCount(), 1);
+            await page.settle(() => {
+              if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
+              else page.localRequests[0].resolve(localSession('Editor de Notícias'));
+            });
+            assert.deepEqual(page.calls, [{ method: 'replace', href }], query);
+            assert.equal(page.loading, false);
+            assert.equal(page.authCheck.mock.callCount(), 1);
+            page.assertRetained();
+          } finally { await page.restore(); }
+        }
+      });
+
+      it(`${source}: contexto canônico invalida sessão anterior e retorno ao Início inicia decisão atual`, async () => {
+        const page = await mountSession({ source, query: 'tab=visaoGeral&action=new' });
+        try {
+          await page.setQuery('tab=redes&section=noticias&mode=editor');
+          const writes = page.writes.length;
+          await page.settle(() => {
+            if (source === 'Rails') page.requests[0].resolve(railsSession('Publicador de Avisos'));
+            else page.localRequests[0].resolve(localSession('Publicador de Avisos'));
+          });
+          assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/redes' }]);
+          assert.equal(page.writes.length, writes);
+          assert.equal(page.session?.isGestor, false);
+          await page.setQuery('tab=visaoGeral&mode=lista');
+          assert.equal(page.authCheck.mock.callCount(), 2);
+          await page.settle(() => {
+            if (source === 'Rails') page.requests[1].resolve(railsSession('Editor de Notícias'));
+            else page.localRequests[1].resolve(localSession('Editor de Notícias'));
+          });
+          assert.deepEqual(page.calls, [
+            { method: 'push', href: '/admin/redes' }, { method: 'replace', href: '/admin/noticias' },
+          ]);
+          assert.equal(page.loading, false);
+          page.assertRetained();
+        } finally { await page.restore(); }
+      });
+    }
+  });
+
+  describe('Coordenação E + D entre aliases e sessão (12D-4F-B3.3)', () => {
+    const aliasCases = [
+      ['Administrador Rails + Redes', 'Rails', 'tab=redes', 'push', '/admin/redes'],
+      ['Administrador Rails + Usuários', 'Rails', 'tab=usuarios', 'replace', '/admin/usuarios'],
+      ['Editor + Notícias', 'Rails', 'tab=noticias', 'replace', '/admin/noticias'],
+      ['Editor + Redes', 'Rails', 'tab=redes', 'push', '/admin/redes'],
+      ['Curador + Banners', 'Rails', 'tab=banners', 'replace', '/admin/banners'],
+      ['Curador + Galeria', 'Rails', 'tab=galeria', 'push', '/admin/galeria'],
+      ['Publicador + Avisos', 'Rails', 'tab=avisos', 'push', '/admin/avisos'],
+      ['Publicador + Notícias', 'Rails', 'tab=noticias', 'replace', '/admin/noticias'],
+      ['Operador + Avisos', 'Rails', 'tab=avisos', 'push', '/admin/avisos'],
+      ['Gestor literal + Redes', 'Rails', 'tab=redes', 'push', '/admin/redes'],
+      ['Curador local + Galeria', 'local', 'tab=galeria', 'push', '/admin/galeria'],
+      ['Administrador local + Usuários', 'local', 'tab=usuarios', 'replace', '/admin/usuarios'],
+      ['Curador + tab precedendo section', 'Rails', 'tab=redes&section=galeria', 'push', '/admin/redes'],
+      ['Editor + action=new', 'Rails', 'tab=noticias&action=new', 'replace', '/admin/noticias?action=new'],
+      ['Editor + mode=editor', 'Rails', 'section=noticias&mode=editor', 'replace', '/admin/noticias?action=new'],
+      ['Projetos + action=new', 'Rails', 'tab=projetos&action=new', 'replace', '/admin/projetos?action=new'],
+    ];
+    for (const [label, source, query, method, href] of aliasCases) {
+      it(`${label}: encaminha sem consultar perfil, sessão ou overview na página`, async () => {
+        const page = await mountSession({ source, query });
+        try {
+          assert.deepEqual(page.calls, [{ method, href }]);
+          assert.equal(page.authCheck.mock.callCount(), 0);
+          assert.equal(page.requests.length, 0);
+          assert.equal(page.fetchMock.mock.callCount(), 0);
+          assert.equal(page.session?.isGestor, false);
+          page.assertRetained();
+        } finally { await page.restore(); }
+      });
+    }
+
+    for (const source of ['Rails', 'local']) {
+      it(`${source}: URL canônica antes do commit React já impede efeitos da resposta anterior`, async () => {
+        const page = await mountSession({ source, query: '' });
+        try {
+          page.setLocationSearch('tab=redes');
+          const writes = page.writes.length;
+          await page.settle(() => {
+            if (source === 'Rails') page.requests[0].resolve(railsSession('Administrador'));
+            else page.localRequests[0].resolve(localSession('Administrador'));
+          });
+          assert.equal(page.writes.length, writes);
+          assert.equal(page.overviewRequests.length, 0);
+          assert.deepEqual(page.calls, []);
+          await page.setQuery('tab=redes');
+          assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/redes' }]);
+          assert.equal(page.authCheck.mock.callCount(), 1);
+        } finally { await page.restore(); }
+      });
+
+      it(`${source}: Gestor literal sem heurísticas mantém destino editorial e não vira Administrador`, async () => {
+        const page = await mountSession({ source, query: '' });
+        try {
+          await page.settle(() => {
+            if (source === 'Rails') page.requests[0].resolve(railsSession('Gestor'));
+            else page.localRequests[0].resolve(localSession('Gestor'));
+          });
+          assert.equal(page.session?.isGestor, false);
+          assert.equal(page.session?.profileType, 'Gestor');
+          assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/noticias' }]);
+          assert.equal(page.overviewRequests.length, 0);
+        } finally { await page.restore(); }
+      });
+
+      for (const query of ['', 'tab=visaoGeral', 'tab=desconhecido&section=noticias']) {
+        it(`${source}: sem alias canônico (${query || 'ausente'}) mantém sessão e destino editorial`, async () => {
+          const page = await mountSession({ source, query });
+          try {
+            assert.deepEqual(page.calls, []);
+            assert.equal(page.loading, true);
+            await page.settle(() => {
+              if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
+              else page.localRequests[0].resolve(localSession('Editor de Notícias'));
+            });
+            assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/noticias' }]);
+            assert.equal(page.loading, false);
+            assert.equal(page.session?.profileType, 'Editor de Notícias');
+            assert.equal(page.authCheck.mock.callCount(), 1);
+          } finally { await page.restore(); }
+        });
+      }
+
+      for (const query of ['', 'tab=visaoGeral', 'tab=invalido']) {
+        it(`${source}: alias guardado → ${query || 'Início'} retoma autenticação sem remontar`, async () => {
+          const page = await mountSession({ source, query: 'tab=banners' });
+          try {
+            assert.equal(page.authCheck.mock.callCount(), 0);
+            await page.setQuery(query);
+            assert.equal(page.authCheck.mock.callCount(), 1);
+            assert.equal(page.loading, true);
+            await page.settle(() => {
+              if (source === 'Rails') page.requests[0].resolve(railsSession('Curador de Fotos'));
+              else page.localRequests[0].resolve(localSession('Curador de Fotos'));
+            });
+            assert.equal(page.loading, false);
+            assert.deepEqual(page.calls, [
+              { method: 'replace', href: '/admin/banners' }, { method: 'replace', href: '/admin/banners' },
+            ]);
+            page.assertRetained();
+          } finally { await page.restore(); }
+        });
+      }
+
+      it(`${source}: intenção canônica invalida autenticação pendente e o retorno inicia nova execução`, async () => {
+        const page = await mountSession({ source, query: '' });
+        try {
+          await page.setQuery('tab=galeria');
+          const writes = page.writes.length;
+          await page.setQuery('tab=desconhecido&action=new');
+          assert.equal(page.authCheck.mock.callCount(), 2);
+          await page.settle(() => {
+            if (source === 'Rails') page.requests[0].resolve(railsSession('Administrador'));
+            else page.localRequests[0].resolve(localSession('Administrador'));
+          });
+          assert.equal(page.writes.length, writes);
+          assert.equal(page.loading, true);
+          assert.equal(page.overviewRequests.length, 0);
+          await page.settle(() => {
+            if (source === 'Rails') page.requests[1].resolve(railsSession('Editor de Notícias'));
+            else page.localRequests[1].resolve(localSession('Editor de Notícias'));
+          });
+          assert.deepEqual(page.calls, [
+            { method: 'push', href: '/admin/galeria' }, { method: 'replace', href: '/admin/noticias?action=new' },
+          ]);
+          assert.equal(page.loading, false);
+          await page.setQuery('tab=galeria');
+          assert.deepEqual(page.calls.at(-1), { method: 'push', href: '/admin/galeria' });
+          assert.equal(page.authCheck.mock.callCount(), 2);
+          page.assertRetained();
+        } finally { await page.restore(); }
+      });
+
+      it(`${source}: resposta sem sessão obsoleta não disputa login com alias vigente`, async () => {
+        const page = await mountSession({ source, query: '' });
+        try {
+          if (source === 'Rails') await page.settle(() => page.requests[0].resolve({ ...railsSession('Editor de Notícias'), success: false }));
+          await page.setQuery('tab=redes');
+          const writes = page.writes.length;
+          await page.settle(() => page.localRequests[0].resolve(new Response('{}', { status: 401 })));
+          assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/redes' }]);
+          assert.equal(page.writes.length, writes);
+        } finally { await page.restore(); }
+      });
+
+      it(`${source}: query irrelevante não reinicia sessão, mas destino editorial usa query vigente`, async () => {
+        const page = await mountSession({ source, query: 'tab=invalido&action=new' });
+        try {
+          await page.setQuery('section=invalido&mode=lista&extra=2');
+          assert.equal(page.authCheck.mock.callCount(), 1);
+          await page.settle(() => {
+            if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
+            else page.localRequests[0].resolve(localSession('Editor de Notícias'));
+          });
+          assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/noticias' }]);
+          assert.equal(page.loading, false);
+        } finally { await page.restore(); }
+      });
+    }
+
+    it('Activity permite reencaminhar alias e depois retomar sessão, sem reabilitar execução antiga', async () => {
+      const page = await mountSession({ query: '' });
+      try {
+        await page.setQuery('tab=avisos');
+        await page.render('hidden');
+        await page.render();
+        await page.setQuery('tab=visaoGeral');
+        assert.equal(page.requests.length, 2);
+        await page.settle(() => page.requests[1].resolve(railsSession('Publicador de Avisos')));
+        const writes = page.writes.length;
+        await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
+        assert.equal(page.writes.length, writes);
+        assert.equal(page.session?.profileType, 'Publicador de Avisos');
+        assert.deepEqual(page.calls, Array.from({ length: 3 }, () => ({ method: 'push', href: '/admin/avisos' })));
+        assert.equal(page.loading, false);
+        assert.equal(page.activations, 2);
+        page.assertRetained();
+      } finally { await page.restore(); }
+    });
+
+    it('Strict Mode preserva replay de alias sem uma emissão editorial adicional', async () => {
+      const page = await mountSession({ query: 'tab=avisos', strict: true });
+      try {
+        assert.deepEqual(page.calls, [
+          { method: 'push', href: '/admin/avisos' }, { method: 'push', href: '/admin/avisos' },
+        ]);
+        assert.equal(page.authCheck.mock.callCount(), 0);
+        await page.setQuery('section=avisos&extra=2');
+        assert.equal(page.calls.length, 2);
+        await page.setQuery('tab=visaoGeral');
+        assert.equal(page.requests.length, 1);
+        await page.settle(() => page.requests[0].resolve(railsSession('Publicador de Avisos')));
+        assert.equal(page.calls.length, 3);
+        assert.equal(page.loading, false);
+        page.assertRetained();
+      } finally { await page.restore(); }
+    });
+
+    it('módulos equivalentes não autenticam; mudanças reais e retorno ao alias anterior navegam', async () => {
+      const page = await mountSession({ query: 'tab=noticias&mode=editor' });
+      try {
+        await page.setQuery('section=noticias&action=new&extra=2');
+        assert.equal(page.calls.length, 1);
+        await page.setQuery('tab=projetos&action=new');
+        await page.setQuery('tab=noticias&mode=nova');
+        assert.deepEqual(page.calls, [
+          { method: 'replace', href: '/admin/noticias?action=new' },
+          { method: 'replace', href: '/admin/projetos?action=new' },
+          { method: 'replace', href: '/admin/noticias?action=new' },
+        ]);
+        assert.equal(page.authCheck.mock.callCount(), 0);
+        assert.equal(page.fetchMock.mock.callCount(), 0);
+        page.assertRetained();
+      } finally { await page.restore(); }
+    });
+  });
+
+  describe('URL vigente nos redirects editoriais (12D-4F-B3.1)', () => {
+    const transitions = [
+      { from: 'tab=invalido', to: 'tab=invalido&action=new', after: '/admin/noticias?action=new' },
+      { from: 'tab=invalido&mode=editor', to: 'tab=invalido&mode=lista', after: '/admin/noticias' },
+      { from: 'tab=invalido', to: 'section=invalido&mode=nova', after: '/admin/noticias?action=new' },
+    ];
+    for (const source of ['Rails', 'local']) for (const profile of ['Editor de Notícias', 'Operador de Conteúdo']) {
+      for (const transition of transitions) {
+        it(`${source}, ${profile}: ${transition.from} → ${transition.to} usa a query vigente`, async () => {
+          const page = await mountSession({ source, query: transition.from });
+          try {
+            await page.setQuery(transition.to);
+            assert.deepEqual(page.calls, []);
+            assert.equal(page.authCheck.mock.callCount(), 1);
+            assert.equal(page.requests.length, source === 'Rails' ? 1 : 0);
+            assert.equal(page.localRequests.length, source === 'local' ? 1 : 0);
+            page.assertRetained();
+            assert.equal(page.activations, 1);
+            await page.settle(() => {
+              if (source === 'Rails') page.requests[0].resolve(railsSession(profile));
+              else page.localRequests[0].resolve(localSession(profile));
+            });
+            // Sem alias canônico, o único encaminhamento editorial usa a URL vigente.
+            assert.deepEqual(page.calls, [{ method: 'replace', href: transition.after }]);
+            assert.equal(page.session?.profileType, profile);
+            assert.equal(page.loading, false);
+            assert.equal(page.authCheck.mock.callCount(), 1);
+          } finally { await page.restore(); }
+        });
+      }
+    }
+
+    it('reavalia a query alterada durante fallback local após falha Rails', async () => {
+      const page = await mountSession({ query: 'tab=invalido' });
+      try {
+        await page.settle(() => page.requests[0].reject(new Error('Token recusado simulado')));
+        assert.equal(page.localRequests.length, 1);
+        await page.setQuery('tab=invalido&mode=new');
+        await page.settle(() => page.localRequests[0].resolve(localSession('Gestor')));
+        assert.deepEqual(page.calls.at(-1), { method: 'replace', href: '/admin/noticias?action=new' });
+        assert.equal(page.session?.isGestor, false);
+        assert.equal(page.requests.length, 1);
+        assert.equal(page.localRequests.length, 1);
+        assert.equal(page.warn.mock.callCount(), 1);
+      } finally { await page.restore(); }
+    });
+
+    for (const profile of ['Editor de Notícias', 'Operador de Conteúdo']) {
+      it(`reavalia a query após parsing JSON local pendente para ${profile}`, async () => {
+        const page = await mountSession({ source: 'local', query: 'tab=invalido' });
+        const json = deferred<{ isGestor: boolean; profileType: string }>();
+        const response = localSession(profile);
+        const parse = mock.method(response, 'json', () => json.promise);
+        try {
+          await page.settle(() => page.localRequests[0].resolve(response));
+          assert.equal(parse.mock.callCount(), 1);
+          await page.setQuery('section=invalido&action=new');
+          await page.settle(() => json.resolve({ isGestor: false, profileType: profile }));
+          assert.deepEqual(page.calls.at(-1), { method: 'replace', href: '/admin/noticias?action=new' });
+          assert.equal(page.localRequests.length, 1);
+          assert.equal(page.session?.profileType, profile);
+        } finally { parse.mock.restore(); await page.restore(); }
+      });
+    }
+
+    for (const source of ['Rails', 'local']) {
+      it(`${source}: parâmetros equivalentes não reiniciam sessão nem repetem alias`, async () => {
+        const page = await mountSession({ source, query: 'tab=invalido&action=new&mode=editor&extra=1' });
+        try {
+          await page.setQuery('mode=editor&action=new&tab=invalido&action=list&extra=2');
+          assert.deepEqual(page.calls, []);
+          await page.settle(() => {
+            if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
+            else page.localRequests[0].resolve(localSession('Editor de Notícias'));
+          });
+          assert.deepEqual(page.calls, [
+            { method: 'replace', href: '/admin/noticias?action=new' },
+          ]);
+          assert.equal(page.authCheck.mock.callCount(), 1);
+          page.assertRetained();
+        } finally { await page.restore(); }
+      });
+
+      it(`${source}: ausência atual de parâmetros editoriais retorna à lista`, async () => {
+        const page = await mountSession({ source, query: 'tab=noticias&action=new' });
+        try {
+          await page.setQuery('extra=sem-atalho');
+          await page.settle(() => {
+            if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
+            else page.localRequests[0].resolve(localSession('Editor de Notícias'));
+          });
+          assert.deepEqual(page.calls, [
+            { method: 'replace', href: '/admin/noticias?action=new' }, { method: 'replace', href: '/admin/noticias' },
+          ]);
+          assert.equal(page.authCheck.mock.callCount(), 1);
+        } finally { await page.restore(); }
+      });
+
+      it(`${source}: preserva primeiro valor, vazios, caixa e as regras de tab/section/action/mode`, async () => {
+        const cases: [string, string, string | null][] = [
+          ['tab=noticias&action=list&action=new&mode=lista', '/admin/noticias', '/admin/noticias'],
+          ['tab=noticias&action=new&action=list', '/admin/noticias?action=new', '/admin/noticias?action=new'],
+          ['tab=noticias&mode=lista&mode=editor', '/admin/noticias', '/admin/noticias'],
+          ['tab=noticias&mode=nova&mode=lista', '/admin/noticias?action=new', '/admin/noticias?action=new'],
+          ['tab=noticias&action=list&mode=new', '/admin/noticias?action=new', '/admin/noticias?action=new'],
+          ['tab=noticias&action=NEW&mode=EDITOR', '/admin/noticias', '/admin/noticias'],
+          ['tab=noticias&mode=&mode=editor', '/admin/noticias', '/admin/noticias'],
+          ['tab=&section=noticias&mode=nova', '/admin/noticias?action=new', '/admin/noticias?action=new'],
+          ['tab=redes&section=noticias&action=new', '/admin/noticias?action=new', '/admin/redes'],
+          ['tab=desconhecido&section=noticias&mode=editor', '/admin/noticias?action=new', null],
+        ];
+        for (const [query, href, aliasHref] of cases) {
+          const page = await mountSession({ source, query: 'tab=invalido' });
+          try {
+            page.calls.length = 0;
+            await page.setQuery(query);
+            assert.deepEqual(page.calls, aliasHref ? [{ method: aliasHref === '/admin/redes' ? 'push' : 'replace', href: aliasHref }] : []);
+            await page.settle(() => {
+              if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
+              else page.localRequests[0].resolve(localSession('Editor de Notícias'));
+            });
+            assert.deepEqual(page.calls, aliasHref
+              ? [{ method: aliasHref === '/admin/redes' ? 'push' : 'replace', href: aliasHref }]
+              : [{ method: 'replace', href }]);
+            assert.equal(page.authCheck.mock.callCount(), 1);
+          } finally { await page.restore(); }
+        }
+      });
+
+      it(`${source}: sessão ausente continua solicitando login após mudança da query`, async () => {
+        const page = await mountSession({ source, query: 'tab=invalido' });
+        try {
+          if (source === 'Rails') await page.settle(() => page.requests[0].reject(new Error('Sessão recusada simulada')));
+          await page.setQuery('tab=invalido&action=new');
+          await page.settle(() => page.localRequests[0].resolve(new Response('{}', { status: 401 })));
+          assert.deepEqual(page.calls.at(-1), { method: 'push', href: '/admin/login' });
+          assert.equal(page.loading, true);
+          assert.equal(page.authCheck.mock.callCount(), 1);
+        } finally { await page.restore(); }
+      });
+
+      for (const exit of ['unmount', 'hidden'] as const) {
+        it(`${source}: query nova não revalida callbacks após ${exit}`, async () => {
+          const page = await mountSession({ source, query: 'tab=invalido' });
+          try {
+            await page.setQuery('tab=invalido&action=new');
+            if (exit === 'unmount') await page.unmount();
+            else await page.render('hidden');
+            const writes = page.writes.length;
+            const calls = [...page.calls];
+            await page.settle(() => {
+              if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
+              else page.localRequests[0].resolve(localSession('Editor de Notícias'));
+            });
+            assert.deepEqual(page.calls, calls);
+            assert.equal(page.writes.length, writes);
+            assert.equal(page.session?.isGestor, false);
+          } finally { await page.restore(); }
+        });
+      }
+    }
+  });
+});
+
+describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
+  type RailsReply = Awaited<ReturnType<typeof medtecApi.auth.me>>;
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason: Error) => void;
+    const promise = new Promise<T>((accept, refuse) => { resolve = accept; reject = refuse; });
+    return { promise, resolve, reject };
+  }
+  function railsSession(profile: string, overrides: Partial<NonNullable<RailsReply['data']>> = {}): RailsReply {
+    return { success: true, message: 'Sessão sintética', data: {
+      id: 100, perfil_id: 2, perfil_nome: profile, nome: 'Usuário de teste', cpf: '00000000000', ativo: true, ...overrides,
+    } };
+  }
+  function localSession(profile: string, isGestor = false) {
+    return new Response(JSON.stringify({ isGestor, profileType: profile, user: 'operador-sintetico' }), { status: 200 });
+  }
+
+  async function mountShell({ source = 'Rails', strict = false, section = 'redes', pathname = '/admin/redes', search = '', children = 'B2: conteúdo protegido' }: {
+    source?: string; strict?: boolean; section?: AdminSection; pathname?: string; search?: string; children?: AdminShellProps['children'];
+  } = {}) {
+    const calls: { method: string; href: string }[] = [];
+    const writes: unknown[] = [];
+    const requests: ReturnType<typeof deferred<RailsReply>>[] = [];
+    const localRequests: ReturnType<typeof deferred<Response>>[] = [];
+    const instances: number[] = [];
+    const snapshots: { loading: boolean; restricted: boolean; content: boolean }[] = [];
+    const observed: { session?: AdminSession; loadingAuth: boolean } = { loadingAuth: true };
+    let nextInstance = 0;
+    let activations = 0;
+    let unmounted = false;
+    const router = {
+      back() {}, forward() {}, refresh() {}, prefetch() {}, bfcacheId: 'shell-session-test',
+      push(href: string) { calls.push({ method: 'push', href }); },
+      replace(href: string) { calls.push({ method: 'replace', href }); },
+    };
+    // Monta os hooks reais, observando a árvore retornada pelo Shell sem
+    // renderizar o DOM visual. Todas as consultas são promessas controladas.
+    const doc = {
+      nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null,
+      defaultView: null as unknown, documentElement: { classList: { contains() { return false; } } },
+    };
+    const browser = { document: doc, HTMLIFrameElement: class {}, location: { pathname, search } };
+    doc.defaultView = browser;
+    const globals = {
+      window: browser, document: doc, IS_REACT_ACT_ENVIRONMENT: true,
+      MutationObserver: class { observe() {} disconnect() {} },
+    };
+    const descriptors = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+    for (const [key, value] of Object.entries(globals)) {
+      Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+    }
+    const useState = React.useState;
+    const setters = new WeakMap<React.Dispatch<React.SetStateAction<unknown>>, React.Dispatch<React.SetStateAction<unknown>>>();
+    const stateMock = mock.method(React, 'useState', (<S,>(initial: S | (() => S)) => {
+      const [value, setValue] = useState(initial);
+      // Identifica estados por seus valores iniciais, sem índices de hooks;
+      // os setters preservam identidade e continuam delegando ao React.
+      if (initial && typeof initial === 'object' && 'isGestor' in initial) observed.session = value as AdminSession;
+      if (initial === true) observed.loadingAuth = value as boolean;
+      const dispatch = setValue as React.Dispatch<React.SetStateAction<unknown>>;
+      if (!setters.has(dispatch)) setters.set(dispatch, next => { writes.push(next); dispatch(next); });
+      return [value, setters.get(dispatch)] as [S, React.Dispatch<React.SetStateAction<S>>];
+    }) as typeof React.useState);
+    const authCheck = mock.method(medtecApi.auth, 'isAuthenticated', () => source === 'Rails');
+    const me = mock.method(medtecApi.auth, 'me', () => {
+      const request = deferred<RailsReply>();
+      requests.push(request);
+      return request.promise;
+    });
+    const fetchMock = mock.method(globalThis, 'fetch', (input: RequestInfo | URL, options?: RequestInit) => {
+      assert.equal(String(input), '/api/auth');
+      assert.equal(options?.method || 'GET', 'GET');
+      const request = deferred<Response>();
+      localRequests.push(request);
+      return request.promise;
+    });
+    const warn = mock.method(console, 'warn', () => {});
+    const error = mock.method(console, 'error', () => {});
+    function textNodes(node: ReactNode): string[] {
+      if (typeof node === 'string') return [node];
+      if (Array.isArray(node)) return node.flatMap(textNodes);
+      if (isValidElement<{ children?: ReactNode }>(node)) return textNodes(node.props.children);
+      return [];
+    }
+    function ControllerHost() {
+      const [instance] = useState(() => ++nextInstance);
+      instances.push(instance);
+      const tree = AdminShell({ activeSection: section, children });
+      const text = textNodes(tree);
+      snapshots.push({
+        loading: text.some(value => value.includes('Autenticando e carregando')),
+        restricted: text.includes('Acesso Restrito'), content: text.includes('B2: conteúdo protegido'),
+      });
+      React.useEffect(() => { activations++; }, []);
+      return null;
+    }
+    const container = {
+      nodeType: 1, tagName: 'DIV', namespaceURI: 'http://www.w3.org/1999/xhtml', ownerDocument: doc,
+      addEventListener() {}, removeEventListener() {}, textContent: '',
+    };
+    const root = createRoot(container as unknown as Element);
+    async function render(mode: 'visible' | 'hidden' = 'visible', nextPathname = browser.location.pathname) {
+      browser.location.pathname = nextPathname;
+      let tree: React.ReactElement = createElement(AppRouterContext.Provider, { value: router },
+        createElement(PathnameContext.Provider, { value: nextPathname },
+          jsx(React.Activity, { mode, children: createElement(ControllerHost) } satisfies React.ActivityProps)));
+      if (strict) tree = createElement(React.StrictMode, null, tree);
+      await React.act(async () => { root.render(tree); });
+    }
+    async function unmount() {
+      if (!unmounted) {
+        await React.act(async () => { root.unmount(); });
+        unmounted = true;
+      }
+    }
+    async function settle(action: () => void) { await React.act(async () => { action(); }); }
+    async function restore() {
+      try { await unmount(); }
+      finally {
+        for (const spy of [stateMock, authCheck, me, fetchMock, warn, error]) spy.mock.restore();
+        for (const [key, descriptor] of descriptors) {
+          if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+          else Reflect.deleteProperty(globalThis, key);
+        }
+      }
+    }
+    try { await render(); } catch (cause) { await restore(); throw cause; }
+    return {
+      calls, writes, requests, localRequests, warn, error, render, unmount, settle, restore,
+      setSearch(search: string) { browser.location.search = search; },
+      get session() { return observed.session; }, get loadingAuth() { return observed.loadingAuth; },
+      get view() { return snapshots.at(-1); }, get activations() { return activations; },
+      assertRetained() { assert.equal(new Set(instances).size, 1); },
+    };
+  }
+
+  for (const exit of ['unmount', 'hidden'] as const) {
+    it(`ignora resposta Rails após ${exit}, inclusive as escritas do finally`, async () => {
+      const shell = await mountShell();
+      try {
+        if (exit === 'unmount') await shell.unmount();
+        else await shell.render('hidden');
+        const writes = shell.writes.length;
+        await shell.settle(() => shell.requests[0].resolve(railsSession('Administrador')));
+        assert.equal(shell.writes.length, writes);
+        assert.equal(shell.session?.apiUser, undefined);
+        assert.equal(shell.session?.isGestor, false);
+        assert.equal(shell.loadingAuth, true);
+        assert.deepEqual(shell.calls, []);
+      } finally { await shell.restore(); }
+    });
+
+    it(`sessão local ausente após ${exit} não solicita login nem encerra loading`, async () => {
+      const shell = await mountShell({ source: 'local' });
+      try {
+        if (exit === 'unmount') await shell.unmount();
+        else await shell.render('hidden');
+        const writes = shell.writes.length;
+        await shell.settle(() => shell.localRequests[0].resolve(new Response('{}', { status: 401 })));
+        assert.equal(shell.writes.length, writes);
+        assert.equal(shell.loadingAuth, true);
+        assert.deepEqual(shell.calls, []);
+      } finally { await shell.restore(); }
+    });
+  }
+
+  for (const [recent, old] of [['Administrador', 'Editor de Notícias'], ['Editor de Notícias', 'Administrador']]) {
+    it(`preserva ${recent} recente contra ${old} antigo após reativação`, async () => {
+      const shell = await mountShell({ section: 'usuarios' });
+      try {
+        await shell.render('hidden');
+        await shell.render();
+        shell.assertRetained();
+        assert.equal(shell.activations, 2);
+        assert.equal(shell.requests.length, 2);
+        await shell.settle(() => shell.requests[1].resolve(railsSession(recent)));
+        assert.equal(shell.session?.apiUser?.perfil_nome, recent);
+        assert.equal(shell.view?.content, recent === 'Administrador');
+        assert.equal(shell.view?.restricted, recent !== 'Administrador');
+        const writes = shell.writes.length;
+        await shell.settle(() => shell.requests[0].resolve(railsSession(old)));
+        assert.equal(shell.session?.apiUser?.perfil_nome, recent);
+        assert.equal(shell.writes.length, writes);
+        assert.equal(shell.loadingAuth, false);
+        assert.equal(shell.view?.content, recent === 'Administrador');
+        assert.equal(shell.view?.restricted, recent !== 'Administrador');
+        assert.deepEqual(shell.calls, []);
+      } finally { await shell.restore(); }
+    });
+  }
+
+  it('sessão antiga ausente não solicita login depois de uma sessão local recente válida', async () => {
+    const shell = await mountShell({ source: 'local' });
+    try {
+      await shell.render('hidden');
+      await shell.render();
+      await shell.settle(() => shell.localRequests[1].resolve(localSession('Gestor Geral', true)));
+      const writes = shell.writes.length;
+      await shell.settle(() => shell.localRequests[0].resolve(new Response('{}', { status: 401 })));
+      assert.equal(shell.writes.length, writes);
+      assert.equal(shell.session?.profileType, 'Gestor Geral');
+      assert.equal(shell.view?.content, true);
+      assert.equal(shell.loadingAuth, false);
+      assert.deepEqual(shell.calls, []);
+    } finally { await shell.restore(); }
+  });
+
+  for (const exit of ['unmount', 'reactivation'] as const) {
+    it(`erro Rails antigo após ${exit} não inicia fallback nem modifica loading`, async () => {
+      const shell = await mountShell();
+      try {
+        if (exit === 'unmount') await shell.unmount();
+        else { await shell.render('hidden'); await shell.render(); }
+        const writes = shell.writes.length;
+        await shell.settle(() => shell.requests[0].reject(new Error('Erro Rails antigo')));
+        assert.equal(shell.localRequests.length, 0);
+        assert.equal(shell.writes.length, writes);
+        assert.equal(shell.loadingAuth, true);
+        assert.equal(shell.warn.mock.callCount(), 0);
+        assert.equal(shell.error.mock.callCount(), 0);
+        assert.deepEqual(shell.calls, []);
+        if (exit === 'reactivation') {
+          await shell.settle(() => shell.requests[1].resolve(railsSession('Administrador')));
+          assert.equal(shell.view?.content, true);
+          assert.equal(shell.loadingAuth, false);
+        }
+      } finally { await shell.restore(); }
+    });
+  }
+
+  it('resposta local após desmontagem não inicia parsing', async () => {
+    const shell = await mountShell({ source: 'local' });
+    const response = localSession('Administrador', true);
+    const parse = mock.method(response, 'json', async () => ({ isGestor: true, profileType: 'Administrador' }));
+    try {
+      await shell.unmount();
+      const writes = shell.writes.length;
+      await shell.settle(() => shell.localRequests[0].resolve(response));
+      assert.equal(parse.mock.callCount(), 0);
+      assert.equal(shell.writes.length, writes);
+      assert.deepEqual(shell.calls, []);
+    } finally { parse.mock.restore(); await shell.restore(); }
+  });
+
+  for (const outcome of ['resolve', 'reject'] as const) {
+    it(`parsing local antigo (${outcome}) não interfere na sessão reativada`, async () => {
+      const shell = await mountShell({ source: 'local' });
+      const json = deferred<{ isGestor: boolean; profileType: string }>();
+      const response = localSession('Editor de Notícias');
+      const parse = mock.method(response, 'json', () => json.promise);
+      try {
+        await shell.settle(() => shell.localRequests[0].resolve(response));
+        assert.equal(parse.mock.callCount(), 1);
+        await shell.render('hidden');
+        await shell.render();
+        await shell.settle(() => shell.localRequests[1].resolve(localSession('Gestor Geral', true)));
+        const writes = shell.writes.length;
+        await shell.settle(() => {
+          if (outcome === 'resolve') json.resolve({ isGestor: false, profileType: 'Editor de Notícias' });
+          else json.reject(new Error('Parsing antigo falhou'));
+        });
+        assert.equal(shell.session?.profileType, 'Gestor Geral');
+        assert.equal(shell.view?.content, true);
+        assert.equal(shell.loadingAuth, false);
+        assert.equal(shell.writes.length, writes);
+        assert.equal(shell.error.mock.callCount(), 0);
+        assert.deepEqual(shell.calls, []);
+      } finally { parse.mock.restore(); await shell.restore(); }
+    });
+  }
+
+  it('erro de fetch antigo não encerra loading nem solicita login enquanto a sessão recente aguarda', async () => {
+    const shell = await mountShell({ source: 'local' });
+    try {
+      await shell.render('hidden');
+      await shell.render();
+      const writes = shell.writes.length;
+      await shell.settle(() => shell.localRequests[0].reject(new Error('Rede antiga falhou')));
+      assert.equal(shell.loadingAuth, true);
+      assert.equal(shell.writes.length, writes);
+      assert.equal(shell.error.mock.callCount(), 0);
+      assert.deepEqual(shell.calls, []);
+      await shell.settle(() => shell.localRequests[1].resolve(localSession('Gestor Geral', true)));
+      assert.equal(shell.loadingAuth, false);
+      assert.equal(shell.view?.content, true);
+    } finally { await shell.restore(); }
+  });
+
+  for (const order of ['old-first', 'new-first'] as const) {
+    it(`Strict Mode mantém somente a segunda execução válida (${order})`, async () => {
+      const shell = await mountShell({ strict: true });
+      try {
+        assert.equal(shell.activations, 2);
+        assert.equal(shell.requests.length, 2);
+        shell.assertRetained();
+        if (order === 'new-first') await shell.settle(() => shell.requests[1].resolve(railsSession('Editor de Notícias')));
+        const writes = shell.writes.length;
+        await shell.settle(() => shell.requests[0].resolve(railsSession('Administrador')));
+        assert.equal(shell.writes.length, writes);
+        if (order === 'old-first') {
+          assert.equal(shell.loadingAuth, true);
+          await shell.settle(() => shell.requests[1].resolve(railsSession('Editor de Notícias')));
+        }
+        assert.equal(shell.session?.apiUser?.perfil_nome, 'Editor de Notícias');
+        assert.equal(shell.view?.restricted, true);
+        assert.equal(shell.view?.content, false);
+        assert.equal(shell.loadingAuth, false);
+        assert.deepEqual(shell.calls, []);
+      } finally { await shell.restore(); }
+    });
+  }
+
+  it('mudança de pathname invalida o login da rota anterior', async () => {
+    const shell = await mountShell({ source: 'local' });
+    try {
+      await shell.render('visible', '/admin/avisos');
+      assert.equal(shell.localRequests.length, 2);
+      await shell.settle(() => shell.localRequests[1].resolve(localSession('Gestor Geral', true)));
+      const writes = shell.writes.length;
+      await shell.settle(() => shell.localRequests[0].resolve(new Response('{}', { status: 401 })));
+      assert.equal(shell.writes.length, writes);
+      assert.equal(shell.view?.content, true);
+      assert.deepEqual(shell.calls, []);
+    } finally { await shell.restore(); }
+  });
+
+  for (const [source, profile, section, allowed] of [
+    ['Rails', 'Administrador', 'redes', true],
+    ['Rails', 'Administrador', 'usuarios', true],
+    ['Rails', 'Editor de Notícias', 'noticias', true],
+    ['Rails', 'Editor de Notícias', 'redes', false],
+    ['Rails', 'Curador de Fotos', 'fotos', true],
+    ['Rails', 'Curador de Fotos', 'galeria', true],
+    ['Rails', 'Publicador de Avisos', 'avisos', true],
+    ['Rails', 'Publicador de Avisos', 'noticias', true],
+    ['Rails', 'Operador de Conteúdo', 'avisos', true],
+    ['Rails', 'Gestor', 'redes', false],
+    ['local', 'Curador de Fotos', 'galeria', true],
+    ['local', 'Administrador', 'usuarios', false],
+  ] as const) {
+    it(`B3.3: destino mantém autorização ${source}, ${profile}, ${section}`, async () => {
+      const shell = await mountShell({
+        source, section, pathname: `/admin/${section}`,
+        // Notícias usa conteúdo por função na rota canônica; as operações
+        // continuam dependentes das permissões do módulo, não deste marcador.
+        children: section === 'noticias' ? () => 'B2: conteúdo protegido' : 'B2: conteúdo protegido',
+      });
+      try {
+        assert.equal(shell.view?.loading, true);
+        await shell.settle(() => {
+          if (source === 'Rails') shell.requests[0].resolve(railsSession(profile));
+          else shell.localRequests[0].resolve(localSession(profile, profile === 'Administrador'));
+        });
+        assert.equal(shell.view?.content, allowed);
+        assert.equal(shell.view?.restricted, !allowed);
+        assert.equal(shell.view?.loading, false);
+        assert.deepEqual(shell.calls, []);
+        if (source === 'local') assert.equal(shell.session?.apiUser, undefined);
+        if (profile === 'Gestor') assert.equal(shell.session?.isGestor, false);
+      } finally { await shell.restore(); }
+    });
+  }
+
+  it('12D-5 Lote 1: Shell preserva classificação Rails, apiUser e autorização da seção', async () => {
+    for (const [label, fields, expected] of railsGestorCases) {
+      const shell = await mountShell({ section: 'redes' });
+      const reply = railsClassificationReply(fields);
+      try {
+        await shell.settle(() => shell.requests[0].resolve(reply));
+        assert.equal(shell.session?.isGestor, expected, label);
+        assert.equal(shell.session?.apiUser, reply.data, label);
+        assert.equal(shell.session?.profileType, fields.perfil_nome, label);
+        assert.equal(shell.loadingAuth, false, label);
+        assert.equal(shell.view?.content, expected, label);
+        assert.equal(shell.view?.restricted, !expected, label);
+        assert.equal(shell.localRequests.length, 0, label);
+        assert.deepEqual(shell.calls, [], label);
+      } finally { await shell.restore(); }
+    }
+  });
+
+  it('12D-5 Lote 1: Shell mantém fallback quando data Rails é nulo ou ausente', async () => {
+    for (const reply of [{ success: true, data: null }, { success: true }]) {
+      const shell = await mountShell();
+      try {
+        await shell.settle(() => shell.requests[0].resolve(JSON.parse(JSON.stringify(reply))));
+        assert.equal(shell.localRequests.length, 1);
+        assert.equal(shell.session?.isGestor, false);
+        assert.equal(shell.loadingAuth, true);
+        assert.deepEqual(shell.calls, []);
+        await shell.settle(() => shell.localRequests[0].resolve(new Response('{}', { status: 401 })));
+        assert.deepEqual(shell.calls, [{ method: 'push', href: '/admin/login?redirect=%2Fadmin%2Fredes' }]);
+      } finally { await shell.restore(); }
+    }
+  });
+
+  it('12D-5 Lote 2: Shell mantém campos Rails, role e apiUser original', async () => {
+    for (const { label, data, expected } of railsSessionFieldCases) {
+      const shell = await mountShell({ section: 'redes' });
+      const reply: RailsReply = JSON.parse(JSON.stringify({ success: true, message: 'Sessão sintética', data }));
+      Object.freeze(reply.data);
+      const before = structuredClone(reply.data);
+      try {
+        await shell.settle(() => shell.requests[0].resolve(reply));
+        assert.deepEqual(shell.session, { ...expected, role: expected.profileType, apiUser: reply.data }, label);
+        assert.equal(shell.session?.apiUser, reply.data, label);
+        assert.deepEqual(reply.data, before, label);
+        assert.equal(shell.loadingAuth, false, label);
+        assert.equal(shell.view?.content, expected.isGestor, label);
+        assert.equal(shell.view?.restricted, !expected.isGestor, label);
+        assert.equal(shell.localRequests.length, 0, label);
+        assert.deepEqual(shell.calls, [], label);
+      } finally { await shell.restore(); }
+    }
+  });
+
+  it('12D-5 Lote 2: Shell mantém role local sem promover apiUser/editorialProfile', async () => {
+    for (const source of ['Rails', 'local']) for (const { label, data, expected, role } of localSessionFieldCases) {
+      const shell = await mountShell({ source, section: 'redes' });
+      const response = new Response(JSON.stringify(data), { status: 200 });
+      const input = Object.freeze(structuredClone(data));
+      const parse = mock.method(response, 'json', async () => input);
+      try {
+        if (source === 'Rails') await shell.settle(() => shell.requests[0].reject(new Error('Falha Rails simulada')));
+        await shell.settle(() => shell.localRequests[0].resolve(response));
+        assert.deepEqual(shell.session, { ...expected, role }, `${source}: ${label}`);
+        assert.deepEqual(input, data, label);
+        assert.equal(shell.session?.apiUser, undefined, label);
+        assert.equal(shell.loadingAuth, false, label);
+        assert.equal(shell.view?.content, expected.isGestor, label);
+        assert.equal(shell.view?.restricted, !expected.isGestor, label);
+        assert.equal(shell.warn.mock.callCount(), source === 'Rails' ? 1 : 0);
+        assert.deepEqual(shell.calls, [], label);
+      } finally { parse.mock.restore(); await shell.restore(); }
+    }
+  });
+
+  it('12D-5 Lote 2: Shell não aceita body local nulo nem JSON inválido', async () => {
+    for (const body of ['null', '{']) {
+      const shell = await mountShell({ source: 'local' });
+      try {
+        await shell.settle(() => shell.localRequests[0].resolve(new Response(body, { status: 200 })));
+        assert.deepEqual(shell.session, { isGestor: false });
+        assert.equal(shell.loadingAuth, false);
+        assert.equal(shell.view?.loading, true);
+        assert.equal(shell.error.mock.callCount(), 1);
+        assert.deepEqual(shell.calls, [{ method: 'push', href: '/admin/login' }]);
+      } finally { await shell.restore(); }
+    }
+  });
+
+  it('preserva fallback vigente e sessão local sem apiUser e sem redirect editorial', async () => {
+    const shell = await mountShell({ section: 'noticias' });
+    try {
+      await shell.settle(() => shell.requests[0].reject(new Error('Token recusado simulado')));
+      assert.equal(shell.localRequests.length, 1);
+      assert.equal(shell.warn.mock.callCount(), 1);
+      await shell.settle(() => shell.localRequests[0].resolve(localSession('Editor de Notícias')));
+      assert.equal(shell.session?.profileType, 'Editor de Notícias');
+      assert.equal(shell.session?.apiUser, undefined);
+      assert.equal(shell.loadingAuth, false);
+      assert.equal(shell.view?.content, true);
+      assert.deepEqual(shell.calls, []);
+    } finally { await shell.restore(); }
+  });
+
+  it('12D-5 Lote 4 regressão: Shell preserva query antes perdida', async () => {
+    const shell = await mountShell({ source: 'local', pathname: '/admin/noticias', search: '?action=new' });
+    try {
+      await shell.settle(() => shell.localRequests[0].resolve(new Response('{}', { status: 401 })));
+      assert.deepEqual(shell.calls, [{ method: 'push', href: '/admin/login?redirect=%2Fadmin%2Fnoticias%3Faction%3Dnew' }]);
+    } finally { await shell.restore(); }
+  });
+
+  for (const [pathname, search, expected] of [
+    ['/admin/noticias', '?action=new', '/admin/noticias?action=new'],
+    ['/admin', '?tab=faq&section=avisos', '/admin?tab=faq&section=avisos'],
+    ['/admin/noticias', '?mode=editor&edit=42', '/admin/noticias?mode=editor&edit=42'],
+    ['/admin', '?tab=faq&redirect=x&tab=avisos', '/admin?tab=faq&tab=avisos'],
+    ['/admin', '?q=a%20b&x=%2f&q=a+b&flag', '/admin?q=a%20b&x=%2f&q=a+b&flag'],
+  ]) {
+    it(`12D-5 Lote 4 segurança: Shell transporta query ${search}`, async () => {
+      const shell = await mountShell({ source: 'local', pathname, search });
+      try {
+        await shell.settle(() => shell.localRequests[0].resolve(new Response('{}', { status: 401 })));
+        const href = '/admin/login?redirect=' + encodeURIComponent(expected);
+        assert.deepEqual(shell.calls, [{ method: 'push', href }]);
+        await simulateAdminReturnLogin(href.split('?')[1], expected);
+      } finally { await shell.restore(); }
+    });
+  }
+
+  it('12D-5 Lote 4 segurança: Shell usa query vigente sem novo efeito', async () => {
+    const shell = await mountShell({ source: 'local', pathname: '/admin/noticias', search: '?mode=lista' });
+    try {
+      shell.setSearch('?action=new');
+      await shell.settle(() => shell.localRequests[0].resolve(new Response('{}', { status: 401 })));
+      assert.deepEqual(shell.calls, [{ method: 'push', href: '/admin/login?redirect=%2Fadmin%2Fnoticias%3Faction%3Dnew' }]);
+      assert.equal(shell.localRequests.length, 1);
+    } finally { await shell.restore(); }
+  });
+
+  for (const replay of ['Activity', 'Strict Mode']) {
+    it(`12D-5 Lote 4 segurança: query preservada mantém B2 após ${replay}`, async () => {
+      const shell = await mountShell({ source: 'local', pathname: '/admin/noticias', search: '?mode=lista', strict: replay === 'Strict Mode' });
+      try {
+        if (replay === 'Activity') { await shell.render('hidden'); await shell.render('visible'); }
+        assert.equal(shell.localRequests.length, 2);
+        shell.setSearch('?action=new');
+        await shell.settle(() => shell.localRequests[0].resolve(new Response('{}', { status: 401 })));
+        assert.deepEqual(shell.calls, []);
+        await shell.settle(() => shell.localRequests[1].resolve(new Response('{}', { status: 401 })));
+        assert.deepEqual(shell.calls, [{ method: 'push', href: '/admin/login?redirect=%2Fadmin%2Fnoticias%3Faction%3Dnew' }]);
+        shell.assertRetained();
+      } finally { await shell.restore(); }
+    });
+  }
+
+  it('12D-5 Lote 4 segurança: retorno aceito não autoriza o módulo de destino', async () => {
+    const target = adminAuthNavigation.getSafeAdminReturnTarget('/admin/redes');
+    await simulateAdminReturnLogin('redirect=' + encodeURIComponent(target), target);
+    const shell = await mountShell({ source: 'Rails', pathname: target, section: 'redes' });
+    try {
+      await shell.settle(() => shell.requests[0].resolve(railsSession('Editor de Notícias')));
+      assert.equal(shell.session?.isGestor, false);
+      assert.equal(shell.view?.restricted, true);
+      assert.equal(shell.view?.content, false);
+      assert.deepEqual(shell.calls, []);
+    } finally { await shell.restore(); }
+  });
+
+  it('preserva redirect do pathname vigente quando não há sessão', async () => {
+    const shell = await mountShell({ source: 'local', pathname: '/admin/usuarios' });
+    try {
+      await shell.settle(() => shell.localRequests[0].resolve(new Response('{}', { status: 401 })));
+      assert.equal(shell.loadingAuth, false);
+      assert.equal(shell.view?.loading, true);
+      assert.deepEqual(shell.calls, [{ method: 'push', href: '/admin/login?redirect=%2Fadmin%2Fusuarios' }]);
+    } finally { await shell.restore(); }
+  });
+
+  it('preserva login genérico e finally quando o erro é vigente', async () => {
+    const shell = await mountShell({ source: 'local' });
+    try {
+      await shell.settle(() => shell.localRequests[0].reject(new Error('Erro vigente')));
+      assert.equal(shell.error.mock.callCount(), 1);
+      assert.equal(shell.loadingAuth, false);
+      assert.equal(shell.view?.loading, true);
+      assert.deepEqual(shell.calls, [{ method: 'push', href: '/admin/login' }]);
+    } finally { await shell.restore(); }
+  });
+
+  for (const section of ['usuarios', 'kanban'] as const) {
+    it(`preserva a autorização de ${section} com sessões Rails e locais vigentes`, async () => {
+      const cases = [
+        { source: 'Rails', profile: 'Administrador', overrides: {}, allowed: true },
+        { source: 'Rails', profile: 'Administrador', overrides: { ativo: false }, allowed: section === 'kanban' },
+        { source: 'Rails', profile: 'Editor de Notícias', overrides: {}, allowed: false },
+        { source: 'Rails', profile: 'Editor de Notícias', overrides: { id: 1 }, allowed: false },
+        { source: 'Rails', profile: 'Operador de Conteúdo', overrides: { perfil_id: 3 }, allowed: false },
+        { source: 'Rails', profile: 'Gestor', overrides: {}, allowed: false },
+        { source: 'local', profile: 'Administrador', overrides: {}, allowed: false },
+        { source: 'local', profile: 'Gestor Geral', overrides: {}, allowed: false },
+      ];
+      for (const item of cases) {
+        const shell = await mountShell({ source: item.source, section });
+        try {
+          await shell.settle(() => {
+            if (item.source === 'Rails') shell.requests[0].resolve(railsSession(item.profile, item.overrides));
+            else shell.localRequests[0].resolve(localSession(item.profile, true));
+          });
+          assert.equal(shell.view?.content, item.allowed, `${item.source}: ${item.profile}`);
+          assert.equal(shell.view?.restricted, !item.allowed);
+          assert.deepEqual(shell.calls, []);
+        } finally { await shell.restore(); }
+      }
+    });
+  }
 });
 
 describe('Componentes extraídos da navegação administrativa', () => {
@@ -1047,7 +3740,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     });
     const effectMock = mock.method(React, 'useEffect', (effect: React.EffectCallback, dependencies?: React.DependencyList) => {
       const dependency = dependencies?.[0];
-      if (kind === 'page' && dependencies?.length === 1 && dependency && typeof dependency === 'object' &&
+      if (kind === 'page' && dependency && typeof dependency === 'object' &&
         'push' in dependency && dependency.push === router.push) effects.push(effect);
     });
     const originalFetch = globalThis.fetch;
@@ -1249,17 +3942,17 @@ describe('Metadados compartilhados da navegação administrativa', () => {
   });
 
   it('preserva aliases de Início sem redirecionar a página', () => {
-    const page = capture('page', session);
     const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
     try {
-      assert.equal(page.effects.length, 1);
       for (const parameter of ['tab', 'section']) {
         Object.defineProperty(globalThis, 'window', { configurable: true,
           value: { location: { search: '?' + parameter + '=visaoGeral' } } });
+        const page = capture('page', session);
+        assert.equal(page.effects.length, 1);
         page.effects[0]();
+        assert.deepEqual(page.calls, []);
+        assert.deepEqual(page.selections, ['visaoGeral']);
       }
-      assert.deepEqual(page.calls, []);
-      assert.deepEqual(page.selections, ['visaoGeral', 'visaoGeral']);
     } finally {
       if (descriptor) Object.defineProperty(globalThis, 'window', descriptor);
       else Reflect.deleteProperty(globalThis, 'window');
@@ -1554,7 +4247,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
     const effects: React.EffectCallback[] = [];
     const effectMock = mock.method(React, 'useEffect', (effect: React.EffectCallback, dependencies?: React.DependencyList) => {
       const dependency = dependencies?.[0];
-      if (dependencies?.length === 1 && dependency && typeof dependency === 'object' &&
+      if (dependency && typeof dependency === 'object' &&
         'push' in dependency && dependency.push === router.push) effects.push(effect);
     });
     const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
@@ -1573,6 +4266,9 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           for (const variant of variants) {
             calls.length = 0;
             Object.defineProperty(globalThis, 'window', { configurable: true, value: { location: { search: '?' + parameter + '=' + variant } } });
+            effects.length = 0;
+            renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminDashboardPage)));
+            assert.equal(effects.length, 1);
             effects[0]();
             const creates = variant.includes('&') && ['noticias', 'projetos'].includes(alias);
             assert.deepEqual(calls, [target + (creates ? '?action=new' : '')], parameter + '=' + variant);
@@ -4022,4 +6718,292 @@ describe('Redes administrativas exclusivamente na API Rails', () => {
     const ready = controls(SocialChannelsModule(props({ canSave: true })));
     assert.equal(ready.find((node) => node.type === 'button' && node.props.type === 'submit')?.props.disabled, false);
   });
+});
+
+
+// 12D-5 Lote 4: usa os handlers reais com rede e navegação interceptadas.
+// Nenhum payload é executado e o Proxy recebe somente sessão sintética.
+function adminReturnDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(accept => { resolve = accept; });
+  return { promise, resolve };
+}
+
+type LoginElementProps = {
+  children?: ReactNode;
+  type?: string;
+  onChange?: (event: { target: { value: string } }) => void;
+  onSubmit?: (event: { preventDefault(): void }) => Promise<void>;
+};
+function loginElements(node: ReactNode): React.ReactElement<LoginElementProps>[] {
+  if (Array.isArray(node)) return node.flatMap(loginElements);
+  if (!isValidElement<LoginElementProps>(node)) return [];
+  return [node, ...loginElements(node.props.children)];
+}
+
+async function mountAdminReturnLogin(query: string) {
+  const calls: { method: string; href?: string }[] = [];
+  const post = adminReturnDeferred<Response>();
+  let posts = 0;
+  let submission: Promise<void> | undefined;
+  let tree: ReactNode;
+  const browser = { location: { pathname: '/admin/login', search: query ? '?' + query : '' }, HTMLIFrameElement: class {} };
+  const doc = {
+    nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null,
+    defaultView: browser,
+  };
+  const globals = { window: browser, document: doc, IS_REACT_ACT_ENVIRONMENT: true };
+  const descriptors = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(globals)) {
+    Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  }
+  const fetchMock = mock.method(globalThis, 'fetch', (input: RequestInfo | URL, options?: RequestInit) => {
+    assert.equal(String(input), '/api/auth');
+    assert.equal(options?.method, 'POST');
+    assert.equal(options?.headers && new Headers(options.headers).get('Content-Type'), 'application/json');
+    assert.deepEqual(Object.keys(JSON.parse(String(options?.body))).sort(), ['password', 'username']);
+    posts++;
+    return post.promise;
+  });
+  const router = {
+    back() {}, forward() {}, prefetch() {}, bfcacheId: 'safe-admin-return',
+    push(href: string) { calls.push({ method: 'push', href }); },
+    replace(href: string) { calls.push({ method: 'replace', href }); },
+    refresh() { calls.push({ method: 'refresh' }); },
+  };
+  function Host() { tree = AdminLoginPage(); return null; }
+  const root = createRoot({
+    nodeType: 1, tagName: 'DIV', namespaceURI: 'http://www.w3.org/1999/xhtml', ownerDocument: doc,
+    addEventListener() {}, removeEventListener() {}, textContent: '',
+  } as unknown as Element);
+  async function restore() {
+    try { await React.act(async () => { root.unmount(); }); }
+    finally {
+      fetchMock.mock.restore();
+      for (const [key, descriptor] of descriptors) {
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+        else Reflect.deleteProperty(globalThis, key);
+      }
+    }
+  }
+  try {
+    await React.act(async () => { root.render(createElement(AppRouterContext.Provider, { value: router }, createElement(Host))); });
+    await React.act(async () => { loginElements(tree).find(node => node.type === 'input' && node.props.type === 'text')?.props.onChange?.({ target: { value: 'identificador-sintetico' } }); });
+    await React.act(async () => { loginElements(tree).find(node => node.type === 'input' && node.props.type === 'password')?.props.onChange?.({ target: { value: 'entrada-sintetica' } }); });
+  } catch (error) { await restore(); throw error; }
+  return {
+    calls, restore,
+    setQuery(next: string) { browser.location.search = '?' + next; },
+    async start() {
+      await React.act(async () => { submission = loginElements(tree).find(node => node.type === 'form')?.props.onSubmit?.({ preventDefault() {} }); });
+      assert.ok(submission);
+      assert.equal(posts, 1);
+      assert.deepEqual(calls, []);
+    },
+    async reply(status = 200, success = true) {
+      await React.act(async () => { post.resolve(new Response(JSON.stringify({ success }), { status })); await submission; });
+    },
+    get tree() { return tree; },
+  };
+}
+
+async function simulateAdminReturnLogin(query: string, expected: string, pendingQuery?: string) {
+  const login = await mountAdminReturnLogin(query);
+  try {
+    await login.start();
+    if (pendingQuery !== undefined) login.setQuery(pendingQuery);
+    await login.reply();
+    assert.deepEqual(login.calls, [{ method: 'push', href: expected }, { method: 'refresh' }]);
+  } finally { await login.restore(); }
+}
+
+async function simulateAdminReturnProxy(path: string, authenticated = false) {
+  const isolated: { exports: { proxy?: (request: NextRequest) => NextResponse } } = { exports: {} };
+  const { outputText } = transpileModule(readFileSync('src/proxy.ts', 'utf8'), { compilerOptions: { module: ModuleKind.CommonJS } });
+  runInNewContext(outputText, {
+    exports: isolated.exports, URL, Headers, crypto: { randomUUID: () => 'request-id-sintetico' },
+    require(name: string) {
+      if (name === 'next/server') return { NextResponse };
+      if (name === '@/lib/admin-auth-navigation') return adminAuthNavigation;
+      if (name === '@/lib/auth') return {
+        AUTH_COOKIE_NAME: 'synthetic-cookie',
+        verifySessionToken(value: string | undefined) {
+          assert.equal(value, authenticated ? 'synthetic-valid' : undefined);
+          return authenticated ? { username: 'synthetic' } : null;
+        },
+      };
+      throw new Error('Import não autorizado no Proxy isolado: ' + name);
+    },
+  }, { timeout: 1000 });
+  assert.equal(typeof isolated.exports.proxy, 'function');
+  const response = isolated.exports.proxy!(new NextRequest('https://medtec.invalid' + path, {
+    headers: authenticated ? { cookie: 'synthetic-cookie=synthetic-valid' } : {},
+  }));
+  return { status: response.status, location: response.headers.get('location') };
+}
+
+describe('12D-5 Lote 4: caracterização do retorno de login', () => {
+  const cases: [string, string, string][] = [
+    ['painel', 'redirect=%2Fadmin', '/admin'],
+    ['notícias', 'redirect=%2Fadmin%2Fnoticias', '/admin/noticias'],
+    ['criação', 'redirect=%2Fadmin%2Fnoticias%3Faction%3Dnew', '/admin/noticias?action=new'],
+    ['ausente', '', '/admin'],
+    ['vazio', 'redirect=', '/admin'],
+    ['primeiro repetido', 'redirect=%2Fadmin%2Fnoticias&redirect=%2Fadmin%2Favisos', '/admin/noticias'],
+    ['primeiro vazio', 'redirect=&redirect=%2Fadmin%2Favisos', '/admin'],
+  ];
+  for (const [label, query, expected] of cases) {
+    it(label, async () => { await simulateAdminReturnLogin(query, expected); });
+  }
+  it('query vigente após POST pendente', async () => {
+    await simulateAdminReturnLogin('redirect=%2Fadmin%2Fnoticias', '/admin/avisos', 'redirect=%2Fadmin%2Favisos');
+  });
+  it('regressão: destino externo antes aceito usa fallback', async () => {
+    await simulateAdminReturnLogin('redirect=https%3A%2F%2Fexample.com', '/admin');
+  });
+  it('regressão: destino fora de admin antes aceito usa fallback', async () => {
+    await simulateAdminReturnLogin('redirect=%2Fapi%2Fauth', '/admin');
+  });
+  it('regressão: Proxy preserva query antes perdida', async () => {
+    assert.deepEqual(await simulateAdminReturnProxy('/admin/noticias?action=new'), {
+      status: 307, location: 'https://medtec.invalid/admin/login?redirect=%2Fadmin%2Fnoticias%3Faction%3Dnew',
+    });
+  });
+  it('sessão válida no login continua indo para admin', async () => {
+    assert.deepEqual(await simulateAdminReturnProxy('/admin/login?redirect=%2Fadmin%2Fnoticias%3Faction%3Dnew', true), {
+      status: 307, location: 'https://medtec.invalid/admin',
+    });
+  });
+});
+
+const safeAdminReturnCases: [string, string][] = [
+  ['/admin', '/admin'], ['/admin/', '/admin/'], ['/admin/noticias', '/admin/noticias'],
+  ['/admin/avisos', '/admin/avisos'], ['/admin/banners', '/admin/banners'],
+  ['/admin/modulo-futuro/item', '/admin/modulo-futuro/item'],
+  ['/admin/noticias?action=new', '/admin/noticias?action=new'],
+  ['/admin?tab=faq&section=avisos', '/admin?tab=faq&section=avisos'],
+  ['/admin/noticias?mode=editor', '/admin/noticias?mode=editor'],
+  ['/admin/noticias?edit=42&action=new&mode=editor', '/admin/noticias?edit=42&action=new&mode=editor'],
+  ['/admin/noticias?q=texto%20livre%2F%3F%23%26%3D%2B&nome=Jo%C3%A3o', '/admin/noticias?q=texto%20livre%2F%3F%23%26%3D%2B&nome=Jo%C3%A3o'],
+  ['/admin?tab=faq&tab=avisos&section=redes', '/admin?tab=faq&tab=avisos&section=redes'],
+  ['/admin?q=a+b&x=%2f&empty=&flag', '/admin?q=a+b&x=%2f&empty=&flag'],
+  ['/admin/noticias#editor', '/admin/noticias#editor'],
+  ['/admin/avisos#detalhes_2-A', '/admin/avisos#detalhes_2-A'],
+  ['/admin/noticias?action=new#editor', '/admin/noticias?action=new#editor'],
+  ['/admin?tab=faq&redirect=https%3A%2F%2Fexample.com&section=avisos', '/admin?tab=faq&section=avisos'],
+  ['/admin?redirect=/admin/login&tab=faq&redirect=/api/auth&tab=avisos', '/admin?tab=faq&tab=avisos'],
+  ['/admin?redir%65ct=x&action=new&redirect&edit=42', '/admin?action=new&edit=42'],
+  ['/admin?Redirect=keep&xredirect=keep&redirected=keep&q=redirect%3Dvalue', '/admin?Redirect=keep&xredirect=keep&redirected=keep&q=redirect%3Dvalue'],
+  ['/admin?q=%252F%252Fexample.com&action=new', '/admin?q=%252F%252Fexample.com&action=new'],
+  ['/admin?redirect=x&q=a%20b&x=%2f&q=a+b&flag', '/admin?q=a%20b&x=%2f&q=a+b&flag'],
+  ['/admin?redir%2565ct=keep&action=new', '/admin?redir%2565ct=keep&action=new'],
+  ['/admin?redirect=x#editor', '/admin#editor'],
+  ['/admin/noticias?action=new#texto livre', '/admin/noticias?action=new'],
+  ['/admin/noticias?action=new#editor ', '/admin/noticias?action=new'],
+  ['/admin/noticias?action=new#editor\n', '/admin/noticias?action=new'],
+  ['/admin/noticias?action=new#%65ditor', '/admin/noticias?action=new'],
+  ['/admin/noticias?action=new#editor/extra?x=1', '/admin/noticias?action=new'],
+  ['/admin/noticias?action=new#javascript:alert(1)', '/admin/noticias?action=new'],
+  ['/admin/noticias?action=new#', '/admin/noticias?action=new'],
+];
+const unsafeAdminReturnCases = [
+  'https://example.com', 'http://example.com', '//example.com', '///example.com',
+  'javascript:alert(1)', 'data:text/html,teste', 'https://medtec.invalid/admin',
+  'https://synthetic-user:synthetic-input@example.com/admin', '/api/auth', '/', '/administer',
+  '/painel-gestor', 'noticias', '../api/auth', '/admin/../api/auth', '/admin/./noticias',
+  '/admin/%2e%2e/api/auth', '/admin/%252e%252e/api/auth', '/%2Fexample.com',
+  '%2F%2Fexample.com', 'https:%2F%2Fexample.com', '\\example.com', '\\\\example.com',
+  '/admin\\noticias', '/admin//noticias', '/admin/noticias//', '/adm\tin/noticias',
+  '/admin/noticias\n', '/admin/\0noticias', '/admin?x=\rvalor', ' /admin', '/admin ',
+  '/admin/%', '/admin/%GG', '/admin/%6eoticias', '/admin/login', '/admin/login/',
+  '/admin/login?redirect=/admin', '/admin/login/outro', '/admin#editor\n',
+];
+describe('12D-5 Lote 4: segurança do retorno administrativo', () => {
+  for (const [raw, expected] of safeAdminReturnCases) {
+    it('aceita ou limpa somente o necessário: ' + JSON.stringify(raw), () => {
+      assert.equal(adminAuthNavigation.getSafeAdminReturnTarget(raw), expected);
+      assert.equal(adminAuthNavigation.getSafeAdminReturnTarget(raw), expected);
+    });
+  }
+  for (const raw of [null, undefined, '', ...unsafeAdminReturnCases]) {
+    it('rejeita: ' + JSON.stringify(raw), () => {
+      assert.equal(adminAuthNavigation.getSafeAdminReturnTarget(raw), '/admin');
+    });
+  }
+  it('é puro sem runtime, navegador, sessão ou rede e não muda a entrada', () => {
+    const source = readFileSync('src/lib/admin-auth-navigation.ts', 'utf8');
+    const { outputText } = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS } });
+    const isolated: { exports: typeof adminAuthNavigation } = { exports: {} as typeof adminAuthNavigation };
+    for (const key of ['require', 'window', 'document', 'localStorage', 'fetch', 'cookies', 'process', 'React']) {
+      Object.defineProperty(isolated, key, { get() { throw new Error('Acesso indevido: ' + key); } });
+    }
+    Object.assign(isolated, { URL, URLSearchParams });
+    runInNewContext(outputText, isolated, { timeout: 1000 });
+    for (const [input, expected] of safeAdminReturnCases) {
+      const frozen = Object.freeze({ input });
+      assert.equal(isolated.exports.getSafeAdminReturnTarget(frozen.input), expected);
+      assert.equal(frozen.input, input);
+    }
+    assert.equal(isolated.exports.getAdminLoginHref('/admin/noticias', '?action=new'), '/admin/login?redirect=%2Fadmin%2Fnoticias%3Faction%3Dnew');
+  });
+  for (const target of ['/admin/noticias?action=new', '/admin?tab=faq&section=avisos',
+    '/admin?q=a%20b&x=%2f&q=a+b&flag', '/admin?redirect=x&action=new']) {
+    it('construtor usa uma camada externa e mantém query: ' + target, () => {
+      const i = target.indexOf('?');
+      const href = adminAuthNavigation.getAdminLoginHref(target.slice(0, i), target.slice(i));
+      const params = new URL(href, 'https://medtec.invalid').searchParams;
+      const safe = adminAuthNavigation.getSafeAdminReturnTarget(target);
+      assert.equal(params.get('redirect'), safe);
+      assert.deepEqual([...params.keys()], ['redirect']);
+      assert.equal(href, '/admin/login?redirect=' + encodeURIComponent(safe));
+    });
+  }
+  it('construtor aplica fallback e não aceita search malformado', () => {
+    assert.equal(adminAuthNavigation.getAdminLoginHref('/api/auth', '?action=new'), '/admin/login?redirect=%2Fadmin');
+    assert.equal(adminAuthNavigation.getAdminLoginHref('/admin', '//example.com'), '/admin/login?redirect=%2Fadmin');
+  });
+  const loginCases: [string, string][] = [
+    ['redirect=https%3A%2F%2Fexample.com', '/admin'],
+    ['redirect=javascript%3Aalert(1)', '/admin'],
+    ['redirect=data%3Atext%2Fhtml%2Cteste', '/admin'],
+    ['redirect=%2Fapi%2Fauth', '/admin'],
+    ['redirect=%2Fadmin%2Flogin', '/admin'],
+    ['redirect=https%3A%2F%2Fexample.com&redirect=%2Fadmin%2Favisos', '/admin'],
+    ['redirect=&redirect=%2Fadmin%2Favisos', '/admin'],
+    ['redirect=%2Fadmin%2Favisos&redirect=https%3A%2F%2Fexample.com', '/admin/avisos'],
+    ['redirect=%2F%2Fexample.com', '/admin'],
+    ['redirect=%252F%252Fexample.com', '/admin'],
+    ['redirect=%2Fadmin%3Ftab%3Dfaq%26redirect%3Dx%26section%3Davisos', '/admin?tab=faq&section=avisos'],
+    ['redirect=%2Fadmin%2Fnoticias%3Faction%3Dnew%23editor', '/admin/noticias?action=new#editor'],
+  ];
+  for (const [query, expected] of loginCases) {
+    it('login valida primeiro valor sem decode adicional: ' + query, async () => {
+      await simulateAdminReturnLogin(query, expected);
+    });
+  }
+  it('login valida a query insegura que mudou enquanto o POST aguardava', async () => {
+    await simulateAdminReturnLogin('redirect=%2Fadmin%2Fnoticias', '/admin', 'redirect=javascript%3Aalert(1)');
+  });
+  it('login não navega nem faz refresh após autenticação recusada', async () => {
+    const login = await mountAdminReturnLogin('redirect=%2Fadmin%2Fnoticias');
+    try { await login.start(); await login.reply(401, false); assert.deepEqual(login.calls, []); }
+    finally { await login.restore(); }
+  });
+  for (const [path, expected] of [
+    ['/admin/noticias?action=new', '/admin/noticias?action=new'],
+    ['/admin?tab=faq&section=avisos', '/admin?tab=faq&section=avisos'],
+    ['/admin/noticias?mode=editor&edit=42', '/admin/noticias?mode=editor&edit=42'],
+    ['/admin?tab=faq&redirect=https%3A%2F%2Fexample.com&tab=avisos', '/admin?tab=faq&tab=avisos'],
+    ['/admin?q=a%20b&x=%2f&q=a+b&flag', '/admin?q=a%20b&x=%2f&q=a+b&flag'],
+  ]) {
+    it('Proxy transporta retorno e login o consome: ' + path, async () => {
+      const result = await simulateAdminReturnProxy(path);
+      assert.equal(result.status, 307);
+      const url = new URL(result.location!);
+      assert.equal(url.origin, 'https://medtec.invalid');
+      assert.equal(url.pathname, '/admin/login');
+      assert.equal(url.searchParams.get('redirect'), expected);
+      await simulateAdminReturnLogin(url.search.slice(1), expected);
+    });
+  }
 });

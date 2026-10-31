@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { AUTH_COOKIE_NAME, verifySessionToken } from '@/lib/auth';
+import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
 
 /**
  * Padrões de caminhos sensíveis e arquivos de configuração que devem ser bloqueados
@@ -79,8 +80,7 @@ export function proxy(request: NextRequest) {
     }
 
     if (!session) {
-      const loginUrl = new URL('/admin/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
+      const loginUrl = new URL(getAdminLoginHref(pathname, request.nextUrl.search), request.url);
       return NextResponse.redirect(loginUrl);
     }
   }
