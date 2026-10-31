@@ -9,6 +9,7 @@ interface OverviewData {
   news: OverviewCollection<NNoticia>;
   avisos: OverviewCollection<AAviso>;
   gallery: { total: number; categories: number };
+  faqs: { total: number; pending: number; published: number };
   users: number;
   states: number;
 }
@@ -21,13 +22,13 @@ export type AdminOverviewState = { [K in keyof OverviewData]: Resource<OverviewD
 export function createInitialOverviewState(): AdminOverviewState {
   const initial = { data: null, loading: true, error: null };
   return { news: { ...initial }, avisos: { ...initial }, gallery: { ...initial },
-    users: { ...initial }, states: { ...initial } };
+    faqs: { ...initial }, users: { ...initial }, states: { ...initial } };
 }
 
 export function startOverviewLoading(previous: AdminOverviewState): AdminOverviewState {
   const start = <T>(resource: Resource<T>): Resource<T> => ({ ...resource, loading: true, error: null });
   return { news: start(previous.news), avisos: start(previous.avisos), gallery: start(previous.gallery),
-    users: start(previous.users), states: start(previous.states) };
+    faqs: start(previous.faqs), users: start(previous.users), states: start(previous.states) };
 }
 
 export function applyOverviewSnapshot(previous: AdminOverviewState, snapshot: OverviewSnapshot): AdminOverviewState {
@@ -37,8 +38,8 @@ export function applyOverviewSnapshot(previous: AdminOverviewState, snapshot: Ov
     error: result.error,
   });
   return { news: finish(previous.news, snapshot.news), avisos: finish(previous.avisos, snapshot.avisos),
-    gallery: finish(previous.gallery, snapshot.gallery), users: finish(previous.users, snapshot.users),
-    states: finish(previous.states, snapshot.states) };
+    gallery: finish(previous.gallery, snapshot.gallery), faqs: finish(previous.faqs, snapshot.faqs),
+    users: finish(previous.users, snapshot.users), states: finish(previous.states, snapshot.states) };
 }
 
 async function collection<T>(request: Promise<ApiResponse<PaginatedData<T>>>): Promise<OverviewCollection<T>> {
@@ -52,13 +53,18 @@ async function collection<T>(request: Promise<ApiResponse<PaginatedData<T>>>): P
 
 async function settle<T>(read: () => Promise<T>): Promise<ReadResult<T>> {
   try { return { data: await read(), error: null }; }
-  catch (error) { return { data: null, error: ApiError.getFriendlyMessage(error) }; }
+  catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return { data: null, error: 'Endpoint ainda não disponível no servidor.' };
+    }
+    return { data: null, error: ApiError.getFriendlyMessage(error) };
+  }
 }
 
 // O chamador confirma o acesso antes da leitura; a autorização definitiva continua no Rails.
 async function readOverview(authorized: boolean): Promise<OverviewSnapshot | null> {
   if (!authorized) return null;
-  const [news, avisos, gallery, users, states] = await Promise.all([
+  const [news, avisos, gallery, faqs, users, states] = await Promise.all([
     settle(() => collection(medtecApi.noticias.list({ page: 'all' }))),
     settle(() => collection(medtecApi.avisos.list({ page: 'all' }))),
     settle(async () => {
@@ -68,10 +74,18 @@ async function readOverview(authorized: boolean): Promise<OverviewSnapshot | nul
       ]);
       return { total: photos.total, categories: categories.total };
     }),
+    settle(async () => {
+      const [all, pending, published] = await Promise.all([
+        collection(medtecApi.duvidas.list({ page: 1, per_page: 1 })),
+        collection(medtecApi.duvidas.list({ page: 1, per_page: 1, 'q[n_status_noticia_slug_eq]': 'aguardando' })),
+        collection(medtecApi.duvidas.list({ page: 1, per_page: 1, 'q[n_status_noticia_slug_eq]': 'publicada' })),
+      ]);
+      return { total: all.total, pending: pending.total, published: published.total };
+    }),
     settle(async () => (await collection(medtecApi.usuarios.list({ page: 1, per_page: 1 }))).total),
     settle(async () => (await collection(medtecApi.estados.list({ page: 1, per_page: 1 }))).total),
   ]);
-  return { news, avisos, gallery, users, states };
+  return { news, avisos, gallery, faqs, users, states };
 }
 
 // Uma leitura em andamento por proprietário, compartilhada por chamadas concorrentes.
@@ -92,6 +106,7 @@ export function getOverviewMetrics(state: AdminOverviewState) {
   const news = current(state.news);
   const avisos = current(state.avisos);
   const gallery = current(state.gallery);
+  const faqs = current(state.faqs);
   return {
     totalNews: news?.total ?? null,
     apiNewsPublishedCount: news ? news.items.filter((item) => item.status === 'publicada').length : null,
@@ -102,6 +117,9 @@ export function getOverviewMetrics(state: AdminOverviewState) {
     totalAvisos: avisos?.total ?? null,
     totalFotos: gallery?.total ?? null,
     totalCategorias: gallery?.categories ?? null,
+    totalFaqs: faqs?.total ?? null,
+    apiFaqsPendingCount: faqs?.pending ?? null,
+    apiFaqsPublishedCount: faqs?.published ?? null,
     totalEstados: current(state.states),
     totalUsers: current(state.users),
     usersCountLabel: state.users.loading ? '...' : state.users.error ? 'Indisponível' : (state.users.data ?? '—'),

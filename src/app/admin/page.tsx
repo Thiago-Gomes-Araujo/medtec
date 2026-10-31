@@ -176,6 +176,7 @@ export default function AdminDashboardPage() {
     latestNews, loadingNews, errorNews, totalNews,
     announcementTitle, loadingAvisos, errorAvisos, totalAvisos,
     loadingFotos, errorFotos, totalFotos, totalCategorias, totalEstados,
+    loadingFaqs, errorFaqs, totalFaqs, apiFaqsPendingCount, apiFaqsPublishedCount,
     apiNewsPublishedCount, apiNewsDraftCount, apiAvisosAtivosCount, apiAvisosUrgentesCount,
     totalUsers, errorUsers, usersCountLabel,
     reload: loadOverview,
@@ -827,7 +828,9 @@ export default function AdminDashboardPage() {
                 loadingNews, errorNews, totalNews, apiNewsPublishedCount, apiNewsDraftCount,
                 loadingAvisos, errorAvisos, totalAvisos,
                 apiAvisosAtivosCount, apiAvisosUrgentesCount, loadingFotos, errorFotos,
-                totalFotos, totalCategorias, usersCountLabel,
+                totalFotos, totalCategorias,
+                loadingFaqs, errorFaqs, totalFaqs, apiFaqsPendingCount, apiFaqsPublishedCount,
+                usersCountLabel,
               }}
               userName={userSession.name || userSession.username}
               latestNews={latestNews}

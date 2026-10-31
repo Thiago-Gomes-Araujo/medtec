@@ -24,7 +24,9 @@ export default function AdminOverview({
   const {
     loadingNews, errorNews, totalNews, apiNewsDraftCount,
     loadingAvisos, errorAvisos, totalAvisos, apiAvisosAtivosCount,
-    loadingFotos, errorFotos, totalFotos, usersCountLabel,
+    loadingFotos, errorFotos, totalFotos,
+    loadingFaqs, errorFaqs, totalFaqs, apiFaqsPendingCount, apiFaqsPublishedCount,
+    usersCountLabel,
   } = indicators;
 
   return (
@@ -433,7 +435,7 @@ export default function AdminOverview({
                   </h4>
                 </div>
                 <span className="max-w-36 shrink-0 text-right text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  Indisponível — sem integração oficial
+                  {loadingFaqs ? 'Carregando...' : errorFaqs ? 'Indisponível' : `${totalFaqs} dúvida${totalFaqs === 1 ? '' : 's'}`}
                 </span>
               </div>
 
@@ -445,8 +447,21 @@ export default function AdminOverview({
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Central de Respostas Oficiais:
                 </span>
-                <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                  Indisponível — sem integração oficial
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
+                  {loadingFaqs
+                    ? 'Carregando...'
+                    : errorFaqs
+                    ? `Falha de comunicação com a API (${errorFaqs})`
+                    : totalFaqs === 0
+                    ? 'Nenhuma dúvida cadastrada até o momento'
+                    : `${apiFaqsPublishedCount} publicada${apiFaqsPublishedCount === 1 ? '' : 's'} · ${apiFaqsPendingCount} aguardando aprovação`}
+                </p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
+                  {loadingFaqs
+                    ? 'Carregando...'
+                    : errorFaqs
+                    ? 'Indisponível'
+                    : `${totalFaqs} registro${totalFaqs === 1 ? '' : 's'} no catálogo oficial`}
                 </p>
               </div>
             </div>

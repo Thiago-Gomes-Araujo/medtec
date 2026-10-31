@@ -29,6 +29,7 @@ export function useAdminOverview() {
     apiAvisos: state.avisos.loading || state.avisos.error ? [] : (state.avisos.data?.items || []),
     loadingAvisos: state.avisos.loading, errorAvisos: state.avisos.error,
     loadingFotos: state.gallery.loading, errorFotos: state.gallery.error,
+    loadingFaqs: state.faqs.loading, errorFaqs: state.faqs.error,
     errorUsers: state.users.error, loadingUsers: state.users.loading,
     reload,
   };

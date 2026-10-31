@@ -1771,7 +1771,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
       assert.equal(page.session?.isGestor, true);
       assert.equal(page.loading, false);
-      assert.equal(page.overviewRequests.length, 6);
+      assert.equal(page.overviewRequests.length, 9);
       assert.equal(page.localRequests.length, 0);
       assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
@@ -1799,7 +1799,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.session?.profileType, fields.perfil_nome, label);
         assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected ? 6 : 0, label);
+        assert.equal(page.overviewRequests.length, expected ? 9 : 0, label);
         const profile = fields.perfil_nome;
         assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : profile === 'Publicador de Avisos'
@@ -1840,7 +1840,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(reply.data, before, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 6 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? 9 : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -1862,7 +1862,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(page.session, expected, `${source}: ${label}`);
         assert.deepEqual(input, data, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 6 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? 9 : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -1941,7 +1941,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             assert.equal(page.session?.isGestor, isGestor, label);
             assert.equal(page.session?.profileType, profileType, label);
             assert.equal(page.loading, false, label);
-            assert.equal(page.overviewRequests.length, isGestor ? 6 : 0, label);
+            assert.equal(page.overviewRequests.length, isGestor ? 9 : 0, label);
             assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, label);
             assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, label);
           } finally { await page.restore(); }
@@ -4329,6 +4329,7 @@ describe('Interface componentizada da Visão Geral', () => {
         loadingAvisos: false, errorAvisos: null, totalAvisos: 231,
         apiAvisosAtivosCount: 200, apiAvisosUrgentesCount: 7, loadingFotos: false, errorFotos: null,
         totalFotos: 280, totalCategorias: 12, usersCountLabel: 120,
+        loadingFaqs: false, errorFaqs: null, totalFaqs: 35, apiFaqsPublishedCount: 28, apiFaqsPendingCount: 5,
       },
       userName: 'Gestora de teste',
       latestNews: { titulo: 'Notícia recebida', data_publicacao: '2026-10-30', autor_nome: 'Autoria recebida' },
@@ -4347,7 +4348,7 @@ describe('Interface componentizada da Visão Geral', () => {
     globalThis.fetch = async () => { requests += 1; throw new Error('Componente visual não consulta dados.'); };
     try {
       const html = render();
-      for (const value of ['450', '231', '280', '120']) assert.ok(html.includes('>' + value + '</p>'));
+      for (const value of ['450', '231', '280', '120', '35']) assert.ok(html.includes('>' + value + '</p>'));
       for (const text of ['Gestora de teste', '400', '50', '12', 'Notícia recebida', 'Autoria recebida', 'Aviso recebido']) {
         assert.ok(html.includes(text), text);
       }
@@ -4363,11 +4364,12 @@ describe('Interface componentizada da Visão Geral', () => {
       totalNews: 0, apiNewsPublishedCount: 0, apiNewsDraftCount: 0,
       totalAvisos: 0, apiAvisosAtivosCount: 0, apiAvisosUrgentesCount: 0,
       totalFotos: 0, totalCategorias: 0, usersCountLabel: 0,
+      totalFaqs: 0, apiFaqsPublishedCount: 0, apiFaqsPendingCount: 0,
     }, latestNews: undefined, announcementTitle: undefined });
-    assert.equal((html.match(/>0<\/p>/g) || []).length, 4);
+    assert.equal((html.match(/>0<\/p>/g) || []).length, 5);
     for (const text of ['Nenhuma matéria cadastrada', 'Nenhuma fotografia catalogada',
       'Nenhuma notícia publicada ainda', 'Indisponível — sem integração oficial',
-      'Sem comunicados urgentes no momento', 'Nenhum comunicado urgente ativo']) {
+      'Sem comunicados urgentes no momento', 'Nenhum comunicado urgente ativo', 'Nenhuma dúvida cadastrada']) {
       assert.ok(html.includes(text), text);
     }
     assert.ok(!html.includes('Notícia recebida'));
@@ -4377,7 +4379,7 @@ describe('Interface componentizada da Visão Geral', () => {
   it('mantém carregamento e falha distintos de vazio sem exibir totais antigos nos cards', () => {
     const base = props();
     const loading = render({ indicators: { ...base.indicators,
-      loadingNews: true, loadingAvisos: true, loadingFotos: true, usersCountLabel: '...',
+      loadingNews: true, loadingAvisos: true, loadingFotos: true, loadingFaqs: true, usersCountLabel: '...',
     } });
     assert.ok(loading.includes('Carregando API...'));
     assert.ok(loading.includes('Carregando...'));
@@ -4387,10 +4389,10 @@ describe('Interface componentizada da Visão Geral', () => {
       assert.ok(!loading.includes(text), text);
     }
     const failed = render({ indicators: { ...base.indicators,
-      errorNews: 'Falha de notícias', errorAvisos: 'Falha de avisos', errorFotos: 'Falha de fotos', usersCountLabel: 'Indisponível',
+      errorNews: 'Falha de notícias', errorAvisos: 'Falha de avisos', errorFotos: 'Falha de fotos', errorFaqs: 'Falha de dúvidas', usersCountLabel: 'Indisponível',
     } });
     for (const text of ['Indisponível', 'Galeria Indisponível', 'Falha ao consultar /n_noticias',
-      'Falha ao consultar /a_avisos', 'Falha ao consultar /fotos_galeria', 'Falha de comunicação com a API']) {
+      'Falha ao consultar /a_avisos', 'Falha ao consultar /fotos_galeria', 'Falha ao consultar /d_duvidas', 'Falha de comunicação com a API']) {
       assert.ok(failed.includes(text), text);
     }
     assert.ok(!failed.includes('>450</p>'));
@@ -4402,7 +4404,7 @@ describe('Interface componentizada da Visão Geral', () => {
 
   it('identifica cada indicador sem integração e não inventa números ou nomes para preenchê-lo', () => {
     const html = render();
-    assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 8);
+    assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 5);
     for (const text of ['52 Municípios', '4 trilhas', '4 categorias', 'Nenhum projeto cadastrado',
       'Nenhuma dúvida cadastrada', 'missões', 'banners ativos', 'Transmissão ao vivo integrada']) {
       assert.ok(!html.includes(text), text);
@@ -4449,19 +4451,29 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
       { id: 2, ativo: true, a_tipo_aviso: { nome: 'Comunicado Urgente' } }, { id: 3, ativo: false }],
     fotos_galeria: [{ id: 1 }], categorias_galeria: [{ id: 1 }], g_estados: [{ id: 1 }],
     usuarios: Array.from({ length: 50 }, (_, index) => ({ id: index + 1 })),
+    d_duvidas: [{ id: 1, pergunta: 'Como funciona?', resposta: 'Resposta oficial.', d_categoria_duvida_id: 2, categoria_nome: 'Inscrições', status: 'publicada', status_nome: 'Publicada', autor_nome: 'Coordenação' }],
   };
   const totals: Record<string, number> = {
-    n_noticias: 80, a_avisos: 90, fotos_galeria: 280, categorias_galeria: 12, g_estados: 27, usuarios: 120,
+    n_noticias: 80, a_avisos: 90, fotos_galeria: 280, categorias_galeria: 12, g_estados: 27, usuarios: 120, d_duvidas: 35,
   };
   function json(value: unknown, status = 200) {
     return new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
   }
   function serve(url: string, empty = false) {
-    const endpoint = new URL(url, 'http://test').pathname.split('/').pop()!;
+    const parsed = new URL(url, 'http://test');
+    const endpoint = parsed.pathname.split('/').pop()!;
     assert.ok(endpoint in items, `Endpoint inesperado: ${endpoint}`);
+    const statusFilter = parsed.searchParams.get('q[n_status_noticia_slug_eq]');
+    const totalCount = empty
+      ? 0
+      : endpoint === 'd_duvidas' && statusFilter === 'aguardando'
+        ? 5
+        : endpoint === 'd_duvidas' && statusFilter === 'publicada'
+          ? 28
+          : totals[endpoint];
     return json({ success: true, data: {
       items: empty ? [] : items[endpoint],
-      pagination: { total_count: empty ? 0 : totals[endpoint], current_page: 1, total_pages: 1, per_page: 1 },
+      pagination: { total_count: totalCount, current_page: 1, total_pages: 1, per_page: 1 },
     } });
   }
 
@@ -4503,18 +4515,21 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
       assert.equal(metrics.totalFotos, 280);
       assert.equal(metrics.totalCategorias, 12);
       assert.equal(metrics.totalEstados, 27);
+      assert.equal(metrics.totalFaqs, 35);
+      assert.equal(metrics.apiFaqsPendingCount, 5);
+      assert.equal(metrics.apiFaqsPublishedCount, 28);
       assert.equal(metrics.apiNewsPublishedCount, 1);
       assert.equal(metrics.apiNewsDraftCount, 1);
       assert.equal(metrics.apiAvisosAtivosCount, 2);
       assert.equal(metrics.apiAvisosUrgentesCount, 2);
-      assert.equal(queries.length, 6);
-      assert.deepEqual(queries.map((url) => url.pathname.split('/').pop()).sort(), Object.keys(items).sort());
+      assert.equal(queries.length, 9);
+      assert.deepEqual([...new Set(queries.map((url) => url.pathname.split('/').pop()))].sort(), Object.keys(items).sort());
       assert.ok(!queries.some((url) => url.pathname === '/api/data'));
       for (const key of ['legacy', 'projectsCount', 'projectMunicipalities', 'bannersCount', 'faqsCount']) {
         assert.ok(!(key in metrics));
         assert.ok(!(key in state));
       }
-      for (const endpoint of ['usuarios', 'fotos_galeria', 'categorias_galeria', 'g_estados']) {
+      for (const endpoint of ['usuarios', 'fotos_galeria', 'categorias_galeria', 'g_estados', 'd_duvidas']) {
         const query = queries.find((url) => url.pathname.endsWith('/' + endpoint));
         assert.equal(query?.searchParams.get('page'), '1');
         assert.equal(query?.searchParams.get('per_page'), '1');
@@ -4591,7 +4606,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
       assert.ok(snapshot);
       const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
       const metrics = getOverviewMetrics(state);
-      for (const value of [metrics.totalUsers, metrics.totalNews, metrics.totalAvisos, metrics.totalFotos, metrics.totalCategorias, metrics.totalEstados]) {
+      for (const value of [metrics.totalUsers, metrics.totalNews, metrics.totalAvisos, metrics.totalFotos, metrics.totalCategorias, metrics.totalEstados, metrics.totalFaqs, metrics.apiFaqsPendingCount, metrics.apiFaqsPublishedCount]) {
         assert.equal(value, 0);
       }
       assert.equal(metrics.usersCountLabel, 0);
@@ -4652,11 +4667,11 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
       assert.equal(read(true), first);
       assert.equal(await read(false), null);
       assert.ok(await first);
-      assert.equal(requests.length, 6);
-      assert.equal(new Set(requests).size, 6);
+      assert.equal(requests.length, 9);
+      assert.equal(new Set(requests).size, 9);
       assert.ok(!requests.some((url) => /perfis|a_tipos_aviso|canais_contato/.test(url)));
       await read(true);
-      assert.equal(requests.length, 12);
+      assert.equal(requests.length, 18);
     } finally { globalThis.fetch = originalFetch; }
   });
 
@@ -4757,7 +4772,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
     const originalFetch = globalThis.fetch;
     try {
       const resources = { n_noticias: 'news', a_avisos: 'avisos', fotos_galeria: 'gallery',
-        categorias_galeria: 'gallery', usuarios: 'users', g_estados: 'states' } as const;
+        categorias_galeria: 'gallery', usuarios: 'users', g_estados: 'states', d_duvidas: 'faqs' } as const;
       for (const [endpoint, failedResource] of Object.entries(resources)) {
         globalThis.fetch = async (input) => String(input).includes('/' + endpoint)
           ? json({ success: false, message: 'Serviço indisponível' }, 503) : serve(String(input));
@@ -4772,7 +4787,8 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
         }
         const html = renderToStaticMarkup(createElement(AdminOverview, {
           indicators: { ...getOverviewMetrics(state), loadingNews: false, errorNews: state.news.error,
-            loadingAvisos: false, errorAvisos: state.avisos.error, loadingFotos: false, errorFotos: state.gallery.error },
+            loadingAvisos: false, errorAvisos: state.avisos.error, loadingFotos: false, errorFotos: state.gallery.error,
+            loadingFaqs: false, errorFaqs: state.faqs.error },
           ...getOverviewHighlights(state), canAccessKanban: true,
           onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
         }));
@@ -4787,6 +4803,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
         assert.equal(getOverviewMetrics(after).totalUsers, 120);
         assert.equal(getOverviewMetrics(after).totalNews, 80);
         assert.equal(getOverviewMetrics(after).totalFotos, 280);
+        assert.equal(getOverviewMetrics(after).totalFaqs, 35);
       }
     } finally { globalThis.fetch = originalFetch; }
   });
@@ -4809,7 +4826,8 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
         }
         const html = renderToStaticMarkup(createElement(AdminOverview, {
           indicators: { ...getOverviewMetrics(state), loadingNews: false, errorNews: state.news.error,
-            loadingAvisos: false, errorAvisos: state.avisos.error, loadingFotos: false, errorFotos: state.gallery.error },
+            loadingAvisos: false, errorAvisos: state.avisos.error, loadingFotos: false, errorFotos: state.gallery.error,
+            loadingFaqs: false, errorFaqs: state.faqs.error },
           ...getOverviewHighlights(state), canAccessKanban: false,
           onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
         }));
@@ -9060,6 +9078,295 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
     } finally {
       fetchMock.mock.restore();
       clearStoredTokens();
+    }
+  });
+});
+
+describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () => {
+  const faqFixture = {
+    id: 11,
+    pergunta: 'Como participar da mostra estadual?',
+    resposta: 'As orientações estão disponíveis no edital oficial.',
+    d_categoria_duvida_id: 3,
+    categoria_nome: 'Inscrições',
+    status: 'publicada',
+    status_nome: 'Publicada',
+    autor_nome: 'Coordenação MEDTEC',
+  };
+
+  function jsonResponse(payload: unknown, status = 200) {
+    return new Response(JSON.stringify(payload), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  function serveOverviewEndpoint(
+    url: string,
+    options: {
+      emptyFaqs?: boolean;
+      faqTotals?: { total: number; pending: number; published: number };
+      faqResponse?: (parsed: URL) => Response;
+    } = {},
+  ): Response {
+    const parsed = new URL(url, 'http://test');
+    const endpoint = parsed.pathname.split('/').pop()!;
+    if (endpoint === 'd_duvidas') {
+      if (options.faqResponse) return options.faqResponse(parsed);
+      const statusSlug = parsed.searchParams.get('q[n_status_noticia_slug_eq]');
+      const counts = options.faqTotals ?? { total: 42, pending: 9, published: 30 };
+      const totalCount = options.emptyFaqs
+        ? 0
+        : statusSlug === 'aguardando'
+          ? counts.pending
+          : statusSlug === 'publicada'
+            ? counts.published
+            : counts.total;
+      return jsonResponse({
+        success: true,
+        message: 'OK',
+        data: {
+          items: options.emptyFaqs ? [] : [faqFixture],
+          pagination: { current_page: 1, total_pages: totalCount > 0 ? totalCount : 0, total_count: totalCount, per_page: 1 },
+        },
+      });
+    }
+    if (endpoint === 'n_noticias') {
+      return jsonResponse({
+        success: true,
+        data: {
+          items: [
+            { id: 1, titulo: 'Notícia oficial 1', status: 'publicada', autor_nome: 'Redação', data_publicacao: '2026-10-31' },
+            { id: 2, titulo: 'Notícia oficial 2', status: 'aguardando' },
+          ],
+          pagination: { current_page: 1, total_pages: 1, total_count: 18, per_page: 20 },
+        },
+      });
+    }
+    if (endpoint === 'a_avisos') {
+      return jsonResponse({
+        success: true,
+        data: {
+          items: [
+            { id: 1, titulo: 'Comunicado urgente de inscrição', ativo: true, a_tipo_aviso: { slug: 'urgente', nome: 'Urgente' } },
+            { id: 2, titulo: 'Aviso geral', ativo: true, a_tipo_aviso: { slug: 'informativo', nome: 'Informativo' } },
+          ],
+          pagination: { current_page: 1, total_pages: 1, total_count: 14, per_page: 20 },
+        },
+      });
+    }
+    const totals: Record<string, number> = {
+      usuarios: 64,
+      fotos_galeria: 150,
+      categorias_galeria: 8,
+      g_estados: 27,
+    };
+    return jsonResponse({
+      success: true,
+      data: {
+        items: [{ id: 1 }],
+        pagination: { current_page: 1, total_pages: 1, total_count: totals[endpoint] ?? 1, per_page: 1 },
+      },
+    });
+  }
+
+  function renderOverviewFromState(state: ReturnType<typeof createInitialOverviewState>) {
+    const metrics = getOverviewMetrics(state);
+    const highlights = getOverviewHighlights(state);
+    return renderToStaticMarkup(createElement(AdminOverview, {
+      indicators: {
+        ...metrics,
+        loadingNews: state.news.loading,
+        errorNews: state.news.error,
+        loadingAvisos: state.avisos.loading,
+        errorAvisos: state.avisos.error,
+        loadingFotos: state.gallery.loading,
+        errorFotos: state.gallery.error,
+        loadingFaqs: state.faqs.loading,
+        errorFaqs: state.faqs.error,
+      },
+      userName: 'Gestor MEDTEC',
+      ...highlights,
+      canAccessKanban: true,
+      onOpenNews() {},
+      onCreateNews() {},
+      onOpenKanban() {},
+    }));
+  }
+
+  it('obtém contagens oficiais de FAQ via pagination.total_count com filtros por situação e Bearer do usuário autenticado', async () => {
+    setStoredTokens({ access_token: 'gestor-faq-bearer', refresh_token: 'gestor-faq-refresh' });
+    const faqCalls: { statusFilter: string | null; page: string | null; perPage: string | null; auth: string | null }[] = [];
+    const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+      const url = new URL(String(input), 'http://test');
+      if (url.pathname.endsWith('/d_duvidas')) {
+        faqCalls.push({
+          statusFilter: url.searchParams.get('q[n_status_noticia_slug_eq]'),
+          page: url.searchParams.get('page'),
+          perPage: url.searchParams.get('per_page'),
+          auth: new Headers(options?.headers).get('Authorization'),
+        });
+      }
+      return serveOverviewEndpoint(String(input), {
+        faqTotals: { total: 42, pending: 9, published: 30 },
+      });
+    });
+
+    try {
+      const snapshot = await createAdminOverviewLoader()(true);
+      assert.ok(snapshot);
+      const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
+      const metrics = getOverviewMetrics(state);
+
+      assert.equal(faqCalls.length, 3);
+      assert.deepEqual(
+        faqCalls.map(call => call.statusFilter).sort(),
+        [null, 'aguardando', 'publicada'].sort(),
+      );
+      for (const call of faqCalls) {
+        assert.equal(call.page, '1');
+        assert.equal(call.perPage, '1');
+        assert.equal(call.auth, 'Bearer gestor-faq-bearer');
+      }
+
+      assert.equal(metrics.totalFaqs, 42);
+      assert.equal(metrics.apiFaqsPendingCount, 9);
+      assert.equal(metrics.apiFaqsPublishedCount, 30);
+
+      // Preservação dos indicadores de Notícias e Avisos
+      assert.equal(metrics.totalNews, 18);
+      assert.equal(metrics.apiNewsPublishedCount, 1);
+      assert.equal(metrics.apiNewsDraftCount, 1);
+      assert.equal(metrics.totalAvisos, 14);
+      assert.equal(metrics.apiAvisosAtivosCount, 2);
+      assert.equal(metrics.apiAvisosUrgentesCount, 1);
+
+      const html = renderOverviewFromState(state);
+      assert.ok(html.includes('>42</p>'));
+      assert.ok(html.includes('30 publicadas · 9 aguardando'));
+      assert.ok(html.includes('Registros sincronizados com a API Rails'));
+      assert.ok(html.includes('42 dúvidas'));
+      assert.ok(html.includes('30 publicadas · 9 aguardando aprovação'));
+      assert.ok(html.includes('42 registros no catálogo oficial'));
+      assert.ok(html.includes('href="/admin/faq"'));
+      assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 5);
+    } finally {
+      fetchMock.mock.restore();
+      clearStoredTokens();
+    }
+  });
+
+  it('exibe estado de coleção realmente vazia (0 dúvidas) sem confundir com erro ou ausência de integração', async () => {
+    const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) =>
+      serveOverviewEndpoint(String(input), { emptyFaqs: true }),
+    );
+    try {
+      const snapshot = await createAdminOverviewLoader()(true);
+      assert.ok(snapshot);
+      const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
+      const metrics = getOverviewMetrics(state);
+
+      assert.equal(state.faqs.error, null);
+      assert.equal(metrics.totalFaqs, 0);
+      assert.equal(metrics.apiFaqsPendingCount, 0);
+      assert.equal(metrics.apiFaqsPublishedCount, 0);
+
+      const html = renderOverviewFromState(state);
+      assert.ok(html.includes('0 publicadas · 0 aguardando'));
+      assert.ok(html.includes('Nenhuma dúvida cadastrada'));
+      assert.ok(html.includes('0 dúvidas'));
+      assert.ok(html.includes('Nenhuma dúvida cadastrada até o momento'));
+      assert.ok(html.includes('href="/admin/faq"'));
+      assert.ok(!html.includes('Falha ao consultar /d_duvidas'));
+    } finally {
+      fetchMock.mock.restore();
+    }
+  });
+
+  it('trata erros 401 e 403 em /d_duvidas sem exibir zeros ou números fictícios e preservando Notícias e Avisos', async () => {
+    for (const [status, errorCode, expectedMessage] of [
+      [401, 'nao_autenticado', 'Você precisa estar autenticado para realizar esta ação.'],
+      [403, 'sem_permissao', 'Você não possui permissão para executar esta operação.'],
+    ] as const) {
+      clearStoredTokens();
+      const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) =>
+        serveOverviewEndpoint(String(input), {
+          faqResponse: () => jsonResponse({ success: false, message: 'Acesso negado', errors: [errorCode] }, status),
+        }),
+      );
+      try {
+        const snapshot = await createAdminOverviewLoader()(true);
+        assert.ok(snapshot);
+        const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
+        const metrics = getOverviewMetrics(state);
+
+        assert.equal(state.faqs.loading, false);
+        assert.equal(state.faqs.data, null);
+        assert.equal(state.faqs.error, expectedMessage);
+        assert.equal(metrics.totalFaqs, null);
+        assert.equal(metrics.apiFaqsPendingCount, null);
+        assert.equal(metrics.apiFaqsPublishedCount, null);
+
+        // Indicadores de Notícias e Avisos permanecem intactos
+        assert.equal(state.news.error, null);
+        assert.equal(metrics.totalNews, 18);
+        assert.equal(state.avisos.error, null);
+        assert.equal(metrics.totalAvisos, 14);
+
+        const html = renderOverviewFromState(state);
+        assert.ok(html.includes(`Falha ao consultar /d_duvidas · ${expectedMessage}`));
+        assert.ok(html.includes(`Falha de comunicação com a API (${expectedMessage})`));
+        assert.ok(!html.includes('0 publicadas · 0 aguardando'));
+        assert.ok(!html.includes('Nenhuma dúvida cadastrada'));
+        assert.ok(!html.includes('0 dúvidas'));
+        assert.ok(html.includes('>18</p>'));
+        assert.ok(html.includes('>14</p>'));
+        assert.ok(html.includes('href="/admin/faq"'));
+      } finally {
+        fetchMock.mock.restore();
+      }
+    }
+  });
+
+  it('distingue endpoint ainda não implantado (404), indisponibilidade (503) e falha de rede sem inventar valores', async () => {
+    const scenarios: {
+      mode: 404 | 503 | 'network';
+      expectedError: string;
+    }[] = [
+      { mode: 404, expectedError: 'Endpoint ainda não disponível no servidor.' },
+      { mode: 503, expectedError: 'Falha de comunicação com o servidor. Tente novamente em instantes.' },
+      { mode: 'network', expectedError: 'Falha de conexão com a API do MEDTEC. Verifique sua rede e a URL do servidor.' },
+    ];
+
+    for (const scenario of scenarios) {
+      const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) =>
+        serveOverviewEndpoint(String(input), {
+          faqResponse: () => {
+            if (scenario.mode === 'network') throw new Error('ECONNREFUSED');
+            return jsonResponse({ success: false, message: scenario.expectedError }, scenario.mode);
+          },
+        }),
+      );
+      try {
+        const snapshot = await createAdminOverviewLoader()(true);
+        assert.ok(snapshot);
+        const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
+        const metrics = getOverviewMetrics(state);
+
+        assert.equal(state.faqs.data, null);
+        assert.equal(state.faqs.error, scenario.expectedError);
+        assert.equal(metrics.totalFaqs, null);
+        assert.equal(metrics.apiFaqsPendingCount, null);
+        assert.equal(metrics.apiFaqsPublishedCount, null);
+
+        const html = renderOverviewFromState(state);
+        assert.ok(html.includes(`Falha ao consultar /d_duvidas · ${scenario.expectedError}`));
+        assert.ok(html.includes(`Falha de comunicação com a API (${scenario.expectedError})`));
+        assert.ok(!html.includes('Nenhuma dúvida cadastrada'));
+        assert.ok(!html.includes('0 dúvidas'));
+      } finally {
+        fetchMock.mock.restore();
+      }
     }
   });
 });

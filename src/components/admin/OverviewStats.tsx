@@ -9,6 +9,7 @@ export type OverviewStatsIndicators = Pick<ReturnType<typeof useAdminOverview>,
   'apiNewsDraftCount' | 'loadingAvisos' |
   'errorAvisos' | 'totalAvisos' | 'apiAvisosAtivosCount' | 'apiAvisosUrgentesCount' |
   'loadingFotos' | 'errorFotos' | 'totalFotos' | 'totalCategorias' |
+  'loadingFaqs' | 'errorFaqs' | 'totalFaqs' | 'apiFaqsPendingCount' | 'apiFaqsPublishedCount' |
   'usersCountLabel'>;
 
 interface OverviewStatsProps {
@@ -21,7 +22,9 @@ export default function OverviewStats({ indicators, onOpenNews }: OverviewStatsP
     loadingNews, errorNews, totalNews, apiNewsPublishedCount, apiNewsDraftCount,
     loadingAvisos, errorAvisos, totalAvisos,
     apiAvisosAtivosCount, apiAvisosUrgentesCount, loadingFotos, errorFotos,
-    totalFotos, totalCategorias, usersCountLabel,
+    totalFotos, totalCategorias,
+    loadingFaqs, errorFaqs, totalFaqs, apiFaqsPendingCount, apiFaqsPublishedCount,
+    usersCountLabel,
   } = indicators;
 
   return (
@@ -243,12 +246,34 @@ export default function OverviewStats({ indicators, onOpenNews }: OverviewStatsP
           </div>
         </div>
         <div>
-          <p className="text-sm font-bold text-slate-900 dark:text-white">
-            Indisponível — sem integração oficial
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Indicadores de FAQ aguardam integração.
-          </p>
+          {loadingFaqs ? (
+            <div className="h-9 flex items-center gap-2 text-slate-400 text-xs">
+              <Loader2 className="h-4 w-4 animate-spin text-sky-500" />
+              <span>Carregando API...</span>
+            </div>
+          ) : errorFaqs ? (
+            <div className="space-y-0.5">
+              <p className="text-sm font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <span>Indisponível</span>
+              </p>
+              <p className="text-[10px] text-slate-400">
+                Falha ao consultar /d_duvidas · {errorFaqs}
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
+                {totalFaqs}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {apiFaqsPublishedCount} publicada{apiFaqsPublishedCount === 1 ? '' : 's'} · {apiFaqsPendingCount} aguardando
+              </p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                {totalFaqs === 0 ? 'Nenhuma dúvida cadastrada' : 'Registros sincronizados com a API Rails'}
+              </p>
+            </>
+          )}
         </div>
         <Link
           href="/admin/faq"
