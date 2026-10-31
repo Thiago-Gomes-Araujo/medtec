@@ -98,6 +98,11 @@ import PublicAcervoPage from '../src/app/acervo/page';
 import PublicRedesPage from '../src/app/redes/page';
 import GallerySection from '../src/components/GallerySection';
 import SocialSection from '../src/components/SocialSection';
+import PublicNoticiasPage from '../src/app/noticias/page';
+import PublicNoticiaDetalhePage, { generateMetadata as generateNoticiaMetadata } from '../src/app/noticias/[id]/page';
+import NewsEditorialSection from '../src/components/NewsEditorialSection';
+import NewsViewTracker, { recordNewsView } from '../src/components/NewsViewTracker';
+import type { NoticiaPublica, CategoriaPublica } from '../src/lib/api/types';
 
 // Inclui dados fora do contrato Rails para caracterizar as comparações em
 // runtime. O helper de produção continuará usando os tipos Rails existentes.
@@ -9367,6 +9372,340 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
       } finally {
         fetchMock.mock.restore();
       }
+    }
+  });
+});
+
+describe('Lote E3 — correção das notícias públicas e remoção de dados fictícios', () => {
+  const publicNoticiaFixture: NoticiaPublica = {
+    slug: 'polo-ribeirinho-recebe-novos-computadores',
+    titulo: 'Polo ribeirinho recebe novos computadores',
+    resumo: 'Breve resumo oficial para o card.',
+    conteudo: 'Primeiro parágrafo oficial.\n\nSegundo parágrafo oficial.',
+    data_publicacao: '2026-10-26',
+    categoria_nome: 'Pedagógico',
+    categoria_slug: 'pedagogico',
+    autor_nome: 'Maria Silva',
+    imagem_capa: null,
+  };
+
+  const publicNoticiaCategoriaFixture: CategoriaPublica = {
+    nome: 'Pedagógico',
+    slug: 'pedagogico',
+  };
+
+  function publicNoticiasReply(
+    items: NoticiaPublica[] = [publicNoticiaFixture],
+    pagination = {
+      current_page: 1,
+      total_pages: items.length ? 1 : 0,
+      total_count: items.length,
+      per_page: 9,
+    },
+  ) {
+    return categoriaReply({
+      success: true,
+      message: 'Notícias públicas encontradas',
+      data: { items, pagination },
+    });
+  }
+
+  function publicCategoriasNoticiaReply(items: CategoriaPublica[] = [publicNoticiaCategoriaFixture]) {
+    return categoriaReply({
+      success: true,
+      message: 'Categorias públicas encontradas',
+      data: items,
+    });
+  }
+
+  function mountPublicNoticias(
+    fetcher: (url: URL, options: RequestInit) => Promise<Response>,
+    strict = false,
+    component = () => NewsEditorialSection(),
+  ) {
+    return mountCategories(fetcher, strict, {
+      component,
+      anonymous: true,
+      allowedPaths: /\/publico\/n_(?:noticias|categorias_noticia)(?:\/[^/]+)?$/,
+    });
+  }
+
+  function publicNoticiasBackend(read: (url: URL, options: RequestInit) => Promise<Response>) {
+    return async (url: URL, options: RequestInit) =>
+      url.pathname.endsWith('/n_categorias_noticia') ? publicCategoriasNoticiaReply() : read(url, options);
+  }
+
+  it('/noticias compartilha NewsEditorialSection e SSR apresenta carregamento sem notícias, categorias ou citações fictícias', () => {
+    const pageTree = PublicNoticiasPage();
+    const shared = noticeNodes(pageTree).filter((node) => node.type === NewsEditorialSection);
+    assert.equal(shared.length, 1);
+
+    const html = renderToStaticMarkup(createElement(NewsEditorialSection));
+    assert.match(html, /Carregando notícias/);
+    assert.match(html, /Carregando categorias/);
+    assert.doesNotMatch(
+      html,
+      /Nenhuma reportagem encontrada|Calha Fluvial|Polo Central|Prof\. Carlos Eduardo Mendonça|Mayara Suruí|Salas Conectadas|Estudantes Atendidos|Resumo Executivo \(3 Pontos\)|Ficha de Impacto Territorial/,
+    );
+  });
+
+  it('consulta anônima exibe notícias, total oficial, categorias ativas e links para detalhes sem dados fictícios de getEditorialDetails', async () => {
+    const manager = await mountPublicNoticias(
+      publicNoticiasBackend(async () =>
+        publicNoticiasReply([publicNoticiaFixture], {
+          current_page: 1,
+          total_pages: 3,
+          total_count: 24,
+          per_page: 9,
+        }),
+      ),
+    );
+    try {
+      const html = manager.html();
+      assert.match(html, /24 resultados/);
+      assert.match(html, /Polo ribeirinho recebe novos computadores/);
+      assert.match(html, /Breve resumo oficial para o card\./);
+      assert.match(html, /Maria Silva/);
+      assert.match(html, /2026-10-26/);
+      assert.match(html, /href="\/noticias\/polo-ribeirinho-recebe-novos-computadores"/);
+      assert.ok(manager.nodes().some((node) => node.type === 'button' && node.props.children === 'Pedagógico'));
+
+      // Ausência total de dados fictícios e estatísticas simuladas
+      assert.doesNotMatch(
+        html,
+        /Calha Fluvial|Polo Central|Estúdios Centrais SEDUC|Terras Indígenas|Cone Sul|Vale do Jamari|Prof\. Carlos Eduardo Mendonça|Mayara Suruí|Profa\. Maria Helena Ribeiro|Prof\. José Arnaldo Silva|Salas Conectadas|Estudantes Atendidos|Resumo Executivo|Ficha de Impacto Territorial|unsplash\.com/,
+      );
+
+      // Abrir o leitor rápido também preserva apenas dados oficiais e link para detalhes
+      const coverTrigger = manager.nodes().find(
+        (node) => node.type === 'div' && typeof node.props.onClick === 'function' && String(node.props.className).includes('cursor-pointer'),
+      );
+      assert.ok(coverTrigger);
+      await manager.act(() => Reflect.apply(coverTrigger.props.onClick as () => unknown, undefined, []));
+      const modalHtml = manager.html();
+      assert.match(modalHtml, /Primeiro parágrafo oficial\./);
+      assert.match(modalHtml, /Segundo parágrafo oficial\./);
+      assert.match(modalHtml, /Página da notícia/);
+      assert.doesNotMatch(
+        modalHtml,
+        /Prof\. Carlos Eduardo Mendonça|Mayara Suruí|Salas Conectadas|Estudantes Atendidos|Resumo Executivo|Ficha de Impacto Territorial|Impacto Direto na Juventude|unsplash\.com/,
+      );
+      assert.equal(manager.calls.length, 2);
+    } finally {
+      await manager.restore();
+    }
+  });
+
+  it('busca por notícia (busca), filtro por categoria (slug) e paginação enviam parâmetros oficiais à API sem filtro local e preservam filtros entre páginas', async () => {
+    const manager = await mountPublicNoticias(
+      publicNoticiasBackend(async (url) =>
+        publicNoticiasReply([publicNoticiaFixture], {
+          current_page: Number(url.searchParams.get('page') || 1),
+          total_pages: 3,
+          total_count: 24,
+          per_page: 9,
+        }),
+      ),
+    );
+    try {
+      await manager.click('Próxima');
+      assert.match(manager.html(), /Página 2 de 3/);
+      assert.equal(manager.calls.at(-1)!.url.searchParams.get('page'), '2');
+
+      const beforeSearchCalls = manager.calls.length;
+      await manager.change('busca', ' satélite ');
+      assert.equal(manager.calls.length, beforeSearchCalls, 'Digitação não faz filtro local nem dispara requisição antes do envio');
+
+      await manager.submit('Buscar notícias');
+      let lastUrl = manager.calls.at(-1)!.url;
+      assert.equal(lastUrl.searchParams.get('busca'), 'satélite');
+      assert.equal(lastUrl.searchParams.get('page'), '1');
+      assert.equal(lastUrl.searchParams.get('per_page'), '9');
+      assert.match(
+        manager.html(),
+        /Polo ribeirinho recebe novos computadores/,
+        'Não filtra localmente a página retornada pela API quando o termo difere do título local',
+      );
+
+      await manager.click('Pedagógico');
+      lastUrl = manager.calls.at(-1)!.url;
+      assert.equal(lastUrl.searchParams.get('categoria'), 'pedagogico');
+      assert.equal(lastUrl.searchParams.get('busca'), 'satélite');
+      assert.equal(lastUrl.searchParams.get('page'), '1');
+
+      await manager.click('Próxima');
+      lastUrl = manager.calls.at(-1)!.url;
+      assert.equal(lastUrl.searchParams.get('page'), '2');
+      assert.equal(lastUrl.searchParams.get('categoria'), 'pedagogico');
+      assert.equal(lastUrl.searchParams.get('busca'), 'satélite');
+
+      await manager.click('Limpar filtros');
+      lastUrl = manager.calls.at(-1)!.url;
+      assert.equal(lastUrl.searchParams.has('busca'), false);
+      assert.equal(lastUrl.searchParams.has('categoria'), false);
+      assert.equal(lastUrl.searchParams.get('page'), '1');
+    } finally {
+      await manager.restore();
+    }
+  });
+
+  it('estados de carregamento, vazio legítimo e erro funcionam independentemente para notícias e categorias sem inventar categorias fixas', async () => {
+    const pendingNews = adminReturnDeferred<Response>();
+    const manager = await mountPublicNoticias(async (url) =>
+      url.pathname.endsWith('/n_categorias_noticia') ? publicCategoriasNoticiaReply([]) : pendingNews.promise,
+    );
+    try {
+      assert.match(manager.html(), /Carregando notícias/);
+      assert.match(manager.html(), /Nenhuma categoria disponível/);
+      assert.doesNotMatch(manager.html(), /Infraestrutura|Tecnologia|Eventos|Nenhuma reportagem encontrada/);
+
+      await manager.act(() => pendingNews.resolve(publicNoticiasReply([])));
+      assert.match(manager.html(), /Nenhuma reportagem encontrada/);
+      assert.doesNotMatch(manager.html(), /role="alert"/);
+    } finally {
+      await manager.restore();
+    }
+
+    for (const outcome of [401, 404, 503, 'network'] as const) {
+      let failed = true;
+      const errorManager = await mountPublicNoticias(
+        publicNoticiasBackend(async () => {
+          if (!failed) return publicNoticiasReply();
+          if (outcome === 'network') throw new TypeError('Failed to fetch');
+          return categoriaReply({ success: false, errors: ['nao_autenticado'] }, outcome);
+        }),
+      );
+      try {
+        assert.match(errorManager.html(), /role="alert"/);
+        assert.match(errorManager.html(), outcome === 'network' ? /conectar/ : /Notícias indisponíveis/);
+        assert.doesNotMatch(errorManager.html(), /Nenhuma reportagem encontrada|Polo ribeirinho/);
+        failed = false;
+        await errorManager.click('Tentar novamente');
+        assert.match(errorManager.html(), /Polo ribeirinho recebe novos computadores/);
+      } finally {
+        await errorManager.restore();
+      }
+    }
+
+    let catFailed = true;
+    const catErrorManager = await mountPublicNoticias(async (url) => {
+      if (url.pathname.endsWith('/n_categorias_noticia')) {
+        return catFailed ? categoriaReply({ success: false }, 503) : publicCategoriasNoticiaReply();
+      }
+      return publicNoticiasReply();
+    });
+    try {
+      assert.match(catErrorManager.html(), /Categorias indisponíveis/);
+      assert.match(catErrorManager.html(), /Polo ribeirinho recebe novos computadores/);
+      catFailed = false;
+      await catErrorManager.click('Recarregar categorias');
+      assert.ok(catErrorManager.nodes().some((node) => node.type === 'button' && node.props.children === 'Pedagógico'));
+    } finally {
+      await catErrorManager.restore();
+    }
+  });
+
+  it('chamadas públicas de notícias nunca enviam Bearer, não acionam refresh e preservam sessão administrativa mesmo em 401', async () => {
+    setStoredTokens({ access_token: 'admin-news-token', refresh_token: 'admin-news-refresh' });
+    const calls: { url: URL; auth: string | null; credentials: RequestCredentials | undefined }[] = [];
+    const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+      const url = new URL(String(input));
+      calls.push({
+        url,
+        auth: new Headers(options?.headers).get('Authorization'),
+        credentials: options?.credentials,
+      });
+      if (url.pathname.endsWith('/n_categorias_noticia')) return publicCategoriasNoticiaReply();
+      if (url.pathname.endsWith('/polo-ribeirinho-recebe-novos-computadores')) {
+        return categoriaReply({ success: true, message: 'OK', data: publicNoticiaFixture });
+      }
+      return publicNoticiasReply();
+    });
+
+    try {
+      await medtecApi.noticias.listPublico({ page: 1, per_page: 9, categoria: 'pedagogico', busca: 'polo' });
+      await medtecApi.noticias.listCategoriasPublico();
+      await medtecApi.noticias.getPublicoBySlug('polo-ribeirinho-recebe-novos-computadores');
+
+      assert.equal(calls.length, 3);
+      for (const call of calls) {
+        assert.match(call.url.pathname, /\/publico\/n_/);
+        assert.equal(call.auth, null);
+        assert.equal(call.credentials, 'omit');
+      }
+      assert.equal(getStoredAccessToken(), 'admin-news-token');
+      assert.equal(getStoredRefreshToken(), 'admin-news-refresh');
+    } finally {
+      fetchMock.mock.restore();
+      clearStoredTokens();
+    }
+  });
+
+  it('página de detalhes /noticias/[id] consome GET /publico/n_noticias/:slug sem Bearer, preserva retorno à listagem, omite capa ausente e não aciona NewsViewTracker', async () => {
+    setStoredTokens({ access_token: 'admin-detail-token', refresh_token: 'admin-detail-refresh' });
+    const calls: { path: string; method: string; auth: string | null }[] = [];
+    const fetchMock = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
+      const url = new URL(String(input), 'http://localhost:3000');
+      calls.push({
+        path: url.pathname,
+        method: options?.method || 'GET',
+        auth: new Headers(options?.headers).get('Authorization'),
+      });
+      return categoriaReply({
+        success: true,
+        message: 'Notícia encontrada',
+        data: publicNoticiaFixture,
+      });
+    });
+
+    try {
+      const router = {
+        back() {},
+        forward() {},
+        refresh() {},
+        push() {},
+        replace() {},
+        prefetch() {},
+        bfcacheId: 'noticia-detalhe-test',
+      };
+      const meta = await generateNoticiaMetadata({ params: Promise.resolve({ id: publicNoticiaFixture.slug }) });
+      assert.match(String(meta.title), /Polo ribeirinho recebe novos computadores/);
+
+      const pageElement = await PublicNoticiaDetalhePage({
+        params: Promise.resolve({ id: publicNoticiaFixture.slug }),
+      });
+      const html = renderToStaticMarkup(
+        createElement(
+          AppRouterContext.Provider,
+          { value: router },
+          createElement(PathnameContext.Provider, { value: `/noticias/${publicNoticiaFixture.slug}` }, pageElement),
+        ),
+      );
+
+      assert.match(html, /Polo ribeirinho recebe novos computadores/);
+      assert.match(html, /Breve resumo oficial para o card\./);
+      assert.match(html, /Primeiro parágrafo oficial\./);
+      assert.match(html, /Maria Silva/);
+      assert.match(html, /2026-10-26/);
+      assert.match(html, /Pedagógico/);
+      assert.match(html, /href="\/noticias"/);
+      assert.match(html, /Voltar para todas as notícias/);
+      assert.doesNotMatch(html, /unsplash\.com/);
+      assert.doesNotMatch(html, /Conteúdo em elaboração/);
+
+      // Nenhuma chamada POST para /api/news/view nem envio de Bearer
+      recordNewsView(publicNoticiaFixture.slug);
+      assert.equal(renderToStaticMarkup(createElement(NewsViewTracker, { id: publicNoticiaFixture.slug })), '');
+      assert.equal(calls.some((call) => call.path.includes('/api/news/view') || call.method === 'POST'), false);
+      for (const call of calls) {
+        assert.equal(call.path.endsWith(`/publico/n_noticias/${publicNoticiaFixture.slug}`), true);
+        assert.equal(call.auth, null);
+      }
+      assert.equal(getStoredAccessToken(), 'admin-detail-token');
+      assert.equal(getStoredRefreshToken(), 'admin-detail-refresh');
+    } finally {
+      fetchMock.mock.restore();
+      clearStoredTokens();
     }
   });
 });
