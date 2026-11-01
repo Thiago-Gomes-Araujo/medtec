@@ -8401,6 +8401,11 @@ describe('Visitantes C3 — quatro endpoints autenticados', () => {
   });
 });
 
+function DuvidasCounterProbe(enabled: boolean) {
+  const state = useDuvidasPendentes(enabled);
+  return createElement('output', null, state.error ?? String(state.count));
+}
+
 describe('Visitantes C3 — interface administrativa', () => {
   it('aba Visitantes fica dentro da guarda atual, com C1/C2 preservados e montagem sob demanda', () => {
     const page = AdminFaqSubroutePage(); assert.equal(page.type, AdminShell); assert.equal(page.props.activeSection, 'duvidas');
@@ -8423,7 +8428,7 @@ describe('Visitantes C3 — interface administrativa', () => {
   it('contador consulta só o total das não respondidas e atualiza quando avisado', async () => {
     let total = 3;
     const view = await mountCategories(async () => visitanteList([visitanteFixture], { current_page: 1, total_pages: total, total_count: total, per_page: 1 }), false, {
-      component: () => { const state = useDuvidasPendentes(true); return createElement('output', null, state.error ?? String(state.count)); },
+      component: () => DuvidasCounterProbe(true),
       allowedPaths: /\/d_duvidas_visitante$/,
     });
     try {
@@ -8437,10 +8442,10 @@ describe('Visitantes C3 — interface administrativa', () => {
     } finally { await view.restore(); }
   });
   it('contador desativado não consulta a API e falha vira erro, não zero', async () => {
-    const off = await mountCategories(async () => visitanteList(), false, { component: () => { useDuvidasPendentes(false); return null; }, allowedPaths: /$^/ });
+    const off = await mountCategories(async () => visitanteList(), false, { component: () => DuvidasCounterProbe(false), allowedPaths: /$^/ });
     try { assert.equal(off.calls.length, 0); } finally { await off.restore(); }
     const failing = await mountCategories(async () => categoriaReply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403), false, {
-      component: () => { const state = useDuvidasPendentes(true); return createElement('output', null, state.error ?? String(state.count)); },
+      component: () => DuvidasCounterProbe(true),
       allowedPaths: /\/d_duvidas_visitante$/,
     });
     try {
