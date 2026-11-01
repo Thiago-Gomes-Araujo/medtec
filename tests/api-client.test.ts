@@ -142,6 +142,7 @@ import RelatoProfessorForm from '../src/components/RelatoProfessorForm';
 import AlunosView from '../src/components/AlunosView';
 import ProfessoresView from '../src/components/ProfessoresView';
 import TeacherProfiles from '../src/components/TeacherProfiles';
+import CommunityComingSoon from '../src/components/CommunityComingSoon';
 import StudentStories from '../src/components/StudentStories';
 import ProfessorDetalhePage from '../src/app/professores/[id]/page';
 import type { ConquistaPublica, ProfessorPublico } from '../src/lib/api/types';
@@ -11249,11 +11250,19 @@ describe('Professores e conquistas — integração com a API', () => {
     } finally { await view.restore(); }
   });
 
-  it('página do professor responde 404 e mostra relatos sem contato', async () => {
+  it('página do professor mostra "em breve" em qualquer erro da API e relatos sem contato', async () => {
     await assert.rejects(ProfessorDetalhePage({ params: Promise.resolve({ id: 'abc' }) }));
-    await withFetch(() => problem(404, ['nao_encontrado'], 'Não encontrado'), async () => {
-      await assert.rejects(ProfessorDetalhePage({ params: Promise.resolve({ id: '7' }) }));
-    });
+    for (const reply of [
+      () => problem(404, ['nao_encontrado'], 'Não encontrado'),
+      () => problem(500, ['erro_interno'], 'Erro interno'),
+      () => { throw new TypeError('fetch failed'); },
+    ]) {
+      await withFetch(reply, async () => {
+        const nodes = noticeNodes(await ProfessorDetalhePage({ params: Promise.resolve({ id: '7' }) }));
+        assert.equal(nodes.find(node => node.type === CommunityComingSoon)?.props.message, 'O quadro de professores e mediadores estará disponível em breve.');
+        assert.ok(!nodes.some(node => node.props.role === 'alert' || node.type === RelatoProfessorForm));
+      });
+    }
     await withFetch(() => json({ success: true, message: 'ok', data: {
       id: 7, nome: 'Ana', pratica_pedagogica: 'Prática', escola_nome: 'Escola', cidade_nome: 'Porto Velho',
       email: 'prof@x.com', disciplinas: [{ nome: 'Biologia', slug: 'biologia' }],
