@@ -30,7 +30,7 @@ import { useAdminOverview } from '@/components/admin/useAdminOverview';
 import AdminOverview from '@/components/admin/AdminOverview';
 import { getLegacyProjectsHref } from '@/lib/admin-projects';
 import { getAdminStaticAlias } from '@/lib/admin-aliases';
-import { getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
+import { canAccessDuvidas, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminEditorialDestination } from '@/lib/admin-auth-navigation';
 import { buildAdminMenu, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
 import {
@@ -290,7 +290,7 @@ export default function AdminDashboardPage() {
   const canAccessAnnouncements = userSession.isGestor || userSession.profileType === 'Publicador de Avisos' || userSession.profileType === 'Operador de Conteúdo';
   const canAccessGallery = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
   const canAccessProjects = userSession.isGestor;
-  const canAccessFaqs = userSession.isGestor || userSession.profileType === 'Operador de Conteúdo';
+  const canAccessFaqs = canAccessDuvidas(userSession);
   const canAccessProfessores =
     userSession.isGestor ||
     userSession.profileType === 'Editor de Notícias' ||

@@ -2997,8 +2997,19 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     } finally { await shell.restore(); }
   });
 
+  for (const [profile, allowed] of [['Gestor', true], ['Jornalista', false]] as const) {
+    it('dúvidas de visitantes seguem os perfis do seed Rails: ' + profile, async () => {
+      const shell = await mountShell({ section: 'duvidas', pathname: '/admin/faq' });
+      try {
+        await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
+        assert.equal(shell.view?.content, allowed);
+        assert.equal(shell.view?.restricted, !allowed);
+      } finally { await shell.restore(); }
+    });
+  }
+
   for (const [profile, allowed] of [
-    ['Administrador', true], ['Operador de Conteúdo', true], ['Editor de Notícias', false],
+    ['Administrador', true], ['Operador de Conteúdo', false], ['Editor de Notícias', false],
     ['Curador de Fotos', false], ['Publicador de Avisos', false],
   ] as const) {
     it('protege as subrotas de professores e alunos na página para ' + profile, async () => {
@@ -3017,7 +3028,7 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
       }
     });
 
-    it('C1 preserva a guarda do FAQ para ' + profile, async () => {
+    it('C1 aplica a guarda do FAQ para ' + profile, async () => {
       let renders = 0;
       const shell = await mountShell({ section: 'duvidas', pathname: '/admin/faq', children: () => {
         renders++; return 'B2: conteúdo protegido';
