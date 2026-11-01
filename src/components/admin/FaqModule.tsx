@@ -7,7 +7,7 @@ const buttonClass = 'rounded-lg border border-slate-200 dark:border-slate-700 px
 const inputClass = 'w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#071324] px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#004A99] dark:focus:ring-sky-400';
 const EMPTY_FILTERS = { pergunta: '', categoria: '', situacao: '' };
 type FaqQuery = typeof EMPTY_FILTERS & { page: number; per_page: number };
-type DuvidaForm = DDuvidaInput & { id?: number; categoria_nome?: string };
+type DuvidaForm = DDuvidaInput & { id?: number; categoria_nome?: string; fromVisitante?: boolean };
 type EditorialAction = 'publicar' | 'reprovar' | 'despublicar';
 
 function friendlyError(error: unknown): string {
@@ -17,7 +17,7 @@ function friendlyError(error: unknown): string {
   return ApiError.getFriendlyMessage(error);
 }
 
-export default function FaqModule({ active = true }: { active?: boolean } = {}) {
+export default function FaqModule({ active = true, prefill = null }: { active?: boolean; prefill?: { pergunta: string } | null } = {}) {
   const id = useId();
   const [items, setItems] = useState<DDuvida[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
@@ -38,6 +38,18 @@ export default function FaqModule({ active = true }: { active?: boolean } = {}) 
   const readVersion = useRef(0);
   const categoryVersion = useRef(0);
   const actionLock = useRef(false);
+
+  // A dúvida do visitante só traz a pergunta: a API não guarda a resposta dada a ele nem uma categoria.
+  const [seenPrefill, setSeenPrefill] = useState(prefill);
+  if (prefill !== seenPrefill) {
+    setSeenPrefill(prefill);
+    if (prefill && form) {
+      setActionError('Conclua ou cancele o rascunho aberto antes de transformar outra dúvida em FAQ.');
+    } else if (prefill) {
+      setForm({ d_categoria_duvida_id: 0, pergunta: prefill.pergunta, resposta: '', fromVisitante: true });
+      setActionError(null); setSuccess(null);
+    }
+  }
 
   const load = useCallback(async (requested: FaqQuery, signal?: AbortSignal) => {
     const request = ++readVersion.current;
@@ -218,7 +230,11 @@ export default function FaqModule({ active = true }: { active?: boolean } = {}) 
     {success && <p role="status" className="text-sm text-emerald-700 dark:text-emerald-300">{success}</p>}
 
     {form && <form aria-label={form.id ? 'Editar dúvida' : 'Criar dúvida'} onSubmit={save} className="space-y-4 border-y border-slate-200 dark:border-slate-800 py-4">
-      <h3 className="text-sm font-bold text-slate-900 dark:text-white">{form.id ? 'Editar dúvida' : 'Nova dúvida'}</h3>
+      <h3 className="text-sm font-bold text-slate-900 dark:text-white">{form.id ? 'Editar dúvida' : form.fromVisitante ? 'Transformar dúvida de visitante em FAQ' : 'Nova dúvida'}</h3>
+      {form.fromVisitante && <div role="note" className="space-y-1 rounded-lg bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200">
+        <p>A resposta dada ao visitante não fica registrada: escreva a resposta pública e escolha a categoria. Revise a pergunta e retire dados pessoais.</p>
+        <p className="font-bold">Pelo contrato da API, Gestor e Administrador publicam no site ao salvar, sem passar pela aprovação.</p>
+      </div>}
       <fieldset disabled={busy} className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor={`${id}-categoria`} className="text-xs font-semibold text-slate-700 dark:text-slate-200">Categoria (obrigatória)</label>

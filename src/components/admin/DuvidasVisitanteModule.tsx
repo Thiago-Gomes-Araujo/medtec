@@ -21,7 +21,7 @@ function dateLabel(value: string | null): string {
     : date.toLocaleString('pt-BR', { timeZone: 'America/Porto_Velho' });
 }
 
-export default function DuvidasVisitanteModule() {
+export default function DuvidasVisitanteModule({ onTransformToFaq }: { onTransformToFaq?: (item: DDuvidaVisitante) => void } = {}) {
   const id = useId();
   const [items, setItems] = useState<DDuvidaVisitante[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
@@ -175,6 +175,7 @@ export default function DuvidasVisitanteModule() {
       <p className="whitespace-pre-line break-words text-sm text-slate-700 dark:text-slate-200">{selected.descricao}</p>
       <div className="flex flex-wrap gap-2">
         {!selected.respondida && <button type="button" disabled={busy || deleting !== null} aria-label="Marcar detalhe como respondido" className={buttonClass} onClick={() => void markAnswered(selected)}>Marcar como respondida</button>}
+        {selected.respondida && onTransformToFaq && <button type="button" disabled={busy || deleting !== null} aria-label="Transformar detalhe em FAQ" className={buttonClass} onClick={() => onTransformToFaq(selected)}>Transformar em FAQ</button>}
         <button type="button" disabled={busy || deleting !== null} className={buttonClass} onClick={() => { setDeleting(selected); setActionError(null); setSuccess(null); }}>Excluir este envio</button>
       </div>
     </section>}
@@ -200,6 +201,7 @@ export default function DuvidasVisitanteModule() {
         <div className="flex flex-wrap gap-2">
           <button type="button" disabled={blocked} className={buttonClass} aria-label={`Ver detalhes de ${item.nome}`} onClick={() => void details(item)}>Ver detalhes</button>
           {!item.respondida && <button type="button" disabled={blocked} className={buttonClass} aria-label={`Marcar como respondida: ${item.nome}`} onClick={() => void markAnswered(item)}>Marcar como respondida</button>}
+          {item.respondida && onTransformToFaq && <button type="button" disabled={blocked} className={buttonClass} aria-label={`Transformar em FAQ: ${item.nome}`} onClick={() => onTransformToFaq(item)}>Transformar em FAQ</button>}
           <button type="button" disabled={blocked} className={buttonClass} aria-label={`Excluir envio de ${item.nome}`} onClick={() => { setDeleting(item); setActionError(null); setSuccess(null); }}>Excluir</button>
         </div>
       </li>)}

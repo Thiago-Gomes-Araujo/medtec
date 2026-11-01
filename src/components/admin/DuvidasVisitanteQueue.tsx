@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+import { useState } from 'react';
+import { SECTION_CONFIG } from '@/lib/admin-navigation';
 import { medtecApi, type DDuvidaVisitante } from '@/lib/api';
 import { buttonClass, panelClass, renderFeedback, useAdminAction, useApiList } from './communityAdminUi';
 import { notifyDuvidasPendentes } from './useDuvidasPendentes';
@@ -11,10 +14,12 @@ const readPendentes = (signal: AbortSignal) => medtecApi.duvidasVisitante.list(N
 export default function DuvidasVisitanteQueue() {
   const pendentes = useApiList<DDuvidaVisitante>(readPendentes);
   const action = useAdminAction();
+  const [respondidas, setRespondidas] = useState<DDuvidaVisitante[]>([]);
 
   async function responder(item: DDuvidaVisitante) {
     const done = await action.run(async () => {
       const value = await medtecApi.duvidasVisitante.responder(item.id);
+      if (value.respondida) setRespondidas(previous => [value, ...previous]);
       return value.respondida ? 'Dúvida marcada como respondida.' : 'Registro atualizado. A dúvida permanece não respondida.';
     });
     if (done) { pendentes.reload(); notifyDuvidasPendentes(); }
@@ -41,6 +46,16 @@ export default function DuvidasVisitanteQueue() {
           <button type="button" className={buttonClass} disabled={action.busy} aria-label={`Responder ${item.nome}`} onClick={() => void responder(item)}>Responder</button>
         </li>)}
       </ul>}
+
+      {respondidas.length > 0 && <div className="space-y-3 border-t border-slate-200 dark:border-slate-800 pt-4">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Respondidas agora</h3>
+        <ul className="divide-y divide-slate-200 dark:divide-slate-800">
+          {respondidas.map(item => <li key={item.id} className="space-y-2 py-3">
+            <p className="line-clamp-2 whitespace-pre-line break-words text-sm text-slate-700 dark:text-slate-200">{item.descricao}</p>
+            <Link href={`${SECTION_CONFIG.duvidas.href}?visitante=${item.id}`} className={`inline-block ${buttonClass}`} aria-label={`Transformar em FAQ: ${item.nome}`}>Transformar em FAQ</Link>
+          </li>)}
+        </ul>
+      </div>}
     </section>
   );
 }

@@ -141,6 +141,7 @@ import RelatosPanel from '../src/components/admin/RelatosPanel';
 import ConquistasPanel from '../src/components/admin/ConquistasPanel';
 import CommunityApprovalQueue from '../src/components/admin/CommunityApprovalQueue';
 import DuvidasVisitanteQueue from '../src/components/admin/DuvidasVisitanteQueue';
+import VisitanteFaqDraftLoader from '../src/components/admin/VisitanteFaqDraftLoader';
 import RelatoProfessorForm from '../src/components/RelatoProfessorForm';
 import AlunosView from '../src/components/AlunosView';
 import StudentStories from '../src/components/StudentStories';
@@ -8501,6 +8502,106 @@ describe('Visitantes C3 — interface administrativa', () => {
     try { assert.deepEqual((await medtecApi.duvidasVisitante.list({ page: 'all' })).data.items, []); } finally { empty.mock.restore(); }
     const filled = reply(1, [visitanteFixture]);
     try { await assert.rejects(medtecApi.duvidasVisitante.list({ page: 'all' }), /Resposta inválida/); } finally { filled.mock.restore(); }
+  });
+  describe('Transformar em FAQ', () => {
+    const settle = async () => { for (let turn = 0; turn < 5; turn++) await Promise.resolve(); };
+    const respondida = { ...visitanteRespondida, id: 42, nome: 'Visitante atendido', descricao: 'Tem curso no polo?' };
+    const faqFetcher = (posts: RequestInit[]) => async (url: URL, options: RequestInit) => {
+      if (options.method === 'POST') { posts.push(options); return categoriaReply({ ...duvidaFixture, status: 'publicada', status_nome: 'Publicada' }, 201); }
+      return url.pathname.endsWith('/d_categorias_duvida') ? categoriaList() : duvidaList([]);
+    };
+
+    it('botão só aparece em dúvida respondida e entrega o envio à tela do FAQ', async () => {
+      let chosen: DDuvidaVisitante | undefined;
+      const view = await mountCategories(async () => visitanteList([visitanteFixture, respondida]), false, {
+        component: () => DuvidasVisitanteModule({ onTransformToFaq: item => { chosen = item; } }), allowedPaths: /\/d_duvidas_visitante$/,
+      });
+      try {
+        assert.doesNotMatch(view.html(), new RegExp('Transformar em FAQ: ' + visitanteFixture.nome));
+        await view.click('Transformar em FAQ: Visitante atendido');
+        assert.equal(chosen?.id, 42);
+      } finally { await view.restore(); }
+    });
+    it('formulário abre com a pergunta, pede categoria e resposta e só envia campos do contrato', async () => {
+      const posts: RequestInit[] = [];
+      let prefill: { pergunta: string } | null = null;
+      const view = await mountDuvidas(faqFetcher(posts), false, () => FaqModule({ prefill }));
+      try {
+        await view.act(settle);
+        prefill = { pergunta: respondida.descricao };
+        await view.render();
+        assert.match(view.html(), /Transformar dúvida de visitante em FAQ/);
+        assert.match(view.html(), /Tem curso no polo\?/);
+        assert.match(view.html(), /publicam no site ao salvar/);
+        await view.submit('Criar dúvida');
+        assert.match(view.html(), /Selecione a categoria e preencha a pergunta e a resposta/);
+        assert.equal(posts.length, 0, 'A API não guarda resposta nem categoria da dúvida do visitante');
+        await view.change('d_categoria_duvida_id', '21');
+        await view.change('resposta', 'Sim, veja o polo mais próximo.');
+        await view.submit('Criar dúvida');
+        await view.act(settle);
+        assert.deepEqual(JSON.parse(String(posts[0].body)), { d_duvida: { d_categoria_duvida_id: 21, pergunta: respondida.descricao, resposta: 'Sim, veja o polo mais próximo.' } });
+        assert.match(view.html(), /Dúvida cadastrada\. Situação: Publicada\./, 'Mostra a situação devolvida pela API');
+      } finally { await view.restore(); }
+    });
+    it('rascunho aberto não é substituído', async () => {
+      let prefill: { pergunta: string } | null = null;
+      const view = await mountDuvidas(faqFetcher([]), false, () => FaqModule({ prefill }));
+      try {
+        await view.act(settle);
+        await view.click('Nova dúvida');
+        await view.change('pergunta', 'Rascunho em andamento');
+        prefill = { pergunta: respondida.descricao };
+        await view.render();
+        assert.match(view.html(), /Rascunho em andamento/);
+        assert.doesNotMatch(view.html(), /Tem curso no polo/);
+        assert.match(view.html(), /Conclua ou cancele o rascunho aberto/);
+      } finally { await view.restore(); }
+    });
+    it('Fila oferece a ação depois de responder, levando só o id na URL', async () => {
+      const view = await mountCategories(async (url, options) => options.method === 'PATCH' ? categoriaReply(respondida) : visitanteList([{ ...visitanteFixture, id: 42, nome: 'Visitante atendido' }]), false, {
+        component: () => DuvidasVisitanteQueue(), allowedPaths: /\/d_duvidas_visitante(\/\d+\/responder)?$/,
+      });
+      const link = () => view.nodes().find(node => node.props['aria-label'] === 'Transformar em FAQ: Visitante atendido');
+      try {
+        await view.act(settle);
+        assert.equal(link(), undefined);
+        await view.click('Responder Visitante atendido');
+        await view.act(settle);
+        assert.equal(link()?.props.href, '/admin/faq?visitante=42');
+      } finally { await view.restore(); }
+    });
+    it('carregador só aceita dúvida respondida e mostra a falha', async () => {
+      const mount = (reply: () => Response, visitanteId: number) => mountCategories(async () => reply(), false, {
+        component: () => VisitanteFaqDraftLoader({ visitanteId, onLoaded }), allowedPaths: /\/d_duvidas_visitante\/\d+$/,
+      });
+      const loaded: DDuvidaVisitante[] = [];
+      const onLoaded = (item: DDuvidaVisitante) => { loaded.push(item); };
+      const invalid = await mount(() => categoriaReply(respondida), Number.NaN);
+      try { assert.equal(invalid.calls.length, 0); } finally { await invalid.restore(); }
+      const answered = await mount(() => categoriaReply(respondida), 42);
+      try { await answered.act(settle); assert.equal(loaded[0]?.id, 42); assert.equal(answered.calls[0].options.method, 'GET'); } finally { await answered.restore(); }
+      const pending = await mount(() => categoriaReply(visitanteFixture), 41);
+      try { await pending.act(settle); assert.equal(loaded.length, 1); assert.match(pending.html(), /Marque a dúvida como respondida/); } finally { await pending.restore(); }
+      const missing = await mount(() => categoriaReply({ success: false, message: 'Registro não encontrado', errors: ['x'] }, 404), 99);
+      try { await missing.act(settle); assert.match(missing.html(), /role="alert"/); } finally { await missing.restore(); }
+    });
+    it('tela do FAQ abre o formulário ao transformar um envio', async () => {
+      const workspace = AdminFaqSubroutePage().props.children();
+      const view = await mountCategories(async () => duvidaList([]), false, { component: () => Reflect.apply(workspace.type as () => ReactNode, undefined, [{}]), allowedPaths: /$^/ });
+      try {
+        await view.click('Visitantes');
+        const modulo = view.nodes().find(node => node.type === DuvidasVisitanteModule);
+        await view.act(() => (modulo?.props.onTransformToFaq as (item: DDuvidaVisitante) => void)(respondida));
+        const faq = view.nodes().find(node => node.type === FaqModule);
+        assert.equal(faq?.props.active, true);
+        assert.deepEqual(faq?.props.prefill, { pergunta: respondida.descricao });
+      } finally { await view.restore(); }
+    });
+    it('categorias vazias com page=all (per_page 0) não viram resposta inválida', async () => {
+      const fetcher = mock.method(globalThis, 'fetch', async () => categoriaList([], { current_page: 1, total_pages: 1, total_count: 0, per_page: 0 }));
+      try { assert.deepEqual((await medtecApi.categoriasDuvida.list({ page: 'all' })).data.items, []); } finally { fetcher.mock.restore(); }
+    });
   });
   it('carregamento não exibe falso vazio; vazio confirmado não vira erro', async () => {
     const pending = adminReturnDeferred<Response>();
