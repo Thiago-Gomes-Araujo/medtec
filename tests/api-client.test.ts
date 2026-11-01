@@ -56,7 +56,8 @@ import AnnouncementsModule, { type AnnouncementsModuleProps } from '../src/compo
 import GalleryModule, { type GalleryModuleProps } from '../src/components/admin/GalleryModule';
 import AdminAvisosPage from '../src/app/admin/avisos/page';
 import AdminGaleriaPage from '../src/app/admin/galeria/page';
-import type { ATipoAviso, AAviso, FotoGaleria, CategoriaGaleria } from '../src/lib/api/types';
+import EstadosCidadesModule from '../src/components/admin/EstadosCidadesModule';
+import type { ATipoAviso, AAviso, FotoGaleria, CategoriaGaleria, Estado } from '../src/lib/api/types';
 import DuvidasVisitanteModule from '../src/components/admin/DuvidasVisitanteModule';
 import FaqCentralSection from '../src/components/FaqCentralSection';
 import DuvidaVisitanteForm from '../src/components/DuvidaVisitanteForm';
@@ -163,6 +164,7 @@ import {
   STUDENT_CATEGORIES,
   type StudentDraft,
 } from '../src/lib/admin-students';
+import { isInternalImagePath, validateMediaFields } from '../src/lib/admin-community-validation';
 
 // Inclui dados fora do contrato Rails para caracterizar as comparações em
 // runtime. O helper de produção continuará usando os tipos Rails existentes.
@@ -2577,6 +2579,22 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
       assertRetained() { assert.equal(new Set(instances).size, 1); },
     };
   }
+
+  it('oculta o conteúdo protegido ao reativar até a sessão ser revalidada', async () => {
+    const shell = await mountShell();
+    try {
+      await shell.settle(() => shell.requests[0].resolve(railsSession('Administrador')));
+      assert.equal(shell.view?.content, true);
+      await shell.render('hidden');
+      await shell.render('visible');
+      assert.equal(shell.view?.loading, true);
+      assert.equal(shell.view?.content, false);
+      await shell.settle(() => shell.requests[1].resolve(railsSession('Administrador')));
+      assert.equal(shell.view?.loading, false);
+      assert.equal(shell.view?.content, true);
+      shell.assertRetained();
+    } finally { await shell.restore(); }
+  });
 
   for (const exit of ['unmount', 'hidden'] as const) {
     it(`ignora resposta Rails após ${exit}, inclusive as escritas do finally`, async () => {
@@ -10879,6 +10897,90 @@ describe('Módulos CMS — Professores e Mediadores & Alunos que Inspiram', () =
     assert.equal(getTeacherInitials('Prof. Carlos Eduardo Mendes'), 'CM');
     assert.equal(getTeacherInitials('  '), 'PR');
     assert.equal(generateStudentSlug('Conquista fictícia', 'Estudante fictício'), 'estudante-ficticio-conquista-ficticia');
+    // Testes de slug com caracteres especiais e pontuações
+    assert.equal(
+      generateStudentSlug('Medalha de Ouro na Olimpíada — 1º Lugar! 🎉 & "Robótica" @2026', 'Ana Beatriz d’Ávila & Souza'),
+      'ana-beatriz-d-avila-souza-medalha-de-ouro-na-olimpiada-1-lugar-robotica-2026',
+    );
+    // Testes de slug longo: truncamento em 140 chars sem hífen no final
+    const longNome = 'Estudante com nome extremamente longo e detalhado da rede estadual de Rondonia polo norte';
+    const longConquista = 'Primeiro lugar na Mostra Cientifica e Tecnologica Regional com projeto inovador de irrigacao sustentavel automatizada no campo';
+    const longSlug = generateStudentSlug(longConquista, longNome);
+    assert.ok(longSlug.length <= 140, `Slug length ${longSlug.length} exceeds 140`);
+    assert.equal(longSlug.endsWith('-'), false, `Slug should not end with hyphen: ${longSlug}`);
+    assert.match(longSlug, /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
+    // Truncamento exato onde o caractere 140 seria hífen
+    const exactHyphenSlug = generateStudentSlug('b'.repeat(20), 'a'.repeat(139));
+    assert.ok(exactHyphenSlug.length <= 140);
+    assert.equal(exactHyphenSlug.endsWith('-'), false);
+    assert.equal(exactHyphenSlug, 'a'.repeat(139));
+  });
+
+  it('elimina duplicações no resumo de validação e restringe mídias demonstrativas na publicação', () => {
+    // 1. Não duplica mensagens no summary
+    const emptyTeacher = validateTeacherDraft(createEmptyTeacherDraft());
+    const uniqueTeacherSummary = [...new Set(emptyTeacher.summary)];
+    assert.equal(emptyTeacher.summary.length, uniqueTeacherSummary.length, 'Resumo do docente não deve ter mensagens duplicadas');
+    assert.deepEqual(emptyTeacher.summary, Object.values(emptyTeacher.errors));
+
+    const emptyStudent = validateStudentDraft(createEmptyStudentDraft());
+    const uniqueStudentSummary = [...new Set(emptyStudent.summary)];
+    assert.equal(emptyStudent.summary.length, uniqueStudentSummary.length, 'Resumo do estudante não deve ter mensagens duplicadas');
+    assert.deepEqual(emptyStudent.summary, Object.values(emptyStudent.errors));
+
+    // 2. Mídia demonstrativa permitida em rascunho, mas bloqueada para publicação
+    const draftWithDemoMedia: TeacherDraft = {
+      ...teacherFixture(),
+      foto_url: '/hero.jpg',
+      foto_alt: 'Fotografia demonstrativa da prática',
+      termo_imagem_confirmado: true,
+      status: 'rascunho',
+    };
+    const draftValidation = validateTeacherDraft(draftWithDemoMedia);
+    assert.equal(draftValidation.errors.foto_url, undefined, 'Mídia demonstrativa local é permitida em rascunho');
+
+    const publishedWithDemoMedia: TeacherDraft = {
+      ...draftWithDemoMedia,
+      status: 'publicado',
+    };
+    const pubValidation = validateTeacherDraft(publishedWithDemoMedia);
+    assert.ok(pubValidation.errors.foto_url, 'Mídia demonstrativa não pode ser aceita para publicação');
+    assert.match(pubValidation.errors.foto_url, /demonstrativas não podem ser publicadas/);
+
+    // 3. Mídia oficial com URL HTTPS válida é aceita para publicação
+    const publishedWithOfficialMedia: TeacherDraft = {
+      ...draftWithDemoMedia,
+      foto_url: 'https://rondonia.ro.gov.br/uploads/docente-oficial.jpg',
+      status: 'publicado',
+    };
+    const officialValidation = validateTeacherDraft(publishedWithOfficialMedia);
+    assert.equal(officialValidation.errors.foto_url, undefined, 'Mídia oficial HTTPS é aceita');
+  });
+
+  it('aceita em rascunho somente caminho interno de imagem ou URL HTTPS', () => {
+    const fotoError = (foto_url: string, status = 'rascunho') => {
+      const errors: Record<string, string> = {};
+      validateMediaFields({ foto_url, foto_alt: 'Descrição válida', status }, errors);
+      return errors.foto_url;
+    };
+    for (const path of ['/hero.jpg', '/uploads/foto-1_a.JPEG', '/banners/aulas.svg', '/a.png', '/a.webp', '/a.gif']) {
+      assert.equal(isInternalImagePath(path), true, path);
+      assert.equal(fotoError(path), undefined, path);
+      assert.ok(fotoError(path, 'publicado'), `${path} não pode ser publicado`);
+      assert.ok(fotoError(path, 'em_revisao'), `${path} não pode ir para revisão`);
+    }
+    for (const path of [
+      '//cdn.terceiro.example/x.jpg', '/\\cdn.terceiro.example/x.jpg', '/\t/cdn.terceiro.example/x.jpg', '/uploads//x.jpg',
+      '/qualquer-coisa.exe', '/foto.jpg.exe', '/foto', '/', '/foto.jpg?x=1', '/foto.jpg#a', '/../segredo.png', '/./foto.png', '/%2e%2e/foto.png',
+      'foto.jpg', ' /hero.jpg', 'http://x.example/a.jpg', 'ftp://x.example/a.jpg', 'javascript:alert(1)//a.jpg', 'data:image/png;base64,AA==',
+    ]) {
+      assert.equal(isInternalImagePath(path), false, path);
+      assert.ok(fotoError(path), path);
+      assert.ok(fotoError(path, 'publicado'), path);
+    }
+    assert.equal(fotoError('https://rondonia.ro.gov.br/a.jpg'), undefined);
+    assert.equal(fotoError('https://rondonia.ro.gov.br/a.jpg', 'publicado'), undefined);
   });
 
   it('valida limites do contrato, função, município, ordenação, foto e materiais do docente', () => {
@@ -11036,4 +11138,137 @@ describe('Módulos CMS — Professores e Mediadores & Alunos que Inspiram', () =
       } finally { await view.restore(); }
     });
   }
+});
+
+describe('Reativação sob Activity e seleção de UF (pós-auditoria)', () => {
+  type ElementProps = {
+    children?: ReactNode;
+    onClick?: () => void;
+    onSubmit?: (event: { preventDefault(): void }) => Promise<void>;
+  };
+  const flatten = (node: ReactNode): React.ReactElement<ElementProps>[] => {
+    if (Array.isArray(node)) return node.flatMap(flatten);
+    if (!isValidElement<ElementProps>(node)) return [];
+    return [node, ...flatten(node.props.children)];
+  };
+  const texts = (node: ReactNode): string[] => {
+    if (typeof node === 'string') return [node];
+    if (Array.isArray(node)) return node.flatMap(texts);
+    return isValidElement<ElementProps>(node) ? texts(node.props.children) : [];
+  };
+  const flush = () => React.act(async () => { await new Promise(resolve => setImmediate(resolve)); });
+
+  // Executa os hooks reais sob Activity; a árvore retornada é apenas observada.
+  async function mountHooks(body: () => void) {
+    const doc = {
+      nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null,
+      defaultView: null as unknown,
+    };
+    const browser = { document: doc, HTMLIFrameElement: class {} };
+    doc.defaultView = browser;
+    const globals = { window: browser, document: doc, IS_REACT_ACT_ENVIRONMENT: true };
+    const descriptors = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+    for (const [key, value] of Object.entries(globals)) {
+      Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+    }
+    function Host() { body(); return null; }
+    const container = {
+      nodeType: 1, tagName: 'DIV', namespaceURI: 'http://www.w3.org/1999/xhtml', ownerDocument: doc,
+      addEventListener() {}, removeEventListener() {}, textContent: '',
+    };
+    const root = createRoot(container as unknown as Element);
+    const render = (mode: 'visible' | 'hidden') => React.act(async () => {
+      root.render(jsx(React.Activity, { mode, children: createElement(Host) } satisfies React.ActivityProps));
+    });
+    await render('visible');
+    await flush();
+    return {
+      render,
+      async restore() {
+        await React.act(async () => { root.unmount(); });
+        for (const [key, descriptor] of descriptors) {
+          if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+          else Reflect.deleteProperty(globalThis, key);
+        }
+      },
+    };
+  }
+
+  for (const [label, services, readError] of [
+    ['Avisos', [medtecApi.tiposAviso, medtecApi.avisos], () => {
+      const page = AdminAvisosPage();
+      return (page.props.children as React.ReactElement<AnnouncementsModuleProps>).props.errorAvisos;
+    }],
+    ['Galeria', [medtecApi.categoriasGaleria, medtecApi.fotosGaleria], () => {
+      const page = AdminGaleriaPage();
+      return (page.props.children as React.ReactElement<GalleryModuleProps>).props.errorFotos;
+    }],
+  ] as const) {
+    it(`${label} limpa o erro quando a recarga da reativação tem sucesso`, async () => {
+      let failing = true;
+      const reply = () => failing
+        ? Promise.reject(new Error('Falha sintética'))
+        : Promise.resolve({ success: true, data: { items: [] } });
+      const spies = (services as readonly unknown[]).map(service =>
+        mock.method(service as { list: () => Promise<unknown> }, 'list', reply));
+      let error: string | null | undefined;
+      const hooks = await mountHooks(() => { error = readError(); });
+      try {
+        assert.ok(error);
+        failing = false;
+        await hooks.render('hidden');
+        await hooks.render('visible');
+        await flush();
+        assert.equal(error, null);
+      } finally {
+        await hooks.restore();
+        for (const spy of spies) spy.mock.restore();
+      }
+    });
+  }
+
+  async function createEstadoAfter(initial: Estado[]) {
+    const created = { id: 99, nome: 'Estado novo', sigla_uf: 'EN', codigo_ibge: '99' } as Estado;
+    const requested: unknown[] = [];
+    const cidades = mock.method(medtecApi.cidades, 'list', ((params: Record<string, unknown>) => {
+      requested.push(params['q[g_estado_id_eq]']);
+      return Promise.resolve({ success: true, data: { items: [] } });
+    }) as never);
+    const create = mock.method(medtecApi.estados, 'create', (() => Promise.resolve(created)) as never);
+    let tree: ReactNode = null;
+    let deliver!: (items: Estado[]) => void;
+    // A lista sempre chega depois da montagem, como na subrota do painel.
+    const hooks = await mountHooks(() => {
+      const [apiEstados, setApiEstados] = React.useState<Estado[]>([]);
+      deliver = setApiEstados;
+      tree = EstadosCidadesModule({ apiEstados, setApiEstados, loadingEstados: false });
+    });
+    try {
+      await React.act(async () => { deliver(initial); });
+      await flush();
+      const openModal = flatten(tree).find(node => node.type === 'button' && texts(node).includes('Novo Estado (UF)'));
+      await React.act(async () => { openModal?.props.onClick?.(); });
+      const form = flatten(tree).find(node => node.type === 'form' && texts(node).includes('Cadastrar Estado'));
+      await React.act(async () => { await form?.props.onSubmit?.({ preventDefault() {} }); });
+      await flush();
+      assert.equal(create.mock.callCount(), 1);
+      return requested;
+    } finally {
+      await hooks.restore();
+      cidades.mock.restore();
+      create.mock.restore();
+    }
+  }
+
+  it('criar UF mantém o estado efetivo quando a lista chega depois da montagem', async () => {
+    const estados = [
+      { id: 1, nome: 'Estado A', sigla_uf: 'AA', codigo_ibge: '11' },
+      { id: 2, nome: 'Estado B', sigla_uf: 'BB', codigo_ibge: '12' },
+    ] as Estado[];
+    assert.deepEqual(await createEstadoAfter(estados), [1]);
+  });
+
+  it('a primeira UF criada passa a ser o estado efetivo', async () => {
+    assert.deepEqual(await createEstadoAfter([]), [99]);
+  });
 });

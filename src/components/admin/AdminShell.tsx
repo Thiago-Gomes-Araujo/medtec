@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useAdminTheme } from '@/components/admin/useAdminTheme';
 import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter from '@/components/admin/MobileDrawerFooter';
@@ -124,81 +124,84 @@ export default function AdminShell({
   // Sincronização do tema escuro
   const { isDark, toggleTheme } = useAdminTheme();
 
-  // Verificação de sessão
-  const checkAuth = useCallback(async (isCurrent: () => boolean) => {
-    if (!isCurrent()) return;
-    setLoadingAuth(true);
-    try {
-      let authenticated = false;
+  // Rota oculta pelo Activity volta em carregamento até a sessão ser revalidada.
+  useLayoutEffect(() => () => { setLoadingAuth(true); }, []);
 
-      // 1. Tenta validar token JWT na API Backend v1 (/auth/me)
-      if (medtecApi.auth.isAuthenticated()) {
-        try {
-          const meRes = await medtecApi.auth.me();
-          if (!isCurrent()) return;
-          if (meRes.success && meRes.data) {
-            authenticated = true;
-            const { isGestor, username, name, profileType } = getRailsSessionFields(meRes.data);
+  // Verificação de sessão
+  useEffect(() => {
+    // O cleanup invalida somente este setup, inclusive após ocultar e reativar.
+    let active = true;
+    const verifyAuth = async () => {
+      try {
+        let authenticated = false;
+
+        // 1. Tenta validar token JWT na API Backend v1 (/auth/me)
+        if (medtecApi.auth.isAuthenticated()) {
+          try {
+            const meRes = await medtecApi.auth.me();
+            if (!active) return;
+            if (meRes.success && meRes.data) {
+              authenticated = true;
+              const { isGestor, username, name, profileType } = getRailsSessionFields(meRes.data);
+              setIsLoggedIn(true);
+              setUserSession({
+                isGestor,
+                username,
+                role: meRes.data.perfil_nome,
+                name,
+                profileType,
+                apiUser: meRes.data,
+              });
+            }
+          } catch (meErr) {
+            if (!active) return;
+            console.warn('AdminShell: GET /auth/me falhou ou token expirou:', meErr);
+          }
+        }
+
+        // 2. Fallback de sessão local
+        if (!authenticated) {
+          const authRes = await fetch('/api/auth');
+          if (!active) return;
+          if (authRes.ok) {
+            const authJson = await authRes.json();
+            if (!active) return;
+            const { isGestor, username, name, profileType } = getLocalSessionFields(authJson);
             setIsLoggedIn(true);
             setUserSession({
               isGestor,
               username,
-              role: meRes.data.perfil_nome,
+              role: authJson.role,
               name,
               profileType,
-              apiUser: meRes.data,
             });
+            authenticated = true;
           }
-        } catch (meErr) {
-          if (!isCurrent()) return;
-          console.warn('AdminShell: GET /auth/me falhou ou token expirou:', meErr);
         }
-      }
 
-      // 2. Fallback de sessão local
-      if (!authenticated) {
-        const authRes = await fetch('/api/auth');
-        if (!isCurrent()) return;
-        if (authRes.ok) {
-          const authJson = await authRes.json();
-          if (!isCurrent()) return;
-          const { isGestor, username, name, profileType } = getLocalSessionFields(authJson);
-          setIsLoggedIn(true);
-          setUserSession({
-            isGestor,
-            username,
-            role: authJson.role,
-            name,
-            profileType,
-          });
-          authenticated = true;
+        if (!authenticated) {
+          setIsLoggedIn(false);
+          router.push(getAdminLoginHref(pathname || '/admin', window.location.search));
         }
+      } catch (err) {
+        if (!active) return;
+        console.error('AdminShell: Erro ao verificar autenticação:', err);
+        router.push('/admin/login');
+      } finally {
+        if (active) setLoadingAuth(false);
       }
+    };
 
-      if (!authenticated) {
-        setIsLoggedIn(false);
-        router.push(getAdminLoginHref(pathname || '/admin', window.location.search));
-      }
-    } catch (err) {
-      if (!isCurrent()) return;
-      console.error('AdminShell: Erro ao verificar autenticação:', err);
-      router.push('/admin/login');
-    } finally {
-      if (isCurrent()) setLoadingAuth(false);
-    }
+    void verifyAuth();
+    return () => { active = false; };
   }, [router, pathname]);
 
-  useEffect(() => {
-    // O cleanup invalida somente este setup, inclusive após ocultar e reativar.
-    let active = true;
-    void checkAuth(() => active);
-    return () => { active = false; };
-  }, [checkAuth]);
-
   // Fecha o drawer mobile ao mudar de rota
-  useEffect(() => {
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     setIsMobileOpen(false);
-  }, [pathname]);
+  }
 
   const handleLogout = async () => {
     try {

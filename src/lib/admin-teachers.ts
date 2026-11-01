@@ -173,91 +173,69 @@ export interface TeacherValidationResult {
 
 export function validateTeacherDraft(draft: TeacherDraft): TeacherValidationResult {
   const errors: Record<string, string> = {};
-  const summary: string[] = [];
 
   const trimmedNome = draft.nome.trim();
   if (!trimmedNome) {
     errors.nome = 'O nome de exibição do docente é obrigatório.';
-    summary.push('Informe o nome de exibição.');
-  } else if (trimmedNome.length < TEACHER_FIELD_LIMITS.nome.min) {
-    errors.nome = `O nome deve conter ao menos ${TEACHER_FIELD_LIMITS.nome.min} caracteres.`;
-    summary.push('Nome muito curto.');
-  } else if (trimmedNome.length > TEACHER_FIELD_LIMITS.nome.max) {
-    errors.nome = `O nome deve conter no máximo ${TEACHER_FIELD_LIMITS.nome.max} caracteres.`;
-    summary.push('Nome excede o limite permitido.');
+  } else if (trimmedNome.length < TEACHER_FIELD_LIMITS.nome.min || trimmedNome.length > TEACHER_FIELD_LIMITS.nome.max) {
+    errors.nome = `O nome deve conter de ${TEACHER_FIELD_LIMITS.nome.min} a ${TEACHER_FIELD_LIMITS.nome.max} caracteres.`;
   }
 
   const trimmedSlug = draft.slug.trim();
   if (!trimmedSlug) {
     errors.slug = 'O identificador amigável (slug) é obrigatório.';
-    summary.push('Informe o slug do perfil.');
   } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(trimmedSlug)) {
     errors.slug = 'O slug deve conter apenas letras minúsculas, números e hífens.';
-    summary.push('Formato de slug inválido.');
+  } else if (trimmedSlug.length < TEACHER_FIELD_LIMITS.slug.min || trimmedSlug.length > TEACHER_FIELD_LIMITS.slug.max) {
+    errors.slug = `O slug deve conter de ${TEACHER_FIELD_LIMITS.slug.min} a ${TEACHER_FIELD_LIMITS.slug.max} caracteres.`;
   }
 
   const trimmedDisciplina = draft.disciplina.trim();
   if (!trimmedDisciplina) {
     errors.disciplina = 'A disciplina ou especialidade é obrigatória.';
-    summary.push('Informe a disciplina/especialidade.');
-  } else if (trimmedDisciplina.length > TEACHER_FIELD_LIMITS.disciplina.max) {
-    errors.disciplina = `A disciplina não pode ultrapassar ${TEACHER_FIELD_LIMITS.disciplina.max} caracteres.`;
-    summary.push('Disciplina excede o limite.');
+  } else if (trimmedDisciplina.length < TEACHER_FIELD_LIMITS.disciplina.min || trimmedDisciplina.length > TEACHER_FIELD_LIMITS.disciplina.max) {
+    errors.disciplina = `A disciplina deve conter de ${TEACHER_FIELD_LIMITS.disciplina.min} a ${TEACHER_FIELD_LIMITS.disciplina.max} caracteres.`;
   }
 
   const trimmedEscola = draft.escola_nome.trim();
   if (!trimmedEscola && !draft.escola_id) {
     errors.escola_nome = 'A unidade escolar ou estúdio de lotação é obrigatório.';
-    summary.push('Informe a unidade de lotação.');
-  } else if (trimmedEscola.length > TEACHER_FIELD_LIMITS.escola_nome.max) {
-    errors.escola_nome = `O nome da unidade não pode ultrapassar ${TEACHER_FIELD_LIMITS.escola_nome.max} caracteres.`;
-    summary.push('Nome da unidade excede o limite.');
+  } else if (trimmedEscola && (trimmedEscola.length < TEACHER_FIELD_LIMITS.escola_nome.min || trimmedEscola.length > TEACHER_FIELD_LIMITS.escola_nome.max)) {
+    errors.escola_nome = `O nome da unidade deve conter de ${TEACHER_FIELD_LIMITS.escola_nome.min} a ${TEACHER_FIELD_LIMITS.escola_nome.max} caracteres.`;
   }
 
   const trimmedResumo = draft.resumo.trim();
   if (!trimmedResumo) {
     errors.resumo = 'O resumo da prática pedagógica é obrigatório.';
-    summary.push('Informe o resumo da prática pedagógica.');
-  } else if (trimmedResumo.length < TEACHER_FIELD_LIMITS.resumo.min) {
-    errors.resumo = `O resumo deve conter ao menos ${TEACHER_FIELD_LIMITS.resumo.min} caracteres (atualmente ${trimmedResumo.length}).`;
-    summary.push('Resumo da prática pedagógica muito curto.');
-  } else if (trimmedResumo.length > TEACHER_FIELD_LIMITS.resumo.max) {
-    errors.resumo = `O resumo não pode ultrapassar ${TEACHER_FIELD_LIMITS.resumo.max} caracteres (atualmente ${trimmedResumo.length}).`;
-    summary.push('Resumo da prática pedagógica excede o limite.');
+  } else if (trimmedResumo.length < TEACHER_FIELD_LIMITS.resumo.min || trimmedResumo.length > TEACHER_FIELD_LIMITS.resumo.max) {
+    errors.resumo = `O resumo deve conter de ${TEACHER_FIELD_LIMITS.resumo.min} a ${TEACHER_FIELD_LIMITS.resumo.max} caracteres.`;
   }
 
   const trimmedEntrevista = draft.entrevista.trim();
   if (!trimmedEntrevista) {
     errors.entrevista = 'O depoimento/entrevista completa é obrigatório.';
-    summary.push('Informe o texto da entrevista.');
-  } else if (trimmedEntrevista.length < TEACHER_FIELD_LIMITS.entrevista.min) {
-    errors.entrevista = `A entrevista deve conter ao menos ${TEACHER_FIELD_LIMITS.entrevista.min} caracteres (atualmente ${trimmedEntrevista.length}).`;
-    summary.push('Texto da entrevista muito curto.');
-  } else if (trimmedEntrevista.length > TEACHER_FIELD_LIMITS.entrevista.max) {
-    errors.entrevista = `A entrevista não pode ultrapassar ${TEACHER_FIELD_LIMITS.entrevista.max} caracteres.`;
-    summary.push('Texto da entrevista excede o limite.');
+  } else if (trimmedEntrevista.length < TEACHER_FIELD_LIMITS.entrevista.min || trimmedEntrevista.length > TEACHER_FIELD_LIMITS.entrevista.max) {
+    errors.entrevista = `A entrevista deve conter de ${TEACHER_FIELD_LIMITS.entrevista.min} a ${TEACHER_FIELD_LIMITS.entrevista.max} caracteres.`;
   }
 
   if (draft.foto_url && draft.foto_url.trim()) {
     if (!draft.foto_alt || !draft.foto_alt.trim()) {
       errors.foto_alt = 'O texto alternativo da foto é obrigatório para acessibilidade.';
-      summary.push('Informe a descrição de acessibilidade (alt) da fotografia.');
     }
     if (!draft.termo_imagem_confirmado) {
       errors.termo_imagem_confirmado = 'É necessário confirmar a autorização institucional de uso de imagem do servidor público.';
-      summary.push('Confirme a autorização de uso de imagem.');
     }
   }
 
   validateEditorialFields(draft, TEACHER_FIELD_LIMITS, errors);
   if (!['ministrante', 'mediador'].includes(draft.funcao)) errors.funcao = 'Selecione uma função válida.';
   if (draft.rotulo_funcao && (draft.rotulo_funcao.trim().length < 3 || draft.rotulo_funcao.trim().length > 60)) errors.rotulo_funcao = 'O rótulo deve conter de 3 a 60 caracteres.';
-  if (!draft.escola_id && (draft.escola_nome.trim().length < 3 || draft.escola_nome.trim().length > 160)) errors.escola_nome = 'Informe a escola (3 a 160 caracteres).';
   if (draft.componente_curricular_ids && (draft.componente_curricular_ids.length > 10 || draft.componente_curricular_ids.some(id => !Number.isInteger(id) || id < 1))) errors.componente_curricular_ids = 'Selecione até dez componentes oficiais.';
   validateMediaFields(draft, errors);
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors,
-    summary: [...new Set([...summary, ...Object.values(errors)])],
+    summary: Object.values(errors),
   };
 }

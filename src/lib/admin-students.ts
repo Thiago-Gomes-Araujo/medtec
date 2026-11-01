@@ -114,7 +114,7 @@ export function generateStudentSlug(conquista: string, nome: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return base.slice(0, 140);
+  return base.slice(0, 140).replace(/-+$/, '');
 }
 
 /** Exemplos sintéticos. Não incluem responsáveis, documentos ou autorizações reais. */
@@ -190,75 +190,59 @@ export interface StudentValidationResult {
 
 export function validateStudentDraft(draft: StudentDraft, referenceDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Porto_Velho', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())): StudentValidationResult {
   const errors: Record<string, string> = {};
-  const summary: string[] = [];
   let lgpdBlocked = false;
 
   const trimmedNome = draft.nome_exibicao.trim();
   if (!trimmedNome) {
     errors.nome_exibicao = 'O nome de exibição do estudante é obrigatório.';
-    summary.push('Informe o nome de exibição.');
-  } else if (trimmedNome.length < STUDENT_FIELD_LIMITS.nome_exibicao.min) {
-    errors.nome_exibicao = `O nome deve conter ao menos ${STUDENT_FIELD_LIMITS.nome_exibicao.min} caracteres.`;
-    summary.push('Nome muito curto.');
-  } else if (trimmedNome.length > STUDENT_FIELD_LIMITS.nome_exibicao.max) {
-    errors.nome_exibicao = `O nome deve conter no máximo ${STUDENT_FIELD_LIMITS.nome_exibicao.max} caracteres.`;
-    summary.push('Nome excede o limite permitido.');
+  } else if (trimmedNome.length < STUDENT_FIELD_LIMITS.nome_exibicao.min || trimmedNome.length > STUDENT_FIELD_LIMITS.nome_exibicao.max) {
+    errors.nome_exibicao = `O nome deve conter de ${STUDENT_FIELD_LIMITS.nome_exibicao.min} a ${STUDENT_FIELD_LIMITS.nome_exibicao.max} caracteres.`;
   }
 
   const trimmedSlug = draft.slug.trim();
   if (!trimmedSlug) {
     errors.slug = 'O identificador amigável (slug) é obrigatório.';
-    summary.push('Informe o slug da história.');
   } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(trimmedSlug)) {
     errors.slug = 'O slug deve conter apenas letras minúsculas, números e hífens.';
-    summary.push('Formato de slug inválido.');
+  } else if (trimmedSlug.length < STUDENT_FIELD_LIMITS.slug.min || trimmedSlug.length > STUDENT_FIELD_LIMITS.slug.max) {
+    errors.slug = `O slug deve conter de ${STUDENT_FIELD_LIMITS.slug.min} a ${STUDENT_FIELD_LIMITS.slug.max} caracteres.`;
   }
 
   const trimmedConquista = draft.conquista.trim();
   if (!trimmedConquista) {
     errors.conquista = 'O título da conquista de destaque é obrigatório.';
-    summary.push('Informe a conquista do estudante.');
-  } else if (trimmedConquista.length < STUDENT_FIELD_LIMITS.conquista.min) {
-    errors.conquista = `A conquista deve conter ao menos ${STUDENT_FIELD_LIMITS.conquista.min} caracteres.`;
-    summary.push('Título da conquista muito curto.');
-  } else if (trimmedConquista.length > STUDENT_FIELD_LIMITS.conquista.max) {
-    errors.conquista = `A conquista não pode ultrapassar ${STUDENT_FIELD_LIMITS.conquista.max} caracteres.`;
-    summary.push('Título da conquista excede o limite.');
+  } else if (trimmedConquista.length < STUDENT_FIELD_LIMITS.conquista.min || trimmedConquista.length > STUDENT_FIELD_LIMITS.conquista.max) {
+    errors.conquista = `A conquista deve conter de ${STUDENT_FIELD_LIMITS.conquista.min} a ${STUDENT_FIELD_LIMITS.conquista.max} caracteres.`;
   }
 
   const trimmedEscola = draft.escola_nome.trim();
   if (!trimmedEscola && !draft.escola_id) {
     errors.escola_nome = 'A escola estadual ou polo do estudante é obrigatório.';
-    summary.push('Informe a escola polo.');
+  } else if (trimmedEscola && (trimmedEscola.length < STUDENT_FIELD_LIMITS.escola_nome.min || trimmedEscola.length > STUDENT_FIELD_LIMITS.escola_nome.max)) {
+    errors.escola_nome = `A escola deve conter de ${STUDENT_FIELD_LIMITS.escola_nome.min} a ${STUDENT_FIELD_LIMITS.escola_nome.max} caracteres.`;
   }
 
   const trimmedComunidade = draft.comunidade.trim();
   if (!trimmedComunidade) {
     errors.comunidade = 'A comunidade de origem é obrigatória (ex.: Distrito, Aldeia, Linha Rural).';
-    summary.push('Informe a comunidade de origem.');
+  } else if (trimmedComunidade.length < STUDENT_FIELD_LIMITS.comunidade.min || trimmedComunidade.length > STUDENT_FIELD_LIMITS.comunidade.max) {
+    errors.comunidade = `A comunidade deve conter de ${STUDENT_FIELD_LIMITS.comunidade.min} a ${STUDENT_FIELD_LIMITS.comunidade.max} caracteres.`;
   }
 
   const trimmedResumo = draft.resumo.trim();
   if (!trimmedResumo) {
     errors.resumo = 'O resumo/depoimento da trajetória é obrigatório.';
-    summary.push('Informe o resumo da história.');
-  } else if (trimmedResumo.length < STUDENT_FIELD_LIMITS.resumo.min) {
-    errors.resumo = `O resumo deve conter ao menos ${STUDENT_FIELD_LIMITS.resumo.min} caracteres (atualmente ${trimmedResumo.length}).`;
-    summary.push('Resumo da história muito curto.');
-  } else if (trimmedResumo.length > STUDENT_FIELD_LIMITS.resumo.max) {
-    errors.resumo = `O resumo não pode ultrapassar ${STUDENT_FIELD_LIMITS.resumo.max} caracteres.`;
-    summary.push('Resumo excede o limite.');
+  } else if (trimmedResumo.length < STUDENT_FIELD_LIMITS.resumo.min || trimmedResumo.length > STUDENT_FIELD_LIMITS.resumo.max) {
+    errors.resumo = `O resumo deve conter de ${STUDENT_FIELD_LIMITS.resumo.min} a ${STUDENT_FIELD_LIMITS.resumo.max} caracteres.`;
   }
 
   // Validações de foto
   if (draft.foto_url && draft.foto_url.trim()) {
     if (!draft.foto_alt || !draft.foto_alt.trim()) {
       errors.foto_alt = 'A descrição da fotografia (alt) é obrigatória para acessibilidade.';
-      summary.push('Informe a descrição da foto.');
     }
     if (!draft.consentimento_lgpd.autoriza_imagem_foto) {
       errors.autoriza_imagem_foto = 'Para exibir fotografia é obrigatório haver consentimento expresso no Termo LGPD.';
-      summary.push('Foto informada mas sem consentimento de imagem no termo.');
       lgpdBlocked = true;
     }
   }
@@ -268,55 +252,44 @@ export function validateStudentDraft(draft: StudentDraft, referenceDate = new In
 
   if (draft.destaque_home && !lgpd.autoriza_exibicao_home) {
     errors.autoriza_exibicao_home = 'Para destacar na Home é obrigatória a autorização de exibição de capa no Termo LGPD.';
-    summary.push('Falta consentimento para exibição na Home.');
+    lgpdBlocked = true;
+  }
+
+  if (lgpd.status_lgpd === 'revogado') {
+    errors.status_lgpd = 'O consentimento deste estudante foi revogado. O registro não pode ser publicado.';
+    lgpdBlocked = true;
+  } else if (lgpd.status_lgpd === 'expirado') {
+    errors.status_lgpd = 'O termo de autorização expirou a data de validade. Necessária renovação antes de publicar.';
+    lgpdBlocked = true;
+  } else if (draft.status === 'publicado' && lgpd.status_lgpd !== 'verificado') {
+    errors.status_lgpd = 'Para publicar, a equipe jurídica/editorial deve confirmar a verificação do termo LGPD assinado.';
     lgpdBlocked = true;
   }
 
   if (draft.status === 'em_revisao' || draft.status === 'publicado') {
     if (!lgpd.termo_anexado) {
       errors.termo_anexado = 'O Termo de Autorização LGPD/ECA assinado deve estar digitalizado e verificado para envio à revisão ou publicação.';
-      summary.push('Termo LGPD não anexado.');
       lgpdBlocked = true;
     }
 
     if (!lgpd.nome_signatario || !lgpd.nome_signatario.trim()) {
       errors.nome_signatario = 'O nome completo do responsável legal (ou titular maior) signatário é obrigatório.';
-      summary.push('Informe o nome do signatário do termo.');
       lgpdBlocked = true;
     }
 
     if (!lgpd.autoriza_nome_relato) {
       errors.autoriza_nome_relato = 'O termo deve autorizar expressamente a veiculação do nome e relato educacional.';
-      summary.push('Termo sem autorização de nome/relato.');
-      lgpdBlocked = true;
-    }
-
-    if (lgpd.status_lgpd === 'revogado') {
-      errors.status_lgpd = 'O consentimento deste estudante foi revogado. O registro não pode ser publicado.';
-      summary.push('Consentimento LGPD revogado.');
-      lgpdBlocked = true;
-    } else if (lgpd.status_lgpd === 'expirado') {
-      errors.status_lgpd = 'O termo de autorização expirou a data de validade. Necessária renovação antes de publicar.';
-      summary.push('Termo LGPD expirado.');
-      lgpdBlocked = true;
-    } else if (draft.status === 'publicado' && lgpd.status_lgpd !== 'verificado') {
-      errors.status_lgpd = 'Para publicar, a equipe jurídica/editorial deve confirmar a verificação do termo LGPD assinado.';
-      summary.push('Termo LGPD pendente de verificação.');
       lgpdBlocked = true;
     }
   }
 
   validateEditorialFields(draft, STUDENT_FIELD_LIMITS, errors);
   if (!STUDENT_CATEGORIES.includes(draft.categoria)) errors.categoria = 'Selecione uma categoria válida.';
-  if (!draft.escola_id && (draft.escola_nome.trim().length < 3 || draft.escola_nome.trim().length > 160)) errors.escola_nome = 'Informe a escola (3 a 160 caracteres).';
   if (draft.ano_conquista != null && (!Number.isInteger(draft.ano_conquista) || draft.ano_conquista < 2016 || draft.ano_conquista > 2100)) errors.ano_conquista = 'Informe um ano entre 2016 e 2100.';
   if (draft.serie_turma && (draft.serie_turma.trim().length < 2 || draft.serie_turma.trim().length > 60)) errors.serie_turma = 'A série/turma deve conter de 2 a 60 caracteres.';
   if (draft.exibir_idade && draft.idade_referencia == null) errors.idade_referencia = 'Informe a idade para exibi-la.';
   validateMediaFields(draft, errors);
-  if (lgpd.status_lgpd === 'revogado' || lgpd.status_lgpd === 'expirado') {
-    errors.status_lgpd = 'Consentimento revogado ou expirado: publicação bloqueada.';
-    lgpdBlocked = true;
-  }
+
   const today = referenceDate;
   if (lgpd.data_assinatura && (!isCalendarDate(lgpd.data_assinatura) || lgpd.data_assinatura > today)) {
     errors.data_assinatura = 'A assinatura deve ter data válida e não futura.';
@@ -332,10 +305,11 @@ export function validateStudentDraft(draft: StudentDraft, referenceDate = new In
     const permitted = lgpd.menor_de_idade ? ['mae', 'pai', 'responsavel_legal'] : ['titular_maior'];
     if (!permitted.includes(lgpd.vinculo_signatario)) { errors.vinculo_signatario = 'O vínculo do signatário é incompatível com a titularidade.'; lgpdBlocked = true; }
   }
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors,
-    summary: [...new Set([...summary, ...Object.values(errors)])],
+    summary: Object.values(errors),
     lgpdBlocked,
   };
 }
