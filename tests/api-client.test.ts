@@ -140,6 +140,7 @@ import ProfessoresPanel from '../src/components/admin/ProfessoresPanel';
 import RelatosPanel from '../src/components/admin/RelatosPanel';
 import ConquistasPanel from '../src/components/admin/ConquistasPanel';
 import CommunityApprovalQueue from '../src/components/admin/CommunityApprovalQueue';
+import DuvidasVisitanteQueue from '../src/components/admin/DuvidasVisitanteQueue';
 import RelatoProfessorForm from '../src/components/RelatoProfessorForm';
 import AlunosView from '../src/components/AlunosView';
 import StudentStories from '../src/components/StudentStories';
@@ -8456,6 +8457,50 @@ describe('Visitantes C3 — interface administrativa', () => {
     const access = Object.fromEntries(['noticias','projetos','duvidas','avisos','fotos','galeria','professores','alunos','kanban','siteInfo','redes','estadosCidades','usuarios'].map(key => [key, true]));
     const item = buildAdminMenu(access as Parameters<typeof buildAdminMenu>[0], { duvidas: 7 }).flatMap(folder => folder.items).find(entry => entry.section === 'duvidas');
     assert.equal(item?.badge, 7);
+  });
+  it('Fila lista as não respondidas, responde sem corpo e tira o item da lista', async () => {
+    let pendentes = [visitanteFixture];
+    const view = await mountCategories(async (url, options) => {
+      if (options.method === 'PATCH') { pendentes = []; return categoriaReply(visitanteRespondida); }
+      return visitanteList(pendentes, { current_page: 1, total_pages: 1, total_count: pendentes.length, per_page: pendentes.length });
+    }, false, { component: () => DuvidasVisitanteQueue(), allowedPaths: /\/d_duvidas_visitante(\/\d+\/responder)?$/ });
+    const settle = async () => { for (let turn = 0; turn < 5; turn++) await Promise.resolve(); };
+    try {
+      await view.act(settle);
+      assert.equal(view.calls[0].url.searchParams.get('q[respondida_false]'), '1');
+      assert.equal(view.calls[0].url.searchParams.get('page'), 'all');
+      assert.match(view.html(), /Tem curso de informática/);
+      await view.click('Responder ' + visitanteFixture.nome);
+      await view.act(settle);
+      const patch = view.calls.find(call => call.options.method === 'PATCH')!;
+      assert.ok(patch.url.pathname.endsWith('/d_duvidas_visitante/' + visitanteFixture.id + '/responder'));
+      assert.equal(patch.options.body, undefined);
+      assert.match(view.html(), /Dúvida marcada como respondida/);
+      assert.match(view.html(), /Nenhuma dúvida sem resposta/, 'page=all sem registros (per_page 0) não é resposta inválida');
+      assert.doesNotMatch(view.html(), /role="alert"/);
+    } finally { await view.restore(); }
+  });
+  it('Fila mostra a falha de leitura e permite tentar de novo, sem falso vazio', async () => {
+    let fail = true;
+    const view = await mountCategories(async () => fail
+      ? categoriaReply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403) : visitanteList([visitanteFixture]),
+    false, { component: () => DuvidasVisitanteQueue(), allowedPaths: /\/d_duvidas_visitante$/ });
+    const settle = async () => { for (let turn = 0; turn < 5; turn++) await Promise.resolve(); };
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /role="alert"/); assert.doesNotMatch(view.html(), /Nenhuma dúvida sem resposta/);
+      fail = false;
+      await view.click('Recarregar dúvidas de visitantes');
+      await view.act(settle);
+      assert.match(view.html(), /Tem curso de informática/);
+    } finally { await view.restore(); }
+  });
+  it('per_page 0 só é aceito na lista vazia', async () => {
+    const reply = (total_count: number, items: DDuvidaVisitante[]) => mock.method(globalThis, 'fetch', async () => categoriaReply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count, per_page: 0 } } }));
+    const empty = reply(0, []);
+    try { assert.deepEqual((await medtecApi.duvidasVisitante.list({ page: 'all' })).data.items, []); } finally { empty.mock.restore(); }
+    const filled = reply(1, [visitanteFixture]);
+    try { await assert.rejects(medtecApi.duvidasVisitante.list({ page: 'all' }), /Resposta inválida/); } finally { filled.mock.restore(); }
   });
   it('carregamento não exibe falso vazio; vazio confirmado não vira erro', async () => {
     const pending = adminReturnDeferred<Response>();
