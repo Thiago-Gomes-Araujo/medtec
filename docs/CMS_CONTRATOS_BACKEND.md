@@ -1167,5 +1167,6 @@ O contrato de autorizações privadas para histórias exige aceite específico d
 | Capacidades | Extensão de `/auth/me` com chaves estáveis e ações efetivas para o próprio usuário; seed de novas regras com concessões explícitas. |
 | Integridade de referências | Impedir despublicação explícita em uso por consumidores publicados; mostrar usos e conferir elegibilidade no serializer público. |
 | Metadados de foto | Estender galeria existente com migração controlada, sem publicar todo legado automaticamente. |
+| Campo `funcao` em `p_professores` | Ministrante e mediador são funções reais do programa, mas `/p_professores` e `/publico/p_professores` não expõem esse dado. Adicionar `funcao` (`ministrante` ou `mediador`) ao cadastro, à listagem e ao site. Até lá, o filtro e os selos por função ficam fora do frontend; títulos e textos institucionais permanecem. |
 
 Este documento não altera Rails nem oferece endpoints emuladores. A construção de telas permanece aguardando autorização do usuário; a liberação de salvar/publicar depende adicionalmente de contratos aceitos e homologados.

@@ -126,8 +126,8 @@ export function ProfessoresPanel() {
     <section aria-labelledby={`${id}-heading`} className={panelClass}>
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Professores</h2>
-          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">O município exibido no site vem da escola. Cada ação exige permissão do seu perfil.</p>
+          <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Professores e Mediadores</h2>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Gerenciamento editorial do corpo docente: professores ministrantes no estúdio SEDUC e mediadores presenciais nas salas de aula de Rondônia. O município exibido no site vem da escola. Cada ação exige permissão do seu perfil.</p>
         </div>
         <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
           setForm(EMPTY_FORM); action.setError(null); action.setSuccess(null);

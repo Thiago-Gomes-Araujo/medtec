@@ -63,7 +63,7 @@ export const SECTION_CONFIG: Record<
   professores: {
     group: 'Publicações do Site',
     title: 'Professores e Mediadores',
-    subtitle: 'Cadastre professores e disciplinas e modere os relatos enviados pelos alunos.',
+    subtitle: 'Cadastre e gerencie os perfis docentes de ministrantes e mediadores, disciplinas e relatos.',
     href: '/admin/professores',
   },
   alunos: {

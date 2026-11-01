@@ -137,7 +137,7 @@ export default function CommunityMuralSection({ initialTeachers, initialStudents
                       {teachersFailed ? 'Não foi possível carregar os professores' : 'Nenhum docente cadastrado'}
                     </h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
-                      {teachersFailed ? 'Tente novamente em instantes.' : 'Os perfis docentes serão exibidos assim que cadastrados.'}
+                      {teachersFailed ? 'Tente novamente em instantes.' : 'Os perfis pedagógicos de ministrantes e mediadores serão exibidos assim que homologados na rede.'}
                     </p>
                   </div>
                 ) : (

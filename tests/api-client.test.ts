@@ -4254,7 +4254,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
       "professores": {
         "group": "Publicações do Site",
         "title": "Professores e Mediadores",
-        "subtitle": "Cadastre professores e disciplinas e modere os relatos enviados pelos alunos.",
+        "subtitle": "Cadastre e gerencie os perfis docentes de ministrantes e mediadores, disciplinas e relatos.",
         "href": "/admin/professores"
       },
       "alunos": {
@@ -11055,6 +11055,75 @@ describe('Professores e conquistas — integração com a API', () => {
       assert.ok(post);
       assert.deepEqual(sent(post), { c_conquista_aluno: { nome_aluno: 'Ana', titulo: 'Título', relato: 'Relato', c_categoria_conquista_aluno_id: 2, escola_id: 3 } });
       assert.match(view.html(), /Conquista salva com sucesso/);
+    } finally { await view.restore(); }
+  });
+
+  it('formulário de conquista aceita só PNG/JPG/WEBP até 5 MB e imagem_url HTTPS', async () => {
+    const view = await mountCategories(async (url, options) => {
+      if (url.pathname.endsWith('/escolas')) return listReply([escola]);
+      if (url.pathname.endsWith('/c_categorias_conquista_aluno')) return listReply([categoria]);
+      if (options.method === 'POST') return json(conquista, 201);
+      return listReply([]);
+    }, false, { component: () => ConquistasPanel(), allowedPaths: /\/(c_conquistas_aluno|c_categorias_conquista_aluno|escolas)$/ });
+    const posts = () => view.calls.filter(call => call.options.method === 'POST');
+    const fill = async () => {
+      await view.click('Nova conquista');
+      await view.change('conquista-nome-aluno', 'Ana');
+      await view.change('conquista-titulo', 'Título');
+      await view.change('conquista-relato', 'Relato');
+      await view.change('conquista-categoria', '2');
+      await view.change('conquista-escola', '3');
+    };
+    const chooseFile = (file: File) => {
+      const input = view.nodes().find(node => node.props.name === 'conquista-imagem');
+      assert.ok(input);
+      return view.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { files: [file], value: file.name } }]));
+    };
+    const useLink = () => {
+      const radio = view.nodes().find(node => node.props.name === 'conquista-imagem-modo' && node.props.value === 'link');
+      assert.ok(radio);
+      return view.act(() => Reflect.apply(radio.props.onChange as () => unknown, undefined, []));
+    };
+    try {
+      await view.act(settle);
+      await fill();
+      const gif = new File(['x'], 'a.gif', { type: 'image/gif' });
+      await chooseFile(gif);
+      assert.match(view.html(), /A imagem deve ser PNG, JPG ou WEBP/);
+      const big = new File(['x'], 'a.png', { type: 'image/png' });
+      Object.defineProperty(big, 'size', { value: CONQUISTA_IMAGE_MAX_BYTES + 1 });
+      await chooseFile(big);
+      assert.match(view.html(), /A imagem deve ter até 5 MB/);
+      // Arquivo recusado não fica no formulário: o envio segue sem imagem.
+      await view.submit('Criar conquista');
+      await view.act(settle);
+      assert.equal(posts().length, 1);
+      assert.equal(typeof posts()[0].options.body, 'string');
+      assert.equal('imagem' in sent(posts()[0]).c_conquista_aluno, false);
+
+      for (const [file, type] of [['a.png', 'image/png'], ['a.jpg', 'image/jpeg'], ['a.webp', 'image/webp']] as const) {
+        await fill();
+        await chooseFile(new File(['x'], file, { type }));
+        await view.submit('Criar conquista');
+        await view.act(settle);
+        const body = posts().at(-1)?.options.body;
+        assert.ok(body instanceof FormData, file);
+        assert.equal((body.get('c_conquista_aluno[imagem]') as File).name, file);
+      }
+
+      const before = posts().length;
+      await fill();
+      await useLink();
+      for (const link of ['http://exemplo.com/a.jpg', 'javascript:alert(1)', 'ftp://exemplo.com/a.jpg', 'exemplo.com/a.jpg']) {
+        await view.change('conquista-imagem-url', link);
+        await view.submit('Criar conquista');
+        assert.match(view.html(), /Informe um link HTTPS válido/, link);
+        assert.equal(posts().length, before, link);
+      }
+      await view.change('conquista-imagem-url', 'https://exemplo.com/a.jpg');
+      await view.submit('Criar conquista');
+      await view.act(settle);
+      assert.equal(sent(posts()[before]).c_conquista_aluno.imagem_url, 'https://exemplo.com/a.jpg');
     } finally { await view.restore(); }
   });
 
