@@ -341,7 +341,7 @@ export default function AdminShell({
         {
           section: 'alunos' as AdminSection,
           label: 'Alunos que Inspiram',
-          tooltip: 'Conquistas estudantis e termos LGPD',
+          tooltip: 'Conquistas estudantis e categorias',
           icon: Award,
           badge: badges.alunos,
           visible: canAccessAlunos,

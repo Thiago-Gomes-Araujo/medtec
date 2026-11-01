@@ -392,7 +392,7 @@ export default function AdminDashboardPage() {
         {
           section: 'alunos',
           label: 'Alunos que Inspiram',
-          tooltip: 'Cadastrar e gerenciar histórias de alunos e termos LGPD',
+          tooltip: 'Cadastrar e gerenciar conquistas de alunos e categorias',
           icon: Award,
           visible: canAccessAlunos,
         },

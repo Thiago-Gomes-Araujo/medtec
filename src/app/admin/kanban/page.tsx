@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import AdminShell, { type AdminSession } from '@/components/admin/AdminShell';
 import EditorialKanban from '@/components/EditorialKanban';
 import { useEditorialNews } from '@/components/admin/useEditorialNews';
+import CommunityApprovalQueue from '@/components/admin/CommunityApprovalQueue';
 
 // Montado pelo shell somente depois da verificação da sessão e da autorização.
 function KanbanContent({ session }: { session: AdminSession }) {
@@ -23,15 +24,18 @@ function KanbanContent({ session }: { session: AdminSession }) {
   }, [canModerate, reload]);
 
   return (
-    <EditorialKanban
-      news={effectiveNews}
-      loading={loadingNews}
-      error={errorNews}
-      onApproveNews={approveNews}
-      onRejectNews={rejectNews}
-      canApprove={canModerate}
-      canReject={canModerate}
-    />
+    <div className="space-y-6">
+      <EditorialKanban
+        news={effectiveNews}
+        loading={loadingNews}
+        error={errorNews}
+        onApproveNews={approveNews}
+        onRejectNews={rejectNews}
+        canApprove={canModerate}
+        canReject={canModerate}
+      />
+      <CommunityApprovalQueue />
+    </div>
   );
 }
 

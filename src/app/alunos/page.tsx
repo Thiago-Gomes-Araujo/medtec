@@ -25,7 +25,7 @@ export default function AlunosPage() {
         <PageHeader
           eyebrow="Protagonismo estudantil"
           title="Alunos que Inspiram"
-          text="Histórias de jovens das comunidades ribeirinhas, rurais e terras indígenas transformadas pela mediação tecnológica. Histórias publicadas com termo de autorização de imagem registrado, em conformidade com a LGPD e o ECA."
+          text="Histórias de jovens das comunidades ribeirinhas, rurais e terras indígenas transformadas pela mediação tecnológica."
         />
 
         <div className="mx-auto max-w-7xl px-4 pt-10">

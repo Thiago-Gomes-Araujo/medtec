@@ -63,13 +63,13 @@ export const SECTION_CONFIG: Record<
   professores: {
     group: 'Publicações do Site',
     title: 'Professores e Mediadores',
-    subtitle: 'Cadastre e gerencie os perfis docentes de ministrantes e mediadores, práticas e entrevistas.',
+    subtitle: 'Cadastre professores e disciplinas e modere os relatos enviados pelos alunos.',
     href: '/admin/professores',
   },
   alunos: {
     group: 'Publicações do Site',
     title: 'Alunos que Inspiram',
-    subtitle: 'Cadastre e gerencie as histórias de conquistas estudantis e termos de consentimento LGPD.',
+    subtitle: 'Cadastre, publique e gerencie as conquistas dos estudantes e suas categorias.',
     href: '/admin/alunos',
   },
   kanban: {
