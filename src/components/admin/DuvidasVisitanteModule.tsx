@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ApiError, medtecApi, type DDuvidaVisitante, type PaginationMeta } from '@/lib/api';
+import { notifyDuvidasPendentes } from './useDuvidasPendentes';
 
 const buttonClass = 'rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
 type VisitanteQuery = { page: number; per_page: number; situacao: 'todas' | 'pendentes' | 'respondidas' };
@@ -98,6 +99,7 @@ export default function DuvidasVisitanteModule() {
       setItems(previous => previous.map(entry => entry.id === value.id ? value : entry));
       setSelected(previous => previous?.id === value.id ? value : previous);
       setSuccess(value.respondida ? 'Dúvida marcada como respondida.' : 'Registro atualizado. A dúvida permanece não respondida.');
+      notifyDuvidasPendentes();
       await load(query);
     });
   }
@@ -109,21 +111,23 @@ export default function DuvidasVisitanteModule() {
       if (!isCurrent()) return;
       setSelected(previous => previous?.id === deleting.id ? null : previous);
       setDeleting(null); setSuccess('Envio excluído com sucesso.');
+      notifyDuvidasPendentes();
       await load(query);
     });
   }
 
   const blocked = busy || selected !== null || deleting !== null;
+  const refresh = useCallback(() => { setQuery(previous => ({ ...previous })); notifyDuvidasPendentes(); }, []);
 
   // A API não avisa sobre novos envios: a lista é buscada de novo ao voltar para a aba.
   useEffect(() => {
     if (blocked) return;
     const refreshOnReturn = () => {
-      if (document.visibilityState === 'visible') setQuery(previous => ({ ...previous }));
+      if (document.visibilityState === 'visible') refresh();
     };
     document.addEventListener('visibilitychange', refreshOnReturn);
     return () => document.removeEventListener('visibilitychange', refreshOnReturn);
-  }, [blocked]);
+  }, [blocked, refresh]);
 
   return <section aria-labelledby={`${id}-heading`} className="space-y-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1729] p-4 sm:p-6">
     <header className="space-y-2">
@@ -144,7 +148,7 @@ export default function DuvidasVisitanteModule() {
           <option value="todas">Todas</option><option value="pendentes">Não respondidas</option><option value="respondidas">Respondidas</option>
         </select>
       </div>
-      <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => setQuery(previous => ({ ...previous }))}>Atualizar lista</button>
+      <button type="button" disabled={blocked || loading} className={buttonClass} onClick={refresh}>Atualizar lista</button>
     </div>
 
     {loading && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Carregando dúvidas de visitantes...</p>}

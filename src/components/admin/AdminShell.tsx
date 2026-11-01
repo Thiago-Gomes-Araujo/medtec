@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useAdminTheme } from '@/components/admin/useAdminTheme';
+import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
 import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter from '@/components/admin/MobileDrawerFooter';
 import { filterAdminNavigation } from '@/lib/admin-navigation-filter';
@@ -228,6 +229,8 @@ export default function AdminShell({
     userSession.profileType === 'Operador de Conteúdo';
   const canAccessProjects = userSession.isGestor;
   const canAccessFaqs = canAccessDuvidas(userSession);
+  // A sessão local não tem token: a consulta só devolveria 401.
+  const duvidasPendentes = useDuvidasPendentes(canAccessFaqs && !!userSession.apiUser);
   const canAccessProfessores =
     userSession.isGestor ||
     userSession.profileType === 'Operador de Conteúdo' ||
@@ -257,7 +260,7 @@ export default function AdminShell({
     redes: canAccessSocials,
     estadosCidades: canAccessEstados,
     usuarios: canAccessUsers,
-  }, badges);
+  }, { duvidas: duvidasPendentes.count || undefined, ...badges });
 
   // Pesquisa rápida da Sidebar
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);

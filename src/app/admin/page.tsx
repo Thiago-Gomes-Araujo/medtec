@@ -30,6 +30,7 @@ import { useAdminOverview } from '@/components/admin/useAdminOverview';
 import AdminOverview from '@/components/admin/AdminOverview';
 import { getLegacyProjectsHref } from '@/lib/admin-projects';
 import { getAdminStaticAlias } from '@/lib/admin-aliases';
+import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
 import { canAccessDuvidas, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminEditorialDestination } from '@/lib/admin-auth-navigation';
 import { buildAdminMenu, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
@@ -291,6 +292,9 @@ export default function AdminDashboardPage() {
   const canAccessGallery = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
   const canAccessProjects = userSession.isGestor;
   const canAccessFaqs = canAccessDuvidas(userSession);
+  // A sessão local não tem token, e o Gestor sai desta página: o AdminShell conta para ele.
+  const canReadDuvidasPendentes = userSession.isGestor && medtecApi.auth.isAuthenticated();
+  const duvidasPendentes = useDuvidasPendentes(canReadDuvidasPendentes);
   const canAccessProfessores =
     userSession.isGestor ||
     userSession.profileType === 'Editor de Notícias' ||
@@ -326,6 +330,7 @@ export default function AdminDashboardPage() {
     kanban: errorNews ? undefined : (loadingNews ? undefined : (apiNewsDraftCount !== null && apiNewsDraftCount > 0 ? apiNewsDraftCount : undefined)),
     estadosCidades: totalEstados !== null && totalEstados > 0 ? totalEstados : undefined,
     usuarios: errorUsers ? undefined : (totalUsers ?? undefined),
+    duvidas: duvidasPendentes.count || undefined,
   });
 
   // Pesquisa Rápida da Sidebar (Filtro Instantâneo Didático)
@@ -742,6 +747,7 @@ export default function AdminDashboardPage() {
               latestNews={latestNews}
               announcementTitle={announcementTitle}
               canAccessKanban={canAccessKanban}
+              duvidasPendentes={canReadDuvidasPendentes ? duvidasPendentes : undefined}
               onOpenNews={() => router.push('/admin/noticias')}
               onCreateNews={() => router.push('/admin/noticias?action=new')}
               onOpenKanban={() => router.push('/admin/kanban')}

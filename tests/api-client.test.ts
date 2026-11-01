@@ -47,6 +47,7 @@ import {
 import SidebarNavItem, { type SidebarNavItemProps } from '../src/components/admin/SidebarNavItem';
 import SidebarFolderAccordion, { type SidebarFolderAccordionProps, type NavFolderDef } from '../src/components/admin/SidebarFolderAccordion';
 import AdminOverview, { type AdminOverviewProps } from '../src/components/admin/AdminOverview';
+import type { OverviewStatsIndicators } from '../src/components/admin/OverviewStats';
 import OverviewStats from '../src/components/admin/OverviewStats';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
@@ -59,6 +60,7 @@ import AdminGaleriaPage from '../src/app/admin/galeria/page';
 import EstadosCidadesModule from '../src/components/admin/EstadosCidadesModule';
 import type { ATipoAviso, AAviso, FotoGaleria, CategoriaGaleria, Estado } from '../src/lib/api/types';
 import DuvidasVisitanteModule from '../src/components/admin/DuvidasVisitanteModule';
+import { notifyDuvidasPendentes, useDuvidasPendentes } from '../src/components/admin/useDuvidasPendentes';
 import FaqCentralSection from '../src/components/FaqCentralSection';
 import DuvidaVisitanteForm from '../src/components/DuvidaVisitanteForm';
 import PublicFaqPage from '../src/app/faq/page';
@@ -1816,14 +1818,14 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
     } finally { await page.restore(); }
   });
 
-  it('mantém as seis leituras do overview para o Administrador vigente', async () => {
+  it('mantém as leituras do overview e o contador de dúvidas para o Administrador vigente', async () => {
     const page = await mountSession();
     try {
       page.calls.length = 0;
       await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
       assert.equal(page.session?.isGestor, true);
       assert.equal(page.loading, false);
-      assert.equal(page.overviewRequests.length, 9);
+      assert.equal(page.overviewRequests.length, 10);
       assert.equal(page.localRequests.length, 0);
       assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
@@ -1851,7 +1853,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.session?.profileType, fields.perfil_nome, label);
         assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected ? 9 : 0, label);
+        assert.equal(page.overviewRequests.length, expected ? 10 : 0, label);
         const profile = fields.perfil_nome;
         assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : profile === 'Publicador de Avisos'
@@ -1892,7 +1894,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(reply.data, before, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 9 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? 10 : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -1914,7 +1916,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(page.session, expected, `${source}: ${label}`);
         assert.deepEqual(input, data, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 9 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 10 : 9) : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -1993,7 +1995,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             assert.equal(page.session?.isGestor, isGestor, label);
             assert.equal(page.session?.profileType, profileType, label);
             assert.equal(page.loading, false, label);
-            assert.equal(page.overviewRequests.length, isGestor ? 9 : 0, label);
+            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 10 : 9) : 0, label);
             assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, label);
             assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, label);
           } finally { await page.restore(); }
@@ -8415,6 +8417,45 @@ describe('Visitantes C3 — interface administrativa', () => {
         const faq = nodes.find(node => node.type === FaqModule); assert.ok(faq); assert.equal(faq.props.active, section === 'duvidas');
       } finally { state.mock.restore(); }
     }
+  });
+  it('contador consulta só o total das não respondidas e atualiza quando avisado', async () => {
+    let total = 3;
+    const view = await mountCategories(async () => visitanteList([visitanteFixture], { current_page: 1, total_pages: total, total_count: total, per_page: 1 }), false, {
+      component: () => { const state = useDuvidasPendentes(true); return createElement('output', null, state.error ?? String(state.count)); },
+      allowedPaths: /\/d_duvidas_visitante$/,
+    });
+    try {
+      await view.act(async () => { await Promise.resolve(); });
+      assert.match(view.html(), /<output>3<\/output>/);
+      const { searchParams } = view.calls[0].url;
+      assert.equal(searchParams.get('q[respondida_false]'), '1'); assert.equal(searchParams.get('per_page'), '1');
+      total = 2;
+      await view.act(() => notifyDuvidasPendentes());
+      assert.match(view.html(), /<output>2<\/output>/);
+    } finally { await view.restore(); }
+  });
+  it('contador desativado não consulta a API e falha vira erro, não zero', async () => {
+    const off = await mountCategories(async () => visitanteList(), false, { component: () => { useDuvidasPendentes(false); return null; }, allowedPaths: /$^/ });
+    try { assert.equal(off.calls.length, 0); } finally { await off.restore(); }
+    const failing = await mountCategories(async () => categoriaReply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403), false, {
+      component: () => { const state = useDuvidasPendentes(true); return createElement('output', null, state.error ?? String(state.count)); },
+      allowedPaths: /\/d_duvidas_visitante$/,
+    });
+    try {
+      assert.match(failing.html(), /não possui permissão/); assert.doesNotMatch(failing.html(), /<output>0/);
+    } finally { await failing.restore(); }
+  });
+  it('Início mostra o total, a indisponibilidade ou nada na sessão sem token', () => {
+    const props = { indicators: {} as OverviewStatsIndicators, canAccessKanban: true, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {} };
+    const html = (duvidasPendentes?: { count: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, { ...props, duvidasPendentes }));
+    assert.match(html({ count: 4, error: null }), /Dúvidas de visitantes sem resposta:\s*(<!-- -->)?\s*4/);
+    assert.match(html({ count: null, error: 'x' }), /sem resposta:\s*(<!-- -->)?\s*indisponível/);
+    assert.doesNotMatch(html(), /sem resposta/);
+  });
+  it('item do menu exibe o total sem depender da aba aberta', () => {
+    const access = Object.fromEntries(['noticias','projetos','duvidas','avisos','fotos','galeria','professores','alunos','kanban','siteInfo','redes','estadosCidades','usuarios'].map(key => [key, true]));
+    const item = buildAdminMenu(access as Parameters<typeof buildAdminMenu>[0], { duvidas: 7 }).flatMap(folder => folder.items).find(entry => entry.section === 'duvidas');
+    assert.equal(item?.badge, 7);
   });
   it('carregamento não exibe falso vazio; vazio confirmado não vira erro', async () => {
     const pending = adminReturnDeferred<Response>();
