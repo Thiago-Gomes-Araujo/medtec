@@ -39,6 +39,8 @@ import {
   MapPin,
   HelpCircle,
   Lock,
+  GraduationCap,
+  Award,
 } from 'lucide-react';
 import { medtecApi, clearStoredTokens, type AuthUser } from '@/lib/api';
 import { getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
@@ -49,7 +51,7 @@ import { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 export { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
 export function getFolderIdForSection(sec: AdminSection): string | null {
-  if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas'].includes(sec)) return 'publicacoes';
+  if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas', 'professores', 'alunos'].includes(sec)) return 'publicacoes';
   if (['kanban'].includes(sec)) return 'aprovacao';
   if (['siteInfo', 'redes', 'estadosCidades'].includes(sec)) return 'dados';
   if (['usuarios'].includes(sec)) return 'usuarios';
@@ -240,6 +242,14 @@ export default function AdminShell({
     userSession.profileType === 'Operador de Conteúdo';
   const canAccessProjects = userSession.isGestor;
   const canAccessFaqs = userSession.isGestor || userSession.profileType === 'Operador de Conteúdo';
+  const canAccessProfessores =
+    userSession.isGestor ||
+    userSession.profileType === 'Operador de Conteúdo' ||
+    userSession.profileType === 'Editor de Notícias';
+  const canAccessAlunos =
+    userSession.isGestor ||
+    userSession.profileType === 'Operador de Conteúdo' ||
+    userSession.profileType === 'Editor de Notícias';
   const canAccessSocials = userSession.isGestor;
   const canAccessSiteInfo = userSession.isGestor;
   const canAccessKanban = userSession.isGestor && userSession.apiUser?.perfil_nome === 'Administrador';
@@ -258,7 +268,9 @@ export default function AdminShell({
         canAccessPhotos ||
         canAccessGallery ||
         canAccessProjects ||
-        canAccessFaqs,
+        canAccessFaqs ||
+        canAccessProfessores ||
+        canAccessAlunos,
       items: [
         {
           section: 'noticias' as AdminSection,
@@ -313,6 +325,24 @@ export default function AdminShell({
           badge: badges.galeria,
           visible: canAccessGallery,
           href: SECTION_CONFIG.galeria.href,
+        },
+        {
+          section: 'professores' as AdminSection,
+          label: 'Professores e Mediadores',
+          tooltip: 'Perfis docentes, estúdio e salas conectadas',
+          icon: GraduationCap,
+          badge: badges.professores,
+          visible: canAccessProfessores,
+          href: SECTION_CONFIG.professores.href,
+        },
+        {
+          section: 'alunos' as AdminSection,
+          label: 'Alunos que Inspiram',
+          tooltip: 'Conquistas estudantis e termos LGPD',
+          icon: Award,
+          badge: badges.alunos,
+          visible: canAccessAlunos,
+          href: SECTION_CONFIG.alunos.href,
         },
       ],
     },

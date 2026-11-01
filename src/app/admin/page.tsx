@@ -40,6 +40,8 @@ import {
   Lightbulb,
   MapPin,
   HelpCircle,
+  GraduationCap,
+  Award,
 } from 'lucide-react';
 import { useAdminOverview } from '@/components/admin/useAdminOverview';
 import AdminOverview from '@/components/admin/AdminOverview';
@@ -70,7 +72,7 @@ function getAdminNavigationIntent(params: URLSearchParams) {
     const create = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
     method = 'replace';
     target = create ? '/admin/noticias?action=new' : '/admin/noticias';
-  } else if (staticHref && ['avisos', 'galeria', 'estadosCidades', 'siteInfo', 'redes'].includes(tabParam || '')) {
+  } else if (staticHref && ['avisos', 'galeria', 'estadosCidades', 'siteInfo', 'redes', 'professores', 'alunos'].includes(tabParam || '')) {
     method = 'push';
     target = staticHref;
   } else if (tabParam && Object.prototype.hasOwnProperty.call(SECTION_CONFIG, tabParam)) {
@@ -140,7 +142,7 @@ export default function AdminDashboardPage() {
   });
 
   const getFolderIdForSection = useCallback((sec: AdminSection): string | null => {
-    if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas'].includes(sec)) return 'publicacoes';
+    if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas', 'professores', 'alunos'].includes(sec)) return 'publicacoes';
     if (['kanban'].includes(sec)) return 'aprovacao';
     if (['siteInfo', 'redes'].includes(sec)) return 'dados';
     if (['usuarios'].includes(sec)) return 'usuarios';
@@ -306,6 +308,14 @@ export default function AdminDashboardPage() {
   const canAccessGallery = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
   const canAccessProjects = userSession.isGestor;
   const canAccessFaqs = userSession.isGestor || userSession.profileType === 'Operador de Conteúdo';
+  const canAccessProfessores =
+    userSession.isGestor ||
+    userSession.profileType === 'Editor de Notícias' ||
+    userSession.profileType === 'Operador de Conteúdo';
+  const canAccessAlunos =
+    userSession.isGestor ||
+    userSession.profileType === 'Editor de Notícias' ||
+    userSession.profileType === 'Operador de Conteúdo';
   const canAccessSocials = userSession.isGestor;
   const canAccessSiteInfo = userSession.isGestor;
   const canAccessUsers = userSession.isGestor;
@@ -317,7 +327,15 @@ export default function AdminDashboardPage() {
       id: 'publicacoes',
       label: 'Publicações do Site',
       icon: FolderKanban,
-      visible: canAccessNews || canAccessAnnouncements || canAccessPhotos || canAccessGallery || canAccessProjects || canAccessFaqs,
+      visible:
+        canAccessNews ||
+        canAccessAnnouncements ||
+        canAccessPhotos ||
+        canAccessGallery ||
+        canAccessProjects ||
+        canAccessFaqs ||
+        canAccessProfessores ||
+        canAccessAlunos,
       items: [
         {
           section: 'noticias',
@@ -363,6 +381,20 @@ export default function AdminDashboardPage() {
           icon: Images,
           badge: errorFotos ? undefined : (loadingFotos ? undefined : (totalFotos ?? undefined)),
           visible: canAccessGallery,
+        },
+        {
+          section: 'professores',
+          label: 'Professores e Mediadores',
+          tooltip: 'Cadastrar e gerenciar perfis docentes e entrevistas',
+          icon: GraduationCap,
+          visible: canAccessProfessores,
+        },
+        {
+          section: 'alunos',
+          label: 'Alunos que Inspiram',
+          tooltip: 'Cadastrar e gerenciar histórias de alunos e termos LGPD',
+          icon: Award,
+          visible: canAccessAlunos,
         },
       ],
     },
