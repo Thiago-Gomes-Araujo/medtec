@@ -12,6 +12,7 @@ import nextConfig from '../next.config';
 import { NextRequest, NextResponse } from 'next/server';
 import AdminLoginPage from '../src/app/admin/login/page';
 import { POST as authRoutePost } from '../src/app/api/auth/route';
+import { railsApiFetch } from '../src/lib/rails-backend';
 import PublicAvisosPage from '../src/app/avisos/page';
 import PublicAoVivoPage from '../src/app/ao-vivo/page';
 import AvisosView from '../src/components/AvisosView';
@@ -6322,6 +6323,30 @@ describe('5. Cliente HTTP apiFetch (Respostas, 204 e Renovação de Token)', () 
     for (const source of ['src/app/api/auth/route.ts', 'src/lib/rails-backend.ts']) {
       assert.doesNotMatch(readFileSync(source, 'utf8'), /172\.16\.|process\.env\.BACKEND_API_URL/, source);
     }
+  });
+
+  it('rotas do servidor exigem credenciais do ambiente, sem valores padrão versionados', async () => {
+    const saved = { cpf: process.env.BACKEND_ADMIN_CPF, password: process.env.BACKEND_ADMIN_PASSWORD };
+    delete process.env.BACKEND_ADMIN_CPF;
+    delete process.env.BACKEND_ADMIN_PASSWORD;
+    let requests = 0;
+    globalThis.fetch = async () => { requests++; return new Response('{}', { status: 200 }); };
+    try {
+      await assert.rejects(railsApiFetch('/usuarios'), /defina BACKEND_ADMIN_CPF e BACKEND_ADMIN_PASSWORD/);
+      assert.equal(requests, 0);
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (saved.cpf !== undefined) process.env.BACKEND_ADMIN_CPF = saved.cpf;
+      if (saved.password !== undefined) process.env.BACKEND_ADMIN_PASSWORD = saved.password;
+    }
+    assert.doesNotMatch(readFileSync('src/lib/rails-backend.ts', 'utf8'), /BACKEND_ADMIN_\w+\s*\|\|/);
+    const compose = readFileSync('docker-compose.yml', 'utf8');
+    for (const name of ['ADMIN_USER', 'ADMIN_PASSWORD', 'ADMIN_SESSION_SECRET']) {
+      assert.match(compose, new RegExp(`\\$\\{${name}:\\?Defina ${name} no \\.env\\}`));
+    }
+    const example = readFileSync('.env.example', 'utf8');
+    assert.deepEqual(example.split('\n').filter(line => /^[A-Za-z_]\w*=./.test(line)), []);
+    for (const name of ['BACKEND_ADMIN_CPF', 'BACKEND_ADMIN_PASSWORD']) assert.match(example, new RegExp(`^${name}=$`, 'm'));
   });
 
   it('deve tratar resposta 204 No Content retornando null sem erro de JSON', async () => {

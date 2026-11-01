@@ -5,12 +5,21 @@
 
 import { getApiBaseUrl } from '@/lib/api/client';
 
-const ADMIN_CPF = process.env.BACKEND_ADMIN_CPF || '111.444.777-35';
-const ADMIN_PASSWORD = process.env.BACKEND_ADMIN_PASSWORD || 'SenhaAdmin123';
-
 let cachedAccessToken: string | null = null;
 let cachedRefreshToken: string | null = null;
 let tokenExpiresAt = 0; // timestamp em ms
+
+/**
+ * Lê a conta administrativa das rotas do servidor; sem ela, não há login a tentar.
+ */
+function getBackendAdminCredentials(): { cpf: string; password: string } {
+  const cpf = process.env.BACKEND_ADMIN_CPF;
+  const password = process.env.BACKEND_ADMIN_PASSWORD;
+  if (!cpf || !password) {
+    throw new Error('Configuração ausente: defina BACKEND_ADMIN_CPF e BACKEND_ADMIN_PASSWORD para as rotas administrativas do servidor.');
+  }
+  return { cpf, password };
+}
 
 /**
  * Obtém um token de acesso administrativo válido no Rails v1.
@@ -48,11 +57,12 @@ export async function getBackendAdminToken(): Promise<string | null> {
   }
 
   // Realiza novo login com credenciais administrativas
+  const credentials = getBackendAdminCredentials();
   try {
     const loginRes = await fetch(`${getApiBaseUrl()}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cpf: ADMIN_CPF, password: ADMIN_PASSWORD }),
+      body: JSON.stringify(credentials),
     });
 
     if (loginRes.ok) {
