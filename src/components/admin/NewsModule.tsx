@@ -3,7 +3,7 @@
 import React, { useState, useImperativeHandle } from 'react';
 import { Newspaper, Plus, ArrowLeft, Save, Upload, Eye, Edit3, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import type { NewsItem } from '@/types';
-import { medtecApi, type NCategoriaNoticia } from '@/lib/api';
+import { ApiError, medtecApi, type NCategoriaNoticia } from '@/lib/api';
 import AdminLiveSimulator, { type PreviewContentType, type PreviewItemData } from '@/components/AdminLiveSimulator';
 
 export interface NewsModuleHandle {
@@ -149,8 +149,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
         alert(successMessage);
       }, 50);
     } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      alert('Erro ao salvar notícia: ' + (error?.errors?.join(', ') || error?.message || 'Falha na comunicação com o backend.'));
+      alert('Erro ao salvar notícia: ' + ApiError.getFriendlyMessage(err));
     } finally {
       setSaving(false);
     }
@@ -168,8 +167,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
       alert('Notícia excluída com sucesso.');
       await loadApiData();
     } catch (err: unknown) {
-      const error = err as { errors?: string[]; message?: string };
-      alert('Erro ao excluir notícia: ' + (error?.errors?.join(', ') || error?.message || 'Falha na operação.'));
+      alert('Erro ao excluir notícia: ' + ApiError.getFriendlyMessage(err));
     }
   };
 

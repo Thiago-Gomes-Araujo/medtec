@@ -3,7 +3,8 @@
  * Conforme especificado em rotas_front.md
  */
 
-const RAILS_API_URL = process.env.BACKEND_API_URL || 'http://172.16.107.63:3023/api/v1';
+import { getApiBaseUrl } from '@/lib/api/client';
+
 const ADMIN_CPF = process.env.BACKEND_ADMIN_CPF || '111.444.777-35';
 const ADMIN_PASSWORD = process.env.BACKEND_ADMIN_PASSWORD || 'SenhaAdmin123';
 
@@ -26,7 +27,7 @@ export async function getBackendAdminToken(): Promise<string | null> {
   // Se temos refresh_token, tenta renovar
   if (cachedRefreshToken) {
     try {
-      const refreshRes = await fetch(`${RAILS_API_URL}/auth/refresh_token`, {
+      const refreshRes = await fetch(`${getApiBaseUrl()}/auth/refresh_token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: cachedRefreshToken }),
@@ -48,7 +49,7 @@ export async function getBackendAdminToken(): Promise<string | null> {
 
   // Realiza novo login com credenciais administrativas
   try {
-    const loginRes = await fetch(`${RAILS_API_URL}/auth/login`, {
+    const loginRes = await fetch(`${getApiBaseUrl()}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ cpf: ADMIN_CPF, password: ADMIN_PASSWORD }),
@@ -82,7 +83,7 @@ export async function railsApiFetch<T = unknown>(
     return { ok: false, status: 503, message: 'Serviço da API Rails temporariamente indisponível' };
   }
 
-  const url = `${RAILS_API_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const url = `${getApiBaseUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   const headers = new Headers(options.headers || {});
   headers.set('Content-Type', 'application/json');
   headers.set('Authorization', `Bearer ${token}`);
