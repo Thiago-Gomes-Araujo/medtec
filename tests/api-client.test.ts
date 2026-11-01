@@ -7618,7 +7618,11 @@ describe('Categorias de Dúvidas C1 — serviço autenticado', () => {
 async function mountCategories(fetcher: (url: URL, options: RequestInit) => Promise<Response>, strict = false, config?: { component: () => ReactNode; allowedPaths: RegExp; anonymous?: boolean }) {
   let tree: ReactNode = null;
   const calls: { url: URL; options: RequestInit }[] = [];
-  const doc = { nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null,
+  const visibilityListeners = new Set<() => void>();
+  const doc = { nodeType: 9, visibilityState: 'visible',
+    addEventListener(type: string, listener: () => void) { if (type === 'visibilitychange') visibilityListeners.add(listener); },
+    removeEventListener(type: string, listener: () => void) { if (type === 'visibilitychange') visibilityListeners.delete(listener); },
+    activeElement: null, body: null,
     defaultView: null as unknown, documentElement: { classList: { contains() { return false; } } } };
   const browser = { document: doc, HTMLIFrameElement: class {} };
   doc.defaultView = browser;
@@ -7658,6 +7662,10 @@ async function mountCategories(fetcher: (url: URL, options: RequestInit) => Prom
     render: () => act(() => root.render(strict ? createElement(React.StrictMode, null, createElement(Capture)) : createElement(Capture))),
     html: () => renderToStaticMarkup(tree),
     nodes: () => noticeNodes(tree),
+    async visibilityChange(state: 'visible' | 'hidden') {
+      doc.visibilityState = state;
+      await act(() => { for (const listener of visibilityListeners) listener(); });
+    },
     async click(label: string) {
       const node = noticeNodes(tree).find(node => node.type === 'button' && (node.props['aria-label'] === label || node.props.children === label));
       assert.ok(node, 'Botão: ' + label); assert.ok(!node.props.disabled, 'Botão habilitado: ' + label);
@@ -8420,6 +8428,43 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_true]'), '1'); assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_false]'), false);
       assert.match(manager.html(), /Tem curso de informática/, 'A coleção da API é a fonte de verdade, sem filtro local');
       await manager.change('situacaoVisitante', 'todas'); assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_true]'), false);
+    } finally { await manager.restore(); }
+  });
+  it('envio novo aparece ao atualizar a lista, sem recarregar a página nem perder o filtro', async () => {
+    let items = [visitanteFixture];
+    const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(visitanteFixture) : visitanteList(items));
+    const novo = { ...visitanteFixture, id: 42, nome: 'Visitante recém-chegado' };
+    try {
+      await manager.change('situacaoVisitante', 'pendentes');
+      assert.doesNotMatch(manager.html(), /Visitante recém-chegado/);
+      items = [novo, visitanteFixture];
+      await manager.click('Atualizar lista');
+      assert.match(manager.html(), /Visitante recém-chegado/);
+      assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1');
+    } finally { await manager.restore(); }
+  });
+  it('lista é buscada ao voltar para a aba, salvo com detalhes abertos ou aba oculta', async () => {
+    let items = [visitanteFixture];
+    const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(visitanteFixture) : visitanteList(items));
+    const lists = () => manager.calls.filter(call => call.url.pathname.endsWith('/d_duvidas_visitante')).length;
+    try {
+      const inicial = lists();
+      await manager.visibilityChange('hidden'); assert.equal(lists(), inicial);
+      items = [{ ...visitanteFixture, id: 42, nome: 'Visitante recém-chegado' }, visitanteFixture];
+      await manager.visibilityChange('visible'); assert.equal(lists(), inicial + 1);
+      assert.match(manager.html(), /Visitante recém-chegado/);
+      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
+      await manager.visibilityChange('visible'); assert.equal(lists(), inicial + 1, 'Detalhes abertos não são interrompidos');
+    } finally { await manager.restore(); }
+  });
+  it('falha ao atualizar mostra o erro, nunca uma lista vazia', async () => {
+    let reply = () => visitanteList();
+    const manager = await mountVisitantes(async () => reply());
+    try {
+      reply = () => categoriaReply({ success: false, message: 'Faça login para continuar.', errors: ['nao_autenticado'] }, 401);
+      await manager.click('Atualizar lista');
+      assert.match(manager.html(), /role="alert"/); assert.match(manager.html(), /precisa estar autenticado/);
+      assert.doesNotMatch(manager.html(), /Nenhuma dúvida de visitante/);
     } finally { await manager.restore(); }
   });
   it('detalhes consultam ID e exibem a descrição completa e os contatos recebidos', async () => {

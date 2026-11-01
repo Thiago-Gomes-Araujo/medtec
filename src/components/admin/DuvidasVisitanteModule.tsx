@@ -114,6 +114,17 @@ export default function DuvidasVisitanteModule() {
   }
 
   const blocked = busy || selected !== null || deleting !== null;
+
+  // A API não avisa sobre novos envios: a lista é buscada de novo ao voltar para a aba.
+  useEffect(() => {
+    if (blocked) return;
+    const refreshOnReturn = () => {
+      if (document.visibilityState === 'visible') setQuery(previous => ({ ...previous }));
+    };
+    document.addEventListener('visibilitychange', refreshOnReturn);
+    return () => document.removeEventListener('visibilitychange', refreshOnReturn);
+  }, [blocked]);
+
   return <section aria-labelledby={`${id}-heading`} className="space-y-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1729] p-4 sm:p-6">
     <header className="space-y-2">
       <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Dúvidas de visitantes</h2>
@@ -121,16 +132,19 @@ export default function DuvidasVisitanteModule() {
       <p className="text-xs text-slate-600 dark:text-slate-400">Cada ação exige permissão do seu perfil.</p>
     </header>
 
-    <div className="max-w-sm space-y-1.5">
-      <label htmlFor={`${id}-situacao`} className="text-xs font-semibold text-slate-700 dark:text-slate-200">Situação do atendimento</label>
-      <select id={`${id}-situacao`} name="situacaoVisitante" value={query.situacao} disabled={blocked}
-        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#071324] px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#004A99] dark:focus:ring-sky-400 disabled:opacity-50"
-        onChange={event => {
-          const situacao = event.target.value;
-          if (situacao === 'todas' || situacao === 'pendentes' || situacao === 'respondidas') setQuery({ ...query, page: 1, situacao });
-        }}>
-        <option value="todas">Todas</option><option value="pendentes">Não respondidas</option><option value="respondidas">Respondidas</option>
-      </select>
+    <div className="flex flex-wrap items-end gap-3">
+      <div className="w-full max-w-sm space-y-1.5">
+        <label htmlFor={`${id}-situacao`} className="text-xs font-semibold text-slate-700 dark:text-slate-200">Situação do atendimento</label>
+        <select id={`${id}-situacao`} name="situacaoVisitante" value={query.situacao} disabled={blocked}
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#071324] px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#004A99] dark:focus:ring-sky-400 disabled:opacity-50"
+          onChange={event => {
+            const situacao = event.target.value;
+            if (situacao === 'todas' || situacao === 'pendentes' || situacao === 'respondidas') setQuery({ ...query, page: 1, situacao });
+          }}>
+          <option value="todas">Todas</option><option value="pendentes">Não respondidas</option><option value="respondidas">Respondidas</option>
+        </select>
+      </div>
+      <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => setQuery(previous => ({ ...previous }))}>Atualizar lista</button>
     </div>
 
     {loading && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Carregando dúvidas de visitantes...</p>}
