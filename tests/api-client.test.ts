@@ -113,6 +113,56 @@ import NewsEditorialSection from '../src/components/NewsEditorialSection';
 import NewsModule from '../src/components/admin/NewsModule';
 import NewsViewTracker, { recordNewsView } from '../src/components/NewsViewTracker';
 import type { NoticiaPublica, CategoriaPublica } from '../src/lib/api/types';
+import AdminInstitucionalSubroutePage from '../src/app/admin/institucional/page';
+import HomePillarsModule, { HomePillarsPreviewRenderer } from '../src/components/admin/HomePillarsModule';
+import TechAdvantages from '../src/components/TechAdvantages';
+import {
+  createInitialHomePillarsDraft,
+  getInitialHomePillarByKey,
+  getBentoColSpanForPosition,
+  moveHomePillarItem,
+  hasHomePillarItemChanges,
+  hasHomePillarsChanges,
+  validateHomePillarsDraft,
+  HOME_PILLARS_LIMITS,
+  PILLAR_ICON_OPTIONS,
+  PILLAR_VARIANT_OPTIONS,
+} from '../src/lib/admin-home-pillars';
+import AdminProfessoresSubroutePage from '../src/app/admin/professores/page';
+import AdminAlunosSubroutePage from '../src/app/admin/alunos/page';
+import TeachersAdminModule, {
+  TeacherCardPublicPreview,
+  TeacherInterviewModalPublicPreview,
+  TeacherHomeMuralPublicPreview,
+  TeacherMethodologyMiniProfilePublicPreview,
+} from '../src/components/admin/TeachersAdminModule';
+import StudentsAdminModule, {
+  StudentPanoramicCardPreview,
+  StudentGridCardPreview,
+  StudentTrajectoryModalPreview,
+  StudentHomeMuralPreview,
+} from '../src/components/admin/StudentsAdminModule';
+import {
+  INITIAL_TEACHERS_CATALOG,
+  createEmptyTeacherDraft,
+  validateTeacherDraft,
+  hasTeacherChanges,
+  generateTeacherSlug,
+  getTeacherInitials,
+  TEACHER_FIELD_LIMITS,
+  DEMO_MUNICIPALITIES,
+  type TeacherDraft,
+} from '../src/lib/admin-teachers';
+import {
+  INITIAL_STUDENTS_CATALOG,
+  createEmptyStudentDraft,
+  validateStudentDraft,
+  hasStudentChanges,
+  generateStudentSlug,
+  STUDENT_FIELD_LIMITS,
+  STUDENT_CATEGORIES,
+  type StudentDraft,
+} from '../src/lib/admin-students';
 
 // Inclui dados fora do contrato Rails para caracterizar as comparações em
 // runtime. O helper de produção continuará usando os tipos Rails existentes.
@@ -4202,6 +4252,18 @@ describe('Metadados compartilhados da navegação administrativa', () => {
         "subtitle": "Envie fotografias das salas de aula, estúdios e projetos realizados nos municípios.",
         "href": "/admin/galeria"
       },
+      "professores": {
+        "group": "Publicações do Site",
+        "title": "Professores e Mediadores",
+        "subtitle": "Cadastre e gerencie os perfis docentes de ministrantes e mediadores, práticas e entrevistas.",
+        "href": "/admin/professores"
+      },
+      "alunos": {
+        "group": "Publicações do Site",
+        "title": "Alunos que Inspiram",
+        "subtitle": "Cadastre e gerencie as histórias de conquistas estudantis e termos de consentimento LGPD.",
+        "href": "/admin/alunos"
+      },
       "kanban": {
         "group": "Aprovação e Revisão",
         "title": "Fila de Aprovação (Passo a Passo)",
@@ -4237,16 +4299,17 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.deepEqual(Object.keys(SHARED_SECTION_CONFIG), Object.keys(expected));
   });
 
-  it('mantém os onze destinos na ordem anterior e exclui Início do mapa de redirecionamento', () => {
+  it('mantém os treze destinos na ordem anterior e exclui Início do mapa de redirecionamento', () => {
     assert.deepEqual([...SECTION_HREFS], [
       ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['duvidas', '/admin/faq'],
       ['usuarios', '/admin/usuarios'], ['kanban', '/admin/kanban'], ['noticias', '/admin/noticias'],
       ['avisos', '/admin/avisos'], ['galeria', '/admin/galeria'], ['estadosCidades', '/admin/estados-cidades'],
+      ['professores', '/admin/professores'], ['alunos', '/admin/alunos'],
       ['siteInfo', '/admin/institucional'], ['redes', '/admin/redes'],
     ]);
     assert.equal(SECTION_HREFS.has('visaoGeral'), false);
     assert.equal(SHARED_SECTION_CONFIG.visaoGeral.href, '/admin');
-    assert.equal(new Set(SECTION_HREFS.values()).size, 11);
+    assert.equal(new Set(SECTION_HREFS.values()).size, 13);
   });
 
   it('preserva exports públicos e compatibilidade dos tipos de seção e props do shell', () => {
@@ -4277,7 +4340,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
         }
       }
       const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners',
-        '/admin/galeria', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+        '/admin/galeria', '/admin/professores', '/admin/alunos', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
       assert.deepEqual(page.calls, (mobile ? [...menuOrder, ...menuOrder] : menuOrder).map(href => ({ method: 'push', href })));
     }
   });
@@ -4286,7 +4349,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     const desktop = capture('shell', session);
     const desktopHrefs = desktop.nodes.flatMap(node => node.props.href ? [node.props.href] : []);
     assert.deepEqual(desktopHrefs.filter(href => href.startsWith('/admin')),
-      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria']);
+      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/alunos']);
     assert.match(desktop.html, /<a\b[^>]*href="\/admin"/);
     assert.deepEqual(desktop.calls, []);
     const mobile = capture('shell', session, true);
@@ -4620,7 +4683,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           visit(page);
           assert.equal(overviewFound, true);
           const expected = ['/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners',
-            '/admin/galeria', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+            '/admin/galeria', '/admin/professores', '/admin/alunos', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
           if (editorialProfile === 'Administrador') expected.push('/admin/kanban');
           assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
         } finally { stateMock.mock.restore(); }
@@ -10514,4 +10577,463 @@ describe('E10.3 — busca de avisos e categorias recolhíveis do FAQ', () => {
       await view.click('Categorias'); assert.ok(view.nodes().some(node => node.type === 'button' && node.props.children === 'Matrícula'));
     } finally { await view.restore(); }
   });
+});
+
+describe('Editor dos Quatro Pilares da Home — modelo, validação e interface administrativa', () => {
+  it('extrai fielmente o cabeçalho e os quatro pilares existentes em TechAdvantages.tsx sem mutar a origem', () => {
+    const draft = createInitialHomePillarsDraft();
+    const publicHtml = renderToStaticMarkup(createElement(TechAdvantages));
+    const previewHtml = renderToStaticMarkup(
+      createElement(HomePillarsPreviewRenderer, { draft, device: 'desktop' }),
+    );
+
+    assert.equal(draft.chave, 'pilares');
+    assert.equal(draft.tipo, 'cards');
+    assert.equal(draft.ancora, 'tecnologia');
+    assert.equal(draft.variante, 'pilares');
+    assert.equal(draft.itens.length, 4);
+
+    for (const expectedText of [
+      draft.sobretitulo,
+      'Por que o MEDTEC é um modelo',
+      'inovador no Brasil?',
+      draft.descricao,
+      'Transmissão Ao Vivo em Tempo Real via Satélite',
+      'Transmissão Satelital',
+      'Latência Controlada • Banda C / Ku',
+      'Porto Velho',
+      '52 Municípios',
+      'Professor Mediador Presencial',
+      'Apoio Humano 100%',
+      'Plantão ativo durante as transmissões',
+      'Equidade &amp; Inclusão Geográfica',
+      'Universalização',
+      'Ribeirinhos • Indígenas • Rurais',
+      '100% Gratuito',
+      'Matriz BNCC + Agroecologia &amp; Sustentabilidade',
+      'Itinerário NBAZ • SEDUC',
+      'Diploma Oficial SEDUC/Censo Escolar',
+      'Portaria SEDUC nº 928/2025',
+    ]) {
+      assert.ok(publicHtml.includes(expectedText), `Ausente em TechAdvantages: ${expectedText}`);
+      assert.ok(previewHtml.includes(expectedText), `Ausente na prévia: ${expectedText}`);
+    }
+
+    assert.deepEqual(
+      draft.itens.map((item) => [item.chave, item.posicao, item.colSpan, item.icone, item.variante]),
+      [
+        ['transmissao-satelital', 1, 8, 'satellite', 'tecnologia'],
+        ['professor-mediador-presencial', 2, 4, 'users', 'padrao'],
+        ['equidade-inclusao-geografica', 3, 4, 'heart-handshake', 'inclusao'],
+        ['matriz-bncc-agroecologia', 4, 8, 'leaf', 'sustentabilidade'],
+      ],
+    );
+
+    assert.equal(hasHomePillarsChanges(draft), false);
+    for (const item of draft.itens) {
+      assert.equal(hasHomePillarItemChanges(item), false);
+    }
+
+    // Mutar a cópia não altera uma nova instância nem o item individual buscado por chave
+    draft.itens[0].titulo = 'Alterado localmente';
+    assert.equal(hasHomePillarsChanges(draft), true);
+    assert.equal(hasHomePillarItemChanges(draft.itens[0]), true);
+    assert.equal(
+      createInitialHomePillarsDraft().itens[0].titulo,
+      'Transmissão Ao Vivo em Tempo Real via Satélite',
+    );
+    assert.equal(
+      getInitialHomePillarByKey('transmissao-satelital')?.titulo,
+      'Transmissão Ao Vivo em Tempo Real via Satélite',
+    );
+    assert.equal(getInitialHomePillarByKey('inexistente'), null);
+  });
+
+  it('valida campos obrigatórios, limites de tamanho, ícones, variantes e reordenação com cálculo do Bento Grid', () => {
+    const valid = createInitialHomePillarsDraft();
+    assert.equal(validateHomePillarsDraft(valid).hasErrors, false);
+    assert.equal(PILLAR_ICON_OPTIONS.length, 6);
+    assert.equal(PILLAR_VARIANT_OPTIONS.length, 4);
+    assert.equal(getBentoColSpanForPosition(1), 8);
+    assert.equal(getBentoColSpanForPosition(2), 4);
+    assert.equal(getBentoColSpanForPosition(3), 4);
+    assert.equal(getBentoColSpanForPosition(4), 8);
+
+    // Reordenação dentro e fora dos limites
+    const unchanged = moveHomePillarItem(valid.itens, 0, 'up');
+    assert.deepEqual(
+      unchanged.map((i) => i.chave),
+      valid.itens.map((i) => i.chave),
+    );
+    const movedDown = moveHomePillarItem(valid.itens, 0, 'down');
+    assert.deepEqual(
+      movedDown.map((i) => [i.chave, i.posicao, i.colSpan]),
+      [
+        ['professor-mediador-presencial', 1, 8],
+        ['transmissao-satelital', 2, 4],
+        ['equidade-inclusao-geografica', 3, 4],
+        ['matriz-bncc-agroecologia', 4, 8],
+      ],
+    );
+
+    // Campos vazios
+    const emptyDraft = createInitialHomePillarsDraft();
+    emptyDraft.sobretitulo = '   ';
+    emptyDraft.titulo = '';
+    emptyDraft.descricao = ' ';
+    emptyDraft.itens[0].titulo = '';
+    emptyDraft.itens[0].descricao = ' ';
+    emptyDraft.itens[0].selo = '';
+    emptyDraft.itens[0].nota = '';
+    const emptyValidation = validateHomePillarsDraft(emptyDraft);
+    assert.equal(emptyValidation.hasErrors, true);
+    assert.ok(emptyValidation.section.sobretitulo);
+    assert.ok(emptyValidation.section.titulo);
+    assert.ok(emptyValidation.section.descricao);
+    assert.ok(emptyValidation.items['transmissao-satelital']?.titulo);
+    assert.ok(emptyValidation.items['transmissao-satelital']?.descricao);
+    assert.ok(emptyValidation.items['transmissao-satelital']?.selo);
+    assert.ok(emptyValidation.items['transmissao-satelital']?.nota);
+
+    // Excesso de limite e enums inválidos
+    const overflowDraft = createInitialHomePillarsDraft();
+    overflowDraft.sobretitulo = 'x'.repeat(HOME_PILLARS_LIMITS.sobretitulo + 1);
+    overflowDraft.titulo = 'x'.repeat(HOME_PILLARS_LIMITS.secaoTitulo + 1);
+    overflowDraft.descricao = 'x'.repeat(HOME_PILLARS_LIMITS.secaoDescricao + 1);
+    overflowDraft.itens[1].titulo = 'x'.repeat(HOME_PILLARS_LIMITS.itemTitulo + 1);
+    overflowDraft.itens[1].descricao = 'x'.repeat(HOME_PILLARS_LIMITS.itemDescricao + 1);
+    overflowDraft.itens[1].selo = 'x'.repeat(HOME_PILLARS_LIMITS.selo + 1);
+    overflowDraft.itens[1].nota = 'x'.repeat(HOME_PILLARS_LIMITS.nota + 1);
+    overflowDraft.itens[1].complemento = 'x'.repeat(HOME_PILLARS_LIMITS.complemento + 1);
+    (overflowDraft.itens[1] as unknown as { icone: string }).icone = 'invalido';
+    (overflowDraft.itens[1] as unknown as { variante: string }).variante = 'invalida';
+
+    const overflowValidation = validateHomePillarsDraft(overflowDraft);
+    assert.equal(overflowValidation.hasErrors, true);
+    assert.ok(overflowValidation.section.sobretitulo?.includes(String(HOME_PILLARS_LIMITS.sobretitulo)));
+    assert.ok(overflowValidation.items['professor-mediador-presencial']?.complemento);
+    assert.ok(overflowValidation.items['professor-mediador-presencial']?.icone);
+    assert.ok(overflowValidation.items['professor-mediador-presencial']?.variante);
+  });
+
+  it('integra o editor em /admin/institucional dentro da guarda do AdminShell sem duplicar módulos', () => {
+    const page = AdminInstitucionalSubroutePage();
+    assert.equal(page.type, AdminShell);
+    assert.equal(page.props.activeSection, 'siteInfo');
+    assert.equal(typeof page.props.children, 'function');
+
+    const workspace = page.props.children();
+    const html = renderToStaticMarkup(workspace);
+    assert.match(html, />Quatro Pilares da Home</);
+    assert.match(html, />Textos do Hero e Indicadores</);
+    assert.match(html, /Editor dos Quatro Pilares Estratégicos da Home/);
+    assert.match(html, /Modo de Simulação em Memória — Alterações Temporárias \(Não Publicadas\)/);
+  });
+
+  it('permite editar em memória cabeçalho e pilares, validar, reordenar, alternar prévia e restaurar valores originais sem chamadas de escrita', async () => {
+    const view = await mountCategories(
+      async () => {
+        throw new Error('O editor de pilares em memória não deve disparar requisições HTTP');
+      },
+      false,
+      {
+        component: () => HomePillarsModule({}),
+        allowedPaths: /never/,
+      },
+    );
+
+    try {
+      // Estado inicial: sem alterações, botões de escrita desabilitados e restaurar desabilitado
+      assert.match(view.html(), /Valores originais do código/);
+      const saveBtn = view
+        .nodes()
+        .find((node) => node.type === 'button' && node.props['aria-label'] === 'Salvar rascunho (Aguardando API)');
+      const publishBtn = view
+        .nodes()
+        .find((node) => node.type === 'button' && node.props['aria-label'] === 'Publicar na Home (Indisponível)');
+      const restoreAllBtn = () =>
+        view
+          .nodes()
+          .find((node) => node.type === 'button' && node.props['aria-label'] === 'Restaurar valores originais');
+
+      assert.equal(saveBtn?.props.disabled, true);
+      assert.equal(publishBtn?.props.disabled, true);
+      assert.equal(restoreAllBtn()?.props.disabled, true);
+
+      // Editar cabeçalho e primeiro pilar em memória e conferir atualização imediata da prévia
+      await view.change('secao_titulo', 'Modelo MEDTEC atualizado em memória');
+      await view.change('pilar_titulo', 'Satélite de Alta Capacidade em Rondônia');
+      await view.change('pilar_selo', 'Selo Satelital Editado');
+      await view.change('pilar_nota', 'Nota técnica atualizada');
+      await view.change('pilar_complemento', 'Capital ↔ Interior');
+
+      assert.match(view.html(), /Rascunho modificado em memória/);
+      assert.match(view.html(), /Prévia em memória \(Não publicado\)/);
+      assert.match(view.html(), /Modelo MEDTEC atualizado em memória/);
+      assert.match(view.html(), /Satélite de Alta Capacidade em Rondônia/);
+      assert.match(view.html(), /Selo Satelital Editado/);
+      assert.match(view.html(), /Nota técnica atualizada/);
+      assert.equal(restoreAllBtn()?.props.disabled, false);
+
+      // Validação ao limpar campo obrigatório
+      await view.change('pilar_titulo', '   ');
+      assert.match(view.html(), /O título do pilar é obrigatório\./);
+      assert.match(view.html(), /role="alert"/);
+
+      // Restaurar apenas o card selecionado mantém a alteração do cabeçalho da seção
+      await view.click('Restaurar este card');
+      assert.doesNotMatch(view.html(), /O título do pilar é obrigatório\./);
+      assert.match(view.html(), /Transmissão Ao Vivo em Tempo Real via Satélite/);
+      assert.match(view.html(), /Modelo MEDTEC atualizado em memória/);
+
+      // Reordenar card 1 para baixo
+      await view.click('Mover pilar 1 para baixo');
+
+      // Alternar dispositivo na prévia (Celular / Computador) e abrir modal de tela cheia
+      await view.click('Celular');
+      assert.match(view.html(), /Visualização Mobile \(360px\)/);
+
+      await view.click('Expandir prévia dos pilares em tela cheia');
+      const dialog = view.nodes().find((node) => node.props.role === 'dialog');
+      assert.ok(dialog);
+      assert.equal(dialog.props['aria-modal'], 'true');
+      await view.click('Fechar Prévia');
+      assert.equal(
+        view.nodes().some((node) => node.props.role === 'dialog'),
+        false,
+      );
+
+      // Restaurar todos os valores originais volta ao estado inicial completo
+      await view.click('Restaurar valores originais');
+      assert.match(view.html(), /Valores originais do código/);
+      assert.match(view.html(), /Idêntico ao código atual/);
+      assert.equal(restoreAllBtn()?.props.disabled, true);
+      assert.equal(view.calls.length, 0);
+    } finally {
+      await view.restore();
+    }
+  });
+
+  it('mantém HomePillarsModule montado e alterna com Textos do Hero e Indicadores em /admin/institucional', async () => {
+    const page = AdminInstitucionalSubroutePage();
+    const workspace = (page.props.children as () => React.ReactElement)();
+    for (const section of ['pilares', 'indicadores'] as const) {
+      const state = mock.method(React, 'useState', (<S,>(initial?: S | (() => S)) => {
+        const value = typeof initial === 'function' ? (initial as () => S)() : initial;
+        return [value === 'pilares' ? section : value, () => {}];
+      }) as typeof React.useState);
+      try {
+        const tree = Reflect.apply(workspace.type as () => ReactNode, undefined, [workspace.props]);
+        const nodes = noticeNodes(tree);
+        const pillars = nodes.find((node) => node.type === HomePillarsModule);
+        assert.ok(pillars, 'HomePillarsModule permanece montado para preservar o rascunho em memória');
+        assert.equal(pillars.props.active, section === 'pilares');
+      } finally {
+        state.mock.restore();
+      }
+    }
+  });
+});
+
+describe('Módulos CMS — Professores e Mediadores & Alunos que Inspiram', () => {
+  const mountDemo = (component: () => ReactNode) => mountCategories(async () => {
+    throw new Error('A demonstração não deve consultar ou alterar APIs');
+  }, false, { component, allowedPaths: /never/ });
+  const teacherFixture = (): TeacherDraft => ({ ...structuredClone(INITIAL_TEACHERS_CATALOG[0]), g_cidade_id: 123, destaque_home: false });
+  const studentFixture = (): StudentDraft => ({ ...structuredClone(INITIAL_STUDENTS_CATALOG[0]), g_cidade_id: 123, destaque_home: false });
+
+  it('mantém as duas rotas no AdminShell e na navegação compartilhada', () => {
+    for (const [section, page] of [['professores', AdminProfessoresSubroutePage()], ['alunos', AdminAlunosSubroutePage()]] as const) {
+      assert.equal(page.type, AdminShell);
+      assert.equal(page.props.activeSection, section);
+      assert.equal(SECTION_HREFS.get(section), `/admin/${section}`);
+      assert.equal(getFolderIdForSection(section), 'publicacoes');
+      const html = renderToStaticMarkup(page.props.children());
+      assert.match(html, /Aguardando integração oficial/);
+      assert.match(html, /exemplos fictícios/);
+      assert.match(html, new RegExp(SHARED_SECTION_CONFIG[section].title));
+    }
+  });
+
+  it('usa somente exemplos sintéticos, sem FKs municipais, termos, responsáveis ou publicação simulados', () => {
+    assert.ok(INITIAL_TEACHERS_CATALOG.some(item => item.funcao === 'mediador'));
+    assert.ok(INITIAL_TEACHERS_CATALOG.some(item => item.funcao === 'ministrante'));
+    for (const item of INITIAL_TEACHERS_CATALOG) {
+      assert.match(item.nome, /fictício/);
+      assert.equal(item.status, 'rascunho');
+      assert.ok(item.g_cidade_id < 0);
+      assert.equal(item.termo_imagem_confirmado, false);
+      assert.equal(hasTeacherChanges(item, structuredClone(item)), false);
+    }
+    for (const item of INITIAL_STUDENTS_CATALOG) {
+      assert.match(item.nome_exibicao, /fictício/);
+      assert.equal(item.status, 'rascunho');
+      assert.ok(STUDENT_CATEGORIES.includes(item.categoria));
+      assert.ok(DEMO_MUNICIPALITIES.some(city => city.id === item.g_cidade_id));
+      assert.equal(item.consentimento_lgpd.nome_signatario, '');
+      assert.equal(item.consentimento_lgpd.termo_anexado, false);
+      assert.equal(item.consentimento_lgpd.status_lgpd, 'pendente');
+      assert.equal(hasStudentChanges(item, structuredClone(item)), false);
+    }
+    assert.equal(generateTeacherSlug('Profa. João José D’Ávila'), 'joao-jose-d-avila');
+    assert.equal(getTeacherInitials('Prof. Carlos Eduardo Mendes'), 'CM');
+    assert.equal(getTeacherInitials('  '), 'PR');
+    assert.equal(generateStudentSlug('Conquista fictícia', 'Estudante fictício'), 'estudante-ficticio-conquista-ficticia');
+  });
+
+  it('valida limites do contrato, função, município, ordenação, foto e materiais do docente', () => {
+    assert.equal(validateTeacherDraft(teacherFixture()).isValid, true);
+    const empty = validateTeacherDraft(createEmptyTeacherDraft());
+    for (const field of ['nome', 'slug', 'disciplina', 'escola_nome', 'resumo', 'entrevista', 'g_cidade_id']) assert.ok(empty.errors[field], field);
+    const result = validateTeacherDraft({ ...teacherFixture(), nome: 'x'.repeat(TEACHER_FIELD_LIMITS.nome.max + 1), slug: 'x'.repeat(141), disciplina: 'x', escola_nome: 'x', comunidade: 'x'.repeat(81), orientacao_estudantes: 'curto', posicao: NaN, destaque_home: true, posicao_home: 1.5, foto_url: 'javascript:alert(1)', foto_alt: '', materiais: [{ titulo: 'Exemplo', url: '//example.invalid/file' }] });
+    for (const field of ['nome', 'slug', 'disciplina', 'escola_nome', 'comunidade', 'orientacao_estudantes', 'posicao', 'posicao_home', 'foto_url', 'foto_alt', 'termo_imagem_confirmado', 'materiais']) assert.ok(result.errors[field], field);
+    assert.equal(result.isValid, false);
+    assert.equal(validateTeacherDraft({ ...teacherFixture(), funcao: 'invalida' as TeacherDraft['funcao'] }).isValid, false);
+  });
+
+  it('detecta alterações de materiais, ponto focal, validade e campos opcionais para restauração completa', () => {
+    const teacher = teacherFixture();
+    assert.equal(hasTeacherChanges({ ...teacher, materiais: [{ titulo: 'Outro', url: '' }] }, teacher), true);
+    assert.equal(hasTeacherChanges({ ...teacher, foto_focal_x: 10 }, teacher), true);
+    const student = studentFixture();
+    assert.equal(hasStudentChanges({ ...student, consentimento_lgpd: { ...student.consentimento_lgpd, validade_ate: '2027-01-01' } }, student), true);
+  });
+
+  it('valida a história e exige autorização coerente, vigente e verificada antes da publicação', () => {
+    const student = studentFixture();
+    assert.equal(validateStudentDraft(student, '2026-10-31').isValid, true);
+    const empty = validateStudentDraft(createEmptyStudentDraft(), '2026-10-31');
+    for (const field of ['nome_exibicao', 'slug', 'conquista', 'escola_nome', 'comunidade', 'resumo', 'g_cidade_id']) assert.ok(empty.errors[field], field);
+    const published: StudentDraft = { ...student, status: 'publicado', consentimento_lgpd: { ...student.consentimento_lgpd, nome_signatario: 'Responsável fictício', vinculo_signatario: 'mae', termo_anexado: true, autoriza_nome_relato: true, status_lgpd: 'verificado', data_assinatura: '2026-10-01', validade_ate: '2027-10-01' } };
+    assert.equal(validateStudentDraft(published, '2026-10-31').isValid, true);
+    for (const patch of [
+      { status_lgpd: 'revogado' as const }, { status_lgpd: 'expirado' as const },
+      { status_lgpd: 'pendente' as const }, { termo_anexado: false },
+      { autoriza_nome_relato: false }, { vinculo_signatario: 'titular_maior' as const },
+      { data_assinatura: '2027-01-01' }, { data_assinatura: '2026-02-30' },
+      { data_assinatura: '' }, { validade_ate: '2026-10-30' },
+    ]) {
+      const result = validateStudentDraft({ ...published, consentimento_lgpd: { ...published.consentimento_lgpd, ...patch } }, '2026-10-31');
+      assert.equal(result.isValid, false, JSON.stringify(patch));
+      assert.equal(result.lgpdBlocked, true, JSON.stringify(patch));
+    }
+    const overflow = validateStudentDraft({ ...student, nome_exibicao: 'x'.repeat(STUDENT_FIELD_LIMITS.nome_exibicao.max + 1), relato_completo: 'curto', conquista: 'x', escola_nome: 'x', idade_referencia: 9, ano_conquista: 2101, destaque_home: true, posicao_home: 11, foto_url: 'data:image/svg+xml,test', foto_alt: 'a' }, '2026-10-31');
+    for (const field of ['nome_exibicao', 'relato_completo', 'conquista', 'escola_nome', 'idade_referencia', 'ano_conquista', 'posicao_home', 'foto_url', 'foto_alt', 'autoriza_imagem_foto', 'autoriza_exibicao_home']) assert.ok(overflow.errors[field], field);
+  });
+
+  it('renderiza cards, perfis e histórias sem dados privados nem selos de autorização falsos', () => {
+    const teacher = teacherFixture();
+    for (const Preview of [TeacherCardPublicPreview, TeacherInterviewModalPublicPreview, TeacherHomeMuralPublicPreview, TeacherMethodologyMiniProfilePublicPreview]) {
+      const html = renderToStaticMarkup(createElement(Preview, { teacher }));
+      assert.ok(html.includes(teacher.nome));
+    }
+    const student = { ...studentFixture(), consentimento_lgpd: { ...studentFixture().consentimento_lgpd, nome_signatario: 'SEGREDO_TESTE_RESPONSAVEL', termo_arquivo_nome: 'SEGREDO_TESTE_TERMO.pdf' } };
+    for (const Preview of [StudentPanoramicCardPreview, StudentGridCardPreview, StudentTrajectoryModalPreview, StudentHomeMuralPreview]) {
+      const html = renderToStaticMarkup(createElement(Preview, { student }));
+      assert.ok(html.includes(student.nome_exibicao));
+      assert.doesNotMatch(html, /SEGREDO_TESTE|LGPD Verificada|Imagem autorizada|lucide-circle-check|lucide-shield-check|✓/);
+    }
+  });
+
+  it('filtra docentes por busca, função e município, edita opções e restaura sem requisições', async () => {
+    const view = await mountDemo(() => TeachersAdminModule({}));
+    try {
+      await view.change('teacher-search', 'Ciências');
+      assert.match(view.html(), /Docente fictício B/);
+      assert.doesNotMatch(view.html(), /Editar perfil de Docente fictício A/);
+      await view.change('teacher-search', '');
+      await view.change('teachers-filterRole', 'ministrante');
+      assert.doesNotMatch(view.html(), /Editar perfil de Docente fictício B/);
+      await view.change('teachers-filterRole', 'todas');
+      await view.change('teachers-filterCity', '-2');
+      assert.doesNotMatch(view.html(), /Editar perfil de Docente fictício A/);
+      await view.change('teachers-filterCity', 'todos');
+      await view.click('Editar perfil de Docente fictício A');
+      const field = view.nodes().find(node => node.props.name === 'teachers-nome');
+      assert.equal(field?.props.readOnly, true);
+      assert.equal(field?.props.onChange, undefined);
+      for (const label of ['Salvar rascunho — aguardando integração', 'Publicar']) assert.equal(view.nodes().find(node => node.props['aria-label'] === label)?.props.disabled, true);
+      await view.click('Professor Mediador');
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Restaurar')?.props.disabled, false);
+      await view.click('Pré-visualizar');
+      assert.ok(view.nodes().some(node => node.props.role === 'dialog' && node.props.tabIndex === -1));
+      await view.click('Gaveta Lateral');
+      assert.equal(view.nodes().find(node => node.props['aria-pressed'] && node.props.children === 'Gaveta Lateral')?.props['aria-pressed'], true);
+      assert.match(view.html(), /Entrevista/);
+      await view.click('Fechar pré-visualização');
+      await view.click('Restaurar');
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Docente Ministrante')?.props['aria-pressed'], true);
+      assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
+  });
+
+  it('filtra histórias por nome, escola, conquista, categoria e município e restaura opções', async () => {
+    const view = await mountDemo(() => StudentsAdminModule({}));
+    try {
+      for (const term of ['Estudante fictício 2', 'Escola de demonstração 2', 'Olimpíada']) {
+        await view.change('student-search', term);
+        assert.match(view.html(), /Editar história de Estudante fictício 2/);
+        assert.doesNotMatch(view.html(), /Editar história de Estudante fictício 1/);
+      }
+      await view.change('student-search', '');
+      await view.change('students-filterCategory', 'Robótica');
+      assert.match(view.html(), /Editar história de Estudante fictício 3/);
+      assert.doesNotMatch(view.html(), /Editar história de Estudante fictício 2/);
+      await view.change('students-filterCategory', 'todas');
+      await view.change('students-filterCity', '-2');
+      assert.doesNotMatch(view.html(), /Editar história de Estudante fictício 1/);
+      await view.change('students-filterCity', 'todos');
+      await view.click('Editar história de Estudante fictício 2');
+      assert.equal(view.nodes().find(node => node.props.name === 'students-nome_exibicao')?.props.readOnly, true);
+      await view.click('Categoria Robótica');
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Categoria Robótica')?.props['aria-pressed'], true);
+      await view.change('students-g_cidade_id', '-1');
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Restaurar')?.props.disabled, false);
+      await view.click('Pré-visualizar');
+      await view.click('Card da Grade');
+      assert.match(view.html(), /Estudante fictício 2/);
+      await view.click('Fechar prévia');
+      await view.click('Restaurar');
+      assert.equal(view.nodes().find(node => node.props.name === 'students-g_cidade_id')?.props.value, -2);
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Categoria Olimpíada')?.props['aria-pressed'], true);
+      assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
+  });
+
+  it('exibe indicadores LGPD e bloqueia qualquer recebimento, verificação ou revogação real', async () => {
+    const view = await mountDemo(() => StudentsAdminModule({}));
+    try {
+      await view.click('Editar história de Estudante fictício 1');
+      await view.click('Aba Conformidade LGPD & ECA');
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Aba Conformidade LGPD & ECA')?.props['aria-pressed'], true);
+      assert.match(view.html(), /Não recebido/);
+      assert.match(view.html(), /Não confirmado/);
+      assert.equal(view.nodes().some(node => node.type === 'input'), false);
+      for (const label of ['Anexar termo privado', 'Visualizar termo', 'Validar Termo LGPD', 'Revogar Consentimento', 'Publicar']) {
+        const action = view.nodes().find(node => node.props['aria-label'] === label);
+        assert.ok(action, label);
+        assert.equal(action.props.disabled, true);
+        assert.equal(action.props.onClick, undefined);
+      }
+      assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
+  });
+
+  for (const [name, component, createLabel, fieldName] of [
+    ['docente', () => TeachersAdminModule({}), 'Novo Docente', 'teachers-nome'],
+    ['história', () => StudentsAdminModule({}), 'Nova História', 'students-nome_exibicao'],
+  ] as const) {
+    it(`abre formulário de ${name}, preenche somente exemplo fictício e restaura ao cadastro vazio`, async () => {
+      const view = await mountDemo(component);
+      try {
+        await view.click(createLabel);
+        assert.equal(view.nodes().find(node => node.props.name === fieldName)?.props.value, '');
+        await view.click('Preencher exemplo fictício');
+        assert.match(String(view.nodes().find(node => node.props.name === fieldName)?.props.value), /fictício/);
+        await view.click('Restaurar');
+        assert.equal(view.nodes().find(node => node.props.name === fieldName)?.props.value, '');
+        assert.equal(view.calls.length, 0);
+      } finally { await view.restore(); }
+    });
+  }
 });

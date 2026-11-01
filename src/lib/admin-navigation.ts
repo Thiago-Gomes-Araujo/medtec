@@ -10,7 +10,9 @@ export type AdminSection =
   | 'usuarios'
   | 'projetos'
   | 'duvidas'
-  | 'estadosCidades';
+  | 'estadosCidades'
+  | 'professores'
+  | 'alunos';
 
 export const SECTION_CONFIG: Record<
   AdminSection,
@@ -58,6 +60,18 @@ export const SECTION_CONFIG: Record<
     subtitle: 'Envie fotografias das salas de aula, estúdios e projetos realizados nos municípios.',
     href: '/admin/galeria',
   },
+  professores: {
+    group: 'Publicações do Site',
+    title: 'Professores e Mediadores',
+    subtitle: 'Cadastre e gerencie os perfis docentes de ministrantes e mediadores, práticas e entrevistas.',
+    href: '/admin/professores',
+  },
+  alunos: {
+    group: 'Publicações do Site',
+    title: 'Alunos que Inspiram',
+    subtitle: 'Cadastre e gerencie as histórias de conquistas estudantis e termos de consentimento LGPD.',
+    href: '/admin/alunos',
+  },
   kanban: {
     group: 'Aprovação e Revisão',
     title: 'Fila de Aprovação (Passo a Passo)',
@@ -101,6 +115,8 @@ export const SECTION_HREFS = new Map<AdminSection, string>([
   ['avisos', SECTION_CONFIG.avisos.href],
   ['galeria', SECTION_CONFIG.galeria.href],
   ['estadosCidades', SECTION_CONFIG.estadosCidades.href],
+  ['professores', SECTION_CONFIG.professores.href],
+  ['alunos', SECTION_CONFIG.alunos.href],
   ['siteInfo', SECTION_CONFIG.siteInfo.href],
   ['redes', SECTION_CONFIG.redes.href],
 ]);
