@@ -43,7 +43,7 @@ async function PublicAvisosContent({ searchParams }: { searchParams?: AvisosSear
     announcements={data?.items || []} pagination={data?.pagination} tipo={tipo} error={loadError} />;
 }
 
-export default function AvisosPage({ searchParams }: { searchParams?: AvisosSearchParams } = {}) {
+export default function AvisosPage({ searchParams }: { searchParams?: AvisosSearchParams }) {
   return (
     <div className="flex flex-col min-h-screen bg-[#F0F4F9] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
       <SiteHeader />

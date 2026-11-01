@@ -22,7 +22,7 @@ export default function AdminGaleriaSubroutePage() {
     data: {},
   });
 
-  const loadGalleryData = useCallback(async () => {
+  const handleReloadGallery = useCallback(async () => {
     setLoadingFotos(true);
     setErrorFotos(null);
     try {
@@ -44,8 +44,34 @@ export default function AdminGaleriaSubroutePage() {
   }, []);
 
   useEffect(() => {
-    void loadGalleryData();
-  }, [loadGalleryData]);
+    let active = true;
+    const fetchGalleryInitial = async () => {
+      try {
+        const [catsRes, fotosRes] = await Promise.all([
+          medtecApi.categoriasGaleria.list({ page: 'all' }),
+          medtecApi.fotosGaleria.list({ page: 'all' }),
+        ]);
+        if (!active) return;
+        if (!catsRes.success || !Array.isArray(catsRes.data?.items) ||
+            !fotosRes.success || !Array.isArray(fotosRes.data?.items)) {
+          throw new Error('Resposta inválida da API de Galeria.');
+        }
+        setErrorFotos(null);
+        setApiCategorias(catsRes.data.items);
+        setApiFotos(fotosRes.data.items);
+      } catch (err) {
+        if (!active) return;
+        setErrorFotos(ApiError.getFriendlyMessage(err));
+      } finally {
+        if (active) setLoadingFotos(false);
+      }
+    };
+
+    void fetchGalleryInitial();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <AdminShell
@@ -61,7 +87,7 @@ export default function AdminGaleriaSubroutePage() {
         setApiCategorias={setApiCategorias}
         loadingFotos={loadingFotos}
         errorFotos={errorFotos}
-        onReload={loadGalleryData}
+        onReload={handleReloadGallery}
         onPreview={(photoData) =>
           setPreviewModal({
             isOpen: true,

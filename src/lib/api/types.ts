@@ -323,6 +323,197 @@ export interface DuvidaVisitantePublicaInput {
 }
 
 // ============================================================================
+// Professores, relatos e conquistas (docs/ROTAS_PROFESSORES.md e
+// docs/ROTAS_CONQUISTAS_ALUNO.md)
+// ============================================================================
+
+export type ModeracaoStatus = 'aguardando' | 'reprovada' | 'publicada';
+
+export interface Escola {
+  id: number;
+  nome: string;
+  inep: string | null;
+  g_cidade_id: number;
+  cidade_nome: string;
+}
+
+export interface PDisciplina {
+  id: number;
+  nome: string;
+  slug: string;
+  ativo: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PDisciplinaInput {
+  nome: string;
+  slug?: string;
+  ativo?: boolean;
+}
+
+export interface PProfessor {
+  id: number;
+  nome: string;
+  pratica_pedagogica: string;
+  ativo: boolean;
+  escola_id: number;
+  escola_nome: string;
+  cidade_nome: string;
+  p_disciplina_ids: number[];
+  disciplinas: { id: number; nome: string }[];
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PProfessorInput {
+  nome: string;
+  escola_id: number;
+  pratica_pedagogica: string;
+  ativo?: boolean;
+  p_disciplina_ids: number[];
+}
+
+export interface PRelato {
+  id: number;
+  p_professor_id: number;
+  professor_nome: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  texto: string;
+  n_status_noticia_id: number;
+  status: ModeracaoStatus;
+  status_nome: string;
+  avaliado_por_id: number | null;
+  avaliado_por_nome: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DisciplinaPublica {
+  nome: string;
+  slug: string;
+}
+
+export interface ProfessorPublico {
+  id: number;
+  nome: string;
+  pratica_pedagogica: string;
+  escola_nome: string;
+  cidade_nome: string;
+  disciplinas: DisciplinaPublica[];
+}
+
+export interface RelatoPublico {
+  nome: string;
+  texto: string;
+  created_at: string;
+}
+
+export interface ProfessorPublicoDetalhe extends ProfessorPublico {
+  relatos: RelatoPublico[];
+}
+
+export interface PublicoProfessoresParams {
+  disciplina?: string;
+  cidade?: number;
+  busca?: string;
+  page?: number | 'all';
+  per_page?: number;
+}
+
+export interface RelatoPublicoInput {
+  nome: string;
+  email: string;
+  telefone: string;
+  texto: string;
+}
+
+export interface CCategoriaConquista {
+  id: number;
+  nome: string;
+  slug: string;
+  ativo: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CCategoriaConquistaInput {
+  nome: string;
+  slug?: string;
+  ativo?: boolean;
+}
+
+export interface CConquistaAluno {
+  id: number;
+  nome_aluno: string;
+  titulo: string;
+  relato: string;
+  c_categoria_conquista_aluno_id: number;
+  categoria_nome: string;
+  escola_id: number;
+  escola_nome: string;
+  cidade_nome: string;
+  imagem_url: string | null;
+  imagem: string | null;
+  n_status_noticia_id: number;
+  status: ModeracaoStatus;
+  status_nome: string;
+  autor_id: number | null;
+  autor_nome: string | null;
+  avaliado_por_id: number | null;
+  avaliado_por_nome: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CConquistaAlunoInput {
+  nome_aluno: string;
+  titulo: string;
+  relato: string;
+  c_categoria_conquista_aluno_id: number;
+  escola_id: number;
+  imagem?: File;
+  imagem_url?: string;
+}
+
+export interface ConquistaPublica {
+  id: number;
+  nome_aluno: string;
+  titulo: string;
+  relato: string;
+  categoria_nome: string;
+  categoria_slug: string;
+  escola_nome: string;
+  cidade_nome: string;
+  imagem: string | null;
+  imagem_url: string | null;
+  created_at: string;
+}
+
+export interface CategoriaConquistaPublica {
+  nome: string;
+  slug: string;
+}
+
+export interface PublicoConquistasParams {
+  categoria?: string;
+  cidade?: number;
+  busca?: string;
+  page?: number | 'all';
+  per_page?: number;
+}
+
+// ============================================================================
 // Galeria de Fotos
 // ============================================================================
 

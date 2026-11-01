@@ -56,7 +56,8 @@ import AnnouncementsModule, { type AnnouncementsModuleProps } from '../src/compo
 import GalleryModule, { type GalleryModuleProps } from '../src/components/admin/GalleryModule';
 import AdminAvisosPage from '../src/app/admin/avisos/page';
 import AdminGaleriaPage from '../src/app/admin/galeria/page';
-import type { ATipoAviso, AAviso, FotoGaleria, CategoriaGaleria } from '../src/lib/api/types';
+import EstadosCidadesModule from '../src/components/admin/EstadosCidadesModule';
+import type { ATipoAviso, AAviso, FotoGaleria, CategoriaGaleria, Estado } from '../src/lib/api/types';
 import DuvidasVisitanteModule from '../src/components/admin/DuvidasVisitanteModule';
 import FaqCentralSection from '../src/components/FaqCentralSection';
 import DuvidaVisitanteForm from '../src/components/DuvidaVisitanteForm';
@@ -70,10 +71,10 @@ import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput
 import ProjectsModule, { type ProjectViewMode } from '../src/components/admin/ProjectsModule';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
-import { SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
+import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
 import { useAdminTheme } from '../src/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '../src/lib/admin-navigation-filter';
-import type { Professor, Aluno, BannerItem, FaqItem, NewsItem, ProjectMission } from '../src/types';
+import type { BannerItem, FaqItem, NewsItem, ProjectMission } from '../src/types';
 
 import {
   buildQueryString,
@@ -129,40 +130,26 @@ import {
   PILLAR_VARIANT_OPTIONS,
 } from '../src/lib/admin-home-pillars';
 import AdminProfessoresSubroutePage from '../src/app/admin/professores/page';
+import AdminDisciplinasSubroutePage from '../src/app/admin/professores/disciplinas/page';
+import AdminRelatosSubroutePage from '../src/app/admin/professores/relatos/page';
 import AdminAlunosSubroutePage from '../src/app/admin/alunos/page';
-import TeachersAdminModule, {
-  TeacherCardPublicPreview,
-  TeacherInterviewModalPublicPreview,
-  TeacherHomeMuralPublicPreview,
-  TeacherMethodologyMiniProfilePublicPreview,
-} from '../src/components/admin/TeachersAdminModule';
-import StudentsAdminModule, {
-  StudentPanoramicCardPreview,
-  StudentGridCardPreview,
-  StudentTrajectoryModalPreview,
-  StudentHomeMuralPreview,
-} from '../src/components/admin/StudentsAdminModule';
+import AdminCategoriasConquistaSubroutePage from '../src/app/admin/alunos/categorias/page';
+import ProfessoresPanel from '../src/components/admin/ProfessoresPanel';
+import RelatosPanel from '../src/components/admin/RelatosPanel';
+import ConquistasPanel from '../src/components/admin/ConquistasPanel';
+import CommunityApprovalQueue from '../src/components/admin/CommunityApprovalQueue';
+import RelatoProfessorForm from '../src/components/RelatoProfessorForm';
+import AlunosView from '../src/components/AlunosView';
+import StudentStories from '../src/components/StudentStories';
+import ProfessorDetalhePage from '../src/app/professores/[id]/page';
+import type { ConquistaPublica, ProfessorPublico } from '../src/lib/api/types';
 import {
-  INITIAL_TEACHERS_CATALOG,
-  createEmptyTeacherDraft,
-  validateTeacherDraft,
-  hasTeacherChanges,
-  generateTeacherSlug,
-  getTeacherInitials,
-  TEACHER_FIELD_LIMITS,
-  DEMO_MUNICIPALITIES,
-  type TeacherDraft,
-} from '../src/lib/admin-teachers';
-import {
-  INITIAL_STUDENTS_CATALOG,
-  createEmptyStudentDraft,
-  validateStudentDraft,
-  hasStudentChanges,
-  generateStudentSlug,
-  STUDENT_FIELD_LIMITS,
-  STUDENT_CATEGORIES,
-  type StudentDraft,
-} from '../src/lib/admin-students';
+  CONQUISTA_IMAGE_MAX_BYTES,
+  getConquistaImageSrc,
+  getNameInitials,
+  isHttpsUrl,
+  validateConquistaImage,
+} from '../src/lib/community-content';
 
 // Inclui dados fora do contrato Rails para caracterizar as comparações em
 // runtime. O helper de produção continuará usando os tipos Rails existentes.
@@ -2578,6 +2565,22 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     };
   }
 
+  it('oculta o conteúdo protegido ao reativar até a sessão ser revalidada', async () => {
+    const shell = await mountShell();
+    try {
+      await shell.settle(() => shell.requests[0].resolve(railsSession('Administrador')));
+      assert.equal(shell.view?.content, true);
+      await shell.render('hidden');
+      await shell.render('visible');
+      assert.equal(shell.view?.loading, true);
+      assert.equal(shell.view?.content, false);
+      await shell.settle(() => shell.requests[1].resolve(railsSession('Administrador')));
+      assert.equal(shell.view?.loading, false);
+      assert.equal(shell.view?.content, true);
+      shell.assertRetained();
+    } finally { await shell.restore(); }
+  });
+
   for (const exit of ['unmount', 'hidden'] as const) {
     it(`ignora resposta Rails após ${exit}, inclusive as escritas do finally`, async () => {
       const shell = await mountShell();
@@ -2998,6 +3001,22 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     ['Administrador', true], ['Operador de Conteúdo', true], ['Editor de Notícias', false],
     ['Curador de Fotos', false], ['Publicador de Avisos', false],
   ] as const) {
+    it('protege as subrotas de professores e alunos na página para ' + profile, async () => {
+      for (const section of ['professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'] as const) {
+        let renders = 0;
+        const shell = await mountShell({ section, pathname: SHARED_SECTION_CONFIG[section].href, children: () => {
+          renders++; return 'B2: conteúdo protegido';
+        } });
+        try {
+          await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
+          const expected = profile !== 'Curador de Fotos' && profile !== 'Publicador de Avisos';
+          assert.equal(shell.view?.content, expected, section);
+          assert.equal(shell.view?.restricted, !expected, section);
+          assert.equal(renders > 0, expected, section);
+        } finally { await shell.restore(); }
+      }
+    });
+
     it('C1 preserva a guarda do FAQ para ' + profile, async () => {
       let renders = 0;
       const shell = await mountShell({ section: 'duvidas', pathname: '/admin/faq', children: () => {
@@ -4255,14 +4274,32 @@ describe('Metadados compartilhados da navegação administrativa', () => {
       "professores": {
         "group": "Publicações do Site",
         "title": "Professores e Mediadores",
-        "subtitle": "Cadastre e gerencie os perfis docentes de ministrantes e mediadores, práticas e entrevistas.",
+        "subtitle": "Cadastre e gerencie os perfis docentes de ministrantes e mediadores, disciplinas e relatos.",
         "href": "/admin/professores"
+      },
+      "professoresDisciplinas": {
+        "group": "Publicações do Site",
+        "title": "Disciplinas dos Professores",
+        "subtitle": "Cadastre e organize as disciplinas vinculadas aos perfis docentes.",
+        "href": "/admin/professores/disciplinas"
+      },
+      "professoresRelatos": {
+        "group": "Publicações do Site",
+        "title": "Relatos sobre Professores",
+        "subtitle": "Modere os relatos enviados pelos alunos antes de aparecerem no site.",
+        "href": "/admin/professores/relatos"
       },
       "alunos": {
         "group": "Publicações do Site",
         "title": "Alunos que Inspiram",
-        "subtitle": "Cadastre e gerencie as histórias de conquistas estudantis e termos de consentimento LGPD.",
+        "subtitle": "Cadastre, publique e gerencie as conquistas dos estudantes e suas categorias.",
         "href": "/admin/alunos"
+      },
+      "alunosCategorias": {
+        "group": "Publicações do Site",
+        "title": "Categorias de Conquista",
+        "subtitle": "Cadastre e organize as categorias usadas nas conquistas dos estudantes.",
+        "href": "/admin/alunos/categorias"
       },
       "kanban": {
         "group": "Aprovação e Revisão",
@@ -4299,17 +4336,18 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.deepEqual(Object.keys(SHARED_SECTION_CONFIG), Object.keys(expected));
   });
 
-  it('mantém os treze destinos na ordem anterior e exclui Início do mapa de redirecionamento', () => {
+  it('mantém os dezesseis destinos na ordem anterior e exclui Início do mapa de redirecionamento', () => {
     assert.deepEqual([...SECTION_HREFS], [
       ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['duvidas', '/admin/faq'],
       ['usuarios', '/admin/usuarios'], ['kanban', '/admin/kanban'], ['noticias', '/admin/noticias'],
       ['avisos', '/admin/avisos'], ['galeria', '/admin/galeria'], ['estadosCidades', '/admin/estados-cidades'],
-      ['professores', '/admin/professores'], ['alunos', '/admin/alunos'],
+      ['professores', '/admin/professores'], ['professoresDisciplinas', '/admin/professores/disciplinas'],
+      ['professoresRelatos', '/admin/professores/relatos'], ['alunos', '/admin/alunos'], ['alunosCategorias', '/admin/alunos/categorias'],
       ['siteInfo', '/admin/institucional'], ['redes', '/admin/redes'],
     ]);
     assert.equal(SECTION_HREFS.has('visaoGeral'), false);
     assert.equal(SHARED_SECTION_CONFIG.visaoGeral.href, '/admin');
-    assert.equal(new Set(SECTION_HREFS.values()).size, 13);
+    assert.equal(new Set(SECTION_HREFS.values()).size, 16);
   });
 
   it('preserva exports públicos e compatibilidade dos tipos de seção e props do shell', () => {
@@ -4340,7 +4378,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
         }
       }
       const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners',
-        '/admin/galeria', '/admin/professores', '/admin/alunos', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+        '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
       assert.deepEqual(page.calls, (mobile ? [...menuOrder, ...menuOrder] : menuOrder).map(href => ({ method: 'push', href })));
     }
   });
@@ -4349,7 +4387,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     const desktop = capture('shell', session);
     const desktopHrefs = desktop.nodes.flatMap(node => node.props.href ? [node.props.href] : []);
     assert.deepEqual(desktopHrefs.filter(href => href.startsWith('/admin')),
-      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/alunos']);
+      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
     assert.match(desktop.html, /<a\b[^>]*href="\/admin"/);
     assert.deepEqual(desktop.calls, []);
     const mobile = capture('shell', session, true);
@@ -4683,7 +4721,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           visit(page);
           assert.equal(overviewFound, true);
           const expected = ['/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners',
-            '/admin/galeria', '/admin/professores', '/admin/alunos', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+            '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
           if (editorialProfile === 'Administrador') expected.push('/admin/kanban');
           assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
         } finally { stateMock.mock.restore(); }
@@ -10460,23 +10498,27 @@ describe('E10.2 — controles semânticos dos cards', () => {
     } finally { states.mock.restore(); effects.mock.restore(); }
   });
   it('mural abre perfis por botões nativos nomeados', async () => {
-    const teacher: Professor = { id: 1, nome: 'Professora do teste', funcao: 'Ministrante', disciplina: 'Ciências', municipio: 'Teste', escola: 'Escola', resumo: 'Resumo', entrevista: 'Entrevista' };
-    const student: Aluno = { id: 2, nome: 'Estudante do teste', categoria: 'Vestibular', idade: 18, comunidade: 'Comunidade', municipio: 'Teste', conquista: 'Conquista', resumo: 'Resumo' };
+    const teacher: ProfessorPublico = { id: 1, nome: 'Professora do teste', pratica_pedagogica: 'Resumo', escola_nome: 'Escola', cidade_nome: 'Teste', disciplinas: [{ nome: 'Ciências', slug: 'ciencias' }] };
+    const student: ConquistaPublica = { id: 2, nome_aluno: 'Estudante do teste', titulo: 'Conquista', relato: 'Resumo', categoria_nome: 'Vestibular', categoria_slug: 'vestibular', escola_nome: 'Escola', cidade_nome: 'Teste', imagem: null, imagem_url: null, created_at: '2026-11-01' };
     const view = await mountCategories(async () => { throw new Error('Não deve chamar a API'); }, false, {
       component: () => CommunityMuralSection({ initialTeachers: [teacher], initialStudents: [student] }), allowedPaths: /never/,
     });
     try {
-      for (const name of [teacher.nome, student.nome]) {
-        await view.click('Abrir perfil de ' + name);
+      for (const [opener, label] of [
+        ['Abrir perfil de ' + teacher.nome, 'Perfil de ' + teacher.nome],
+        ['Abrir conquista de ' + student.nome_aluno, 'Conquista de ' + student.nome_aluno],
+      ]) {
+        await view.click(opener);
         const dialog = view.nodes().find(node => node.props.role === 'dialog');
-        assert.ok(dialog); assert.equal(dialog.props['aria-modal'], 'true'); assert.equal(dialog.props['aria-label'], 'Perfil de ' + name);
+        assert.ok(dialog); assert.equal(dialog.props['aria-modal'], 'true'); assert.equal(dialog.props['aria-label'], label);
         await view.click('Fechar modal'); assert.equal(view.nodes().some(node => node.props.role === 'dialog'), false);
       }
+      const text = view.nodes().flatMap(node => React.Children.toArray(node.props.children as ReactNode)).filter(child => typeof child === 'string').join(' ');
+      assert.doesNotMatch(text, /LGPD|autorizada/);
       assert.equal(view.calls.length, 0);
     } finally { await view.restore(); }
   });
 });
-
 
 describe('E10.2 — abertura e fechamento dos modais públicos', () => {
   it('Avisos usa diálogo nomeado com foco programável e mantém o fechamento', async () => {
@@ -10835,205 +10877,546 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
   });
 });
 
-describe('Módulos CMS — Professores e Mediadores & Alunos que Inspiram', () => {
-  const mountDemo = (component: () => ReactNode) => mountCategories(async () => {
-    throw new Error('A demonstração não deve consultar ou alterar APIs');
-  }, false, { component, allowedPaths: /never/ });
-  const teacherFixture = (): TeacherDraft => ({ ...structuredClone(INITIAL_TEACHERS_CATALOG[0]), g_cidade_id: 123, destaque_home: false });
-  const studentFixture = (): StudentDraft => ({ ...structuredClone(INITIAL_STUDENTS_CATALOG[0]), g_cidade_id: 123, destaque_home: false });
+describe('Professores e conquistas — integração com a API', () => {
+  const JSON_HEADERS = { 'content-type': 'application/json' };
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
+  const listReply = (items: unknown[]) => json({
+    success: true, message: 'ok',
+    data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: 10 } },
+  });
+  const problem = (status: number, errors: string[], message = 'Erro de validação') => json({ success: false, message, errors }, status);
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const sent = (call: { options: RequestInit }) => JSON.parse(String(call.options.body));
 
-  it('mantém as duas rotas no AdminShell e na navegação compartilhada', () => {
-    for (const [section, page] of [['professores', AdminProfessoresSubroutePage()], ['alunos', AdminAlunosSubroutePage()]] as const) {
+  const escola = { id: 3, nome: 'EEEFM Simón Bolívar', inep: '11000101', g_cidade_id: 4388, cidade_nome: 'Porto Velho' };
+  const disciplina = { id: 1, nome: 'Biologia', slug: 'biologia', ativo: true };
+  const categoria = { id: 2, nome: 'Robótica', slug: 'robotica', ativo: true };
+  const professor = {
+    id: 7, nome: 'Ana Beatriz Moura', pratica_pedagogica: 'Laboratório vivo.', ativo: true, escola_id: 3,
+    escola_nome: escola.nome, cidade_nome: escola.cidade_nome, p_disciplina_ids: [1], disciplinas: [{ id: 1, nome: 'Biologia' }],
+  };
+  const relato = {
+    id: 11, p_professor_id: 7, professor_nome: professor.nome, nome: 'João', email: 'joao@exemplo.com', telefone: '69999990000',
+    texto: 'Mudou meu jeito de estudar.', n_status_noticia_id: 1, status: 'aguardando', status_nome: 'Aguardando aprovação',
+  };
+  const conquista = {
+    id: 21, nome_aluno: 'Ana Souza', titulo: 'Aprovada em Medicina', relato: 'Passou na federal.', c_categoria_conquista_aluno_id: 2,
+    categoria_nome: 'Robótica', escola_id: 3, escola_nome: escola.nome, cidade_nome: escola.cidade_nome, imagem_url: null,
+    imagem: null, status: 'aguardando', status_nome: 'Aguardando aprovação',
+  };
+  const publicConquista = {
+    id: 21, nome_aluno: 'Ana Souza', titulo: 'Aprovada em Medicina', relato: 'Passou na federal.', categoria_nome: 'Robótica',
+    categoria_slug: 'robotica', escola_nome: escola.nome, cidade_nome: 'Porto Velho', imagem: null, imagem_url: null, created_at: '2026-11-01',
+  };
+
+  async function withFetch<T>(reply: (url: URL, options: RequestInit) => Response, run: (calls: { url: URL; options: RequestInit }[]) => Promise<T>) {
+    const calls: { url: URL; options: RequestInit }[] = [];
+    const spy = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options: RequestInit = {}) => {
+      const url = new URL(String(input));
+      calls.push({ url, options });
+      return reply(url, options);
+    });
+    try { return await run(calls); } finally { spy.mock.restore(); }
+  }
+
+  it('mantém as subrotas no AdminShell, destaca a ativa e não exibe dados fictícios nem selos LGPD', () => {
+    for (const [section, page, label] of [
+      ['professores', AdminProfessoresSubroutePage(), 'Novo professor'],
+      ['professoresDisciplinas', AdminDisciplinasSubroutePage(), 'Disciplinas'],
+      ['professoresRelatos', AdminRelatosSubroutePage(), 'Relatos dos alunos'],
+      ['alunos', AdminAlunosSubroutePage(), 'Nova conquista'],
+      ['alunosCategorias', AdminCategoriasConquistaSubroutePage(), 'Categorias de conquista'],
+    ] as const) {
       assert.equal(page.type, AdminShell);
       assert.equal(page.props.activeSection, section);
-      assert.equal(SECTION_HREFS.get(section), `/admin/${section}`);
       assert.equal(getFolderIdForSection(section), 'publicacoes');
       const html = renderToStaticMarkup(page.props.children());
-      assert.match(html, /Aguardando integração oficial/);
-      assert.match(html, /exemplos fictícios/);
-      assert.match(html, new RegExp(SHARED_SECTION_CONFIG[section].title));
-    }
-  });
-
-  it('usa somente exemplos sintéticos, sem FKs municipais, termos, responsáveis ou publicação simulados', () => {
-    assert.ok(INITIAL_TEACHERS_CATALOG.some(item => item.funcao === 'mediador'));
-    assert.ok(INITIAL_TEACHERS_CATALOG.some(item => item.funcao === 'ministrante'));
-    for (const item of INITIAL_TEACHERS_CATALOG) {
-      assert.match(item.nome, /fictício/);
-      assert.equal(item.status, 'rascunho');
-      assert.ok(item.g_cidade_id < 0);
-      assert.equal(item.termo_imagem_confirmado, false);
-      assert.equal(hasTeacherChanges(item, structuredClone(item)), false);
-    }
-    for (const item of INITIAL_STUDENTS_CATALOG) {
-      assert.match(item.nome_exibicao, /fictício/);
-      assert.equal(item.status, 'rascunho');
-      assert.ok(STUDENT_CATEGORIES.includes(item.categoria));
-      assert.ok(DEMO_MUNICIPALITIES.some(city => city.id === item.g_cidade_id));
-      assert.equal(item.consentimento_lgpd.nome_signatario, '');
-      assert.equal(item.consentimento_lgpd.termo_anexado, false);
-      assert.equal(item.consentimento_lgpd.status_lgpd, 'pendente');
-      assert.equal(hasStudentChanges(item, structuredClone(item)), false);
-    }
-    assert.equal(generateTeacherSlug('Profa. João José D’Ávila'), 'joao-jose-d-avila');
-    assert.equal(getTeacherInitials('Prof. Carlos Eduardo Mendes'), 'CM');
-    assert.equal(getTeacherInitials('  '), 'PR');
-    assert.equal(generateStudentSlug('Conquista fictícia', 'Estudante fictício'), 'estudante-ficticio-conquista-ficticia');
-  });
-
-  it('valida limites do contrato, função, município, ordenação, foto e materiais do docente', () => {
-    assert.equal(validateTeacherDraft(teacherFixture()).isValid, true);
-    const empty = validateTeacherDraft(createEmptyTeacherDraft());
-    for (const field of ['nome', 'slug', 'disciplina', 'escola_nome', 'resumo', 'entrevista', 'g_cidade_id']) assert.ok(empty.errors[field], field);
-    const result = validateTeacherDraft({ ...teacherFixture(), nome: 'x'.repeat(TEACHER_FIELD_LIMITS.nome.max + 1), slug: 'x'.repeat(141), disciplina: 'x', escola_nome: 'x', comunidade: 'x'.repeat(81), orientacao_estudantes: 'curto', posicao: NaN, destaque_home: true, posicao_home: 1.5, foto_url: 'javascript:alert(1)', foto_alt: '', materiais: [{ titulo: 'Exemplo', url: '//example.invalid/file' }] });
-    for (const field of ['nome', 'slug', 'disciplina', 'escola_nome', 'comunidade', 'orientacao_estudantes', 'posicao', 'posicao_home', 'foto_url', 'foto_alt', 'termo_imagem_confirmado', 'materiais']) assert.ok(result.errors[field], field);
-    assert.equal(result.isValid, false);
-    assert.equal(validateTeacherDraft({ ...teacherFixture(), funcao: 'invalida' as TeacherDraft['funcao'] }).isValid, false);
-  });
-
-  it('detecta alterações de materiais, ponto focal, validade e campos opcionais para restauração completa', () => {
-    const teacher = teacherFixture();
-    assert.equal(hasTeacherChanges({ ...teacher, materiais: [{ titulo: 'Outro', url: '' }] }, teacher), true);
-    assert.equal(hasTeacherChanges({ ...teacher, foto_focal_x: 10 }, teacher), true);
-    const student = studentFixture();
-    assert.equal(hasStudentChanges({ ...student, consentimento_lgpd: { ...student.consentimento_lgpd, validade_ate: '2027-01-01' } }, student), true);
-  });
-
-  it('valida a história e exige autorização coerente, vigente e verificada antes da publicação', () => {
-    const student = studentFixture();
-    assert.equal(validateStudentDraft(student, '2026-10-31').isValid, true);
-    const empty = validateStudentDraft(createEmptyStudentDraft(), '2026-10-31');
-    for (const field of ['nome_exibicao', 'slug', 'conquista', 'escola_nome', 'comunidade', 'resumo', 'g_cidade_id']) assert.ok(empty.errors[field], field);
-    const published: StudentDraft = { ...student, status: 'publicado', consentimento_lgpd: { ...student.consentimento_lgpd, nome_signatario: 'Responsável fictício', vinculo_signatario: 'mae', termo_anexado: true, autoriza_nome_relato: true, status_lgpd: 'verificado', data_assinatura: '2026-10-01', validade_ate: '2027-10-01' } };
-    assert.equal(validateStudentDraft(published, '2026-10-31').isValid, true);
-    for (const patch of [
-      { status_lgpd: 'revogado' as const }, { status_lgpd: 'expirado' as const },
-      { status_lgpd: 'pendente' as const }, { termo_anexado: false },
-      { autoriza_nome_relato: false }, { vinculo_signatario: 'titular_maior' as const },
-      { data_assinatura: '2027-01-01' }, { data_assinatura: '2026-02-30' },
-      { data_assinatura: '' }, { validade_ate: '2026-10-30' },
-    ]) {
-      const result = validateStudentDraft({ ...published, consentimento_lgpd: { ...published.consentimento_lgpd, ...patch } }, '2026-10-31');
-      assert.equal(result.isValid, false, JSON.stringify(patch));
-      assert.equal(result.lgpdBlocked, true, JSON.stringify(patch));
-    }
-    const overflow = validateStudentDraft({ ...student, nome_exibicao: 'x'.repeat(STUDENT_FIELD_LIMITS.nome_exibicao.max + 1), relato_completo: 'curto', conquista: 'x', escola_nome: 'x', idade_referencia: 9, ano_conquista: 2101, destaque_home: true, posicao_home: 11, foto_url: 'data:image/svg+xml,test', foto_alt: 'a' }, '2026-10-31');
-    for (const field of ['nome_exibicao', 'relato_completo', 'conquista', 'escola_nome', 'idade_referencia', 'ano_conquista', 'posicao_home', 'foto_url', 'foto_alt', 'autoriza_imagem_foto', 'autoriza_exibicao_home']) assert.ok(overflow.errors[field], field);
-  });
-
-  it('renderiza cards, perfis e histórias sem dados privados nem selos de autorização falsos', () => {
-    const teacher = teacherFixture();
-    for (const Preview of [TeacherCardPublicPreview, TeacherInterviewModalPublicPreview, TeacherHomeMuralPublicPreview, TeacherMethodologyMiniProfilePublicPreview]) {
-      const html = renderToStaticMarkup(createElement(Preview, { teacher }));
-      assert.ok(html.includes(teacher.nome));
-    }
-    const student = { ...studentFixture(), consentimento_lgpd: { ...studentFixture().consentimento_lgpd, nome_signatario: 'SEGREDO_TESTE_RESPONSAVEL', termo_arquivo_nome: 'SEGREDO_TESTE_TERMO.pdf' } };
-    for (const Preview of [StudentPanoramicCardPreview, StudentGridCardPreview, StudentTrajectoryModalPreview, StudentHomeMuralPreview]) {
-      const html = renderToStaticMarkup(createElement(Preview, { student }));
-      assert.ok(html.includes(student.nome_exibicao));
-      assert.doesNotMatch(html, /SEGREDO_TESTE|LGPD Verificada|Imagem autorizada|lucide-circle-check|lucide-shield-check|✓/);
-    }
-  });
-
-  it('filtra docentes por busca, função e município, edita opções e restaura sem requisições', async () => {
-    const view = await mountDemo(() => TeachersAdminModule({}));
-    try {
-      await view.change('teacher-search', 'Ciências');
-      assert.match(view.html(), /Docente fictício B/);
-      assert.doesNotMatch(view.html(), /Editar perfil de Docente fictício A/);
-      await view.change('teacher-search', '');
-      await view.change('teachers-filterRole', 'ministrante');
-      assert.doesNotMatch(view.html(), /Editar perfil de Docente fictício B/);
-      await view.change('teachers-filterRole', 'todas');
-      await view.change('teachers-filterCity', '-2');
-      assert.doesNotMatch(view.html(), /Editar perfil de Docente fictício A/);
-      await view.change('teachers-filterCity', 'todos');
-      await view.click('Editar perfil de Docente fictício A');
-      const field = view.nodes().find(node => node.props.name === 'teachers-nome');
-      assert.equal(field?.props.readOnly, true);
-      assert.equal(field?.props.onChange, undefined);
-      for (const label of ['Salvar rascunho — aguardando integração', 'Publicar']) assert.equal(view.nodes().find(node => node.props['aria-label'] === label)?.props.disabled, true);
-      await view.click('Professor Mediador');
-      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Restaurar')?.props.disabled, false);
-      await view.click('Pré-visualizar');
-      assert.ok(view.nodes().some(node => node.props.role === 'dialog' && node.props.tabIndex === -1));
-      await view.click('Gaveta Lateral');
-      assert.equal(view.nodes().find(node => node.props['aria-pressed'] && node.props.children === 'Gaveta Lateral')?.props['aria-pressed'], true);
-      assert.match(view.html(), /Entrevista/);
-      await view.click('Fechar pré-visualização');
-      await view.click('Restaurar');
-      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Docente Ministrante')?.props['aria-pressed'], true);
-      assert.equal(view.calls.length, 0);
-    } finally { await view.restore(); }
-  });
-
-  it('filtra histórias por nome, escola, conquista, categoria e município e restaura opções', async () => {
-    const view = await mountDemo(() => StudentsAdminModule({}));
-    try {
-      for (const term of ['Estudante fictício 2', 'Escola de demonstração 2', 'Olimpíada']) {
-        await view.change('student-search', term);
-        assert.match(view.html(), /Editar história de Estudante fictício 2/);
-        assert.doesNotMatch(view.html(), /Editar história de Estudante fictício 1/);
+      assert.match(html, new RegExp(label));
+      assert.doesNotMatch(html, /fictíci|LGPD verificad|Termo LGPD|aria-pressed/i);
+      const group = ADMIN_SUBROUTE_GROUPS.find(item => item.items.some(entry => entry.section === section));
+      assert.ok(group);
+      for (const entry of group.items) {
+        const href = SECTION_HREFS.get(entry.section);
+        assert.ok(href);
+        const link = html.match(new RegExp(`<a\\b[^>]*href="${href}"[^>]*>`))?.[0];
+        assert.ok(link, href);
+        assert.equal(link.includes('aria-current="page"'), entry.section === section, href);
       }
-      await view.change('student-search', '');
-      await view.change('students-filterCategory', 'Robótica');
-      assert.match(view.html(), /Editar história de Estudante fictício 3/);
-      assert.doesNotMatch(view.html(), /Editar história de Estudante fictício 2/);
-      await view.change('students-filterCategory', 'todas');
-      await view.change('students-filterCity', '-2');
-      assert.doesNotMatch(view.html(), /Editar história de Estudante fictício 1/);
-      await view.change('students-filterCity', 'todos');
-      await view.click('Editar história de Estudante fictício 2');
-      assert.equal(view.nodes().find(node => node.props.name === 'students-nome_exibicao')?.props.readOnly, true);
-      await view.click('Categoria Robótica');
-      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Categoria Robótica')?.props['aria-pressed'], true);
-      await view.change('students-g_cidade_id', '-1');
-      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Restaurar')?.props.disabled, false);
-      await view.click('Pré-visualizar');
-      await view.click('Card da Grade');
-      assert.match(view.html(), /Estudante fictício 2/);
-      await view.click('Fechar prévia');
-      await view.click('Restaurar');
-      assert.equal(view.nodes().find(node => node.props.name === 'students-g_cidade_id')?.props.value, -2);
-      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Categoria Olimpíada')?.props['aria-pressed'], true);
-      assert.equal(view.calls.length, 0);
-    } finally { await view.restore(); }
+    }
   });
 
-  it('exibe indicadores LGPD e bloqueia qualquer recebimento, verificação ou revogação real', async () => {
-    const view = await mountDemo(() => StudentsAdminModule({}));
+  it('gera os menus da árvore única, respeitando as permissões informadas por cada tela', () => {
+    const access = {
+      noticias: false, projetos: false, duvidas: false, avisos: false, fotos: false, galeria: false, professores: true,
+      alunos: false, kanban: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false,
+    };
+    const folders = buildAdminMenu(access, { professoresRelatos: 3 });
+    assert.deepEqual(folders.map(folder => [folder.id, folder.visible]), [['publicacoes', true], ['aprovacao', false], ['dados', false], ['usuarios', false]]);
+    const items = folders.flatMap(folder => folder.items);
+    assert.deepEqual(items.filter(item => item.visible).map(item => item.section), ['professores', 'professoresDisciplinas', 'professoresRelatos']);
+    assert.equal(items.find(item => item.section === 'professoresRelatos')?.badge, 3);
+    assert.deepEqual(items.map(item => [item.section, item.href]), [...SECTION_HREFS].sort((a, b) =>
+      items.findIndex(item => item.section === a[0]) - items.findIndex(item => item.section === b[0])));
+    for (const source of ['src/components/admin/AdminShell.tsx', 'src/app/admin/page.tsx']) {
+      const code = readFileSync(source, 'utf8');
+      assert.match(code, /buildAdminMenu\(/, source);
+      assert.doesNotMatch(code, /section: '[a-zA-Z]+'/, source);
+    }
+  });
+
+  it('serviços usam os corpos do contrato e objetos diretos no CMS', async () => {
+    await withFetch(() => json(professor), async calls => {
+      await medtecApi.professores.update(7, { nome: 'Ana', escola_id: 3, pratica_pedagogica: 'Prática', ativo: true, p_disciplina_ids: [1, 2] });
+      assert.equal(calls[0].url.pathname, '/api/v1/p_professores/7');
+      assert.equal(calls[0].options.method, 'PATCH');
+      assert.deepEqual(sent(calls[0]), { p_professor: { nome: 'Ana', escola_id: 3, pratica_pedagogica: 'Prática', ativo: true, p_disciplina_ids: [1, 2] } });
+    });
+    await withFetch(() => json(conquista), async calls => {
+      const input = { nome_aluno: 'Ana', titulo: 'T', relato: 'R', c_categoria_conquista_aluno_id: 2, escola_id: 3, status: 'publicada', autor_id: 9 };
+      const created = await medtecApi.conquistas.create({ ...input, imagem_url: 'https://exemplo.com/a.jpg' });
+      assert.equal(created.id, 21);
+      assert.deepEqual(sent(calls[0]), { c_conquista_aluno: {
+        nome_aluno: 'Ana', titulo: 'T', relato: 'R', c_categoria_conquista_aluno_id: 2, escola_id: 3, imagem_url: 'https://exemplo.com/a.jpg',
+      } });
+      await medtecApi.conquistas.update(21, { ...input, imagem: new File(['x'], 'a.png', { type: 'image/png' }) });
+      const body = calls[1].options.body as FormData;
+      assert.ok(body instanceof FormData);
+      assert.equal(body.get('c_conquista_aluno[escola_id]'), '3');
+      assert.ok(body.get('c_conquista_aluno[imagem]') instanceof File);
+      assert.equal(body.get('c_conquista_aluno[status]'), null);
+      assert.equal(new Headers(calls[1].options.headers).has('Content-Type'), false);
+      await medtecApi.conquistas.reprovar(21);
+      assert.equal(calls[2].url.pathname, '/api/v1/c_conquistas_aluno/21/reprovar');
+      assert.equal(calls[2].options.body, undefined);
+    });
+    await withFetch(() => new Response(null, { status: 204 }), async calls => {
+      assert.equal(await medtecApi.relatos.delete(11), undefined);
+      assert.equal(calls[0].options.method, 'DELETE');
+    });
+  });
+
+  it('rotas públicas não enviam sessão e descartam contato, autor e auditoria', async () => {
+    setStoredTokens({ access_token: 'sessao-admin', refresh_token: 'refresh-admin' });
     try {
-      await view.click('Editar história de Estudante fictício 1');
-      await view.click('Aba Conformidade LGPD & ECA');
-      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Aba Conformidade LGPD & ECA')?.props['aria-pressed'], true);
-      assert.match(view.html(), /Não recebido/);
-      assert.match(view.html(), /Não confirmado/);
-      assert.equal(view.nodes().some(node => node.type === 'input'), false);
-      for (const label of ['Anexar termo privado', 'Visualizar termo', 'Validar Termo LGPD', 'Revogar Consentimento', 'Publicar']) {
-        const action = view.nodes().find(node => node.props['aria-label'] === label);
-        assert.ok(action, label);
-        assert.equal(action.props.disabled, true);
-        assert.equal(action.props.onClick, undefined);
+      await withFetch(url => url.pathname.endsWith('/7')
+        ? json({ success: true, message: 'ok', data: { ...professor, email: 'prof@x.com', telefone: '69', disciplinas: [{ nome: 'Biologia', slug: 'biologia' }], relatos: [{ nome: 'João', texto: 'Bom', created_at: 'x', email: 'joao@x.com', telefone: '69999990000' }] } })
+        : listReply([{ ...publicConquista, autor_nome: 'Gestora', avaliado_por_nome: 'Gestora' }]), async calls => {
+        const detail = await medtecApi.professoresPublicos.get(7);
+        assert.doesNotMatch(JSON.stringify(detail), /@x\.com|69999990000|telefone|email/);
+        assert.deepEqual(detail.data.relatos, [{ nome: 'João', texto: 'Bom', created_at: 'x' }]);
+        const list = await medtecApi.conquistasPublicas.list({ categoria: 'robotica', page: 'all' });
+        assert.doesNotMatch(JSON.stringify(list), /autor|avaliado/);
+        assert.equal(calls[1].url.searchParams.get('categoria'), 'robotica');
+        for (const call of calls) {
+          assert.equal(new Headers(call.options.headers).has('Authorization'), false);
+          assert.equal(call.options.credentials, 'omit');
+        }
+      });
+    } finally { clearStoredTokens(); }
+  });
+
+  it('monta imagem pela URL do servidor, valida arquivo e gera iniciais', () => {
+    assert.equal(getConquistaImageSrc({ imagem: '/rails/active_storage/blobs/redirect/a/foto.png', imagem_url: null }),
+      'http://localhost:3000/rails/active_storage/blobs/redirect/a/foto.png');
+    assert.equal(getConquistaImageSrc({ imagem: null, imagem_url: 'https://exemplo.com/a.jpg' }), 'https://exemplo.com/a.jpg');
+    assert.equal(getConquistaImageSrc({ imagem: null, imagem_url: null }), '');
+    assert.equal(validateConquistaImage(new File(['x'], 'a.webp', { type: 'image/webp' })), null);
+    assert.match(String(validateConquistaImage(new File(['x'], 'a.gif', { type: 'image/gif' }))), /PNG, JPG ou WEBP/);
+    const big = new File(['x'], 'a.png', { type: 'image/png' });
+    Object.defineProperty(big, 'size', { value: CONQUISTA_IMAGE_MAX_BYTES + 1 });
+    assert.match(String(validateConquistaImage(big)), /5 MB/);
+    assert.equal(getNameInitials('Ana Beatriz Moura'), 'AM');
+    assert.equal(isHttpsUrl('http://exemplo.com/a.jpg'), false);
+    assert.equal(isHttpsUrl('https://exemplo.com/a.jpg'), true);
+  });
+
+  it('CRUD de professores envia a lista de disciplinas e mostra o 422 da API', async () => {
+    let rejectNext = true;
+    const view = await mountCategories(async (url, options) => {
+      if (url.pathname.endsWith('/escolas')) return listReply([escola]);
+      if (url.pathname.endsWith('/p_disciplinas')) return listReply([disciplina, { ...disciplina, id: 2, nome: 'Inativa', ativo: false }]);
+      if (options.method === 'POST') {
+        if (rejectNext) { rejectNext = false; return problem(422, ['P disciplinas precisa ter ao menos uma']); }
+        return json(professor, 201);
       }
-      assert.equal(view.calls.length, 0);
+      return listReply([professor]);
+    }, false, { component: () => ProfessoresPanel(), allowedPaths: /\/(p_professores|p_disciplinas|escolas)$/ });
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /Ana Beatriz Moura/);
+      await view.click('Novo professor');
+      assert.ok(view.nodes().some(node => node.props.name === 'professor-disciplina-1'));
+      assert.equal(view.nodes().some(node => node.props.name === 'professor-disciplina-2'), false);
+      await view.submit('Criar professor');
+      assert.match(view.html(), /Informe nome, escola/);
+      await view.change('professor-nome', 'Nova Professora');
+      await view.change('professor-escola', '3');
+      await view.change('professor-pratica', 'Prática');
+      await view.submit('Criar professor');
+      assert.match(view.html(), /Selecione ao menos uma disciplina/);
+      await view.change('professor-disciplina-1', true);
+      await view.submit('Criar professor');
+      assert.match(view.html(), /P disciplinas precisa ter ao menos uma/);
+      await view.submit('Criar professor');
+      await view.act(settle);
+      const post = view.calls.filter(call => call.options.method === 'POST').at(-1);
+      assert.ok(post);
+      assert.deepEqual(sent(post), { p_professor: { nome: 'Nova Professora', escola_id: 3, pratica_pedagogica: 'Prática', ativo: true, p_disciplina_ids: [1] } });
+      assert.match(view.html(), /Professor salvo com sucesso/);
     } finally { await view.restore(); }
   });
 
-  for (const [name, component, createLabel, fieldName] of [
-    ['docente', () => TeachersAdminModule({}), 'Novo Docente', 'teachers-nome'],
-    ['história', () => StudentsAdminModule({}), 'Nova História', 'students-nome_exibicao'],
+  it('relatos mostram contato só no CMS e botões conforme o status', async () => {
+    const statuses = [
+      { ...relato, id: 11, nome: 'Aguarda' },
+      { ...relato, id: 12, nome: 'Publicado', status: 'publicada', status_nome: 'Publicada' },
+      { ...relato, id: 13, nome: 'Reprovado', status: 'reprovada', status_nome: 'Reprovada' },
+    ];
+    const view = await mountCategories(async (url, options) => options.method === 'PATCH' ? json(relato) : listReply(statuses), false,
+      { component: () => RelatosPanel(), allowedPaths: /\/p_relatos(\/\d+\/(publicar|reprovar|despublicar))?$/ });
+    try {
+      await view.act(settle);
+      assert.equal(view.calls[0].url.searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.match(view.html(), /joao@exemplo\.com/);
+      const labels = view.nodes().filter(node => node.type === 'button').map(node => String(node.props['aria-label']));
+      for (const label of ['Publicar relato de Aguarda', 'Reprovar relato de Aguarda', 'Despublicar relato de Publicado', 'Publicar relato de Reprovado']) {
+        assert.ok(labels.includes(label), label);
+      }
+      for (const label of ['Despublicar relato de Aguarda', 'Publicar relato de Publicado', 'Reprovar relato de Publicado', 'Reprovar relato de Reprovado', 'Despublicar relato de Reprovado']) {
+        assert.equal(labels.includes(label), false, label);
+      }
+      await view.click('Reprovar relato de Aguarda');
+      await view.act(settle);
+      assert.ok(view.calls.some(call => call.url.pathname.endsWith('/p_relatos/11/reprovar') && call.options.body === undefined));
+      assert.match(view.html(), /Relato reprovado/);
+    } finally { await view.restore(); }
+  });
+
+  it('município só filtra escolas e não é enviado na conquista; 403 usa a mensagem do projeto', async () => {
+    let forbid = true;
+    const view = await mountCategories(async (url, options) => {
+      if (url.pathname.endsWith('/escolas')) return listReply([escola]);
+      if (url.pathname.endsWith('/c_categorias_conquista_aluno')) return listReply([categoria]);
+      if (options.method === 'PATCH') {
+        if (forbid) { forbid = false; return problem(403, ['sem_permissao'], 'Sem permissão'); }
+        return json({ ...conquista, status: 'publicada' });
+      }
+      if (options.method === 'POST') return json(conquista, 201);
+      return listReply([conquista]);
+    }, false, { component: () => ConquistasPanel(), allowedPaths: /\/(c_conquistas_aluno|c_categorias_conquista_aluno|escolas)(\/\d+\/publicar)?$/ });
+    try {
+      await view.act(settle);
+      await view.click(`Publicar ${conquista.titulo}`);
+      assert.match(view.html(), /não possui permissão/);
+      await view.click('Nova conquista');
+      await view.change('conquista-nome-aluno', 'Ana');
+      await view.change('conquista-titulo', 'Título');
+      await view.change('conquista-relato', 'Relato');
+      await view.change('conquista-categoria', '2');
+      await view.change('conquista-cidade', '4388');
+      await view.act(settle);
+      assert.ok(view.calls.some(call => call.url.pathname.endsWith('/escolas') &&
+        call.url.searchParams.get('q[g_cidade_id_eq]') === '4388' && call.url.searchParams.get('page') === 'all'));
+      await view.change('conquista-escola', '3');
+      await view.submit('Criar conquista');
+      await view.act(settle);
+      const post = view.calls.find(call => call.options.method === 'POST');
+      assert.ok(post);
+      assert.deepEqual(sent(post), { c_conquista_aluno: { nome_aluno: 'Ana', titulo: 'Título', relato: 'Relato', c_categoria_conquista_aluno_id: 2, escola_id: 3 } });
+      assert.match(view.html(), /Conquista salva com sucesso/);
+    } finally { await view.restore(); }
+  });
+
+  it('formulário de conquista aceita só PNG/JPG/WEBP até 5 MB e imagem_url HTTPS', async () => {
+    const view = await mountCategories(async (url, options) => {
+      if (url.pathname.endsWith('/escolas')) return listReply([escola]);
+      if (url.pathname.endsWith('/c_categorias_conquista_aluno')) return listReply([categoria]);
+      if (options.method === 'POST') return json(conquista, 201);
+      return listReply([]);
+    }, false, { component: () => ConquistasPanel(), allowedPaths: /\/(c_conquistas_aluno|c_categorias_conquista_aluno|escolas)$/ });
+    const posts = () => view.calls.filter(call => call.options.method === 'POST');
+    const fill = async () => {
+      await view.click('Nova conquista');
+      await view.change('conquista-nome-aluno', 'Ana');
+      await view.change('conquista-titulo', 'Título');
+      await view.change('conquista-relato', 'Relato');
+      await view.change('conquista-categoria', '2');
+      await view.change('conquista-escola', '3');
+    };
+    const chooseFile = (file: File) => {
+      const input = view.nodes().find(node => node.props.name === 'conquista-imagem');
+      assert.ok(input);
+      return view.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { files: [file], value: file.name } }]));
+    };
+    const useLink = () => {
+      const radio = view.nodes().find(node => node.props.name === 'conquista-imagem-modo' && node.props.value === 'link');
+      assert.ok(radio);
+      return view.act(() => Reflect.apply(radio.props.onChange as () => unknown, undefined, []));
+    };
+    try {
+      await view.act(settle);
+      await fill();
+      const gif = new File(['x'], 'a.gif', { type: 'image/gif' });
+      await chooseFile(gif);
+      assert.match(view.html(), /A imagem deve ser PNG, JPG ou WEBP/);
+      const big = new File(['x'], 'a.png', { type: 'image/png' });
+      Object.defineProperty(big, 'size', { value: CONQUISTA_IMAGE_MAX_BYTES + 1 });
+      await chooseFile(big);
+      assert.match(view.html(), /A imagem deve ter até 5 MB/);
+      // Arquivo recusado não fica no formulário: o envio segue sem imagem.
+      await view.submit('Criar conquista');
+      await view.act(settle);
+      assert.equal(posts().length, 1);
+      assert.equal(typeof posts()[0].options.body, 'string');
+      assert.equal('imagem' in sent(posts()[0]).c_conquista_aluno, false);
+
+      for (const [file, type] of [['a.png', 'image/png'], ['a.jpg', 'image/jpeg'], ['a.webp', 'image/webp']] as const) {
+        await fill();
+        await chooseFile(new File(['x'], file, { type }));
+        await view.submit('Criar conquista');
+        await view.act(settle);
+        const body = posts().at(-1)?.options.body;
+        assert.ok(body instanceof FormData, file);
+        assert.equal((body.get('c_conquista_aluno[imagem]') as File).name, file);
+      }
+
+      const before = posts().length;
+      await fill();
+      await useLink();
+      for (const link of ['http://exemplo.com/a.jpg', 'javascript:alert(1)', 'ftp://exemplo.com/a.jpg', 'exemplo.com/a.jpg']) {
+        await view.change('conquista-imagem-url', link);
+        await view.submit('Criar conquista');
+        assert.match(view.html(), /Informe um link HTTPS válido/, link);
+        assert.equal(posts().length, before, link);
+      }
+      await view.change('conquista-imagem-url', 'https://exemplo.com/a.jpg');
+      await view.submit('Criar conquista');
+      await view.act(settle);
+      assert.equal(sent(posts()[before]).c_conquista_aluno.imagem_url, 'https://exemplo.com/a.jpg');
+    } finally { await view.restore(); }
+  });
+
+  it('Fila de Aprovação lista conquistas e relatos aguardando e os publica', async () => {
+    const view = await mountCategories(async (url, options) => {
+      if (options.method === 'PATCH') return json(relato);
+      return listReply(url.pathname.endsWith('/p_relatos') ? [relato] : [conquista]);
+    }, false, { component: () => CommunityApprovalQueue(), allowedPaths: /\/(p_relatos|c_conquistas_aluno)(\/\d+\/(publicar|reprovar))?$/ });
+    try {
+      await view.act(settle);
+      for (const call of view.calls) {
+        assert.equal(call.url.searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+        assert.equal(call.url.searchParams.get('page'), 'all');
+      }
+      assert.match(view.html(), /Aprovada em Medicina/);
+      assert.match(view.html(), /Mudou meu jeito de estudar/);
+      await view.click(`Publicar ${conquista.titulo}`);
+      await view.act(settle);
+      assert.ok(view.calls.some(call => call.url.pathname.endsWith('/c_conquistas_aluno/21/publicar')));
+      await view.click('Reprovar relato de João');
+      await view.act(settle);
+      assert.ok(view.calls.some(call => call.url.pathname.endsWith('/p_relatos/11/reprovar')));
+    } finally { await view.restore(); }
+  });
+
+  it('formulário público de relato trata validação, 422, 429 e sucesso', async () => {
+    const replies = [
+      () => problem(422, ['Email já enviou um relato para este professor', 'Telefone deve ter DDD e 10 ou 11 dígitos']),
+      () => problem(429, ['muitas_tentativas'], 'Muitas tentativas'),
+      () => json({ success: true, message: 'Relato enviado. Ele aparece no site depois de aprovado.', data: null }, 201),
+    ];
+    const view = await mountCategories(async () => (replies.shift() as () => Response)(), false, {
+      component: () => RelatoProfessorForm({ professorId: 7, professorNome: 'Ana' }),
+      allowedPaths: /\/publico\/p_professores\/7\/p_relatos$/, anonymous: true,
+    });
+    try {
+      await view.submit();
+      assert.equal(view.calls.length, 0);
+      assert.match(view.html(), /Informe seu nome/);
+      await view.change('relato-nome', 'João');
+      await view.change('relato-email', 'joao@exemplo.com');
+      await view.change('relato-telefone', '(69) 99999-0000');
+      await view.change('relato-texto', 'Mudou meu jeito de estudar.');
+      await view.submit();
+      assert.match(view.html(), /Email já enviou um relato/);
+      assert.match(view.html(), /Telefone deve ter DDD/);
+      await view.submit();
+      assert.match(view.html(), /Muitos envios\. Aguarde um minuto\./);
+      await view.submit();
+      assert.match(view.html(), /Relato enviado\. Ele aparece no site depois de aprovado\./);
+      assert.deepEqual(sent(view.calls[0]), { p_relato: { nome: 'João', email: 'joao@exemplo.com', telefone: '(69) 99999-0000', texto: 'Mudou meu jeito de estudar.' } });
+    } finally { await view.restore(); }
+  });
+
+  it('página do professor responde 404 e mostra relatos sem contato', async () => {
+    await assert.rejects(ProfessorDetalhePage({ params: Promise.resolve({ id: 'abc' }) }));
+    await withFetch(() => problem(404, ['nao_encontrado'], 'Não encontrado'), async () => {
+      await assert.rejects(ProfessorDetalhePage({ params: Promise.resolve({ id: '7' }) }));
+    });
+    await withFetch(() => json({ success: true, message: 'ok', data: {
+      id: 7, nome: 'Ana', pratica_pedagogica: 'Prática', escola_nome: 'Escola', cidade_nome: 'Porto Velho',
+      email: 'prof@x.com', disciplinas: [{ nome: 'Biologia', slug: 'biologia' }],
+      relatos: [{ nome: 'João', texto: 'Relato publicado', created_at: 'x', email: 'joao@x.com' }],
+    } }), async () => {
+      const nodes = noticeNodes(await ProfessorDetalhePage({ params: Promise.resolve({ id: '7' }) }));
+      const text = nodes.flatMap(node => React.Children.toArray(node.props.children as ReactNode)).filter(child => typeof child === 'string').join(' ');
+      assert.match(text, /Relato publicado/);
+      assert.doesNotMatch(text, /@x\.com/);
+      assert.equal(nodes.find(node => node.type === RelatoProfessorForm)?.props.professorId, 7);
+    });
+  });
+
+  it('site de conquistas filtra categoria e busca na API e município pelo nome devolvido', async () => {
+    const items = [publicConquista, { ...publicConquista, id: 22, nome_aluno: 'Beto Lima', cidade_nome: 'Ji-Paraná' }];
+    const view = await mountCategories(async url => url.pathname.endsWith('/publico/c_categorias_conquista_aluno')
+      ? json({ success: true, message: 'ok', data: [{ nome: 'Robótica', slug: 'robotica' }] })
+      : listReply(items), false, { component: () => AlunosView(), allowedPaths: /\/publico\/(c_conquistas_aluno|c_categorias_conquista_aluno)$/, anonymous: true });
+    try {
+      await view.act(settle);
+      assert.equal(view.calls.find(call => call.url.pathname.endsWith('/c_conquistas_aluno'))?.url.searchParams.get('page'), 'all');
+      await view.change('conquistas-categoria', 'robotica');
+      await view.act(settle);
+      assert.equal(view.calls.at(-1)?.url.searchParams.get('categoria'), 'robotica');
+      const select = view.nodes().find(node => node.props.name === 'conquistas-cidade');
+      assert.ok(select);
+      const stories = () => view.nodes().find(node => node.type === StudentStories)?.props.conquistas as ConquistaPublica[];
+      assert.equal(stories().length, 2);
+      await view.change('conquistas-cidade', 'Ji-Paraná');
+      assert.deepEqual(stories().map(item => item.nome_aluno), ['Beto Lima']);
+      assert.equal(view.calls.at(-1)?.url.searchParams.get('cidade'), null);
+      assert.doesNotMatch(renderToStaticMarkup(createElement(StudentStories, { conquistas: stories() })), /LGPD|autorizad/i);
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Reativação sob Activity e seleção de UF (pós-auditoria)', () => {
+  type ElementProps = {
+    children?: ReactNode;
+    onClick?: () => void;
+    onSubmit?: (event: { preventDefault(): void }) => Promise<void>;
+  };
+  const flatten = (node: ReactNode): React.ReactElement<ElementProps>[] => {
+    if (Array.isArray(node)) return node.flatMap(flatten);
+    if (!isValidElement<ElementProps>(node)) return [];
+    return [node, ...flatten(node.props.children)];
+  };
+  const texts = (node: ReactNode): string[] => {
+    if (typeof node === 'string') return [node];
+    if (Array.isArray(node)) return node.flatMap(texts);
+    return isValidElement<ElementProps>(node) ? texts(node.props.children) : [];
+  };
+  const flush = () => React.act(async () => { await new Promise(resolve => setImmediate(resolve)); });
+
+  // Executa os hooks reais sob Activity; a árvore retornada é apenas observada.
+  async function mountHooks(body: () => void) {
+    const doc = {
+      nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null,
+      defaultView: null as unknown,
+    };
+    const browser = { document: doc, HTMLIFrameElement: class {} };
+    doc.defaultView = browser;
+    const globals = { window: browser, document: doc, IS_REACT_ACT_ENVIRONMENT: true };
+    const descriptors = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+    for (const [key, value] of Object.entries(globals)) {
+      Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+    }
+    function Host() { body(); return null; }
+    const container = {
+      nodeType: 1, tagName: 'DIV', namespaceURI: 'http://www.w3.org/1999/xhtml', ownerDocument: doc,
+      addEventListener() {}, removeEventListener() {}, textContent: '',
+    };
+    const root = createRoot(container as unknown as Element);
+    const render = (mode: 'visible' | 'hidden') => React.act(async () => {
+      root.render(jsx(React.Activity, { mode, children: createElement(Host) } satisfies React.ActivityProps));
+    });
+    await render('visible');
+    await flush();
+    return {
+      render,
+      async restore() {
+        await React.act(async () => { root.unmount(); });
+        for (const [key, descriptor] of descriptors) {
+          if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+          else Reflect.deleteProperty(globalThis, key);
+        }
+      },
+    };
+  }
+
+  for (const [label, services, readError] of [
+    ['Avisos', [medtecApi.tiposAviso, medtecApi.avisos], () => {
+      const page = AdminAvisosPage();
+      return (page.props.children as React.ReactElement<AnnouncementsModuleProps>).props.errorAvisos;
+    }],
+    ['Galeria', [medtecApi.categoriasGaleria, medtecApi.fotosGaleria], () => {
+      const page = AdminGaleriaPage();
+      return (page.props.children as React.ReactElement<GalleryModuleProps>).props.errorFotos;
+    }],
   ] as const) {
-    it(`abre formulário de ${name}, preenche somente exemplo fictício e restaura ao cadastro vazio`, async () => {
-      const view = await mountDemo(component);
+    it(`${label} limpa o erro quando a recarga da reativação tem sucesso`, async () => {
+      let failing = true;
+      const reply = () => failing
+        ? Promise.reject(new Error('Falha sintética'))
+        : Promise.resolve({ success: true, data: { items: [] } });
+      const spies = (services as readonly unknown[]).map(service =>
+        mock.method(service as { list: () => Promise<unknown> }, 'list', reply));
+      let error: string | null | undefined;
+      const hooks = await mountHooks(() => { error = readError(); });
       try {
-        await view.click(createLabel);
-        assert.equal(view.nodes().find(node => node.props.name === fieldName)?.props.value, '');
-        await view.click('Preencher exemplo fictício');
-        assert.match(String(view.nodes().find(node => node.props.name === fieldName)?.props.value), /fictício/);
-        await view.click('Restaurar');
-        assert.equal(view.nodes().find(node => node.props.name === fieldName)?.props.value, '');
-        assert.equal(view.calls.length, 0);
-      } finally { await view.restore(); }
+        assert.ok(error);
+        failing = false;
+        await hooks.render('hidden');
+        await hooks.render('visible');
+        await flush();
+        assert.equal(error, null);
+      } finally {
+        await hooks.restore();
+        for (const spy of spies) spy.mock.restore();
+      }
     });
   }
+
+  async function createEstadoAfter(initial: Estado[]) {
+    const created = { id: 99, nome: 'Estado novo', sigla_uf: 'EN', codigo_ibge: '99' } as Estado;
+    const requested: unknown[] = [];
+    const cidades = mock.method(medtecApi.cidades, 'list', ((params: Record<string, unknown>) => {
+      requested.push(params['q[g_estado_id_eq]']);
+      return Promise.resolve({ success: true, data: { items: [] } });
+    }) as never);
+    const create = mock.method(medtecApi.estados, 'create', (() => Promise.resolve(created)) as never);
+    let tree: ReactNode = null;
+    let deliver!: (items: Estado[]) => void;
+    // A lista sempre chega depois da montagem, como na subrota do painel.
+    const hooks = await mountHooks(() => {
+      const [apiEstados, setApiEstados] = React.useState<Estado[]>([]);
+      deliver = setApiEstados;
+      tree = EstadosCidadesModule({ apiEstados, setApiEstados, loadingEstados: false });
+    });
+    try {
+      await React.act(async () => { deliver(initial); });
+      await flush();
+      const openModal = flatten(tree).find(node => node.type === 'button' && texts(node).includes('Novo Estado (UF)'));
+      await React.act(async () => { openModal?.props.onClick?.(); });
+      const form = flatten(tree).find(node => node.type === 'form' && texts(node).includes('Cadastrar Estado'));
+      await React.act(async () => { await form?.props.onSubmit?.({ preventDefault() {} }); });
+      await flush();
+      assert.equal(create.mock.callCount(), 1);
+      return requested;
+    } finally {
+      await hooks.restore();
+      cidades.mock.restore();
+      create.mock.restore();
+    }
+  }
+
+  it('criar UF mantém o estado efetivo quando a lista chega depois da montagem', async () => {
+    const estados = [
+      { id: 1, nome: 'Estado A', sigla_uf: 'AA', codigo_ibge: '11' },
+      { id: 2, nome: 'Estado B', sigla_uf: 'BB', codigo_ibge: '12' },
+    ] as Estado[];
+    assert.deepEqual(await createEstadoAfter(estados), [1]);
+  });
+
+  it('a primeira UF criada passa a ser o estado efetivo', async () => {
+    assert.deepEqual(await createEstadoAfter([]), [99]);
+  });
 });

@@ -24,6 +24,9 @@ import { categoriasGaleriaService, fotosGaleriaService } from './services/galeri
 import { canaisService } from './services/canais.service';
 import { noticiasService } from './services/noticias.service';
 import { categoriasDuvidaService, duvidasService, duvidasVisitanteService, duvidasPublicasService } from './services/duvidas.service';
+import { escolasService } from './services/escolas.service';
+import { disciplinasProfessorService, professoresService, relatosService, professoresPublicosService } from './services/professores.service';
+import { categoriasConquistaService, conquistasService, conquistasPublicasService } from './services/conquistas.service';
 
 export const medtecApi = {
   // Autenticação e Sessão (/auth)
@@ -69,6 +72,20 @@ export const medtecApi = {
   duvidas: duvidasService,
   duvidasVisitante: duvidasVisitanteService,
   duvidasPublicas: duvidasPublicasService,
+
+  // Escolas para os selects do CMS (/escolas)
+  escolas: escolasService,
+
+  // Professores, disciplinas e relatos (/p_professores, /p_disciplinas e /p_relatos)
+  disciplinasProfessor: disciplinasProfessorService,
+  professores: professoresService,
+  relatos: relatosService,
+  professoresPublicos: professoresPublicosService,
+
+  // Conquistas dos alunos (/c_conquistas_aluno e /c_categorias_conquista_aluno)
+  categoriasConquista: categoriasConquistaService,
+  conquistas: conquistasService,
+  conquistasPublicas: conquistasPublicasService,
 };
 
 // Exportações de infraestrutura e utilitários

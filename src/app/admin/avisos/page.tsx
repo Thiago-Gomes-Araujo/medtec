@@ -22,7 +22,7 @@ export default function AdminAvisosSubroutePage() {
     data: {},
   });
 
-  const loadAvisosData = useCallback(async () => {
+  const handleReloadAvisos = useCallback(async () => {
     setLoadingAvisos(true);
     setErrorAvisos(null);
     try {
@@ -44,8 +44,34 @@ export default function AdminAvisosSubroutePage() {
   }, []);
 
   useEffect(() => {
-    void loadAvisosData();
-  }, [loadAvisosData]);
+    let active = true;
+    const fetchAvisosInitial = async () => {
+      try {
+        const [tiposRes, avisosRes] = await Promise.all([
+          medtecApi.tiposAviso.list({ page: 'all' }),
+          medtecApi.avisos.list({ page: 'all' }),
+        ]);
+        if (!active) return;
+        if (!tiposRes.success || !Array.isArray(tiposRes.data?.items) ||
+            !avisosRes.success || !Array.isArray(avisosRes.data?.items)) {
+          throw new Error('Resposta inválida da API de Avisos.');
+        }
+        setErrorAvisos(null);
+        setApiTiposAviso(tiposRes.data.items);
+        setApiAvisos(avisosRes.data.items);
+      } catch (err) {
+        if (!active) return;
+        setErrorAvisos(ApiError.getFriendlyMessage(err));
+      } finally {
+        if (active) setLoadingAvisos(false);
+      }
+    };
+
+    void fetchAvisosInitial();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <AdminShell
@@ -61,7 +87,7 @@ export default function AdminAvisosSubroutePage() {
         setApiTiposAviso={setApiTiposAviso}
         loadingAvisos={loadingAvisos}
         errorAvisos={errorAvisos}
-        onReload={loadAvisosData}
+        onReload={handleReloadAvisos}
         onPreview={(avisoData) =>
           setPreviewModal({
             isOpen: true,

@@ -45,25 +45,20 @@ export default function EstadosCidadesModule({
   const [savingCidade, setSavingCidade] = useState(false);
   const [cidadeError, setCidadeError] = useState('');
 
-  // Sincroniza o primeiro estado selecionado quando a lista for carregada
-  useEffect(() => {
-    if (!selectedEstadoId && apiEstados.length > 0) {
-      setSelectedEstadoId(apiEstados[0].id);
-    }
-  }, [apiEstados, selectedEstadoId]);
+  const effectiveEstadoId =
+    selectedEstadoId && apiEstados.some(est => est.id === selectedEstadoId)
+      ? selectedEstadoId
+      : (apiEstados[0]?.id ?? null);
 
   // Carrega cidades do estado selecionado
   useEffect(() => {
-    if (!selectedEstadoId) {
-      setApiCidades([]);
-      return;
-    }
+    if (!effectiveEstadoId) return;
     let isMounted = true;
     const fetchCidades = async () => {
       setLoadingCidades(true);
       try {
         const res = await medtecApi.cidades.list({
-          'q[g_estado_id_eq]': selectedEstadoId,
+          'q[g_estado_id_eq]': effectiveEstadoId,
           page: 'all',
         });
         if (isMounted && res.success && res.data?.items) {
@@ -79,7 +74,7 @@ export default function EstadosCidadesModule({
     return () => {
       isMounted = false;
     };
-  }, [selectedEstadoId]);
+  }, [effectiveEstadoId]);
 
   // Handlers de Estado
   const handleSaveEstado = async (e: React.FormEvent) => {
@@ -101,7 +96,7 @@ export default function EstadosCidadesModule({
           codigo_ibge: estadoForm.codigo_ibge,
         });
         setApiEstados(prev => [...prev, created]);
-        if (!selectedEstadoId) setSelectedEstadoId(created.id);
+        if (!effectiveEstadoId) setSelectedEstadoId(created.id);
       }
       setShowEstadoModal(false);
       setEditingEstado(null);
@@ -136,7 +131,7 @@ export default function EstadosCidadesModule({
   // Handlers de Município
   const handleSaveCidade = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedEstadoId) {
+    if (!effectiveEstadoId) {
       alert('Selecione um estado antes de cadastrar uma cidade.');
       return;
     }
@@ -145,14 +140,14 @@ export default function EstadosCidadesModule({
     try {
       if (editingCidade) {
         const updated = await medtecApi.cidades.update(editingCidade.id, {
-          g_estado_id: selectedEstadoId,
+          g_estado_id: effectiveEstadoId,
           nome: cidadeForm.nome,
           codigo_ibge: cidadeForm.codigo_ibge,
         });
         setApiCidades(prev => prev.map(c => (c.id === updated.id ? updated : c)));
       } else {
         const created = await medtecApi.cidades.create({
-          g_estado_id: selectedEstadoId,
+          g_estado_id: effectiveEstadoId,
           nome: cidadeForm.nome,
           codigo_ibge: cidadeForm.codigo_ibge,
         });
@@ -160,7 +155,7 @@ export default function EstadosCidadesModule({
       }
       setShowCidadeModal(false);
       setEditingCidade(null);
-      setCidadeForm({ g_estado_id: selectedEstadoId, nome: '', codigo_ibge: '' });
+      setCidadeForm({ g_estado_id: effectiveEstadoId, nome: '', codigo_ibge: '' });
     } catch (err: unknown) {
       const errorData = err as { message?: string; errors?: string[] };
       setCidadeError(errorData.message || errorData.errors?.join(', ') || 'Falha ao salvar município.');
@@ -180,8 +175,9 @@ export default function EstadosCidadesModule({
     }
   };
 
-  const selectedEstado = apiEstados.find(e => e.id === selectedEstadoId);
-  const filteredCidades = apiCidades.filter(
+  const selectedEstado = apiEstados.find(e => e.id === effectiveEstadoId);
+  const displayCidades = effectiveEstadoId ? apiCidades : [];
+  const filteredCidades = displayCidades.filter(
     c =>
       c.nome.toLowerCase().includes(cidadeSearch.toLowerCase()) ||
       (c.codigo_ibge && c.codigo_ibge.includes(cidadeSearch))
@@ -246,7 +242,7 @@ export default function EstadosCidadesModule({
           ) : (
             <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
               {apiEstados.map(est => {
-                const isSelected = est.id === selectedEstadoId;
+                const isSelected = est.id === effectiveEstadoId;
                 return (
                   <div
                     key={est.id}
@@ -331,11 +327,11 @@ export default function EstadosCidadesModule({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                disabled={!selectedEstadoId}
+                disabled={!effectiveEstadoId}
                 onClick={() => {
-                  if (!selectedEstadoId) return;
+                  if (!effectiveEstadoId) return;
                   setEditingCidade(null);
-                  setCidadeForm({ g_estado_id: selectedEstadoId, nome: '', codigo_ibge: '' });
+                  setCidadeForm({ g_estado_id: effectiveEstadoId, nome: '', codigo_ibge: '' });
                   setCidadeError('');
                   setShowCidadeModal(true);
                 }}
@@ -364,7 +360,7 @@ export default function EstadosCidadesModule({
               <Loader2 size={24} className="animate-spin text-blue-600" />
               <span className="text-xs">Carregando municípios...</span>
             </div>
-          ) : !selectedEstadoId ? (
+          ) : !effectiveEstadoId ? (
             <div className="py-12 text-center text-xs text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
               Selecione um estado na coluna ao lado para visualizar os municípios.
             </div>
