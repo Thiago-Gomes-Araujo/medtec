@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import TeacherProfiles from '@/components/TeacherProfiles';
 import { medtecApi, type DisciplinaPublica } from '@/lib/api';
@@ -10,6 +10,8 @@ export default function ProfessoresView() {
   const [disciplina, setDisciplina] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [busca, setBusca] = useState('');
+  const [unavailable, setUnavailable] = useState(false);
+  const handleUnavailable = useCallback(() => setUnavailable(true), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -33,7 +35,7 @@ export default function ProfessoresView() {
 
   return (
     <div>
-      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-xs">
+      {!unavailable && <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] shadow-xs">
         <select
           name="professores-disciplina"
           aria-label="Filtrar por disciplina"
@@ -67,10 +69,10 @@ export default function ProfessoresView() {
             </button>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* A chave volta à primeira página sempre que um filtro muda. */}
-      <TeacherProfiles key={`${disciplina}|${busca}`} disciplina={disciplina} busca={busca} />
+      <TeacherProfiles key={`${disciplina}|${busca}`} disciplina={disciplina} busca={busca} onUnavailable={handleUnavailable} />
     </div>
   );
 }

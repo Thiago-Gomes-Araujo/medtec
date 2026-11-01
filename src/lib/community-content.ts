@@ -1,5 +1,12 @@
 import { ApiError, getMediaUrl } from '@/lib/api';
 
+// Falha de API nas seções públicas vira um aviso discreto, sem mensagem de erro.
+export const COMMUNITY_COMING_SOON = {
+  title: 'Em breve',
+  professores: 'O quadro de professores e mediadores estará disponível em breve.',
+  conquistas: 'As histórias dos estudantes estarão disponíveis em breve.',
+};
+
 export const CONQUISTA_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 const CONQUISTA_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 
