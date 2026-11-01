@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import FloatingSocialRotator from '@/components/FloatingSocialRotator';
+import FloatingSocialRotator from '@/components/FloatingSocialRotatorLazy';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -24,7 +24,7 @@ const jetbrains = JetBrains_Mono({
   variable: '--font-mono',
   weight: ['400', '500', '600'],
   display: 'swap',
-  preload: true,
+  preload: false,
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://medtec.seduc.ro.gov.br';
@@ -84,8 +84,6 @@ export default function RootLayout({
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="icon" href="/favicon.ico" />
         <script
           dangerouslySetInnerHTML={{

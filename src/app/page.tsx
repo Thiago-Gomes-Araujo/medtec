@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { 
@@ -35,14 +36,14 @@ export default function HomePage() {
         <section id="inicio" className="relative overflow-hidden bg-gradient-to-r from-[#05549D] via-[#072F5E] to-[#0A3D73] dark:from-[#040D1A] dark:via-[#07162C] dark:to-[#040D1A] text-white pt-6 pb-24 lg:pt-12 lg:pb-32 scroll-mt-20">
           
           {/* Fundo Fotográfico com Overlay e Blend Mode */}
-          <img
+          <Image
             src="/hero.jpg"
             alt="Transmissão das aulas do MEDTEC Rondônia"
-            width={1600}
-            height={912}
-            decoding="async"
+            fill
+            sizes="100vw"
+            loading="eager"
             fetchPriority="high"
-            className="absolute inset-0 h-full w-full object-cover opacity-25 mix-blend-luminosity pointer-events-none"
+            className="object-cover opacity-25 mix-blend-luminosity pointer-events-none"
           />
 
           {/* Conteúdo Principal do Hero */}
@@ -127,12 +128,12 @@ export default function HomePage() {
 
                 {/* Área de Imagem do Estúdio */}
                 <div className="relative h-48 sm:h-52 overflow-hidden bg-slate-950">
-                  <img
+                  <Image
                     src="/hero.jpg"
                     alt="Estudantes em sala de aula conectada do MEDTEC Rondônia"
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                    decoding="async"
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 40vw"
+                    className="object-cover"
                   />
                   
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/20" />

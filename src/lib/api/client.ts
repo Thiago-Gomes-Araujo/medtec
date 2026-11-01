@@ -159,8 +159,9 @@ export async function apiFetch<T>(
 
   const headers = new Headers(fetchOptions.headers || {});
 
-  // Define Content-Type application/json se não for FormData e se não foi explicitamente setado
-  if (!(fetchOptions.body instanceof FormData) && !headers.has('Content-Type')) {
+  // Define Content-Type application/json só quando há corpo, se não for FormData e se não foi explicitamente setado.
+  // Sem corpo, o header só forçaria um preflight de CORS a cada URL pública.
+  if (fetchOptions.body != null && !(fetchOptions.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 

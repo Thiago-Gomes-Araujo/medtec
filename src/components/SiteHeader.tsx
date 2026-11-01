@@ -17,7 +17,6 @@ import {
   Satellite,
   ArrowRight
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface SiteHeaderProps {
   onOpenPitchModal?: () => void;
@@ -314,15 +313,9 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                 </div>
 
                 {/* ================= MEGA-MENU FLUTUANTE (ESTILO STRIPE / VERCEL) ================= */}
-                <AnimatePresence>
-                  {inicioDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 4, scale: 0.98 }}
-                      transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
-                      style={{ transformOrigin: 'top left' }}
-                      className="absolute left-0 top-full pt-2 z-50 w-[640px]"
+                {inicioDropdownOpen && (
+                    <div
+                      className="header-dropdown-enter absolute left-0 top-full pt-2 z-50 w-[640px]"
                       onMouseEnter={handleMouseEnter}
                       onMouseLeave={handleMouseLeave}
                     >
@@ -423,9 +416,8 @@ export default function SiteHeader({ onOpenPitchModal }: SiteHeaderProps) {
                         </div>
 
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    </div>
+                )}
               </div>
 
               {/* DEMAIS LINKS CENTRAIS */}
