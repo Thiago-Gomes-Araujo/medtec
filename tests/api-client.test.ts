@@ -6349,6 +6349,17 @@ describe('5. Cliente HTTP apiFetch (Respostas, 204 e Renovação de Token)', () 
     for (const name of ['BACKEND_ADMIN_CPF', 'BACKEND_ADMIN_PASSWORD']) assert.match(example, new RegExp(`^${name}=$`, 'm'));
   });
 
+  it('imagem Docker recebe NEXT_PUBLIC_API_URL no build e o compose não define URL de reserva', () => {
+    const dockerfile = readFileSync('Dockerfile', 'utf8');
+    const positions = ['ARG NEXT_PUBLIC_API_URL', 'ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL', 'test -n "$NEXT_PUBLIC_API_URL"', 'RUN npm run build', 'FROM base AS runner'].map(text => dockerfile.indexOf(text));
+    assert.ok(positions.every(position => position >= 0));
+    assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
+    const compose = readFileSync('docker-compose.yml', 'utf8');
+    assert.match(compose, /args:\n\s+NEXT_PUBLIC_API_URL: \$\{NEXT_PUBLIC_API_URL:\?/);
+    assert.doesNotMatch(compose, /:-http|172\.16\./);
+    assert.match(readFileSync('docs/TESTE_LOCAL.md', 'utf8'), /--build-arg NEXT_PUBLIC_API_URL=/);
+  });
+
   it('deve tratar resposta 204 No Content retornando null sem erro de JSON', async () => {
     globalThis.fetch = async () => {
       return new Response(null, { status: 204 });

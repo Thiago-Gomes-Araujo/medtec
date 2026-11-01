@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Defina NEXT_PUBLIC_API_URL no .env}
     image: medtec-web:prod
     container_name: medtec-web
     restart: unless-stopped
@@ -17,8 +19,7 @@ services:
       ADMIN_USER: ${ADMIN_USER:?Defina ADMIN_USER no .env}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD no .env}
       ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:?Defina ADMIN_SESSION_SECRET no .env}
-      BACKEND_API_URL: ${BACKEND_API_URL:-http://172.16.107.63:3023/api/v1}
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://172.16.107.63:3023/api/v1}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Defina NEXT_PUBLIC_API_URL no .env}
     volumes:
       - medtec-data:/app/src/data
       - medtec-uploads:/app/public/uploads
