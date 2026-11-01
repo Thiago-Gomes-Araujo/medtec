@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { useCallback, useId, useState, type ChangeEvent, type FormEvent } from 'react';
 import { medtecApi, type CCategoriaConquista, type CConquistaAluno, type ModeracaoStatus } from '@/lib/api';
 import { getConquistaImageSrc, isHttpsUrl, validateConquistaImage } from '@/lib/community-content';
-import CommunityTaxonomyManager from './CommunityTaxonomyManager';
 import {
   buttonClass,
   inputClass,
@@ -19,8 +18,6 @@ import {
   useEscolaOptions,
   type ModeracaoAction,
 } from './communityAdminUi';
-
-type Section = 'conquistas' | 'categorias';
 
 interface ConquistaForm {
   id?: number;
@@ -42,25 +39,7 @@ const EMPTY_FORM: ConquistaForm = {
 };
 const readCategorias = (signal: AbortSignal) => medtecApi.categoriasConquista.list({ page: 'all' }, signal);
 
-export default function StudentsAdminModule() {
-  const [section, setSection] = useState<Section>('conquistas');
-  return (
-    <div className="space-y-6">
-      <nav aria-label="Seções de conquistas" className="flex flex-wrap gap-2">
-        {(['conquistas', 'categorias'] as const).map(key => <button key={key} type="button" aria-pressed={section === key} onClick={() => setSection(key)}
-          className={`rounded-xl px-4 py-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer ${section === key
-            ? 'bg-[#004A99] text-white' : 'border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-          {key === 'conquistas' ? 'Conquistas' : 'Categorias'}
-        </button>)}
-      </nav>
-      {section === 'conquistas' && <ConquistasPanel />}
-      {section === 'categorias' && <CommunityTaxonomyManager heading="Categorias de conquista" singular="categoria" plural="categorias"
-        deleteHint="Categoria com conquistas não pode ser excluída; nesse caso, desative-a." service={medtecApi.categoriasConquista} />}
-    </div>
-  );
-}
-
-export function ConquistasPanel() {
+export default function ConquistasPanel() {
   const id = useId();
   const [page, setPage] = useState(1);
   const [inputs, setInputs] = useState({ nome: '', titulo: '' });

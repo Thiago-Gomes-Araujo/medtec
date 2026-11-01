@@ -71,7 +71,7 @@ import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput
 import ProjectsModule, { type ProjectViewMode } from '../src/components/admin/ProjectsModule';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
-import { SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
+import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
 import { useAdminTheme } from '../src/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '../src/lib/admin-navigation-filter';
 import type { BannerItem, FaqItem, NewsItem, ProjectMission } from '../src/types';
@@ -130,9 +130,13 @@ import {
   PILLAR_VARIANT_OPTIONS,
 } from '../src/lib/admin-home-pillars';
 import AdminProfessoresSubroutePage from '../src/app/admin/professores/page';
+import AdminDisciplinasSubroutePage from '../src/app/admin/professores/disciplinas/page';
+import AdminRelatosSubroutePage from '../src/app/admin/professores/relatos/page';
 import AdminAlunosSubroutePage from '../src/app/admin/alunos/page';
-import { ProfessoresPanel, RelatosPanel } from '../src/components/admin/TeachersAdminModule';
-import { ConquistasPanel } from '../src/components/admin/StudentsAdminModule';
+import AdminCategoriasConquistaSubroutePage from '../src/app/admin/alunos/categorias/page';
+import ProfessoresPanel from '../src/components/admin/ProfessoresPanel';
+import RelatosPanel from '../src/components/admin/RelatosPanel';
+import ConquistasPanel from '../src/components/admin/ConquistasPanel';
 import CommunityApprovalQueue from '../src/components/admin/CommunityApprovalQueue';
 import RelatoProfessorForm from '../src/components/RelatoProfessorForm';
 import AlunosView from '../src/components/AlunosView';
@@ -2997,6 +3001,22 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     ['Administrador', true], ['Operador de Conteúdo', true], ['Editor de Notícias', false],
     ['Curador de Fotos', false], ['Publicador de Avisos', false],
   ] as const) {
+    it('protege as subrotas de professores e alunos na página para ' + profile, async () => {
+      for (const section of ['professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'] as const) {
+        let renders = 0;
+        const shell = await mountShell({ section, pathname: SHARED_SECTION_CONFIG[section].href, children: () => {
+          renders++; return 'B2: conteúdo protegido';
+        } });
+        try {
+          await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
+          const expected = profile !== 'Curador de Fotos' && profile !== 'Publicador de Avisos';
+          assert.equal(shell.view?.content, expected, section);
+          assert.equal(shell.view?.restricted, !expected, section);
+          assert.equal(renders > 0, expected, section);
+        } finally { await shell.restore(); }
+      }
+    });
+
     it('C1 preserva a guarda do FAQ para ' + profile, async () => {
       let renders = 0;
       const shell = await mountShell({ section: 'duvidas', pathname: '/admin/faq', children: () => {
@@ -4257,11 +4277,29 @@ describe('Metadados compartilhados da navegação administrativa', () => {
         "subtitle": "Cadastre e gerencie os perfis docentes de ministrantes e mediadores, disciplinas e relatos.",
         "href": "/admin/professores"
       },
+      "professoresDisciplinas": {
+        "group": "Publicações do Site",
+        "title": "Disciplinas dos Professores",
+        "subtitle": "Cadastre e organize as disciplinas vinculadas aos perfis docentes.",
+        "href": "/admin/professores/disciplinas"
+      },
+      "professoresRelatos": {
+        "group": "Publicações do Site",
+        "title": "Relatos sobre Professores",
+        "subtitle": "Modere os relatos enviados pelos alunos antes de aparecerem no site.",
+        "href": "/admin/professores/relatos"
+      },
       "alunos": {
         "group": "Publicações do Site",
         "title": "Alunos que Inspiram",
         "subtitle": "Cadastre, publique e gerencie as conquistas dos estudantes e suas categorias.",
         "href": "/admin/alunos"
+      },
+      "alunosCategorias": {
+        "group": "Publicações do Site",
+        "title": "Categorias de Conquista",
+        "subtitle": "Cadastre e organize as categorias usadas nas conquistas dos estudantes.",
+        "href": "/admin/alunos/categorias"
       },
       "kanban": {
         "group": "Aprovação e Revisão",
@@ -4298,17 +4336,18 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.deepEqual(Object.keys(SHARED_SECTION_CONFIG), Object.keys(expected));
   });
 
-  it('mantém os treze destinos na ordem anterior e exclui Início do mapa de redirecionamento', () => {
+  it('mantém os dezesseis destinos na ordem anterior e exclui Início do mapa de redirecionamento', () => {
     assert.deepEqual([...SECTION_HREFS], [
       ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['duvidas', '/admin/faq'],
       ['usuarios', '/admin/usuarios'], ['kanban', '/admin/kanban'], ['noticias', '/admin/noticias'],
       ['avisos', '/admin/avisos'], ['galeria', '/admin/galeria'], ['estadosCidades', '/admin/estados-cidades'],
-      ['professores', '/admin/professores'], ['alunos', '/admin/alunos'],
+      ['professores', '/admin/professores'], ['professoresDisciplinas', '/admin/professores/disciplinas'],
+      ['professoresRelatos', '/admin/professores/relatos'], ['alunos', '/admin/alunos'], ['alunosCategorias', '/admin/alunos/categorias'],
       ['siteInfo', '/admin/institucional'], ['redes', '/admin/redes'],
     ]);
     assert.equal(SECTION_HREFS.has('visaoGeral'), false);
     assert.equal(SHARED_SECTION_CONFIG.visaoGeral.href, '/admin');
-    assert.equal(new Set(SECTION_HREFS.values()).size, 13);
+    assert.equal(new Set(SECTION_HREFS.values()).size, 16);
   });
 
   it('preserva exports públicos e compatibilidade dos tipos de seção e props do shell', () => {
@@ -4339,7 +4378,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
         }
       }
       const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners',
-        '/admin/galeria', '/admin/professores', '/admin/alunos', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+        '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
       assert.deepEqual(page.calls, (mobile ? [...menuOrder, ...menuOrder] : menuOrder).map(href => ({ method: 'push', href })));
     }
   });
@@ -4348,7 +4387,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     const desktop = capture('shell', session);
     const desktopHrefs = desktop.nodes.flatMap(node => node.props.href ? [node.props.href] : []);
     assert.deepEqual(desktopHrefs.filter(href => href.startsWith('/admin')),
-      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/alunos']);
+      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
     assert.match(desktop.html, /<a\b[^>]*href="\/admin"/);
     assert.deepEqual(desktop.calls, []);
     const mobile = capture('shell', session, true);
@@ -4682,7 +4721,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           visit(page);
           assert.equal(overviewFound, true);
           const expected = ['/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners',
-            '/admin/galeria', '/admin/professores', '/admin/alunos', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+            '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
           if (editorialProfile === 'Administrador') expected.push('/admin/kanban');
           assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
         } finally { stateMock.mock.restore(); }
@@ -10880,18 +10919,48 @@ describe('Professores e conquistas — integração com a API', () => {
     try { return await run(calls); } finally { spy.mock.restore(); }
   }
 
-  it('mantém as rotas no AdminShell e não exibe dados fictícios nem selos LGPD', () => {
+  it('mantém as subrotas no AdminShell, destaca a ativa e não exibe dados fictícios nem selos LGPD', () => {
     for (const [section, page, label] of [
       ['professores', AdminProfessoresSubroutePage(), 'Novo professor'],
+      ['professoresDisciplinas', AdminDisciplinasSubroutePage(), 'Disciplinas'],
+      ['professoresRelatos', AdminRelatosSubroutePage(), 'Relatos dos alunos'],
       ['alunos', AdminAlunosSubroutePage(), 'Nova conquista'],
+      ['alunosCategorias', AdminCategoriasConquistaSubroutePage(), 'Categorias de conquista'],
     ] as const) {
       assert.equal(page.type, AdminShell);
       assert.equal(page.props.activeSection, section);
-      assert.equal(SECTION_HREFS.get(section), `/admin/${section}`);
       assert.equal(getFolderIdForSection(section), 'publicacoes');
       const html = renderToStaticMarkup(page.props.children());
       assert.match(html, new RegExp(label));
-      assert.doesNotMatch(html, /fictíci|LGPD verificad|Termo LGPD/i);
+      assert.doesNotMatch(html, /fictíci|LGPD verificad|Termo LGPD|aria-pressed/i);
+      const group = ADMIN_SUBROUTE_GROUPS.find(item => item.items.some(entry => entry.section === section));
+      assert.ok(group);
+      for (const entry of group.items) {
+        const href = SECTION_HREFS.get(entry.section);
+        assert.ok(href);
+        const link = html.match(new RegExp(`<a\\b[^>]*href="${href}"[^>]*>`))?.[0];
+        assert.ok(link, href);
+        assert.equal(link.includes('aria-current="page"'), entry.section === section, href);
+      }
+    }
+  });
+
+  it('gera os menus da árvore única, respeitando as permissões informadas por cada tela', () => {
+    const access = {
+      noticias: false, projetos: false, duvidas: false, avisos: false, fotos: false, galeria: false, professores: true,
+      alunos: false, kanban: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false,
+    };
+    const folders = buildAdminMenu(access, { professoresRelatos: 3 });
+    assert.deepEqual(folders.map(folder => [folder.id, folder.visible]), [['publicacoes', true], ['aprovacao', false], ['dados', false], ['usuarios', false]]);
+    const items = folders.flatMap(folder => folder.items);
+    assert.deepEqual(items.filter(item => item.visible).map(item => item.section), ['professores', 'professoresDisciplinas', 'professoresRelatos']);
+    assert.equal(items.find(item => item.section === 'professoresRelatos')?.badge, 3);
+    assert.deepEqual(items.map(item => [item.section, item.href]), [...SECTION_HREFS].sort((a, b) =>
+      items.findIndex(item => item.section === a[0]) - items.findIndex(item => item.section === b[0])));
+    for (const source of ['src/components/admin/AdminShell.tsx', 'src/app/admin/page.tsx']) {
+      const code = readFileSync(source, 'utf8');
+      assert.match(code, /buildAdminMenu\(/, source);
+      assert.doesNotMatch(code, /section: '[a-zA-Z]+'/, source);
     }
   });
 

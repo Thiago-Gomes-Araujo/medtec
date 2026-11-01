@@ -1,3 +1,27 @@
+import {
+  Award,
+  BarChart3,
+  BookOpen,
+  CheckCircle2,
+  FolderKanban,
+  GraduationCap,
+  HelpCircle,
+  Images,
+  Lightbulb,
+  MapPin,
+  Megaphone,
+  MessageSquareQuote,
+  Newspaper,
+  Presentation,
+  Share2,
+  ShieldCheck,
+  SlidersHorizontal,
+  Tags,
+  UserCog,
+  UsersRound,
+  type LucideIcon,
+} from 'lucide-react';
+
 export type AdminSection =
   | 'visaoGeral'
   | 'kanban'
@@ -12,7 +36,10 @@ export type AdminSection =
   | 'duvidas'
   | 'estadosCidades'
   | 'professores'
-  | 'alunos';
+  | 'professoresDisciplinas'
+  | 'professoresRelatos'
+  | 'alunos'
+  | 'alunosCategorias';
 
 export const SECTION_CONFIG: Record<
   AdminSection,
@@ -66,11 +93,29 @@ export const SECTION_CONFIG: Record<
     subtitle: 'Cadastre e gerencie os perfis docentes de ministrantes e mediadores, disciplinas e relatos.',
     href: '/admin/professores',
   },
+  professoresDisciplinas: {
+    group: 'Publicações do Site',
+    title: 'Disciplinas dos Professores',
+    subtitle: 'Cadastre e organize as disciplinas vinculadas aos perfis docentes.',
+    href: '/admin/professores/disciplinas',
+  },
+  professoresRelatos: {
+    group: 'Publicações do Site',
+    title: 'Relatos sobre Professores',
+    subtitle: 'Modere os relatos enviados pelos alunos antes de aparecerem no site.',
+    href: '/admin/professores/relatos',
+  },
   alunos: {
     group: 'Publicações do Site',
     title: 'Alunos que Inspiram',
     subtitle: 'Cadastre, publique e gerencie as conquistas dos estudantes e suas categorias.',
     href: '/admin/alunos',
+  },
+  alunosCategorias: {
+    group: 'Publicações do Site',
+    title: 'Categorias de Conquista',
+    subtitle: 'Cadastre e organize as categorias usadas nas conquistas dos estudantes.',
+    href: '/admin/alunos/categorias',
   },
   kanban: {
     group: 'Aprovação e Revisão',
@@ -116,7 +161,122 @@ export const SECTION_HREFS = new Map<AdminSection, string>([
   ['galeria', SECTION_CONFIG.galeria.href],
   ['estadosCidades', SECTION_CONFIG.estadosCidades.href],
   ['professores', SECTION_CONFIG.professores.href],
+  ['professoresDisciplinas', SECTION_CONFIG.professoresDisciplinas.href],
+  ['professoresRelatos', SECTION_CONFIG.professoresRelatos.href],
   ['alunos', SECTION_CONFIG.alunos.href],
+  ['alunosCategorias', SECTION_CONFIG.alunosCategorias.href],
   ['siteInfo', SECTION_CONFIG.siteInfo.href],
   ['redes', SECTION_CONFIG.redes.href],
 ]);
+
+export type AdminMenuAccess =
+  | 'noticias'
+  | 'projetos'
+  | 'duvidas'
+  | 'avisos'
+  | 'fotos'
+  | 'galeria'
+  | 'professores'
+  | 'alunos'
+  | 'kanban'
+  | 'siteInfo'
+  | 'redes'
+  | 'estadosCidades'
+  | 'usuarios';
+
+interface AdminMenuItem {
+  section: AdminSection;
+  access: AdminMenuAccess;
+  label: string;
+  tooltip: string;
+  icon: LucideIcon;
+}
+
+interface AdminMenuFolder {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  items: AdminMenuItem[];
+}
+
+const ADMIN_MENU: AdminMenuFolder[] = [
+  {
+    id: 'publicacoes',
+    label: 'Publicações do Site',
+    icon: FolderKanban,
+    items: [
+      { section: 'noticias', access: 'noticias', label: 'Notícias e Matérias', tooltip: 'Criar ou editar reportagens', icon: Newspaper },
+      { section: 'projetos', access: 'projetos', label: 'Projetos Pedagógicos', tooltip: 'Cadastrar e gerenciar projetos pedagógicos das escolas', icon: Lightbulb },
+      { section: 'duvidas', access: 'duvidas', label: 'Dúvidas Frequentes (FAQ)', tooltip: 'Cadastrar e gerenciar perguntas frequentes do portal', icon: HelpCircle },
+      { section: 'avisos', access: 'avisos', label: 'Avisos e Comunicados', tooltip: 'Publicar alertas no mural', icon: Megaphone },
+      { section: 'fotos', access: 'fotos', label: 'Banners da Página Inicial', tooltip: 'Trocar imagens do topo da Home', icon: Presentation },
+      { section: 'galeria', access: 'galeria', label: 'Galeria de Fotos', tooltip: 'Adicionar fotos das escolas', icon: Images },
+      { section: 'professores', access: 'professores', label: 'Professores e Mediadores', tooltip: 'Cadastrar e gerenciar perfis docentes', icon: GraduationCap },
+      { section: 'professoresDisciplinas', access: 'professores', label: 'Disciplinas', tooltip: 'Cadastrar e gerenciar disciplinas dos professores', icon: BookOpen },
+      { section: 'professoresRelatos', access: 'professores', label: 'Relatos dos Alunos', tooltip: 'Moderar relatos enviados sobre os professores', icon: MessageSquareQuote },
+      { section: 'alunos', access: 'alunos', label: 'Alunos que Inspiram', tooltip: 'Cadastrar e gerenciar conquistas de alunos', icon: Award },
+      { section: 'alunosCategorias', access: 'alunos', label: 'Categorias de Conquista', tooltip: 'Cadastrar e gerenciar categorias de conquista', icon: Tags },
+    ],
+  },
+  {
+    id: 'aprovacao',
+    label: 'Aprovação e Revisão',
+    icon: ShieldCheck,
+    items: [
+      { section: 'kanban', access: 'kanban', label: 'Fila de Aprovação (Passo a Passo)', tooltip: 'Abre o fluxo Rascunho > Revisão > Publicado', icon: CheckCircle2 },
+    ],
+  },
+  {
+    id: 'dados',
+    label: 'Dados e Contatos do Site',
+    icon: SlidersHorizontal,
+    items: [
+      { section: 'siteInfo', access: 'siteInfo', label: 'Números de Alunos e Escolas', tooltip: 'Edita os contadores e textos institucionais', icon: BarChart3 },
+      { section: 'redes', access: 'redes', label: 'Redes Sociais e WhatsApp', tooltip: 'Edita os links de YouTube, Instagram e suporte', icon: Share2 },
+      { section: 'estadosCidades', access: 'estadosCidades', label: 'Estados e Municípios', tooltip: 'Cadastrar e gerenciar estados (UF) e municípios da API', icon: MapPin },
+    ],
+  },
+  {
+    id: 'usuarios',
+    label: 'Usuários e Acessos',
+    icon: UsersRound,
+    items: [
+      { section: 'usuarios', access: 'usuarios', label: 'Gerenciar Equipe e Senhas', tooltip: 'Abre o cadastro de operadores por CPF', icon: UserCog },
+    ],
+  },
+];
+
+// Fonte única da árvore da sidebar; cada tela informa as próprias permissões e contadores.
+export function buildAdminMenu(
+  access: Record<AdminMenuAccess, boolean>,
+  badges: Partial<Record<AdminSection, number | string>> = {},
+) {
+  return ADMIN_MENU.map(folder => {
+    const items = folder.items.map(({ access: rule, ...item }) => ({
+      ...item,
+      href: SECTION_CONFIG[item.section].href,
+      badge: badges[item.section],
+      visible: access[rule],
+    }));
+    return { ...folder, items, visible: items.some(item => item.visible) };
+  });
+}
+
+// Navegação interna dos módulos divididos em subrotas.
+export const ADMIN_SUBROUTE_GROUPS: { label: string; items: { section: AdminSection; label: string }[] }[] = [
+  {
+    label: 'Seções de professores',
+    items: [
+      { section: 'professores', label: 'Professores' },
+      { section: 'professoresDisciplinas', label: 'Disciplinas' },
+      { section: 'professoresRelatos', label: 'Relatos dos alunos' },
+    ],
+  },
+  {
+    label: 'Seções de conquistas',
+    items: [
+      { section: 'alunos', label: 'Conquistas' },
+      { section: 'alunosCategorias', label: 'Categorias' },
+    ],
+  },
+];

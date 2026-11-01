@@ -2,12 +2,13 @@
 
 import React from 'react';
 import AdminShell from '@/components/admin/AdminShell';
-import TeachersAdminModule from '@/components/admin/TeachersAdminModule';
+import ProfessoresPanel from '@/components/admin/ProfessoresPanel';
+import { CommunitySubrouteLayout } from '@/components/admin/communityAdminUi';
 
 export default function AdminProfessoresPage() {
   return (
     <AdminShell activeSection="professores">
-      {() => <TeachersAdminModule />}
+      {() => <CommunitySubrouteLayout active="professores"><ProfessoresPanel /></CommunitySubrouteLayout>}
     </AdminShell>
   );
 }

@@ -1,6 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { ADMIN_SUBROUTE_GROUPS, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 import { medtecApi, type ApiResponse, type Escola, type ModeracaoStatus, type PaginatedData, type PaginationMeta } from '@/lib/api';
 import { communityErrorMessage } from '@/lib/community-content';
 
@@ -10,6 +12,23 @@ export const labelClass = 'text-xs font-semibold text-slate-700 dark:text-slate-
 export const panelClass = 'space-y-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1729] p-4 sm:p-6';
 
 export type ModeracaoAction = 'publicar' | 'reprovar' | 'despublicar';
+
+// Abas dos módulos de professores e alunos: cada uma é uma subrota, com a ativa destacada.
+export function CommunitySubrouteLayout({ active, children }: { active: AdminSection; children: ReactNode }) {
+  const group = ADMIN_SUBROUTE_GROUPS.find(item => item.items.some(({ section }) => section === active));
+  return (
+    <div className="space-y-6">
+      {group && <nav aria-label={group.label} className="flex flex-wrap gap-2">
+        {group.items.map(({ section, label }) => <Link key={section} href={SECTION_CONFIG[section].href} aria-current={section === active ? 'page' : undefined}
+          className={`rounded-xl px-4 py-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer ${section === active
+            ? 'bg-[#004A99] text-white' : 'border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+          {label}
+        </Link>)}
+      </nav>}
+      {children}
+    </div>
+  );
+}
 
 // A leitura é abortada ao ocultar a rota e refeita ao reativar; `read` deve ser estável.
 export function useApiList<T>(read: (signal: AbortSignal) => Promise<ApiResponse<PaginatedData<T>>>) {

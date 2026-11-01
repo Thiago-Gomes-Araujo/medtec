@@ -1,25 +1,18 @@
 'use client';
 
 import { useCallback, useId, useState, type FormEvent } from 'react';
-import { medtecApi, type ModeracaoStatus, type PDisciplina, type PProfessor, type PRelato } from '@/lib/api';
-import CommunityTaxonomyManager from './CommunityTaxonomyManager';
+import { medtecApi, type PDisciplina, type PProfessor } from '@/lib/api';
 import {
   buttonClass,
   inputClass,
   labelClass,
   panelClass,
   renderFeedback,
-  renderModerationButtons,
   renderPagination,
-  renderStatusBadge,
   useAdminAction,
   useApiList,
   useEscolaOptions,
-  type ModeracaoAction,
 } from './communityAdminUi';
-
-type Section = 'professores' | 'disciplinas' | 'relatos';
-const SECTION_LABEL: Record<Section, string> = { professores: 'Professores', disciplinas: 'Disciplinas', relatos: 'Relatos dos alunos' };
 
 interface ProfessorForm {
   id?: number;
@@ -34,26 +27,7 @@ interface ProfessorForm {
 const EMPTY_FORM: ProfessorForm = { nome: '', cidadeId: '', escolaId: '', pratica: '', ativo: true, disciplinaIds: [] };
 const readDisciplinas = (signal: AbortSignal) => medtecApi.disciplinasProfessor.list({ page: 'all' }, signal);
 
-export default function TeachersAdminModule() {
-  const [section, setSection] = useState<Section>('professores');
-  return (
-    <div className="space-y-6">
-      <nav aria-label="Seções de professores" className="flex flex-wrap gap-2">
-        {(Object.keys(SECTION_LABEL) as Section[]).map(key => <button key={key} type="button" aria-pressed={section === key} onClick={() => setSection(key)}
-          className={`rounded-xl px-4 py-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 cursor-pointer ${section === key
-            ? 'bg-[#004A99] text-white' : 'border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-          {SECTION_LABEL[key]}
-        </button>)}
-      </nav>
-      {section === 'professores' && <ProfessoresPanel />}
-      {section === 'disciplinas' && <CommunityTaxonomyManager heading="Disciplinas" singular="disciplina" plural="disciplinas"
-        deleteHint="Disciplina ligada a professor não pode ser excluída; nesse caso, desative-a." service={medtecApi.disciplinasProfessor} />}
-      {section === 'relatos' && <RelatosPanel />}
-    </div>
-  );
-}
-
-export function ProfessoresPanel() {
+export default function ProfessoresPanel() {
   const id = useId();
   const [page, setPage] = useState(1);
   const [buscaInput, setBuscaInput] = useState('');
@@ -194,7 +168,7 @@ export function ProfessoresPanel() {
                   disciplinaIds: event.target.checked ? [...form.disciplinaIds, item.id] : form.disciplinaIds.filter(value => value !== item.id),
                 })} /> {item.nome}
               </label>)}
-              {!disciplinas.loading && disciplinaOptions.length === 0 && <p className="text-xs text-slate-600 dark:text-slate-400">Cadastre uma disciplina ativa na aba Disciplinas.</p>}
+              {!disciplinas.loading && disciplinaOptions.length === 0 && <p className="text-xs text-slate-600 dark:text-slate-400">Cadastre uma disciplina ativa em Disciplinas.</p>}
             </div>
           </fieldset>
           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
@@ -230,89 +204,6 @@ export function ProfessoresPanel() {
         </li>)}
       </ul>}
       {!error && renderPagination('Paginação de professores', 'professores', pagination, page, loading || blocked, setPage)}
-    </section>
-  );
-}
-
-export function RelatosPanel() {
-  const id = useId();
-  const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<ModeracaoStatus | ''>('aguardando');
-  const [deleting, setDeleting] = useState<PRelato | null>(null);
-  const read = useCallback((signal: AbortSignal) => medtecApi.relatos.list({
-    page, per_page: 10, 'q[n_status_noticia_slug_eq]': status || undefined,
-  }, signal), [page, status]);
-  const { items, pagination, loading, error, reload } = useApiList<PRelato>(read);
-  const action = useAdminAction();
-  const blocked = action.busy || deleting !== null;
-
-  async function moderate(item: PRelato, operation: ModeracaoAction) {
-    const done = await action.run(async () => {
-      await medtecApi.relatos[operation](item.id);
-      return operation === 'publicar' ? 'Relato publicado.' : operation === 'reprovar' ? 'Relato reprovado.' : 'Relato retirado do site.';
-    });
-    if (done) reload();
-  }
-
-  async function remove() {
-    if (!deleting) return;
-    const removed = await action.run(async () => {
-      await medtecApi.relatos.delete(deleting.id);
-      return 'Relato excluído.';
-    });
-    setDeleting(null);
-    if (removed) {
-      if (items.length === 1 && page > 1) setPage(page - 1);
-      else reload();
-    }
-  }
-
-  return (
-    <section aria-labelledby={`${id}-heading`} className={panelClass}>
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Relatos dos alunos</h2>
-          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Enviados pelo site. E-mail e telefone são visíveis só aqui, nunca no site.</p>
-        </div>
-        <select name="relato-filtro-status" aria-label="Filtrar por situação" value={status} className={`${inputClass} sm:w-56`} onChange={event => { setStatus(event.target.value as ModeracaoStatus | ''); setPage(1); }}>
-          <option value="">Todas as situações</option>
-          <option value="aguardando">Aguardando</option>
-          <option value="publicada">Publicada</option>
-          <option value="reprovada">Reprovada</option>
-        </select>
-      </header>
-
-      {loading && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Carregando relatos...</p>}
-      {error && <div role="alert" className="space-y-2 text-sm text-red-700 dark:text-red-300">
-        <p>{error}</p>
-        <button type="button" disabled={loading} className={buttonClass} onClick={reload}>Tentar novamente</button>
-      </div>}
-      {renderFeedback(action.error, action.success)}
-
-      {deleting && <div role="group" aria-label="Confirmar exclusão" className="space-y-3 rounded-xl bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-800 dark:text-red-200">
-        <p>Excluir o relato de <strong className="break-words">{deleting.nome}</strong>?</p>
-        <div className="flex flex-wrap gap-2">
-          <button type="button" disabled={action.busy} className={buttonClass} onClick={() => void remove()}>Confirmar exclusão</button>
-          <button type="button" disabled={action.busy} className={buttonClass} onClick={() => setDeleting(null)}>Cancelar exclusão</button>
-        </div>
-      </div>}
-
-      {!loading && !error && pagination && items.length === 0 && <p className="py-6 text-sm text-slate-600 dark:text-slate-400">Nenhum relato encontrado.</p>}
-      {!loading && !error && items.length > 0 && <ul className="divide-y divide-slate-200 dark:divide-slate-800" aria-label="Relatos recebidos">
-        {items.map(item => <li key={item.id} className="space-y-2 py-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="break-words text-sm font-semibold text-slate-900 dark:text-white">{item.nome}</h3>
-            {renderStatusBadge(item.status, item.status_nome)}
-          </div>
-          <p className="text-xs text-slate-600 dark:text-slate-400">Sobre {item.professor_nome} · {item.email} · {item.telefone}</p>
-          <p className="whitespace-pre-line break-words text-sm text-slate-700 dark:text-slate-200">{item.texto}</p>
-          <div className="flex flex-wrap gap-2">
-            {renderModerationButtons(item.status, `relato de ${item.nome}`, blocked, operation => void moderate(item, operation))}
-            <button type="button" disabled={blocked} aria-label={`Excluir relato de ${item.nome}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>
-          </div>
-        </li>)}
-      </ul>}
-      {!error && renderPagination('Paginação de relatos', 'relatos', pagination, page, loading || blocked, setPage)}
     </section>
   );
 }

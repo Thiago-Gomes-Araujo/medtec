@@ -12,8 +12,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Tv, 
-  Newspaper, 
-  Share2, 
   LogOut, 
   PanelLeftClose,
   PanelLeftOpen,
@@ -26,22 +24,7 @@ import {
   ArrowLeft,
   Search,
   Home,
-  FolderKanban,
-  Megaphone,
-  Presentation,
-  Images,
-  ShieldCheck,
-  CheckCircle2,
-  SlidersHorizontal,
-  BarChart3,
-  UsersRound,
-  UserCog,
   Info,
-  Lightbulb,
-  MapPin,
-  HelpCircle,
-  GraduationCap,
-  Award,
 } from 'lucide-react';
 import { useAdminOverview } from '@/components/admin/useAdminOverview';
 import AdminOverview from '@/components/admin/AdminOverview';
@@ -49,7 +32,7 @@ import { getLegacyProjectsHref } from '@/lib/admin-projects';
 import { getAdminStaticAlias } from '@/lib/admin-aliases';
 import { getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminEditorialDestination } from '@/lib/admin-auth-navigation';
-import { SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
+import { buildAdminMenu, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
 import {
   medtecApi,
   clearStoredTokens,
@@ -142,7 +125,7 @@ export default function AdminDashboardPage() {
   });
 
   const getFolderIdForSection = useCallback((sec: AdminSection): string | null => {
-    if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas', 'professores', 'alunos'].includes(sec)) return 'publicacoes';
+    if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
     if (['kanban'].includes(sec)) return 'aprovacao';
     if (['siteInfo', 'redes'].includes(sec)) return 'dados';
     if (['usuarios'].includes(sec)) return 'usuarios';
@@ -322,147 +305,28 @@ export default function AdminDashboardPage() {
   const canAccessEstados = userSession.isGestor;
 
   // Árvore de Navegação em Pastas Expansíveis (Didático - Estilo Accordion JOER SEDUC-RO)
-  const folders: NavFolderDef[] = [
-    {
-      id: 'publicacoes',
-      label: 'Publicações do Site',
-      icon: FolderKanban,
-      visible:
-        canAccessNews ||
-        canAccessAnnouncements ||
-        canAccessPhotos ||
-        canAccessGallery ||
-        canAccessProjects ||
-        canAccessFaqs ||
-        canAccessProfessores ||
-        canAccessAlunos,
-      items: [
-        {
-          section: 'noticias',
-          label: 'Notícias e Matérias',
-          tooltip: 'Criar ou editar reportagens',
-          icon: Newspaper,
-          badge: errorNews ? undefined : (loadingNews ? undefined : (totalNews ?? undefined)),
-          visible: canAccessNews,
-        },
-        {
-          section: 'projetos',
-          label: 'Projetos Pedagógicos',
-          tooltip: 'Cadastrar e gerenciar projetos pedagógicos das escolas',
-          icon: Lightbulb,
-          visible: canAccessProjects,
-        },
-        {
-          section: 'duvidas',
-          label: 'Dúvidas Frequentes (FAQ)',
-          tooltip: 'Cadastrar e gerenciar perguntas frequentes do portal',
-          icon: HelpCircle,
-          visible: canAccessFaqs,
-        },
-        {
-          section: 'avisos',
-          label: 'Avisos e Comunicados',
-          tooltip: 'Publicar alertas no mural',
-          icon: Megaphone,
-          badge: errorAvisos ? undefined : (loadingAvisos ? undefined : (totalAvisos ?? undefined)),
-          visible: canAccessAnnouncements,
-        },
-        {
-          section: 'fotos',
-          label: 'Banners da Página Inicial',
-          tooltip: 'Trocar imagens do topo da Home',
-          icon: Presentation,
-          visible: canAccessPhotos,
-        },
-        {
-          section: 'galeria',
-          label: 'Galeria de Fotos',
-          tooltip: 'Adicionar fotos das escolas',
-          icon: Images,
-          badge: errorFotos ? undefined : (loadingFotos ? undefined : (totalFotos ?? undefined)),
-          visible: canAccessGallery,
-        },
-        {
-          section: 'professores',
-          label: 'Professores e Mediadores',
-          tooltip: 'Cadastrar e gerenciar perfis docentes e entrevistas',
-          icon: GraduationCap,
-          visible: canAccessProfessores,
-        },
-        {
-          section: 'alunos',
-          label: 'Alunos que Inspiram',
-          tooltip: 'Cadastrar e gerenciar conquistas de alunos e categorias',
-          icon: Award,
-          visible: canAccessAlunos,
-        },
-      ],
-    },
-    {
-      id: 'aprovacao',
-      label: 'Aprovação e Revisão',
-      icon: ShieldCheck,
-      visible: canAccessKanban,
-      items: [
-        {
-          section: 'kanban',
-          label: 'Fila de Aprovação (Passo a Passo)',
-          tooltip: 'Abre o fluxo Rascunho > Revisão > Publicado',
-          icon: CheckCircle2,
-          badge: errorNews ? undefined : (loadingNews ? undefined : (apiNewsDraftCount !== null && apiNewsDraftCount > 0 ? apiNewsDraftCount : undefined)),
-          visible: canAccessKanban,
-        },
-      ],
-    },
-    {
-      id: 'dados',
-      label: 'Dados e Contatos do Site',
-      icon: SlidersHorizontal,
-      visible: canAccessSiteInfo || canAccessSocials || canAccessEstados,
-      items: [
-        {
-          section: 'siteInfo',
-          label: 'Números de Alunos e Escolas',
-          tooltip: 'Edita os contadores e textos institucionais',
-          icon: BarChart3,
-          badge: undefined,
-          visible: canAccessSiteInfo,
-        },
-        {
-          section: 'redes',
-          label: 'Redes Sociais e WhatsApp',
-          tooltip: 'Edita os links de YouTube, Instagram e suporte',
-          icon: Share2,
-          badge: undefined,
-          visible: canAccessSocials,
-        },
-        {
-          section: 'estadosCidades',
-          label: 'Estados e Municípios',
-          tooltip: 'Cadastrar e gerenciar estados (UF) e municípios da API',
-          icon: MapPin,
-          badge: totalEstados !== null && totalEstados > 0 ? totalEstados : undefined,
-          visible: canAccessEstados,
-        },
-      ],
-    },
-    {
-      id: 'usuarios',
-      label: 'Usuários e Acessos',
-      icon: UsersRound,
-      visible: canAccessUsers,
-      items: [
-        {
-          section: 'usuarios',
-          label: 'Gerenciar Equipe e Senhas',
-          tooltip: 'Abre o cadastro de operadores por CPF',
-          icon: UserCog,
-          badge: errorUsers ? undefined : (totalUsers ?? undefined),
-          visible: canAccessUsers,
-        },
-      ],
-    },
-  ];
+  const folders: NavFolderDef[] = buildAdminMenu({
+    noticias: canAccessNews,
+    projetos: canAccessProjects,
+    duvidas: canAccessFaqs,
+    avisos: canAccessAnnouncements,
+    fotos: canAccessPhotos,
+    galeria: canAccessGallery,
+    professores: canAccessProfessores,
+    alunos: canAccessAlunos,
+    kanban: canAccessKanban,
+    siteInfo: canAccessSiteInfo,
+    redes: canAccessSocials,
+    estadosCidades: canAccessEstados,
+    usuarios: canAccessUsers,
+  }, {
+    noticias: errorNews ? undefined : (loadingNews ? undefined : (totalNews ?? undefined)),
+    avisos: errorAvisos ? undefined : (loadingAvisos ? undefined : (totalAvisos ?? undefined)),
+    galeria: errorFotos ? undefined : (loadingFotos ? undefined : (totalFotos ?? undefined)),
+    kanban: errorNews ? undefined : (loadingNews ? undefined : (apiNewsDraftCount !== null && apiNewsDraftCount > 0 ? apiNewsDraftCount : undefined)),
+    estadosCidades: totalEstados !== null && totalEstados > 0 ? totalEstados : undefined,
+    usuarios: errorUsers ? undefined : (totalUsers ?? undefined),
+  });
 
   // Pesquisa Rápida da Sidebar (Filtro Instantâneo Didático)
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);

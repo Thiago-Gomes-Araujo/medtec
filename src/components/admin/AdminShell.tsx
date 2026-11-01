@@ -9,8 +9,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   Tv,
-  Newspaper,
-  Share2,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
@@ -24,34 +22,19 @@ import {
   ArrowLeft,
   Search,
   Home,
-  FolderKanban,
-  Megaphone,
-  Presentation,
-  Images,
-  ShieldCheck,
-  CheckCircle2,
-  SlidersHorizontal,
-  BarChart3,
-  UsersRound,
-  UserCog,
   Info,
-  Lightbulb,
-  MapPin,
-  HelpCircle,
   Lock,
-  GraduationCap,
-  Award,
 } from 'lucide-react';
 import { medtecApi, clearStoredTokens, type AuthUser } from '@/lib/api';
 import { getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
-import { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
+import { buildAdminMenu, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
 export { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
 export function getFolderIdForSection(sec: AdminSection): string | null {
-  if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas', 'professores', 'alunos'].includes(sec)) return 'publicacoes';
+  if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
   if (['kanban'].includes(sec)) return 'aprovacao';
   if (['siteInfo', 'redes', 'estadosCidades'].includes(sec)) return 'dados';
   if (['usuarios'].includes(sec)) return 'usuarios';
@@ -260,165 +243,21 @@ export default function AdminShell({
   const canAccessEstados = userSession.isGestor;
 
   // Definição da Árvore de Pastas da Sidebar
-  const folders = [
-    {
-      id: 'publicacoes',
-      label: 'Publicações do Site',
-      icon: FolderKanban,
-      visible:
-        canAccessNews ||
-        canAccessAnnouncements ||
-        canAccessPhotos ||
-        canAccessGallery ||
-        canAccessProjects ||
-        canAccessFaqs ||
-        canAccessProfessores ||
-        canAccessAlunos,
-      items: [
-        {
-          section: 'noticias' as AdminSection,
-          label: 'Notícias e Matérias',
-          tooltip: 'Criar ou editar reportagens',
-          icon: Newspaper,
-          badge: badges.noticias,
-          visible: canAccessNews,
-          href: SECTION_CONFIG.noticias.href,
-        },
-        {
-          section: 'projetos' as AdminSection,
-          label: 'Projetos Pedagógicos',
-          tooltip: 'Cadastrar e gerenciar projetos pedagógicos das escolas',
-          icon: Lightbulb,
-          badge: badges.projetos,
-          visible: canAccessProjects,
-          href: SECTION_CONFIG.projetos.href,
-        },
-        {
-          section: 'duvidas' as AdminSection,
-          label: 'Dúvidas Frequentes (FAQ)',
-          tooltip: 'Cadastrar e gerenciar perguntas frequentes do portal',
-          icon: HelpCircle,
-          badge: badges.duvidas,
-          visible: canAccessFaqs,
-          href: SECTION_CONFIG.duvidas.href,
-        },
-        {
-          section: 'avisos' as AdminSection,
-          label: 'Avisos e Comunicados',
-          tooltip: 'Publicar alertas no mural',
-          icon: Megaphone,
-          badge: badges.avisos,
-          visible: canAccessAnnouncements,
-          href: SECTION_CONFIG.avisos.href,
-        },
-        {
-          section: 'fotos' as AdminSection,
-          label: 'Banners da Página Inicial',
-          tooltip: 'Trocar imagens do topo da Home',
-          icon: Presentation,
-          badge: badges.fotos,
-          visible: canAccessPhotos,
-          href: SECTION_CONFIG.fotos.href,
-        },
-        {
-          section: 'galeria' as AdminSection,
-          label: 'Galeria de Fotos',
-          tooltip: 'Adicionar fotos das escolas',
-          icon: Images,
-          badge: badges.galeria,
-          visible: canAccessGallery,
-          href: SECTION_CONFIG.galeria.href,
-        },
-        {
-          section: 'professores' as AdminSection,
-          label: 'Professores e Mediadores',
-          tooltip: 'Perfis docentes, estúdio e salas conectadas',
-          icon: GraduationCap,
-          badge: badges.professores,
-          visible: canAccessProfessores,
-          href: SECTION_CONFIG.professores.href,
-        },
-        {
-          section: 'alunos' as AdminSection,
-          label: 'Alunos que Inspiram',
-          tooltip: 'Conquistas estudantis e categorias',
-          icon: Award,
-          badge: badges.alunos,
-          visible: canAccessAlunos,
-          href: SECTION_CONFIG.alunos.href,
-        },
-      ],
-    },
-    {
-      id: 'aprovacao',
-      label: 'Aprovação e Revisão',
-      icon: ShieldCheck,
-      visible: canAccessKanban,
-      items: [
-        {
-          section: 'kanban' as AdminSection,
-          label: 'Fila de Aprovação (Passo a Passo)',
-          tooltip: 'Abre o fluxo Rascunho > Revisão > Publicado',
-          icon: CheckCircle2,
-          badge: badges.kanban,
-          visible: canAccessKanban,
-          href: SECTION_CONFIG.kanban.href,
-        },
-      ],
-    },
-    {
-      id: 'dados',
-      label: 'Dados e Contatos do Site',
-      icon: SlidersHorizontal,
-      visible: canAccessSiteInfo || canAccessSocials || canAccessEstados,
-      items: [
-        {
-          section: 'siteInfo' as AdminSection,
-          label: 'Números de Alunos e Escolas',
-          tooltip: 'Edita os contadores e textos institucionais',
-          icon: BarChart3,
-          badge: badges.siteInfo,
-          visible: canAccessSiteInfo,
-          href: SECTION_CONFIG.siteInfo.href,
-        },
-        {
-          section: 'redes' as AdminSection,
-          label: 'Redes Sociais e WhatsApp',
-          tooltip: 'Edita os links de YouTube, Instagram e suporte',
-          icon: Share2,
-          badge: badges.redes,
-          visible: canAccessSocials,
-          href: SECTION_CONFIG.redes.href,
-        },
-        {
-          section: 'estadosCidades' as AdminSection,
-          label: 'Estados e Municípios',
-          tooltip: 'Cadastrar e gerenciar estados (UF) e municípios da API',
-          icon: MapPin,
-          badge: badges.estadosCidades,
-          visible: canAccessEstados,
-          href: SECTION_CONFIG.estadosCidades.href,
-        },
-      ],
-    },
-    {
-      id: 'usuarios',
-      label: 'Usuários e Acessos',
-      icon: UsersRound,
-      visible: canAccessUsers,
-      items: [
-        {
-          section: 'usuarios' as AdminSection,
-          label: 'Gerenciar Equipe e Senhas',
-          tooltip: 'Abre o cadastro de operadores por CPF',
-          icon: UserCog,
-          badge: badges.usuarios,
-          visible: canAccessUsers,
-          href: SECTION_CONFIG.usuarios.href,
-        },
-      ],
-    },
-  ];
+  const folders = buildAdminMenu({
+    noticias: canAccessNews,
+    projetos: canAccessProjects,
+    duvidas: canAccessFaqs,
+    avisos: canAccessAnnouncements,
+    fotos: canAccessPhotos,
+    galeria: canAccessGallery,
+    professores: canAccessProfessores,
+    alunos: canAccessAlunos,
+    kanban: canAccessKanban,
+    siteInfo: canAccessSiteInfo,
+    redes: canAccessSocials,
+    estadosCidades: canAccessEstados,
+    usuarios: canAccessUsers,
+  }, badges);
 
   // Pesquisa rápida da Sidebar
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
@@ -462,6 +301,10 @@ export default function AdminShell({
       ? canAccessUsers
       : activeSection === 'estadosCidades'
       ? canAccessEstados
+      : activeSection === 'professores' || activeSection === 'professoresDisciplinas' || activeSection === 'professoresRelatos'
+      ? canAccessProfessores
+      : activeSection === 'alunos' || activeSection === 'alunosCategorias'
+      ? canAccessAlunos
       : true;
 
   const currentConfig = SECTION_CONFIG[activeSection] || SECTION_CONFIG.visaoGeral;
