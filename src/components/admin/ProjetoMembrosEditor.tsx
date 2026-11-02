@@ -3,6 +3,7 @@
 import { useId, useState, type KeyboardEvent } from 'react';
 import { medtecApi, type PjMembro } from '@/lib/api';
 import { formatCpf, isValidCpf, maskCpf, onlyDigits, type MembroDraft } from '@/lib/projetos-content';
+import MembroCadastroModal from './MembroCadastroModal';
 import { buttonClass, inputClass, labelClass, renderFeedback, useAdminAction } from './communityAdminUi';
 
 // Busca o membro pelo CPF: se existir, é reutilizado; se não, é cadastrado antes de entrar no projeto.
@@ -12,6 +13,7 @@ export default function ProjetoMembrosEditor({ value, onChange }: { value: Membr
   const [funcao, setFuncao] = useState('');
   const [encontrado, setEncontrado] = useState<PjMembro | null>(null);
   const [nomeNovo, setNomeNovo] = useState<string | null>(null);
+  const [cadastrando, setCadastrando] = useState(false);
   const action = useAdminAction();
 
   function changeCpf(next: string) {
@@ -41,6 +43,12 @@ export default function ProjetoMembrosEditor({ value, onChange }: { value: Membr
     });
   }
 
+  function membroCadastrado(membro: PjMembro) {
+    setCadastrando(false);
+    onChange([...value, { pj_membro_id: membro.id, nome: membro.nome, cpf: membro.cpf, funcao: '' }]);
+    action.setSuccess(`${membro.nome} cadastrado e incluído. Informe a função e salve o projeto.`);
+  }
+
   // Dentro do formulário do projeto, Enter não pode salvar o projeto inteiro.
   function onEnter(event: KeyboardEvent, run: () => void) {
     if (event.key === 'Enter') { event.preventDefault(); run(); }
@@ -61,13 +69,14 @@ export default function ProjetoMembrosEditor({ value, onChange }: { value: Membr
         </li>)}
       </ul>}
 
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
         <div className="space-y-1.5">
           <label htmlFor={`${id}-cpf`} className={labelClass}>CPF do membro</label>
           <input id={`${id}-cpf`} name="membro-busca-cpf" inputMode="numeric" autoComplete="off" value={cpf} className={inputClass}
             onChange={event => changeCpf(event.target.value)} onKeyDown={event => onEnter(event, () => void buscar())} />
         </div>
         <button type="button" disabled={action.busy} className={buttonClass} onClick={() => void buscar()}>Buscar CPF</button>
+        <button type="button" disabled={action.busy} className={buttonClass} onClick={() => { action.setError(null); action.setSuccess(null); setCadastrando(true); }}>Cadastrar membro</button>
       </div>
 
       {prontoParaAdicionar && <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
@@ -84,6 +93,7 @@ export default function ProjetoMembrosEditor({ value, onChange }: { value: Membr
         <button type="button" disabled={action.busy} className={buttonClass} onClick={() => void adicionar()}>Adicionar ao projeto</button>
       </div>}
       {renderFeedback(action.error, action.success)}
+      {cadastrando && <MembroCadastroModal onClose={() => setCadastrando(false)} onCreated={membroCadastrado} />}
     </fieldset>
   );
 }

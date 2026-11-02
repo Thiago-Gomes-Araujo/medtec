@@ -80,6 +80,7 @@ import { diffProjetoMembros, formatCpf, formatFileSize, getProjetoImageSrc, hasM
 import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput } from '../src/lib/api/types';
 import ProjetosPanel from '../src/components/admin/ProjetosPanel';
 import ProjetoMembrosEditor from '../src/components/admin/ProjetoMembrosEditor';
+import MembroCadastroModal from '../src/components/admin/MembroCadastroModal';
 import ProjetosApprovalQueue from '../src/components/admin/ProjetosApprovalQueue';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
@@ -11232,21 +11233,35 @@ describe('Projetos — membros no painel', () => {
       assert.equal(searchParams.get('q[nome_cont]'), 'Maria'); assert.equal(searchParams.get('q[cpf_eq]'), '01251667708');
     } finally { await view.restore(); }
   });
-  it('cadastro valida o CPF antes de enviar e envia só números', async () => {
+  it('"Cadastrar membro" abre o modal e, ao salvar, fecha e recarrega a lista', async () => {
     const view = await mount();
-    const writes = () => view.calls.filter(call => call.options.method === 'POST');
+    const modal = () => view.nodes().find(node => node.type === MembroCadastroModal);
     try {
       await view.act(settle);
-      await view.click('Novo membro');
-      await view.change('membro-nome', 'Maria Ribeiro');
-      await view.change('membro-cpf', '11111111111');
-      await view.submit('Criar membro');
-      assert.match(view.html(), /Informe um CPF válido\./); assert.equal(writes().length, 0);
-      await view.change('membro-cpf', '01251667708');
-      await view.submit('Criar membro');
+      assert.equal(modal(), undefined);
+      await view.click('Cadastrar membro');
+      const leituras = view.calls.length;
+      await view.act(() => (modal()!.props.onCreated as (value: unknown) => void)(membro));
       await view.act(settle);
-      assert.deepEqual(JSON.parse(String(writes()[0].options.body)), { pj_membro: { nome: 'Maria Ribeiro', cpf: '01251667708' } });
-      assert.match(view.html(), /Membro salvo com sucesso/);
+      assert.equal(modal(), undefined);
+      assert.match(view.html(), /Maria Ribeiro cadastrado\./);
+      assert.ok(view.calls.length > leituras, 'A lista é relida');
+    } finally { await view.restore(); }
+  });
+  it('a edição continua no formulário da tela e envia só números', async () => {
+    const view = await mount(() => reply(membro));
+    try {
+      await view.act(settle);
+      await view.click('Editar Maria Ribeiro');
+      await view.change('membro-cpf', '11111111111');
+      await view.submit('Editar membro');
+      assert.match(view.html(), /Informe um CPF válido\./);
+      await view.change('membro-cpf', '012.516.677-08');
+      await view.submit('Editar membro');
+      await view.act(settle);
+      const patch = view.calls.find(call => call.options.method === 'PATCH')!;
+      assert.ok(patch.url.pathname.endsWith('/pj_membros/1'));
+      assert.deepEqual(JSON.parse(String(patch.options.body)), { pj_membro: { nome: 'Maria Ribeiro', cpf: '01251667708' } });
     } finally { await view.restore(); }
   });
   it('membro em projeto mostra a recusa da API ao excluir', async () => {
@@ -11590,6 +11605,74 @@ describe('Projetos — Fila de Aprovação', () => {
   });
 });
 
+describe('Projetos — modal de cadastro de membro', () => {
+  const headers = { 'content-type': 'application/json' };
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const criado = { id: 8, nome: 'João Lima', cpf: '52998224725' };
+  function mount(write: () => Response = () => new Response(JSON.stringify(criado), { status: 201, headers })) {
+    const created: unknown[] = [];
+    const closed = mock.fn();
+    return mountCategories(async () => write(), false, {
+      component: () => MembroCadastroModal({ onClose: closed, onCreated: value => { created.push(value); } }), allowedPaths: /\/pj_membros$/,
+    }).then(view => ({ view, created, closed }));
+  }
+  it('nome e CPF são validados antes de enviar', async () => {
+    const { view, created } = await mount();
+    try {
+      await view.click('Salvar membro');
+      assert.match(view.html(), /Informe o nome do membro/);
+      await view.change('membro-cadastro-nome', 'João Lima');
+      await view.change('membro-cadastro-cpf', '11111111111');
+      await view.click('Salvar membro');
+      assert.match(view.html(), /Informe um CPF válido/);
+      assert.equal(view.calls.length, 0); assert.equal(created.length, 0);
+    } finally { await view.restore(); }
+  });
+  it('envia só números e devolve o membro criado', async () => {
+    const { view, created } = await mount();
+    try {
+      await view.change('membro-cadastro-nome', ' João Lima ');
+      await view.change('membro-cadastro-cpf', '529.982.247-25');
+      await view.click('Salvar membro');
+      await view.act(settle);
+      assert.equal(view.calls[0].options.method, 'POST');
+      assert.deepEqual(JSON.parse(String(view.calls[0].options.body)), { pj_membro: { nome: 'João Lima', cpf: '52998224725' } });
+      assert.deepEqual(created, [criado]);
+    } finally { await view.restore(); }
+  });
+  it('CPF duplicado mostra o erro da API e mantém o modal aberto', async () => {
+    const { view, created, closed } = await mount(() => new Response(JSON.stringify({ success: false, message: 'Erro de validação', errors: ['Cpf já está em uso'] }), { status: 422, headers }));
+    try {
+      await view.change('membro-cadastro-nome', 'João Lima');
+      await view.change('membro-cadastro-cpf', '52998224725');
+      await view.click('Salvar membro');
+      await view.act(settle);
+      assert.match(view.html(), /Cpf já está em uso/);
+      assert.equal(created.length, 0); assert.equal(closed.mock.callCount(), 0);
+    } finally { await view.restore(); }
+  });
+  it('não usa <form>, pois abre dentro do formulário do projeto; Enter salva sem enviar o projeto', async () => {
+    const { view } = await mount();
+    try {
+      assert.equal(view.nodes().some(node => node.type === 'form'), false);
+      await view.change('membro-cadastro-nome', 'João Lima');
+      await view.change('membro-cadastro-cpf', '52998224725');
+      const enter = { key: 'Enter', prevented: false, preventDefault() { this.prevented = true; } };
+      const input = view.nodes().find(node => node.props.name === 'membro-cadastro-cpf')!;
+      await view.act(() => (input.props.onKeyDown as (event: unknown) => unknown)(enter));
+      await view.act(settle);
+      assert.equal(enter.prevented, true); assert.equal(view.calls.length, 1);
+    } finally { await view.restore(); }
+  });
+  it('Cancelar fecha sem enviar', async () => {
+    const { view, closed } = await mount();
+    try {
+      await view.click('Cancelar');
+      assert.equal(closed.mock.callCount(), 1); assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
+  });
+});
+
 describe('Projetos — membros no formulário', () => {
   const headers = { 'content-type': 'application/json' };
   const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
@@ -11603,6 +11686,21 @@ describe('Projetos — membros no formulário', () => {
       component: () => ProjetoMembrosEditor({ value: state.value, onChange: next => { state.value = next; } }), allowedPaths: /\/pj_membros$/,
     }).then(view => ({ view, state }));
   }
+  it('membro cadastrado no modal já entra selecionado, pedindo a função, sem sair do formulário', async () => {
+    const { view, state } = await mount([], [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
+    const modal = () => view.nodes().find(node => node.type === MembroCadastroModal);
+    try {
+      assert.equal(modal(), undefined);
+      await view.click('Cadastrar membro');
+      await view.act(() => (modal()!.props.onCreated as (value: unknown) => void)({ id: 8, nome: 'João Lima', cpf: '52998224725' }));
+      await view.render();
+      assert.equal(modal(), undefined);
+      assert.deepEqual(state.value.map(item => [item.pj_membro_id, item.funcao]), [[1, 'Mediadora'], [8, '']]);
+      assert.match(view.html(), /João Lima cadastrado e incluído/);
+      assert.equal(view.nodes().find(node => node.props.name === 'membro-funcao-8')?.props.required, true);
+      assert.doesNotMatch(view.html(), /52998224725/);
+    } finally { await view.restore(); }
+  });
   it('CPF inválido não consulta a API', async () => {
     const { view } = await mount([]);
     try {
