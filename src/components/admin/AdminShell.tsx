@@ -264,7 +264,6 @@ export default function AdminShell({
     professores: canAccessProfessores,
     alunos: canAccessAlunos,
     kanban: canAccessKanban,
-    siteInfo: canAccessSiteInfo,
     redes: canAccessSocials,
     estadosCidades: canAccessEstados,
     usuarios: canAccessUsers,

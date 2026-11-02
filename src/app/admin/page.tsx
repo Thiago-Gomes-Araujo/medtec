@@ -321,7 +321,6 @@ export default function AdminDashboardPage() {
     userSession.profileType === 'Editor de Notícias' ||
     userSession.profileType === 'Operador de Conteúdo';
   const canAccessSocials = userSession.isGestor;
-  const canAccessSiteInfo = userSession.isGestor;
   const canAccessUsers = userSession.isGestor;
   const canAccessEstados = userSession.isGestor;
 
@@ -336,7 +335,6 @@ export default function AdminDashboardPage() {
     professores: canAccessProfessores,
     alunos: canAccessAlunos,
     kanban: canAccessKanban,
-    siteInfo: canAccessSiteInfo,
     redes: canAccessSocials,
     estadosCidades: canAccessEstados,
     usuarios: canAccessUsers,

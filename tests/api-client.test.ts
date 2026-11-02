@@ -3986,7 +3986,7 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
 });
 
 describe('Menu do painel por tarefa e cores centralizadas', () => {
-  const access = { noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, siteInfo: true, redes: true, estadosCidades: true, usuarios: true };
+  const access = { noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, redes: true, estadosCidades: true, usuarios: true };
   const labels = (menu: ReturnType<typeof buildAdminMenu>) => menu.map(folder => [folder.label, folder.items.filter(item => item.visible).map(item => item.label)]);
 
   it('agrupa por tarefa, com rótulos curtos, e as telas auxiliares saem do menu', () => {
@@ -3994,7 +3994,7 @@ describe('Menu do painel por tarefa e cores centralizadas', () => {
     assert.deepEqual(labels(menu), [
       ['Conteúdo do site', ['Notícias', 'Avisos', 'Banners', 'Galeria de fotos', 'Projetos', 'Professores', 'Alunos que Inspiram', 'Perguntas frequentes']],
       ['Atendimento', ['Dúvidas do público', 'Aprovações']],
-      ['Configurações', ['Números do site', 'Redes sociais', 'Estados e municípios', 'Usuários e acessos']],
+      ['Configurações', ['Redes sociais', 'Estados e municípios', 'Usuários e acessos']],
     ]);
     const sections = menu.flatMap(folder => folder.items.filter(item => item.visible).map(item => item.section));
     for (const section of ['projetosTemas', 'projetosMembros', 'professoresDisciplinas', 'professoresRelatos', 'alunosCategorias'] as const) {
@@ -4577,8 +4577,8 @@ describe('Metadados compartilhados da navegação administrativa', () => {
       },
       "siteInfo": {
         "group": "Configurações",
-        "title": "Números do site",
-        "subtitle": "Atualize a quantidade oficial de estudantes, escolas, turmas e municípios atendidos.",
+        "title": "Quatro Pilares da Home",
+        "subtitle": "Simule os Quatro Pilares da página inicial. As alterações ainda não são publicadas.",
         "href": "/admin/institucional"
       },
       "redes": {
@@ -4629,7 +4629,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.equal(canAccessAdminUsers(session), true);
   });
 
-  const MENU_ORDER = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+  const MENU_ORDER = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico', '/admin/kanban', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
 
   it('mantém Início como seleção local e o router.push de cada item na página, no desktop e mobile', () => {
     for (const mobile of [false, true]) {
@@ -4721,7 +4721,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
 
 
 function fullOverviewMenu(overrides: Partial<Parameters<typeof buildAdminMenu>[0]> = {}, badges: Parameters<typeof buildAdminMenu>[1] = {}) {
-  return buildAdminMenu({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, siteInfo: true, redes: true, estadosCidades: true, usuarios: true, ...overrides }, badges);
+  return buildAdminMenu({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, redes: true, estadosCidades: true, usuarios: true, ...overrides }, badges);
 }
 
 describe('Interface componentizada da Visão Geral', () => {
@@ -4885,7 +4885,7 @@ describe('Interface componentizada da Visão Geral', () => {
   });
   it('o botão dos cartões é tonal, só visual, com o destino no texto, e fica abaixo de "Nova notícia"', () => {
     const textos = fullOverviewMenu().flatMap(folder => folder.items.filter(item => item.visible).map(item => item.action));
-    assert.deepEqual(textos, ['Abrir Notícias', 'Abrir Avisos', 'Abrir Banners', 'Abrir Galeria', 'Abrir Projetos', 'Abrir Professores', 'Abrir Alunos', 'Abrir Perguntas', 'Responder dúvidas', 'Ver aprovações', 'Abrir Números', 'Abrir Redes sociais', 'Abrir Estados', 'Abrir Usuários']);
+    assert.deepEqual(textos, ['Abrir Notícias', 'Abrir Avisos', 'Abrir Banners', 'Abrir Galeria', 'Abrir Projetos', 'Abrir Professores', 'Abrir Alunos', 'Abrir Perguntas', 'Responder dúvidas', 'Ver aprovações', 'Abrir Redes sociais', 'Abrir Estados', 'Abrir Usuários']);
     assert.equal(fullOverviewMenu({ kanban: false }).flatMap(folder => folder.items).find(item => item.visible && item.section === 'projetosAprovacao')?.action, 'Ver aprovações');
     const gerenciar = secao(render(), 'inicio-gerenciar');
     assert.equal((gerenciar.match(/<a\b/g) || []).length, textos.length, 'Sem link aninhado');
@@ -4930,7 +4930,7 @@ describe('Interface componentizada da Visão Geral', () => {
     assert.doesNotMatch(semDados, /undefined|null|\d+ aguardando|sem resposta|pendentes|relatos? aguardando/);
   });
   it('cartão ou seção sem acesso não aparece, nem nas ações e pendências', () => {
-    const html = render({ menu: fullOverviewMenu({ noticias: false, projetos: false, kanban: false, duvidas: false, professores: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false }) });
+    const html = render({ menu: fullOverviewMenu({ noticias: false, projetos: false, kanban: false, duvidas: false, professores: false, redes: false, estadosCidades: false, usuarios: false }) });
     assert.ok(!html.includes('Nova notícia')); assert.ok(!html.includes('Novo projeto'));
     const atencao = secao(html, 'inicio-atencao');
     for (const text of ['Aprovações', 'Dúvidas do público', 'Relatos']) assert.ok(!atencao.includes(text), text);
@@ -5096,7 +5096,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           visit(page);
           assert.equal(overviewFound, true);
           const expected = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico',
-            '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+            '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
           // Sem a Fila, Aprovações leva direto à aprovação de projetos.
           expected.push(editorialProfile === 'Administrador' ? '/admin/kanban' : '/admin/projetos/aprovacao');
           assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
@@ -8334,7 +8334,7 @@ describe('Visitantes C3 — interface administrativa', () => {
     assert.doesNotMatch(html(null), /sem resposta/);
   });
   it('item do menu exibe o total sem depender da aba aberta', () => {
-    const access = Object.fromEntries(['noticias','projetos','duvidas','avisos','fotos','galeria','professores','alunos','kanban','siteInfo','redes','estadosCidades','usuarios'].map(key => [key, true]));
+    const access = Object.fromEntries(['noticias','projetos','duvidas','avisos','fotos','galeria','professores','alunos','kanban','redes','estadosCidades','usuarios'].map(key => [key, true]));
     const item = buildAdminMenu(access as Parameters<typeof buildAdminMenu>[0], { duvidasPublico: 7 }).flatMap(folder => folder.items).find(entry => entry.section === 'duvidasPublico');
     assert.equal(item?.badge, 7);
   });
@@ -11053,8 +11053,7 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
 
     const workspace = page.props.children();
     const html = renderToStaticMarkup(workspace);
-    assert.match(html, />Quatro Pilares da Home</);
-    assert.match(html, />Textos do Hero e Indicadores</);
+    assert.doesNotMatch(html, /Textos do Hero e Indicadores/);
     assert.match(html, /Editor dos Quatro Pilares Estratégicos da Home/);
     assert.match(html, /Modo de Simulação em Memória — Alterações Temporárias \(Não Publicadas\)/);
   });
@@ -11143,24 +11142,14 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
     }
   });
 
-  it('mantém HomePillarsModule montado e alterna com Textos do Hero e Indicadores em /admin/institucional', async () => {
-    const page = AdminInstitucionalSubroutePage();
-    const workspace = (page.props.children as () => React.ReactElement)();
-    for (const section of ['pilares', 'indicadores'] as const) {
-      const state = mock.method(React, 'useState', (<S,>(initial?: S | (() => S)) => {
-        const value = typeof initial === 'function' ? (initial as () => S)() : initial;
-        return [value === 'pilares' ? section : value, () => {}];
-      }) as typeof React.useState);
-      try {
-        const tree = Reflect.apply(workspace.type as () => ReactNode, undefined, [workspace.props]);
-        const nodes = noticeNodes(tree);
-        const pillars = nodes.find((node) => node.type === HomePillarsModule);
-        assert.ok(pillars, 'HomePillarsModule permanece montado para preservar o rascunho em memória');
-        assert.equal(pillars.props.active, section === 'pilares');
-      } finally {
-        state.mock.restore();
-      }
-    }
+  it('"Números do site" sai do menu e do Início, e os números da home continuam como estão', () => {
+    const menu = buildAdminMenu({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, redes: true, estadosCidades: true, usuarios: true });
+    const items = menu.flatMap(folder => folder.items);
+    assert.ok(!items.some(item => item.section === 'siteInfo' || item.label === 'Números do site' || item.href === '/admin/institucional'));
+    assert.equal(existsSync('src/components/admin/SiteInfoModule.tsx'), false);
+    assert.doesNotMatch(readFileSync('src/app/admin/institucional/page.tsx', 'utf8'), /SiteInfo|\/api\/data/);
+    const home = readFileSync('src/components/HomePageClient.tsx', 'utf8');
+    for (const value of ['6.000+', '129', '330', '52']) assert.ok(home.includes(value), value);
   });
 });
 
@@ -12139,7 +12128,7 @@ describe('Projetos — página de aprovação', () => {
     assert.equal(SHARED_SECTION_CONFIG.projetosAprovacao.href, '/admin/projetos/aprovacao');
     assert.equal(getFolderIdForSection('projetosAprovacao'), 'atendimento');
     assert.ok(ADMIN_SUBROUTE_GROUPS.find(group => group.label === 'Seções de projetos')!.items.some(item => item.section === 'projetosAprovacao'));
-    const access = { noticias: false, projetos: true, duvidas: false, avisos: false, fotos: false, galeria: false, professores: false, alunos: false, kanban: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false };
+    const access = { noticias: false, projetos: true, duvidas: false, avisos: false, fotos: false, galeria: false, professores: false, alunos: false, kanban: false, redes: false, estadosCidades: false, usuarios: false };
     const item = buildAdminMenu(access, { projetosAprovacao: 3 }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!;
     assert.equal(item.visible, true); assert.equal(item.badge, 3);
     assert.equal(buildAdminMenu({ ...access, projetos: false }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!.visible, false);
@@ -12705,7 +12694,7 @@ describe('Professores e conquistas — integração com a API', () => {
   it('gera os menus da árvore única, respeitando as permissões informadas por cada tela', () => {
     const access = {
       noticias: false, projetos: false, duvidas: false, avisos: false, fotos: false, galeria: false, professores: true,
-      alunos: false, kanban: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false,
+      alunos: false, kanban: false, redes: false, estadosCidades: false, usuarios: false,
     };
     const folders = buildAdminMenu(access, { professores: 3 });
     assert.deepEqual(folders.map(folder => [folder.id, folder.visible]), [['conteudo', true], ['atendimento', false], ['configuracoes', false]]);
