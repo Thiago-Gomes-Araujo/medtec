@@ -11676,90 +11676,141 @@ describe('Projetos — modal de cadastro de membro', () => {
 describe('Projetos — membros no formulário', () => {
   const headers = { 'content-type': 'application/json' };
   const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
-  const list = (items: unknown[]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: 1 } } });
+  const list = (items: unknown[], total_pages = 1, current_page = 1) => reply({ success: true, data: { items, pagination: { current_page, total_pages, total_count: items.length, per_page: 10 } } });
   const settle = () => new Promise(resolve => setImmediate(resolve));
+  const debounce = () => new Promise(resolve => setTimeout(resolve, 340));
   const maria = { id: 1, nome: 'Maria Ribeiro', cpf: '01251667708' };
-  function mount(found: unknown[], initial: { pj_membro_id: number; nome: string; cpf: string; funcao: string }[] = []) {
+  const joao = { id: 8, nome: 'João Lima', cpf: '52998224725' };
+  function mount(found: unknown[] = [maria, joao], initial: { pj_membro_id: number; nome: string; cpf: string; funcao: string }[] = [], reader?: (url: URL) => Response) {
     const state = { value: initial };
-    const created = { id: 8, nome: 'João Lima', cpf: '52998224725' };
-    return mountCategories(async (_url, options) => options.method === 'POST' ? reply(created, 201) : list(found), false, {
+    return mountCategories(async url => reader ? reader(url) : list(found), false, {
       component: () => ProjetoMembrosEditor({ value: state.value, onChange: next => { state.value = next; } }), allowedPaths: /\/pj_membros$/,
-    }).then(view => ({ view, state }));
+    }).then(async view => {
+      await view.act(settle);
+      return { view, state };
+    });
   }
+  type View = Awaited<ReturnType<typeof mount>>['view'];
+  const abrir = (view: View) => view.act(() => (view.nodes().find(node => node.props.name === 'membro-busca-nome')!.props.onFocus as () => unknown)());
+  const opcoes = (view: View) => view.nodes().filter(node => node.type === 'ul' && node.props['aria-label'] === 'Membros encontrados');
+
+  it('a lista só aparece ao abrir a busca, com nome e CPF mascarado', async () => {
+    const { view } = await mount();
+    try {
+      assert.equal(opcoes(view).length, 0);
+      assert.equal(view.nodes().some(node => node.props.name === 'membro-busca-cpf'), false, 'Não há mais digitação de CPF');
+      await abrir(view);
+      assert.equal(opcoes(view).length, 1);
+      assert.match(view.html(), /Maria Ribeiro/); assert.match(view.html(), /\*\*\*\.516\.677-\*\*/);
+      assert.doesNotMatch(view.html(), /01251667708|52998224725/);
+    } finally { await view.restore(); }
+  });
+  it('a busca usa q[nome_cont] paginado, depois da pausa na digitação', async () => {
+    const { view } = await mount();
+    try {
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('page'), '1');
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('per_page'), '10');
+      assert.equal(view.calls.at(-1)!.url.searchParams.has('q[nome_cont]'), false);
+      const antes = view.calls.length;
+      await view.change('membro-busca-nome', ' Mar');
+      await view.change('membro-busca-nome', ' Maria ');
+      assert.equal(view.calls.length, antes, 'Nada é consultado a cada tecla');
+      await view.act(debounce);
+      await view.act(settle);
+      assert.equal(view.calls.length, antes + 1);
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('q[nome_cont]'), 'Maria');
+      assert.equal(view.calls.at(-1)!.url.searchParams.has('q[cpf_eq]'), false);
+    } finally { await view.restore(); }
+  });
+  it('a paginação da busca pede a próxima página e uma nova busca volta à primeira', async () => {
+    const { view } = await mount([], [], url => list([maria], 2, Number(url.searchParams.get('page'))));
+    try {
+      await abrir(view);
+      await view.click('Próxima');
+      await view.act(settle);
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('page'), '2');
+      await view.change('membro-busca-nome', 'Maria');
+      await view.act(debounce);
+      await view.act(settle);
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('page'), '1');
+    } finally { await view.restore(); }
+  });
+  it('selecionar inclui o membro pedindo a função, sem POST, e fecha a lista', async () => {
+    const { view, state } = await mount();
+    try {
+      await abrir(view);
+      await view.click('Adicionar Maria Ribeiro');
+      await view.render();
+      assert.deepEqual(state.value, [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: '' }]);
+      assert.equal(opcoes(view).length, 0);
+      const funcao = view.nodes().find(node => node.props.name === 'membro-funcao-1')!;
+      assert.equal(funcao.props.required, true); assert.equal(funcao.props.autoFocus, true);
+      assert.match(view.html(), /Informe a função e salve o projeto/);
+      assert.ok(!view.calls.some(call => call.options.method === 'POST'));
+    } finally { await view.restore(); }
+  });
+  it('membro que já está no projeto fica indisponível na lista e não duplica', async () => {
+    const { view, state } = await mount([maria, joao], [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
+    try {
+      await abrir(view);
+      const opcao = view.nodes().find(node => node.props['aria-label'] === 'Maria Ribeiro já está no projeto')!;
+      assert.equal(opcao.props.disabled, true);
+      assert.equal(view.nodes().some(node => node.props['aria-label'] === 'Adicionar Maria Ribeiro'), false);
+      await view.act(() => (opcao.props.onClick as () => unknown)());
+      assert.equal(state.value.length, 1);
+    } finally { await view.restore(); }
+  });
+  it('a linha mantém a edição da função e permite tirar o membro', async () => {
+    const { view, state } = await mount([], [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
+    try {
+      assert.match(view.html(), /\*\*\*\.516\.677-\*\*/); assert.doesNotMatch(view.html(), /01251667708/);
+      await view.change('membro-funcao-1', 'Coordenadora');
+      assert.equal(state.value[0].funcao, 'Coordenadora');
+      await view.render();
+      await view.click('Remover Maria Ribeiro do projeto');
+      assert.deepEqual(state.value, []);
+    } finally { await view.restore(); }
+  });
+  it('Enter na busca não envia o formulário do projeto e Escape fecha a lista', async () => {
+    const { view } = await mount();
+    try {
+      await abrir(view);
+      const input = () => view.nodes().find(node => node.props.name === 'membro-busca-nome')!;
+      const enter = { key: 'Enter', prevented: false, preventDefault() { this.prevented = true; } };
+      await view.act(() => (input().props.onKeyDown as (event: unknown) => unknown)(enter));
+      assert.equal(enter.prevented, true); assert.equal(opcoes(view).length, 1);
+      await view.act(() => (input().props.onKeyDown as (event: unknown) => unknown)({ key: 'Escape', preventDefault() {} }));
+      assert.equal(opcoes(view).length, 0);
+    } finally { await view.restore(); }
+  });
+  it('falha na busca mostra o erro e permite tentar de novo', async () => {
+    let falhar = true;
+    const { view } = await mount([], [], () => falhar ? reply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403) : list([maria]));
+    try {
+      await abrir(view);
+      assert.match(view.html(), /role="alert"/);
+      falhar = false;
+      await view.click('Recarregar membros');
+      await view.act(settle);
+      assert.match(view.html(), /Maria Ribeiro/);
+    } finally { await view.restore(); }
+  });
   it('membro cadastrado no modal já entra selecionado, pedindo a função, sem sair do formulário', async () => {
     const { view, state } = await mount([], [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
     const modal = () => view.nodes().find(node => node.type === MembroCadastroModal);
     try {
       assert.equal(modal(), undefined);
       await view.click('Cadastrar membro');
-      await view.act(() => (modal()!.props.onCreated as (value: unknown) => void)({ id: 8, nome: 'João Lima', cpf: '52998224725' }));
+      const leituras = view.calls.length;
+      await view.act(() => (modal()!.props.onCreated as (value: unknown) => void)(joao));
+      await view.act(settle);
       await view.render();
       assert.equal(modal(), undefined);
       assert.deepEqual(state.value.map(item => [item.pj_membro_id, item.funcao]), [[1, 'Mediadora'], [8, '']]);
       assert.match(view.html(), /João Lima cadastrado e incluído/);
       assert.equal(view.nodes().find(node => node.props.name === 'membro-funcao-8')?.props.required, true);
       assert.doesNotMatch(view.html(), /52998224725/);
-    } finally { await view.restore(); }
-  });
-  it('CPF inválido não consulta a API', async () => {
-    const { view } = await mount([]);
-    try {
-      await view.change('membro-busca-cpf', '123');
-      await view.click('Buscar CPF');
-      assert.match(view.html(), /Informe um CPF válido/); assert.equal(view.calls.length, 0);
-    } finally { await view.restore(); }
-  });
-  it('CPF cadastrado reutiliza o membro, sem novo POST', async () => {
-    const { view, state } = await mount([maria]);
-    try {
-      await view.change('membro-busca-cpf', '012.516.677-08');
-      await view.click('Buscar CPF');
-      await view.act(settle);
-      assert.equal(view.calls[0].url.searchParams.get('q[cpf_eq]'), '01251667708');
-      assert.match(view.html(), /Já cadastrado/);
-      await view.change('membro-nova-funcao', ' Mediadora ');
-      await view.click('Adicionar ao projeto');
-      await view.act(settle);
-      assert.deepEqual(state.value, [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
-      assert.ok(!view.calls.some(call => call.options.method === 'POST'));
-    } finally { await view.restore(); }
-  });
-  it('CPF sem cadastro cria o membro só com números e usa o id novo', async () => {
-    const { view, state } = await mount([]);
-    try {
-      await view.change('membro-busca-cpf', '529.982.247-25');
-      await view.click('Buscar CPF');
-      await view.act(settle);
-      await view.change('membro-nova-funcao', 'Aluno');
-      await view.click('Adicionar ao projeto');
-      assert.match(view.html(), /Informe o nome do membro/);
-      await view.change('membro-novo-nome', ' João Lima ');
-      await view.click('Adicionar ao projeto');
-      await view.act(settle);
-      const post = view.calls.find(call => call.options.method === 'POST')!;
-      assert.deepEqual(JSON.parse(String(post.options.body)), { pj_membro: { nome: 'João Lima', cpf: '52998224725' } });
-      assert.equal(state.value[0].pj_membro_id, 8);
-    } finally { await view.restore(); }
-  });
-  it('membro repetido é recusado e a linha mostra o CPF mascarado', async () => {
-    const { view } = await mount([maria], [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
-    try {
-      assert.match(view.html(), /\*\*\*\.516\.677-\*\*/); assert.doesNotMatch(view.html(), /01251667708/);
-      await view.change('membro-busca-cpf', '01251667708');
-      await view.click('Buscar CPF');
-      await view.act(settle);
-      assert.match(view.html(), /já está neste projeto/);
-      assert.doesNotMatch(view.html(), /Adicionar ao projeto/);
-    } finally { await view.restore(); }
-  });
-  it('função é obrigatória', async () => {
-    const { view, state } = await mount([maria]);
-    try {
-      await view.change('membro-busca-cpf', '01251667708');
-      await view.click('Buscar CPF');
-      await view.act(settle);
-      await view.click('Adicionar ao projeto');
-      assert.match(view.html(), /Informe a função do membro/); assert.equal(state.value.length, 0);
+      assert.ok(view.calls.length > leituras, 'A busca passa a conhecer o novo membro');
     } finally { await view.restore(); }
   });
 });
