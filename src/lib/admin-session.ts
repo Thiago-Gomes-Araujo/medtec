@@ -20,6 +20,9 @@ export function canAccessDuvidas(session: { isGestor?: boolean; profileType?: st
   return session.isGestor === true || session.profileType === 'Gestor';
 }
 
+// O contrato de projetos dá as permissões aos mesmos perfis.
+export const canAccessProjetos = canAccessDuvidas;
+
 type LocalSessionFieldsSource = {
   isGestor?: boolean;
   user?: AuthUser['cpf'];

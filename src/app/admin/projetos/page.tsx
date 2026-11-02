@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import AdminShell from '@/components/admin/AdminShell';
 import ProjectsModule, { type ProjectViewMode, type ProjectsModuleHandle } from '@/components/admin/ProjectsModule';
 import { readAdminProjects } from '@/lib/admin-projects';
 import { ApiError } from '@/lib/api';
@@ -80,12 +79,8 @@ function ProjectsContent() {
 
 export default function AdminProjetosSubroutePage() {
   return (
-    <AdminShell activeSection="projetos">
-      {() => (
-        <Suspense fallback={<p role="status">Carregando projetos...</p>}>
-          <ProjectsContent />
-        </Suspense>
-      )}
-    </AdminShell>
+    <Suspense fallback={<p role="status">Carregando projetos...</p>}>
+      <ProjectsContent />
+    </Suspense>
   );
 }

@@ -31,7 +31,8 @@ import { createRoot } from 'react-dom/client';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { PathnameContext, SearchParamsContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 import AdminFaqSubroutePage from '../src/app/admin/faq/page';
-import AdminProjetosSubroutePage from '../src/app/admin/projetos/page';
+import AdminProjetosLayout from '../src/app/admin/projetos/layout';
+import TemasProjetoPanel from '../src/components/admin/TemasProjetoPanel';
 import AdminBannersSubroutePage from '../src/app/admin/banners/page';
 import AdminDashboardRoute from '../src/app/admin/page';
 import DesktopSidebarContainer from '../src/components/admin/DesktopSidebarContainer';
@@ -3008,6 +3009,22 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     } finally { await shell.restore(); }
   });
 
+  for (const [profile, allowed] of [['Administrador', true], ['Gestor', true], ['Jornalista', false], ['Operador de Conteúdo', false], ['Editor de Notícias', false]] as const) {
+    it('as três subrotas de projetos seguem os perfis com permissão: ' + profile, async () => {
+      for (const section of ['projetos', 'projetosTemas', 'projetosMembros'] as const) {
+        let renders = 0;
+        const shell = await mountShell({ section, pathname: SHARED_SECTION_CONFIG[section].href, children: () => { renders++; return 'B2: conteúdo protegido'; } });
+        try {
+          assert.equal(renders, 0, 'Nada é montado antes da sessão');
+          await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
+          assert.equal(shell.view?.content, allowed, section);
+          assert.equal(shell.view?.restricted, !allowed, section);
+          assert.equal(renders > 0, allowed, section);
+        } finally { await shell.restore(); }
+      }
+    });
+  }
+
   for (const [profile, allowed] of [['Gestor', true], ['Jornalista', false]] as const) {
     it('dúvidas de visitantes seguem os perfis do seed Rails: ' + profile, async () => {
       const shell = await mountShell({ section: 'duvidas', pathname: '/admin/faq' });
@@ -4265,9 +4282,21 @@ describe('Metadados compartilhados da navegação administrativa', () => {
       },
       "projetos": {
         "group": "Publicações do Site",
-        "title": "Projetos Pedagógicos e Práticas Escolares",
-        "subtitle": "Cadastre, edite e gerencie os projetos pedagógicos, práticas de campo e missões escolares dos 52 municípios.",
+        "title": "Projetos Pedagógicos",
+        "subtitle": "Cadastre os projetos das escolas com tema, relato, capa, anexos e membros, e acompanhe a aprovação.",
         "href": "/admin/projetos"
+      },
+      "projetosTemas": {
+        "group": "Publicações do Site",
+        "title": "Temas de Projeto",
+        "subtitle": "Cadastre e organize os temas usados nos projetos pedagógicos.",
+        "href": "/admin/projetos/temas"
+      },
+      "projetosMembros": {
+        "group": "Publicações do Site",
+        "title": "Membros de Projeto",
+        "subtitle": "Cadastre as pessoas que participam dos projetos. O CPF não aparece no site.",
+        "href": "/admin/projetos/membros"
       },
       "duvidas": {
         "group": "Publicações do Site",
@@ -4358,9 +4387,9 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.deepEqual(Object.keys(SHARED_SECTION_CONFIG), Object.keys(expected));
   });
 
-  it('mantém os dezesseis destinos na ordem anterior e exclui Início do mapa de redirecionamento', () => {
+  it('mantém os dezoito destinos na ordem definida e exclui Início do mapa de redirecionamento', () => {
     assert.deepEqual([...SECTION_HREFS], [
-      ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['duvidas', '/admin/faq'],
+      ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['projetosTemas', '/admin/projetos/temas'], ['projetosMembros', '/admin/projetos/membros'], ['duvidas', '/admin/faq'],
       ['usuarios', '/admin/usuarios'], ['kanban', '/admin/kanban'], ['noticias', '/admin/noticias'],
       ['avisos', '/admin/avisos'], ['galeria', '/admin/galeria'], ['estadosCidades', '/admin/estados-cidades'],
       ['professores', '/admin/professores'], ['professoresDisciplinas', '/admin/professores/disciplinas'],
@@ -4369,7 +4398,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     ]);
     assert.equal(SECTION_HREFS.has('visaoGeral'), false);
     assert.equal(SHARED_SECTION_CONFIG.visaoGeral.href, '/admin');
-    assert.equal(new Set(SECTION_HREFS.values()).size, 16);
+    assert.equal(new Set(SECTION_HREFS.values()).size, 18);
   });
 
   it('preserva exports públicos e compatibilidade dos tipos de seção e props do shell', () => {
@@ -4399,7 +4428,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
           if (item.visible) folder.props.onSelectSection!(item.section);
         }
       }
-      const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners',
+      const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners',
         '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
       assert.deepEqual(page.calls, (mobile ? [...menuOrder, ...menuOrder] : menuOrder).map(href => ({ method: 'push', href })));
     }
@@ -4409,7 +4438,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     const desktop = capture('shell', session);
     const desktopHrefs = desktop.nodes.flatMap(node => node.props.href ? [node.props.href] : []);
     assert.deepEqual(desktopHrefs.filter(href => href.startsWith('/admin')),
-      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
+      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
     assert.match(desktop.html, /<a\b[^>]*href="\/admin"/);
     assert.deepEqual(desktop.calls, []);
     const mobile = capture('shell', session, true);
@@ -4742,7 +4771,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           }
           visit(page);
           assert.equal(overviewFound, true);
-          const expected = ['/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners',
+          const expected = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners',
             '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
           if (editorialProfile === 'Administrador') expected.push('/admin/kanban');
           assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
@@ -5738,10 +5767,10 @@ describe('Subrota administrativa de Projetos', () => {
       const html = renderToStaticMarkup(createElement(
         AppRouterContext.Provider,
         { value: router },
-        createElement(PathnameContext.Provider, { value: '/admin/projetos' }, createElement(AdminProjetosSubroutePage)),
+        createElement(PathnameContext.Provider, { value: '/admin/projetos' }, createElement(AdminProjetosLayout, null, 'Conteúdo protegido')),
       ));
       assert.ok(html.includes('Autenticando e carregando painel de gestão...'));
-      assert.ok(!html.includes('Projetos Cadastrados'));
+      assert.ok(!html.includes('Conteúdo protegido'));
       assert.equal(requests, 0);
       assert.equal(SECTION_CONFIG.projetos.href, '/admin/projetos');
       assert.equal(getFolderIdForSection('projetos'), 'publicacoes');
@@ -11241,6 +11270,47 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
         state.mock.restore();
       }
     }
+  });
+});
+
+describe('Projetos — temas no painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const tema = { id: 2, nome: 'Ciência na Amazônia', slug: 'ciencia-na-amazonia', ativo: true };
+  const reply = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const list = () => reply({ success: true, data: { items: [tema], pagination: { current_page: 1, total_pages: 1, total_count: 1, per_page: 10 } } });
+  const panel = TemasProjetoPanel();
+  const mount = (write: (options: RequestInit) => Response) => mountCategories(async (_url, options) => options.method && options.method !== 'GET' ? write(options) : list(), false, {
+    component: () => Reflect.apply(panel.type as () => ReactNode, undefined, [panel.props]), allowedPaths: /\/pj_temas(\/\d+)?$/,
+  });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+
+  it('usa o gerenciador comum, no masculino, e cria com o corpo do contrato', async () => {
+    const view = await mount(() => reply(tema, 201));
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /Ciência na Amazônia/); assert.match(view.html(), /Ativo/); assert.doesNotMatch(view.html(), /Ativa/);
+      await view.click('Novo tema');
+      await view.change('taxonomy-nome', 'Tecnologia Solar');
+      await view.submit('Criar tema');
+      await view.act(settle);
+      const post = view.calls.find(call => call.options.method === 'POST')!;
+      assert.deepEqual(JSON.parse(String(post.options.body)), { pj_tema: { nome: 'Tecnologia Solar', ativo: true } });
+    } finally { await view.restore(); }
+  });
+  it('tema com projetos mostra a recusa da API e pode ser desativado', async () => {
+    const view = await mount(options => options.method === 'DELETE'
+      ? reply({ success: false, message: 'Não foi possível excluir', errors: ['Não foi possível excluir'] }, 422) : reply({ ...tema, ativo: false }));
+    try {
+      await view.act(settle);
+      await view.click('Excluir ' + tema.nome);
+      await view.click('Confirmar exclusão');
+      await view.act(settle);
+      assert.match(view.html(), /Não foi possível excluir/);
+      await view.click('Desativar ' + tema.nome);
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(view.calls.find(call => call.options.method === 'PATCH')!.options.body)), { pj_tema: { ativo: false } });
+      assert.match(view.html(), /desativado\./);
+    } finally { await view.restore(); }
   });
 });
 

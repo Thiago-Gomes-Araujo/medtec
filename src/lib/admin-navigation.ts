@@ -14,10 +14,12 @@ import {
   Newspaper,
   Presentation,
   Share2,
+  Shapes,
   ShieldCheck,
   SlidersHorizontal,
   Tags,
   UserCog,
+  UserRound,
   UsersRound,
   type LucideIcon,
 } from 'lucide-react';
@@ -33,6 +35,8 @@ export type AdminSection =
   | 'siteInfo'
   | 'usuarios'
   | 'projetos'
+  | 'projetosTemas'
+  | 'projetosMembros'
   | 'duvidas'
   | 'estadosCidades'
   | 'professores'
@@ -59,9 +63,21 @@ export const SECTION_CONFIG: Record<
   },
   projetos: {
     group: 'Publicações do Site',
-    title: 'Projetos Pedagógicos e Práticas Escolares',
-    subtitle: 'Cadastre, edite e gerencie os projetos pedagógicos, práticas de campo e missões escolares dos 52 municípios.',
+    title: 'Projetos Pedagógicos',
+    subtitle: 'Cadastre os projetos das escolas com tema, relato, capa, anexos e membros, e acompanhe a aprovação.',
     href: '/admin/projetos',
+  },
+  projetosTemas: {
+    group: 'Publicações do Site',
+    title: 'Temas de Projeto',
+    subtitle: 'Cadastre e organize os temas usados nos projetos pedagógicos.',
+    href: '/admin/projetos/temas',
+  },
+  projetosMembros: {
+    group: 'Publicações do Site',
+    title: 'Membros de Projeto',
+    subtitle: 'Cadastre as pessoas que participam dos projetos. O CPF não aparece no site.',
+    href: '/admin/projetos/membros',
   },
   duvidas: {
     group: 'Publicações do Site',
@@ -153,6 +169,8 @@ export const SECTION_CONFIG: Record<
 export const SECTION_HREFS = new Map<AdminSection, string>([
   ['fotos', SECTION_CONFIG.fotos.href],
   ['projetos', SECTION_CONFIG.projetos.href],
+  ['projetosTemas', SECTION_CONFIG.projetosTemas.href],
+  ['projetosMembros', SECTION_CONFIG.projetosMembros.href],
   ['duvidas', SECTION_CONFIG.duvidas.href],
   ['usuarios', SECTION_CONFIG.usuarios.href],
   ['kanban', SECTION_CONFIG.kanban.href],
@@ -207,6 +225,8 @@ const ADMIN_MENU: AdminMenuFolder[] = [
     items: [
       { section: 'noticias', access: 'noticias', label: 'Notícias e Matérias', tooltip: 'Criar ou editar reportagens', icon: Newspaper },
       { section: 'projetos', access: 'projetos', label: 'Projetos Pedagógicos', tooltip: 'Cadastrar e gerenciar projetos pedagógicos das escolas', icon: Lightbulb },
+      { section: 'projetosTemas', access: 'projetos', label: 'Temas de Projeto', tooltip: 'Cadastrar e gerenciar temas de projeto', icon: Shapes },
+      { section: 'projetosMembros', access: 'projetos', label: 'Membros de Projeto', tooltip: 'Cadastrar e gerenciar membros de projeto', icon: UserRound },
       { section: 'duvidas', access: 'duvidas', label: 'Dúvidas Frequentes (FAQ)', tooltip: 'Cadastrar e gerenciar perguntas frequentes do portal', icon: HelpCircle },
       { section: 'avisos', access: 'avisos', label: 'Avisos e Comunicados', tooltip: 'Publicar alertas no mural', icon: Megaphone },
       { section: 'fotos', access: 'fotos', label: 'Banners da Página Inicial', tooltip: 'Trocar imagens do topo da Home', icon: Presentation },
@@ -264,6 +284,14 @@ export function buildAdminMenu(
 
 // Navegação interna dos módulos divididos em subrotas.
 export const ADMIN_SUBROUTE_GROUPS: { label: string; items: { section: AdminSection; label: string }[] }[] = [
+  {
+    label: 'Seções de projetos',
+    items: [
+      { section: 'projetos', label: 'Projetos' },
+      { section: 'projetosTemas', label: 'Temas' },
+      { section: 'projetosMembros', label: 'Membros' },
+    ],
+  },
   {
     label: 'Seções de professores',
     items: [
