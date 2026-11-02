@@ -23,6 +23,7 @@ import ExecutiveDossierModal from '../src/components/ExecutiveDossierModal';
 import LiveBroadcastSection from '../src/components/LiveBroadcastSection';
 import type { AvisoPublico, PublicoAvisosParams } from '../src/lib/api/types';
 import * as adminAuthNavigation from '../src/lib/admin-auth-navigation';
+import * as professorPublico from '../src/lib/professor-publico';
 import { Sun, Moon } from 'lucide-react';
 import React, { createElement, isValidElement, type ReactNode } from 'react';
 import { jsx } from 'react/jsx-runtime';
@@ -109,6 +110,7 @@ import {
 } from '../src/lib/api/client';
 import { API_TIMEOUT_MESSAGE, ApiError } from '../src/lib/api/errors';
 import AdminSessionError from '../src/components/admin/AdminSessionError';
+import SiteErrorPage from '../src/app/error';
 import {
   setStoredTokens,
   getStoredAccessToken,
@@ -7203,14 +7205,15 @@ async function simulateAdminReturnLogin(query: string, expected: string, pending
   } finally { await login.restore(); }
 }
 
-async function simulateAdminReturnProxy(path: string, authenticated = false) {
-  const isolated: { exports: { proxy?: (request: NextRequest) => NextResponse } } = { exports: {} };
+function loadIsolatedProxy(authenticated = false) {
+  const isolated: { exports: { proxy?: (request: NextRequest) => NextResponse | Promise<NextResponse> } } = { exports: {} };
   const { outputText } = transpileModule(readFileSync('src/proxy.ts', 'utf8'), { compilerOptions: { module: ModuleKind.CommonJS } });
   runInNewContext(outputText, {
     exports: isolated.exports, URL, Headers, crypto: { randomUUID: () => 'request-id-sintetico' },
     require(name: string) {
       if (name === 'next/server') return { NextResponse };
       if (name === '@/lib/admin-auth-navigation') return adminAuthNavigation;
+      if (name === '@/lib/professor-publico') return professorPublico;
       if (name === '@/lib/auth') return {
         AUTH_COOKIE_NAME: 'synthetic-cookie',
         verifySessionToken(value: string | undefined) {
@@ -7222,7 +7225,11 @@ async function simulateAdminReturnProxy(path: string, authenticated = false) {
     },
   }, { timeout: 1000 });
   assert.equal(typeof isolated.exports.proxy, 'function');
-  const response = isolated.exports.proxy!(new NextRequest('https://medtec.invalid' + path, {
+  return isolated.exports.proxy!;
+}
+
+async function simulateAdminReturnProxy(path: string, authenticated = false) {
+  const response = await loadIsolatedProxy(authenticated)(new NextRequest('https://medtec.invalid' + path, {
     headers: authenticated ? { cookie: 'synthetic-cookie=synthetic-valid' } : {},
   }));
   return { status: response.status, location: response.headers.get('location') };
@@ -13199,10 +13206,12 @@ describe('Professores e conquistas — integração com a API', () => {
     } finally { await view.restore(); }
   });
 
-  it('página do professor mostra "em breve" em qualquer erro da API e relatos sem contato', async () => {
+  it('página do professor dá 404 quando a API responde 404, "em breve" nas outras falhas, e relatos sem contato', async () => {
     await assert.rejects(ProfessorDetalhePage({ params: Promise.resolve({ id: 'abc' }) }));
+    await withFetch(() => problem(404, ['nao_encontrado'], 'Não encontrado'), async () => {
+      await assert.rejects(ProfessorDetalhePage({ params: Promise.resolve({ id: '7' }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
+    });
     for (const reply of [
-      () => problem(404, ['nao_encontrado'], 'Não encontrado'),
       () => problem(500, ['erro_interno'], 'Erro interno'),
       () => { throw new TypeError('fetch failed'); },
     ]) {
@@ -13224,6 +13233,41 @@ describe('Professores e conquistas — integração com a API', () => {
       assert.doesNotMatch(text, /@x\.com|69999990000/);
       assert.equal(nodes.find(node => node.type === RelatoProfessorForm)?.props.professorId, 7);
     });
+  });
+
+  it('Proxy reescreve para a página 404 só quando a API responde 404 em /professores/[id]', async () => {
+    const request = (path: string, headers: Record<string, string> = {}) => loadIsolatedProxy()(new NextRequest('https://medtec.invalid' + path, { headers }));
+    const rewriteTarget = (response: NextResponse) => response.headers.get('x-middleware-rewrite');
+
+    await withFetch(() => problem(404, ['nao_encontrado'], 'Não encontrado'), async () => {
+      const response = await request('/professores/7');
+      assert.equal(rewriteTarget(response), 'https://medtec.invalid/_not-found');
+      assert.equal(response.headers.get('x-request-id'), 'request-id-sintetico');
+    });
+    for (const reply of [
+      () => json({ success: true, message: 'ok', data: { id: 7 } }),
+      () => problem(500, ['erro_interno'], 'Erro interno'),
+      () => { throw new TypeError('fetch failed'); },
+    ]) {
+      await withFetch(reply, async () => {
+        const response = await request('/professores/7');
+        assert.equal(rewriteTarget(response), null);
+        assert.equal(response.headers.get('x-middleware-next'), '1');
+      });
+    }
+
+    const fetchMock = mock.method(globalThis, 'fetch', async () => { throw new Error('Não deve consultar a API.'); });
+    try {
+      assert.equal(rewriteTarget(await request('/professores/abc')), 'https://medtec.invalid/_not-found');
+      for (const [path, headers] of [
+        ['/professores/7', { 'sec-fetch-dest': 'empty' }],
+        ['/professores', {}],
+        ['/professores/7/outro', {}],
+      ] as const) {
+        assert.equal(rewriteTarget(await request(path, headers)), null);
+      }
+      assert.equal(fetchMock.mock.callCount(), 0);
+    } finally { fetchMock.mock.restore(); }
   });
 
   describe('seções públicas sem a API', () => {
@@ -13648,5 +13692,23 @@ describe('/transparencia sem rota oficial', () => {
       assert.ok(view.nodes().some(node => node.type === 'input'));
       assert.ok(!view.nodes().some(node => node.type === CommunityComingSoon));
     });
+  });
+});
+
+describe('Página de erro do site', () => {
+  it('mostra mensagem amigável no padrão do site, sem detalhes técnicos, e permite repetir', () => {
+    const error = mock.method(console, 'error', () => {});
+    const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'erro-test' };
+    try {
+      const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router },
+        createElement(PathnameContext.Provider, { value: '/' }, createElement(SiteErrorPage, { error: new Error('detalhe-interno'), retry() {} }))));
+      assert.match(html, /Algo deu errado nesta página/);
+      assert.match(html, /Tentar novamente/);
+      assert.match(html, /<main/);
+      assert.doesNotMatch(html, /detalhe-interno/);
+    } finally { error.mock.restore(); }
+  });
+  it('recarrega com retry, como pede a versão instalada do Next', () => {
+    assert.match(readFileSync('src/app/error.tsx', 'utf8'), /onClick=\{\(\) => retry\(\)\}/);
   });
 });

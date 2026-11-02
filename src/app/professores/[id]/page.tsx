@@ -7,8 +7,9 @@ import CommunityComingSoon from '@/components/CommunityComingSoon';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import RelatoProfessorForm from '@/components/RelatoProfessorForm';
-import { medtecApi, type ProfessorPublicoDetalhe } from '@/lib/api';
+import { ApiError, medtecApi, type ProfessorPublicoDetalhe } from '@/lib/api';
 import { COMMUNITY_COMING_SOON, getNameInitials } from '@/lib/community-content';
+import { isValidProfessorId } from '@/lib/professor-publico';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -23,13 +24,13 @@ type FetchProfessorResult =
 
 // fetch com signal não é memoizado: cache evita consultar a API de novo entre metadados e página.
 const fetchProfessor = cache(async (id: string): Promise<FetchProfessorResult> => {
-  if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) return { status: 'not_found' };
+  if (!isValidProfessorId(id)) return { status: 'not_found' };
   try {
     const response = await medtecApi.professoresPublicos.get(Number(id));
     return { status: 'ok', item: response.data };
-  } catch {
-    // Rota ainda não implantada e professor inexistente respondem 404 do mesmo jeito.
-    return { status: 'unavailable' };
+  } catch (error) {
+    // Professor não publicado ou excluído responde 404; qualquer outra falha é da API.
+    return { status: error instanceof ApiError && error.isNotFound() ? 'not_found' : 'unavailable' };
   }
 });
 
