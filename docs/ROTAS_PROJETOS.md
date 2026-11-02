@@ -119,7 +119,7 @@ CRUD igual ao das categorias de conquista. Corpo: `{ "pj_tema": { "nome": "Ciên
 ### Membros: `/pj_membros`
 
 ```json
-{ "id": 1, "nome": "Maria Ribeiro", "cpf": "01251667708", "created_by": "1", "updated_by": null, "created_at": "...", "updated_at": "..." }
+{ "id": 1, "nome": "Maria Ribeiro", "cpf": "00000000000", "created_by": "1", "updated_by": null, "created_at": "...", "updated_at": "..." }
 ```
 
 | Rota | Descrição | Sucesso |
@@ -130,14 +130,14 @@ CRUD igual ao das categorias de conquista. Corpo: `{ "pj_tema": { "nome": "Ciên
 | `PATCH /pj_membros/:id` | Editar | 200 objeto |
 | `DELETE /pj_membros/:id` | Excluir. Membro que está em algum projeto não sai (**422** `"Não foi possível excluir"`) | 204 |
 
-Corpo: `{ "pj_membro": { "nome": "Maria Ribeiro", "cpf": "012.516.677-08" } }`.
+Corpo: `{ "pj_membro": { "nome": "Maria Ribeiro", "cpf": "000.000.000-00" } }`.
 
 | Campo | Obrigatório | Regras |
 |---|---|---|
 | `nome` | sim | |
 | `cpf` | sim | CPF válido e **único**; com ou sem máscara (salvo só com números). Nunca aparece no site |
 
-**Fluxo sugerido no formulário do projeto:** digitar o CPF → `GET /pj_membros?q[cpf_eq]=01251667708`. Se vier, usa o `id`; se não, cadastra com `POST /pj_membros` e usa o `id` novo.
+**Fluxo sugerido no formulário do projeto:** digitar o CPF → `GET /pj_membros?q[cpf_eq]=00000000000`. Se vier, usa o `id`; se não, cadastra com `POST /pj_membros` e usa o `id` novo.
 
 ### Projetos: `/pj_projetos`
 
@@ -159,7 +159,7 @@ Corpo: `{ "pj_membro": { "nome": "Maria Ribeiro", "cpf": "012.516.677-08" } }`.
     { "id": 11, "nome": "foto.jpg", "tipo": "image/jpeg", "tamanho": 181220, "url": "/rails/active_storage/blobs/redirect/.../foto.jpg" }
   ],
   "membros": [
-    { "id": 5, "pj_membro_id": 1, "nome": "Maria Ribeiro", "cpf": "01251667708", "funcao": "Professora mediadora" }
+    { "id": 5, "pj_membro_id": 1, "nome": "Maria Ribeiro", "cpf": "00000000000", "funcao": "Professora mediadora" }
   ],
   "n_status_noticia_id": 3,
   "status": "publicada",
