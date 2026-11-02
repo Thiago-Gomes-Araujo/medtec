@@ -49,6 +49,7 @@ import {
 import SidebarNavItem, { type SidebarNavItemProps } from '../src/components/admin/SidebarNavItem';
 import SidebarFolderAccordion, { type SidebarFolderAccordionProps, type NavFolderDef } from '../src/components/admin/SidebarFolderAccordion';
 import AdminOverview, { type AdminOverviewProps } from '../src/components/admin/AdminOverview';
+import type { OverviewStatsIndicators } from '../src/components/admin/OverviewStats';
 import OverviewStats from '../src/components/admin/OverviewStats';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
@@ -61,6 +62,7 @@ import AdminGaleriaPage from '../src/app/admin/galeria/page';
 import EstadosCidadesModule from '../src/components/admin/EstadosCidadesModule';
 import type { ATipoAviso, AAviso, FotoGaleria, CategoriaGaleria, Estado } from '../src/lib/api/types';
 import DuvidasVisitanteModule from '../src/components/admin/DuvidasVisitanteModule';
+import { notifyDuvidasPendentes, useDuvidasPendentes } from '../src/components/admin/useDuvidasPendentes';
 import FaqCentralSection from '../src/components/FaqCentralSection';
 import DuvidaVisitanteForm from '../src/components/DuvidaVisitanteForm';
 import PublicFaqPage from '../src/app/faq/page';
@@ -141,6 +143,8 @@ import ProfessoresPanel from '../src/components/admin/ProfessoresPanel';
 import RelatosPanel from '../src/components/admin/RelatosPanel';
 import ConquistasPanel from '../src/components/admin/ConquistasPanel';
 import CommunityApprovalQueue from '../src/components/admin/CommunityApprovalQueue';
+import DuvidasVisitanteQueue from '../src/components/admin/DuvidasVisitanteQueue';
+import VisitanteFaqDraftLoader from '../src/components/admin/VisitanteFaqDraftLoader';
 import RelatoProfessorForm from '../src/components/RelatoProfessorForm';
 import AlunosView from '../src/components/AlunosView';
 import ProfessoresView from '../src/components/ProfessoresView';
@@ -1822,14 +1826,14 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
     } finally { await page.restore(); }
   });
 
-  it('mantém as seis leituras do overview para o Administrador vigente', async () => {
+  it('mantém as leituras do overview e o contador de dúvidas para o Administrador vigente', async () => {
     const page = await mountSession();
     try {
       page.calls.length = 0;
       await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
       assert.equal(page.session?.isGestor, true);
       assert.equal(page.loading, false);
-      assert.equal(page.overviewRequests.length, 9);
+      assert.equal(page.overviewRequests.length, 10);
       assert.equal(page.localRequests.length, 0);
       assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
@@ -1857,7 +1861,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.session?.profileType, fields.perfil_nome, label);
         assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected ? 9 : 0, label);
+        assert.equal(page.overviewRequests.length, expected ? 10 : 0, label);
         const profile = fields.perfil_nome;
         assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : profile === 'Publicador de Avisos'
@@ -1898,7 +1902,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(reply.data, before, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 9 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? 10 : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -1920,7 +1924,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(page.session, expected, `${source}: ${label}`);
         assert.deepEqual(input, data, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 9 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 10 : 9) : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -1999,7 +2003,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             assert.equal(page.session?.isGestor, isGestor, label);
             assert.equal(page.session?.profileType, profileType, label);
             assert.equal(page.loading, false, label);
-            assert.equal(page.overviewRequests.length, isGestor ? 9 : 0, label);
+            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 10 : 9) : 0, label);
             assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, label);
             assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, label);
           } finally { await page.restore(); }
@@ -3003,8 +3007,19 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     } finally { await shell.restore(); }
   });
 
+  for (const [profile, allowed] of [['Gestor', true], ['Jornalista', false]] as const) {
+    it('dúvidas de visitantes seguem os perfis do seed Rails: ' + profile, async () => {
+      const shell = await mountShell({ section: 'duvidas', pathname: '/admin/faq' });
+      try {
+        await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
+        assert.equal(shell.view?.content, allowed);
+        assert.equal(shell.view?.restricted, !allowed);
+      } finally { await shell.restore(); }
+    });
+  }
+
   for (const [profile, allowed] of [
-    ['Administrador', true], ['Operador de Conteúdo', true], ['Editor de Notícias', false],
+    ['Administrador', true], ['Operador de Conteúdo', false], ['Editor de Notícias', false],
     ['Curador de Fotos', false], ['Publicador de Avisos', false],
   ] as const) {
     it('protege as subrotas de professores e alunos na página para ' + profile, async () => {
@@ -3023,7 +3038,7 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
       }
     });
 
-    it('C1 preserva a guarda do FAQ para ' + profile, async () => {
+    it('C1 aplica a guarda do FAQ para ' + profile, async () => {
       let renders = 0;
       const shell = await mountShell({ section: 'duvidas', pathname: '/admin/faq', children: () => {
         renders++; return 'B2: conteúdo protegido';
@@ -7710,7 +7725,11 @@ describe('Categorias de Dúvidas C1 — serviço autenticado', () => {
 async function mountCategories(fetcher: (url: URL, options: RequestInit) => Promise<Response>, strict = false, config?: { component: () => ReactNode; allowedPaths: RegExp; anonymous?: boolean }) {
   let tree: ReactNode = null;
   const calls: { url: URL; options: RequestInit }[] = [];
-  const doc = { nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null,
+  const visibilityListeners = new Set<() => void>();
+  const doc = { nodeType: 9, visibilityState: 'visible',
+    addEventListener(type: string, listener: () => void) { if (type === 'visibilitychange') visibilityListeners.add(listener); },
+    removeEventListener(type: string, listener: () => void) { if (type === 'visibilitychange') visibilityListeners.delete(listener); },
+    activeElement: null, body: null,
     defaultView: null as unknown, documentElement: { classList: { contains() { return false; } } } };
   const browser = { document: doc, HTMLIFrameElement: class {} };
   doc.defaultView = browser;
@@ -7750,6 +7769,10 @@ async function mountCategories(fetcher: (url: URL, options: RequestInit) => Prom
     render: () => act(() => root.render(strict ? createElement(React.StrictMode, null, createElement(Capture)) : createElement(Capture))),
     html: () => renderToStaticMarkup(tree),
     nodes: () => noticeNodes(tree),
+    async visibilityChange(state: 'visible' | 'hidden') {
+      doc.visibilityState = state;
+      await act(() => { for (const listener of visibilityListeners) listener(); });
+    },
     async click(label: string) {
       const node = noticeNodes(tree).find(node => node.type === 'button' && (node.props['aria-label'] === label || node.props.children === label));
       assert.ok(node, 'Botão: ' + label); assert.ok(!node.props.disabled, 'Botão habilitado: ' + label);
@@ -8470,6 +8493,11 @@ describe('Visitantes C3 — quatro endpoints autenticados', () => {
   });
 });
 
+function DuvidasCounterProbe(enabled: boolean) {
+  const state = useDuvidasPendentes(enabled);
+  return createElement('output', null, state.error ?? String(state.count));
+}
+
 describe('Visitantes C3 — interface administrativa', () => {
   it('aba Visitantes fica dentro da guarda atual, com C1/C2 preservados e montagem sob demanda', () => {
     const page = AdminFaqSubroutePage(); assert.equal(page.type, AdminShell); assert.equal(page.props.activeSection, 'duvidas');
@@ -8488,6 +8516,189 @@ describe('Visitantes C3 — interface administrativa', () => {
         const faq = nodes.find(node => node.type === FaqModule); assert.ok(faq); assert.equal(faq.props.active, section === 'duvidas');
       } finally { state.mock.restore(); }
     }
+  });
+  it('contador consulta só o total das não respondidas e atualiza quando avisado', async () => {
+    let total = 3;
+    const view = await mountCategories(async () => visitanteList([visitanteFixture], { current_page: 1, total_pages: total, total_count: total, per_page: 1 }), false, {
+      component: () => DuvidasCounterProbe(true),
+      allowedPaths: /\/d_duvidas_visitante$/,
+    });
+    try {
+      await view.act(async () => { await Promise.resolve(); });
+      assert.match(view.html(), /<output>3<\/output>/);
+      const { searchParams } = view.calls[0].url;
+      assert.equal(searchParams.get('q[respondida_false]'), '1'); assert.equal(searchParams.get('per_page'), '1');
+      total = 2;
+      await view.act(() => notifyDuvidasPendentes());
+      assert.match(view.html(), /<output>2<\/output>/);
+    } finally { await view.restore(); }
+  });
+  it('contador desativado não consulta a API e falha vira erro, não zero', async () => {
+    const off = await mountCategories(async () => visitanteList(), false, { component: () => DuvidasCounterProbe(false), allowedPaths: /$^/ });
+    try { assert.equal(off.calls.length, 0); } finally { await off.restore(); }
+    const failing = await mountCategories(async () => categoriaReply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403), false, {
+      component: () => DuvidasCounterProbe(true),
+      allowedPaths: /\/d_duvidas_visitante$/,
+    });
+    try {
+      assert.match(failing.html(), /não possui permissão/); assert.doesNotMatch(failing.html(), /<output>0/);
+    } finally { await failing.restore(); }
+  });
+  it('Início mostra o total, a indisponibilidade ou nada na sessão sem token', () => {
+    const props = { indicators: {} as OverviewStatsIndicators, canAccessKanban: true, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {} };
+    const html = (duvidasPendentes?: { count: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, { ...props, duvidasPendentes }));
+    assert.match(html({ count: 4, error: null }), /Dúvidas de visitantes sem resposta:\s*(<!-- -->)?\s*4/);
+    assert.match(html({ count: null, error: 'x' }), /sem resposta:\s*(<!-- -->)?\s*indisponível/);
+    assert.doesNotMatch(html(), /sem resposta/);
+  });
+  it('item do menu exibe o total sem depender da aba aberta', () => {
+    const access = Object.fromEntries(['noticias','projetos','duvidas','avisos','fotos','galeria','professores','alunos','kanban','siteInfo','redes','estadosCidades','usuarios'].map(key => [key, true]));
+    const item = buildAdminMenu(access as Parameters<typeof buildAdminMenu>[0], { duvidas: 7 }).flatMap(folder => folder.items).find(entry => entry.section === 'duvidas');
+    assert.equal(item?.badge, 7);
+  });
+  it('Fila lista as não respondidas, responde sem corpo e tira o item da lista', async () => {
+    let pendentes = [visitanteFixture];
+    const view = await mountCategories(async (url, options) => {
+      if (options.method === 'PATCH') { pendentes = []; return categoriaReply(visitanteRespondida); }
+      return visitanteList(pendentes, { current_page: 1, total_pages: 1, total_count: pendentes.length, per_page: pendentes.length });
+    }, false, { component: () => DuvidasVisitanteQueue(), allowedPaths: /\/d_duvidas_visitante(\/\d+\/responder)?$/ });
+    const settle = async () => { for (let turn = 0; turn < 5; turn++) await Promise.resolve(); };
+    try {
+      await view.act(settle);
+      assert.equal(view.calls[0].url.searchParams.get('q[respondida_false]'), '1');
+      assert.equal(view.calls[0].url.searchParams.get('page'), 'all');
+      assert.match(view.html(), /Tem curso de informática/);
+      await view.click('Responder ' + visitanteFixture.nome);
+      await view.act(settle);
+      const patch = view.calls.find(call => call.options.method === 'PATCH')!;
+      assert.ok(patch.url.pathname.endsWith('/d_duvidas_visitante/' + visitanteFixture.id + '/responder'));
+      assert.equal(patch.options.body, undefined);
+      assert.match(view.html(), /Dúvida marcada como respondida/);
+      assert.match(view.html(), /Nenhuma dúvida sem resposta/, 'page=all sem registros (per_page 0) não é resposta inválida');
+      assert.doesNotMatch(view.html(), /role="alert"/);
+    } finally { await view.restore(); }
+  });
+  it('Fila mostra a falha de leitura e permite tentar de novo, sem falso vazio', async () => {
+    let fail = true;
+    const view = await mountCategories(async () => fail
+      ? categoriaReply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403) : visitanteList([visitanteFixture]),
+    false, { component: () => DuvidasVisitanteQueue(), allowedPaths: /\/d_duvidas_visitante$/ });
+    const settle = async () => { for (let turn = 0; turn < 5; turn++) await Promise.resolve(); };
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /role="alert"/); assert.doesNotMatch(view.html(), /Nenhuma dúvida sem resposta/);
+      fail = false;
+      await view.click('Recarregar dúvidas de visitantes');
+      await view.act(settle);
+      assert.match(view.html(), /Tem curso de informática/);
+    } finally { await view.restore(); }
+  });
+  it('per_page 0 só é aceito na lista vazia', async () => {
+    const reply = (total_count: number, items: DDuvidaVisitante[]) => mock.method(globalThis, 'fetch', async () => categoriaReply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count, per_page: 0 } } }));
+    const empty = reply(0, []);
+    try { assert.deepEqual((await medtecApi.duvidasVisitante.list({ page: 'all' })).data.items, []); } finally { empty.mock.restore(); }
+    const filled = reply(1, [visitanteFixture]);
+    try { await assert.rejects(medtecApi.duvidasVisitante.list({ page: 'all' }), /Resposta inválida/); } finally { filled.mock.restore(); }
+  });
+  describe('Transformar em FAQ', () => {
+    const settle = async () => { for (let turn = 0; turn < 5; turn++) await Promise.resolve(); };
+    const respondida = { ...visitanteRespondida, id: 42, nome: 'Visitante atendido', descricao: 'Tem curso no polo?' };
+    const faqFetcher = (posts: RequestInit[]) => async (url: URL, options: RequestInit) => {
+      if (options.method === 'POST') { posts.push(options); return categoriaReply({ ...duvidaFixture, status: 'publicada', status_nome: 'Publicada' }, 201); }
+      return url.pathname.endsWith('/d_categorias_duvida') ? categoriaList() : duvidaList([]);
+    };
+
+    it('botão só aparece em dúvida respondida e entrega o envio à tela do FAQ', async () => {
+      let chosen: DDuvidaVisitante | undefined;
+      const view = await mountCategories(async () => visitanteList([visitanteFixture, respondida]), false, {
+        component: () => DuvidasVisitanteModule({ onTransformToFaq: item => { chosen = item; } }), allowedPaths: /\/d_duvidas_visitante$/,
+      });
+      try {
+        assert.doesNotMatch(view.html(), new RegExp('Transformar em FAQ: ' + visitanteFixture.nome));
+        await view.click('Transformar em FAQ: Visitante atendido');
+        assert.equal(chosen?.id, 42);
+      } finally { await view.restore(); }
+    });
+    it('formulário abre com a pergunta, pede categoria e resposta e só envia campos do contrato', async () => {
+      const posts: RequestInit[] = [];
+      let prefill: { pergunta: string } | null = null;
+      const view = await mountDuvidas(faqFetcher(posts), false, () => FaqModule({ prefill }));
+      try {
+        await view.act(settle);
+        prefill = { pergunta: respondida.descricao };
+        await view.render();
+        assert.match(view.html(), /Transformar dúvida de visitante em FAQ/);
+        assert.match(view.html(), /Tem curso no polo\?/);
+        assert.match(view.html(), /publicam no site ao salvar/);
+        await view.submit('Criar dúvida');
+        assert.match(view.html(), /Selecione a categoria e preencha a pergunta e a resposta/);
+        assert.equal(posts.length, 0, 'A API não guarda resposta nem categoria da dúvida do visitante');
+        await view.change('d_categoria_duvida_id', '21');
+        await view.change('resposta', 'Sim, veja o polo mais próximo.');
+        await view.submit('Criar dúvida');
+        await view.act(settle);
+        assert.deepEqual(JSON.parse(String(posts[0].body)), { d_duvida: { d_categoria_duvida_id: 21, pergunta: respondida.descricao, resposta: 'Sim, veja o polo mais próximo.' } });
+        assert.match(view.html(), /Dúvida cadastrada\. Situação: Publicada\./, 'Mostra a situação devolvida pela API');
+      } finally { await view.restore(); }
+    });
+    it('rascunho aberto não é substituído', async () => {
+      let prefill: { pergunta: string } | null = null;
+      const view = await mountDuvidas(faqFetcher([]), false, () => FaqModule({ prefill }));
+      try {
+        await view.act(settle);
+        await view.click('Nova dúvida');
+        await view.change('pergunta', 'Rascunho em andamento');
+        prefill = { pergunta: respondida.descricao };
+        await view.render();
+        assert.match(view.html(), /Rascunho em andamento/);
+        assert.doesNotMatch(view.html(), /Tem curso no polo/);
+        assert.match(view.html(), /Conclua ou cancele o rascunho aberto/);
+      } finally { await view.restore(); }
+    });
+    it('Fila oferece a ação depois de responder, levando só o id na URL', async () => {
+      const view = await mountCategories(async (url, options) => options.method === 'PATCH' ? categoriaReply(respondida) : visitanteList([{ ...visitanteFixture, id: 42, nome: 'Visitante atendido' }]), false, {
+        component: () => DuvidasVisitanteQueue(), allowedPaths: /\/d_duvidas_visitante(\/\d+\/responder)?$/,
+      });
+      const link = () => view.nodes().find(node => node.props['aria-label'] === 'Transformar em FAQ: Visitante atendido');
+      try {
+        await view.act(settle);
+        assert.equal(link(), undefined);
+        await view.click('Responder Visitante atendido');
+        await view.act(settle);
+        assert.equal(link()?.props.href, '/admin/faq?visitante=42');
+      } finally { await view.restore(); }
+    });
+    it('carregador só aceita dúvida respondida e mostra a falha', async () => {
+      const mount = (reply: () => Response, visitanteId: number) => mountCategories(async () => reply(), false, {
+        component: () => VisitanteFaqDraftLoader({ visitanteId, onLoaded }), allowedPaths: /\/d_duvidas_visitante\/\d+$/,
+      });
+      const loaded: DDuvidaVisitante[] = [];
+      const onLoaded = (item: DDuvidaVisitante) => { loaded.push(item); };
+      const invalid = await mount(() => categoriaReply(respondida), Number.NaN);
+      try { assert.equal(invalid.calls.length, 0); } finally { await invalid.restore(); }
+      const answered = await mount(() => categoriaReply(respondida), 42);
+      try { await answered.act(settle); assert.equal(loaded[0]?.id, 42); assert.equal(answered.calls[0].options.method, 'GET'); } finally { await answered.restore(); }
+      const pending = await mount(() => categoriaReply(visitanteFixture), 41);
+      try { await pending.act(settle); assert.equal(loaded.length, 1); assert.match(pending.html(), /Marque a dúvida como respondida/); } finally { await pending.restore(); }
+      const missing = await mount(() => categoriaReply({ success: false, message: 'Registro não encontrado', errors: ['x'] }, 404), 99);
+      try { await missing.act(settle); assert.match(missing.html(), /role="alert"/); } finally { await missing.restore(); }
+    });
+    it('tela do FAQ abre o formulário ao transformar um envio', async () => {
+      const workspace = AdminFaqSubroutePage().props.children();
+      const view = await mountCategories(async () => duvidaList([]), false, { component: () => Reflect.apply(workspace.type as () => ReactNode, undefined, [{}]), allowedPaths: /$^/ });
+      try {
+        await view.click('Visitantes');
+        const modulo = view.nodes().find(node => node.type === DuvidasVisitanteModule);
+        await view.act(() => (modulo?.props.onTransformToFaq as (item: DDuvidaVisitante) => void)(respondida));
+        const faq = view.nodes().find(node => node.type === FaqModule);
+        assert.equal(faq?.props.active, true);
+        assert.deepEqual(faq?.props.prefill, { pergunta: respondida.descricao });
+      } finally { await view.restore(); }
+    });
+    it('categorias vazias com page=all (per_page 0) não viram resposta inválida', async () => {
+      const fetcher = mock.method(globalThis, 'fetch', async () => categoriaList([], { current_page: 1, total_pages: 1, total_count: 0, per_page: 0 }));
+      try { assert.deepEqual((await medtecApi.categoriasDuvida.list({ page: 'all' })).data.items, []); } finally { fetcher.mock.restore(); }
+    });
   });
   it('carregamento não exibe falso vazio; vazio confirmado não vira erro', async () => {
     const pending = adminReturnDeferred<Response>();
@@ -8512,6 +8723,43 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_true]'), '1'); assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_false]'), false);
       assert.match(manager.html(), /Tem curso de informática/, 'A coleção da API é a fonte de verdade, sem filtro local');
       await manager.change('situacaoVisitante', 'todas'); assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_true]'), false);
+    } finally { await manager.restore(); }
+  });
+  it('envio novo aparece ao atualizar a lista, sem recarregar a página nem perder o filtro', async () => {
+    let items = [visitanteFixture];
+    const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(visitanteFixture) : visitanteList(items));
+    const novo = { ...visitanteFixture, id: 42, nome: 'Visitante recém-chegado' };
+    try {
+      await manager.change('situacaoVisitante', 'pendentes');
+      assert.doesNotMatch(manager.html(), /Visitante recém-chegado/);
+      items = [novo, visitanteFixture];
+      await manager.click('Atualizar lista');
+      assert.match(manager.html(), /Visitante recém-chegado/);
+      assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1');
+    } finally { await manager.restore(); }
+  });
+  it('lista é buscada ao voltar para a aba, salvo com detalhes abertos ou aba oculta', async () => {
+    let items = [visitanteFixture];
+    const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(visitanteFixture) : visitanteList(items));
+    const lists = () => manager.calls.filter(call => call.url.pathname.endsWith('/d_duvidas_visitante')).length;
+    try {
+      const inicial = lists();
+      await manager.visibilityChange('hidden'); assert.equal(lists(), inicial);
+      items = [{ ...visitanteFixture, id: 42, nome: 'Visitante recém-chegado' }, visitanteFixture];
+      await manager.visibilityChange('visible'); assert.equal(lists(), inicial + 1);
+      assert.match(manager.html(), /Visitante recém-chegado/);
+      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
+      await manager.visibilityChange('visible'); assert.equal(lists(), inicial + 1, 'Detalhes abertos não são interrompidos');
+    } finally { await manager.restore(); }
+  });
+  it('falha ao atualizar mostra o erro, nunca uma lista vazia', async () => {
+    let reply = () => visitanteList();
+    const manager = await mountVisitantes(async () => reply());
+    try {
+      reply = () => categoriaReply({ success: false, message: 'Faça login para continuar.', errors: ['nao_autenticado'] }, 401);
+      await manager.click('Atualizar lista');
+      assert.match(manager.html(), /role="alert"/); assert.match(manager.html(), /precisa estar autenticado/);
+      assert.doesNotMatch(manager.html(), /Nenhuma dúvida de visitante/);
     } finally { await manager.restore(); }
   });
   it('detalhes consultam ID e exibem a descrição completa e os contatos recebidos', async () => {

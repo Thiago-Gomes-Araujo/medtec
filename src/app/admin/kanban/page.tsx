@@ -5,6 +5,7 @@ import AdminShell, { type AdminSession } from '@/components/admin/AdminShell';
 import EditorialKanban from '@/components/EditorialKanban';
 import { useEditorialNews } from '@/components/admin/useEditorialNews';
 import CommunityApprovalQueue from '@/components/admin/CommunityApprovalQueue';
+import DuvidasVisitanteQueue from '@/components/admin/DuvidasVisitanteQueue';
 
 // Montado pelo shell somente depois da verificação da sessão e da autorização.
 function KanbanContent({ session }: { session: AdminSession }) {
@@ -35,6 +36,7 @@ function KanbanContent({ session }: { session: AdminSession }) {
         canReject={canModerate}
       />
       <CommunityApprovalQueue />
+      <DuvidasVisitanteQueue />
     </div>
   );
 }

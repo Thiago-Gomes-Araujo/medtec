@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ApiError, medtecApi, type DDuvidaVisitante, type PaginationMeta } from '@/lib/api';
+import { notifyDuvidasPendentes } from './useDuvidasPendentes';
 
 const buttonClass = 'rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
 type VisitanteQuery = { page: number; per_page: number; situacao: 'todas' | 'pendentes' | 'respondidas' };
@@ -20,7 +21,7 @@ function dateLabel(value: string | null): string {
     : date.toLocaleString('pt-BR', { timeZone: 'America/Porto_Velho' });
 }
 
-export default function DuvidasVisitanteModule() {
+export default function DuvidasVisitanteModule({ onTransformToFaq }: { onTransformToFaq?: (item: DDuvidaVisitante) => void } = {}) {
   const id = useId();
   const [items, setItems] = useState<DDuvidaVisitante[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
@@ -98,6 +99,7 @@ export default function DuvidasVisitanteModule() {
       setItems(previous => previous.map(entry => entry.id === value.id ? value : entry));
       setSelected(previous => previous?.id === value.id ? value : previous);
       setSuccess(value.respondida ? 'Dúvida marcada como respondida.' : 'Registro atualizado. A dúvida permanece não respondida.');
+      notifyDuvidasPendentes();
       await load(query);
     });
   }
@@ -109,11 +111,24 @@ export default function DuvidasVisitanteModule() {
       if (!isCurrent()) return;
       setSelected(previous => previous?.id === deleting.id ? null : previous);
       setDeleting(null); setSuccess('Envio excluído com sucesso.');
+      notifyDuvidasPendentes();
       await load(query);
     });
   }
 
   const blocked = busy || selected !== null || deleting !== null;
+  const refresh = useCallback(() => { setQuery(previous => ({ ...previous })); notifyDuvidasPendentes(); }, []);
+
+  // A API não avisa sobre novos envios: a lista é buscada de novo ao voltar para a aba.
+  useEffect(() => {
+    if (blocked) return;
+    const refreshOnReturn = () => {
+      if (document.visibilityState === 'visible') refresh();
+    };
+    document.addEventListener('visibilitychange', refreshOnReturn);
+    return () => document.removeEventListener('visibilitychange', refreshOnReturn);
+  }, [blocked, refresh]);
+
   return <section aria-labelledby={`${id}-heading`} className="space-y-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0B1729] p-4 sm:p-6">
     <header className="space-y-2">
       <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Dúvidas de visitantes</h2>
@@ -121,16 +136,19 @@ export default function DuvidasVisitanteModule() {
       <p className="text-xs text-slate-600 dark:text-slate-400">Cada ação exige permissão do seu perfil.</p>
     </header>
 
-    <div className="max-w-sm space-y-1.5">
-      <label htmlFor={`${id}-situacao`} className="text-xs font-semibold text-slate-700 dark:text-slate-200">Situação do atendimento</label>
-      <select id={`${id}-situacao`} name="situacaoVisitante" value={query.situacao} disabled={blocked}
-        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#071324] px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#004A99] dark:focus:ring-sky-400 disabled:opacity-50"
-        onChange={event => {
-          const situacao = event.target.value;
-          if (situacao === 'todas' || situacao === 'pendentes' || situacao === 'respondidas') setQuery({ ...query, page: 1, situacao });
-        }}>
-        <option value="todas">Todas</option><option value="pendentes">Não respondidas</option><option value="respondidas">Respondidas</option>
-      </select>
+    <div className="flex flex-wrap items-end gap-3">
+      <div className="w-full max-w-sm space-y-1.5">
+        <label htmlFor={`${id}-situacao`} className="text-xs font-semibold text-slate-700 dark:text-slate-200">Situação do atendimento</label>
+        <select id={`${id}-situacao`} name="situacaoVisitante" value={query.situacao} disabled={blocked}
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#071324] px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#004A99] dark:focus:ring-sky-400 disabled:opacity-50"
+          onChange={event => {
+            const situacao = event.target.value;
+            if (situacao === 'todas' || situacao === 'pendentes' || situacao === 'respondidas') setQuery({ ...query, page: 1, situacao });
+          }}>
+          <option value="todas">Todas</option><option value="pendentes">Não respondidas</option><option value="respondidas">Respondidas</option>
+        </select>
+      </div>
+      <button type="button" disabled={blocked || loading} className={buttonClass} onClick={refresh}>Atualizar lista</button>
     </div>
 
     {loading && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Carregando dúvidas de visitantes...</p>}
@@ -157,6 +175,7 @@ export default function DuvidasVisitanteModule() {
       <p className="whitespace-pre-line break-words text-sm text-slate-700 dark:text-slate-200">{selected.descricao}</p>
       <div className="flex flex-wrap gap-2">
         {!selected.respondida && <button type="button" disabled={busy || deleting !== null} aria-label="Marcar detalhe como respondido" className={buttonClass} onClick={() => void markAnswered(selected)}>Marcar como respondida</button>}
+        {selected.respondida && onTransformToFaq && <button type="button" disabled={busy || deleting !== null} aria-label="Transformar detalhe em FAQ" className={buttonClass} onClick={() => onTransformToFaq(selected)}>Transformar em FAQ</button>}
         <button type="button" disabled={busy || deleting !== null} className={buttonClass} onClick={() => { setDeleting(selected); setActionError(null); setSuccess(null); }}>Excluir este envio</button>
       </div>
     </section>}
@@ -182,6 +201,7 @@ export default function DuvidasVisitanteModule() {
         <div className="flex flex-wrap gap-2">
           <button type="button" disabled={blocked} className={buttonClass} aria-label={`Ver detalhes de ${item.nome}`} onClick={() => void details(item)}>Ver detalhes</button>
           {!item.respondida && <button type="button" disabled={blocked} className={buttonClass} aria-label={`Marcar como respondida: ${item.nome}`} onClick={() => void markAnswered(item)}>Marcar como respondida</button>}
+          {item.respondida && onTransformToFaq && <button type="button" disabled={blocked} className={buttonClass} aria-label={`Transformar em FAQ: ${item.nome}`} onClick={() => onTransformToFaq(item)}>Transformar em FAQ</button>}
           <button type="button" disabled={blocked} className={buttonClass} aria-label={`Excluir envio de ${item.nome}`} onClick={() => { setDeleting(item); setActionError(null); setSuccess(null); }}>Excluir</button>
         </div>
       </li>)}
