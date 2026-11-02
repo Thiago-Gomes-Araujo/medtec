@@ -69,7 +69,7 @@ export default function BannersPanel() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Banners da página inicial</h2>
-          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">O carrossel mostra todos os banners, na ordem do cadastro. Use artes largas; o texto fica desenhado na imagem.</p>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">O topo da home alterna todos os banners como fundo, na ordem do cadastro, escurecidos e atrás do título. Use artes largas e evite texto na imagem.</p>
         </div>
         <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
           setForm(NEW_FORM); action.setError(null); action.setSuccess(null);

@@ -5,7 +5,7 @@
 
 import { describe, it, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { ModuleKind, transpileModule } from 'typescript';
 import nextConfig from '../next.config';
@@ -167,7 +167,7 @@ import StudentStories from '../src/components/StudentStories';
 import ProfessorDetalhePage from '../src/app/professores/[id]/page';
 import ProjetoDetalhePage, { generateMetadata as projetoMetadata } from '../src/app/projetos/[id]/page';
 import ProjetosView from '../src/components/ProjetosView';
-import HomeBannerCarousel from '../src/components/HomeBannerCarousel';
+import HomeHeroBackground from '../src/components/HomeHeroBackground';
 import { readHomeBanners } from '../src/lib/home-banners';
 import { CANAIS_PADRAO, canaisFromApi, whatsappHref, YOUTUBE_URL_OFICIAL } from '../src/lib/site-channels';
 import { readSiteChannels } from '../src/lib/site-channels-server';
@@ -10992,22 +10992,19 @@ describe('Banners — Início do painel', () => {
   });
 });
 
-describe('Banners — carrossel da home', () => {
+describe('Banners — fundo do topo da home', () => {
   const headers = { 'content-type': 'application/json' };
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
   const settle = () => new Promise(resolve => setImmediate(resolve));
   const FILE_URL = 'http://172.16.107.63:3001/rails/active_storage/blobs/redirect/x/banner.png';
   const tres = [{ id: 7, imagem: FILE_URL }, { id: 3, imagem: 'https://exemplo.com/b.jpg' }, { id: 9, imagem: 'https://outro.org/c.webp' }];
   const reply = (data: unknown) => async () => json({ success: true, message: 'Banners encontrados', data });
-  const mount = (banners: BannerPublico[], windowExtras?: Record<string, unknown>) => mountCategories(async () => { throw new Error('O carrossel não consulta a API no navegador'); }, false, {
-    component: () => HomeBannerCarousel({ banners }), allowedPaths: /$^/, windowExtras,
+  const mount = (banners: BannerPublico[], windowExtras?: Record<string, unknown>) => mountCategories(async () => { throw new Error('O fundo não consulta a API no navegador'); }, false, {
+    component: () => HomeHeroBackground({ banners }), allowedPaths: /$^/, windowExtras,
   });
   type View = Awaited<ReturnType<typeof mount>>;
   const images = (view: View) => view.nodes().filter(node => node.type === NextImage);
-  const slide = (view: View, label: string) => view.nodes().find(node => node.props['aria-roledescription'] === 'slide' && node.props['aria-label'] === label)!;
-  const activeLabel = (view: View) => view.nodes().find(node => node.props['aria-roledescription'] === 'slide' && node.props['aria-hidden'] === false)?.props['aria-label'];
-  const region = (view: View) => view.nodes().find(node => node.props['aria-roledescription'] === 'carrossel')!;
-  const fire = (view: View, name: string, event: unknown = {}) => view.act(() => Reflect.apply(region(view).props[name] as (value: unknown) => unknown, undefined, [event]));
+  const visivel = (view: View) => images(view).filter(node => /\bopacity-25\b/.test(String(node.props.className))).map(node => node.props.src);
   const reduced = (matches: boolean) => ({ matchMedia: () => ({ matches, addEventListener() {}, removeEventListener() {} }) });
 
   it('leitura no servidor: lista da API, e qualquer falha vira lista vazia sem erro', async () => {
@@ -11035,42 +11032,59 @@ describe('Banners — carrossel da home', () => {
       assert.equal(timeout.mock.calls[0].arguments[0], 2500);
     } finally { spy.mock.restore(); timeout.mock.restore(); warn.mock.restore(); }
   });
-  it('o servidor usa cache curto, e a home passa a lista pronta para o carrossel antes do topo', () => {
+  it('o servidor usa cache curto, e os banners entram no fundo do topo, no lugar do carrossel e da foto', () => {
     const cached = readFileSync('src/lib/home-banners.ts', 'utf8');
     assert.match(cached, /getHomeBanners\(\)[^{]*\{\s*'use cache';/);
     assert.match(cached, /cacheLife\(\{ stale: 300, revalidate: failed \? 30 : 300 \}\)/);
     const page = readFileSync('src/app/page.tsx', 'utf8');
     assert.doesNotMatch(page, /use client/); assert.match(page, /await getHomeBanners\(\)/);
     const source = readFileSync('src/components/HomePageClient.tsx', 'utf8');
-    assert.ok(source.indexOf('<HomeBannerCarousel banners={banners} />') > 0 && source.indexOf('<HomeBannerCarousel banners={banners} />') < source.indexOf('id="inicio"'));
+    const fundo = source.indexOf('<HomeHeroBackground banners={banners} />');
+    assert.ok(fundo > source.indexOf('id="inicio"') && fundo < source.indexOf('Conteúdo Principal do Hero'), 'Fica atrás do título e do cartão');
+    assert.doesNotMatch(source, /HomeBannerCarousel|Transmissão das aulas do MEDTEC Rondônia/);
+    assert.equal(existsSync('src/components/HomeBannerCarousel.tsx'), false);
   });
-  it('lista vazia não reserva espaço nem mostra nada', async () => {
+  it('sem banners ou com falha na API, mantém /hero.jpg como antes', async () => {
     const view = await mount([]);
-    try { assert.equal(view.html(), ''); assert.equal(view.calls.length, 0); } finally { await view.restore(); }
+    try {
+      assert.equal(images(view).length, 1);
+      const foto = images(view)[0].props;
+      assert.equal(foto.src, '/hero.jpg'); assert.equal(foto.alt, 'Transmissão das aulas do MEDTEC Rondônia');
+      assert.equal(foto.className, 'object-cover opacity-25 mix-blend-luminosity pointer-events-none');
+      assert.equal(foto.fetchPriority, 'high');
+      assert.equal(view.nodes().some(node => node.type === 'button'), false);
+      assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
   });
-  it('vem pronto no HTML do servidor, sem consultar a API no navegador', async () => {
-    const html = renderToStaticMarkup(createElement(HomeBannerCarousel, { banners: tres }));
-    assert.match(html, /aria-roledescription="carrossel"/); assert.match(html, /alt="Banner 1 de 3"/);
+  it('vem pronto no HTML do servidor, decorativo, sem consultar a API no navegador', async () => {
+    const html = renderToStaticMarkup(createElement(HomeHeroBackground, { banners: tres }));
+    assert.match(html, /<img[^>]*alt=""[^>]*aria-hidden="true"|<img[^>]*aria-hidden="true"[^>]*alt=""/);
     assert.match(html, /fetchPriority="high"/);
+    assert.doesNotMatch(html, /\/hero\.jpg|carrossel|Banner 1 de 3/);
     const view = await mount(tres);
     try { await view.act(settle); assert.equal(view.calls.length, 0); } finally { await view.restore(); }
   });
-  it('um banner não tem controles nem troca automática', async () => {
+  it('um banner fica fixo, sem botão de pausa', async () => {
+    mock.timers.enable({ apis: ['setInterval'] });
     const view = await mount([tres[0]]);
     try {
       await view.act(settle);
-      assert.equal(images(view).length, 1); assert.equal(images(view)[0].props.alt, 'Banner 1 de 1');
+      await view.act(() => mock.timers.tick(30000));
+      assert.deepEqual(visivel(view), [tres[0].imagem]);
+      assert.equal(images(view).length, 1);
       assert.equal(view.nodes().filter(node => node.type === 'button').length, 0);
-    } finally { await view.restore(); }
+    } finally { mock.timers.reset(); await view.restore(); }
   });
-  it('um slide por item, na ordem recebida, sem juntar URL e sem otimização', async () => {
+  it('as imagens mantêm o overlay escuro, são decorativas, sem otimização e sem juntar URL', async () => {
     const view = await mount(tres);
     try {
       await view.act(settle);
-      assert.deepEqual(view.nodes().filter(node => node.props['aria-roledescription'] === 'slide').map(node => node.props['aria-label']), ['Banner 1 de 3', 'Banner 2 de 3', 'Banner 3 de 3']);
       assert.deepEqual(images(view).map(node => node.props.src), tres.map(item => item.imagem));
-      assert.deepEqual(images(view).map(node => node.props.alt), ['Banner 1 de 3', 'Banner 2 de 3', 'Banner 3 de 3']);
-      assert.ok(images(view).every(node => node.props.unoptimized === true), 'imagem_url pode ser de qualquer domínio');
+      for (const { props } of images(view)) {
+        assert.equal(props.alt, ''); assert.equal(props['aria-hidden'], true); assert.equal(props.unoptimized, true); assert.equal(props.fill, true);
+        assert.match(String(props.className), /object-cover/); assert.match(String(props.className), /mix-blend-luminosity/); assert.match(String(props.className), /transition-opacity/);
+      }
+      assert.deepEqual(visivel(view), [tres[0].imagem]);
     } finally { await view.restore(); }
   });
   it('a primeira imagem é prioritária e as demais são lazy; distantes nem são montadas', async () => {
@@ -11084,50 +11098,32 @@ describe('Banners — carrossel da home', () => {
       assert.ok(mounted.slice(1).every(node => node.props.loading === 'lazy' && node.props.fetchPriority === undefined));
     } finally { await view.restore(); }
   });
-  it('botões, indicadores e setas do teclado trocam o slide, circulando', async () => {
-    const view = await mount(tres);
-    try {
-      await view.act(settle);
-      assert.equal(activeLabel(view), 'Banner 1 de 3');
-      await view.click('Próximo banner'); assert.equal(activeLabel(view), 'Banner 2 de 3');
-      await view.click('Banner anterior'); await view.click('Banner anterior'); assert.equal(activeLabel(view), 'Banner 3 de 3');
-      await view.click('Ir para o banner 2 de 3'); assert.equal(activeLabel(view), 'Banner 2 de 3');
-      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ir para o banner 2 de 3')?.props['aria-current'], 'true');
-      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ir para o banner 1 de 3')?.props['aria-current'], undefined);
-      const preventDefault = mock.fn();
-      await fire(view, 'onKeyDown', { key: 'ArrowRight', preventDefault }); assert.equal(activeLabel(view), 'Banner 3 de 3');
-      await fire(view, 'onKeyDown', { key: 'ArrowRight', preventDefault }); assert.equal(activeLabel(view), 'Banner 1 de 3');
-      await fire(view, 'onKeyDown', { key: 'ArrowLeft', preventDefault }); assert.equal(activeLabel(view), 'Banner 3 de 3');
-      assert.equal(preventDefault.mock.callCount(), 3);
-      await fire(view, 'onKeyDown', { key: 'Tab', preventDefault }); assert.equal(preventDefault.mock.callCount(), 3, 'Outras teclas seguem normais');
-      assert.equal(slide(view, 'Banner 1 de 3').props['aria-hidden'], true);
-    } finally { await view.restore(); }
-  });
-  it('troca sozinho e pausa com o mouse, o foco e o botão', async () => {
+  it('troca sozinho a cada 6 segundos, circulando, e o botão pausa e retoma', async () => {
     mock.timers.enable({ apis: ['setInterval'] });
     const view = await mount(tres);
-    const tick = () => view.act(() => mock.timers.tick(6000));
+    const tick = (ms = 6000) => view.act(() => mock.timers.tick(ms));
     try {
       await view.act(settle);
-      await tick(); assert.equal(activeLabel(view), 'Banner 2 de 3');
-      await fire(view, 'onMouseEnter'); await tick(); assert.equal(activeLabel(view), 'Banner 2 de 3', 'Mouse pausa');
-      await fire(view, 'onMouseLeave'); await tick(); assert.equal(activeLabel(view), 'Banner 3 de 3');
-      await fire(view, 'onFocus'); await tick(); assert.equal(activeLabel(view), 'Banner 3 de 3', 'Foco pausa');
-      await fire(view, 'onBlur', { currentTarget: { contains: () => true }, relatedTarget: {} }); await tick(); assert.equal(activeLabel(view), 'Banner 3 de 3', 'Foco dentro do carrossel continua pausado');
-      await fire(view, 'onBlur', { currentTarget: { contains: () => false }, relatedTarget: null }); await tick(); assert.equal(activeLabel(view), 'Banner 1 de 3');
-      await view.click('Pausar troca automática'); await tick(); assert.equal(activeLabel(view), 'Banner 1 de 3', 'Botão pausa');
-      await view.click('Retomar troca automática'); await tick(); assert.equal(activeLabel(view), 'Banner 2 de 3');
+      assert.deepEqual(visivel(view), [tres[0].imagem]);
+      await tick(5999); assert.deepEqual(visivel(view), [tres[0].imagem]);
+      await tick(1); assert.deepEqual(visivel(view), [tres[1].imagem]);
+      await tick(); assert.deepEqual(visivel(view), [tres[2].imagem]);
+      await tick(); assert.deepEqual(visivel(view), [tres[0].imagem]);
+      await view.click('Pausar troca das imagens de fundo');
+      await tick(30000); assert.deepEqual(visivel(view), [tres[0].imagem], 'Pausado não troca');
+      await view.click('Retomar troca das imagens de fundo');
+      await tick(); assert.deepEqual(visivel(view), [tres[1].imagem]);
     } finally { mock.timers.reset(); await view.restore(); }
   });
-  it('prefers-reduced-motion desliga a troca automática, sem tirar os controles', async () => {
+  it('com prefers-reduced-motion mostra só a primeira, sem trocar e sem botão', async () => {
     mock.timers.enable({ apis: ['setInterval'] });
     const view = await mount(tres, reduced(true));
     try {
       await view.act(settle);
       await view.act(() => mock.timers.tick(30000));
-      assert.equal(activeLabel(view), 'Banner 1 de 3');
-      assert.ok(!view.nodes().some(node => String(node.props['aria-label']).includes('troca automática')));
-      await view.click('Próximo banner'); assert.equal(activeLabel(view), 'Banner 2 de 3');
+      assert.deepEqual(images(view).map(node => node.props.src), [tres[0].imagem]);
+      assert.deepEqual(visivel(view), [tres[0].imagem]);
+      assert.equal(view.nodes().some(node => node.type === 'button'), false);
     } finally { mock.timers.reset(); await view.restore(); }
   });
 });

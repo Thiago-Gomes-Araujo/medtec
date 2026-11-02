@@ -9,7 +9,7 @@ export async function readHomeBanners(): Promise<{ banners: BannerPublico[]; fai
     const response = await medtecApi.bannersPublicos.list(AbortSignal.timeout(API_TIMEOUT_MS));
     return { banners: response.data, failed: false };
   } catch (cause) {
-    console.warn('Banners indisponíveis; a home segue sem carrossel:', cause);
+    console.warn('Banners indisponíveis; a home segue com a foto padrão:', cause);
     return { banners: [], failed: true };
   }
 }
