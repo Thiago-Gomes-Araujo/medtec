@@ -65,6 +65,7 @@ import EstadosCidadesModule from '../src/components/admin/EstadosCidadesModule';
 import type { ATipoAviso, AAviso, FotoGaleria, CategoriaGaleria, Estado } from '../src/lib/api/types';
 import DuvidasVisitanteModule from '../src/components/admin/DuvidasVisitanteModule';
 import { notifyDuvidasPendentes, useDuvidasPendentes } from '../src/components/admin/useDuvidasPendentes';
+import { useProjetosResumo } from '../src/components/admin/useProjetosResumo';
 import FaqCentralSection from '../src/components/FaqCentralSection';
 import DuvidaVisitanteForm from '../src/components/DuvidaVisitanteForm';
 import PublicFaqPage from '../src/app/faq/page';
@@ -1838,7 +1839,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
       assert.equal(page.session?.isGestor, true);
       assert.equal(page.loading, false);
-      assert.equal(page.overviewRequests.length, 10);
+      assert.equal(page.overviewRequests.length, 13);
       assert.equal(page.localRequests.length, 0);
       assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
@@ -1866,7 +1867,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.session?.profileType, fields.perfil_nome, label);
         assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected ? 10 : 0, label);
+        assert.equal(page.overviewRequests.length, expected ? 13 : 0, label);
         const profile = fields.perfil_nome;
         assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : profile === 'Publicador de Avisos'
@@ -1907,7 +1908,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(reply.data, before, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 10 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? 13 : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -1929,7 +1930,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(page.session, expected, `${source}: ${label}`);
         assert.deepEqual(input, data, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 10 : 9) : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 13 : 9) : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -2008,7 +2009,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             assert.equal(page.session?.isGestor, isGestor, label);
             assert.equal(page.session?.profileType, profileType, label);
             assert.equal(page.loading, false, label);
-            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 10 : 9) : 0, label);
+            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 13 : 9) : 0, label);
             assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, label);
             assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, label);
           } finally { await page.restore(); }
@@ -4590,7 +4591,7 @@ describe('Interface componentizada da Visão Geral', () => {
 
   it('identifica cada indicador sem integração e não inventa números ou nomes para preenchê-lo', () => {
     const html = render();
-    assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 5);
+    assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 2);
     for (const text of ['52 Municípios', '4 trilhas', '4 categorias', 'Nenhum projeto cadastrado',
       'Nenhuma dúvida cadastrada', 'missões', 'banners ativos', 'Transmissão ao vivo integrada']) {
       assert.ok(!html.includes(text), text);
@@ -9663,7 +9664,7 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
       assert.ok(html.includes('30 publicadas · 9 aguardando aprovação'));
       assert.ok(html.includes('42 registros no catálogo oficial'));
       assert.ok(html.includes('href="/admin/faq"'));
-      assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 5);
+      assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 2);
     } finally {
       fetchMock.mock.restore();
       clearStoredTokens();
@@ -11501,6 +11502,49 @@ describe('Projetos — painel', () => {
       assert.match(view.html(), /deve ter no máximo 10 MB/);
       assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Criar projeto'));
     } finally { await view.restore(); }
+  });
+});
+
+describe('Projetos — Início do painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  function ResumoProbe(enabled: boolean) {
+    return createElement('output', null, JSON.stringify(useProjetosResumo(enabled)));
+  }
+  const render = (projetosResumo?: { total: number | null; pending: number | null; published: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, {
+    indicators: {} as OverviewStatsIndicators, canAccessKanban: true, projetosResumo, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+  }));
+
+  it('resumo conta total, aguardando e publicados sem trazer os projetos', async () => {
+    const totals: Record<string, number> = { '': 9, aguardando: 2, publicada: 6 };
+    const view = await mountCategories(async url => {
+      const status = url.searchParams.get('q[n_status_noticia_slug_eq]') ?? '';
+      return reply({ success: true, data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: totals[status], per_page: 1 } } });
+    }, false, { component: () => ResumoProbe(true), allowedPaths: /\/pj_projetos$/ });
+    try {
+      await view.act(settle);
+      assert.equal(view.calls.length, 3);
+      assert.ok(view.calls.every(call => call.url.searchParams.get('per_page') === '1'));
+      assert.match(view.html(), /&quot;total&quot;:9,&quot;pending&quot;:2,&quot;published&quot;:6/);
+    } finally { await view.restore(); }
+  });
+  it('resumo desativado não consulta, e a falha vira erro, não zero', async () => {
+    const off = await mountCategories(async () => reply({}), false, { component: () => ResumoProbe(false), allowedPaths: /$^/ });
+    try { assert.equal(off.calls.length, 0); } finally { await off.restore(); }
+    const failing = await mountCategories(async () => reply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403), false, { component: () => ResumoProbe(true), allowedPaths: /\/pj_projetos$/ });
+    try {
+      await failing.act(settle);
+      assert.match(failing.html(), /&quot;total&quot;:null/); assert.match(failing.html(), /não possui permissão/);
+    } finally { await failing.restore(); }
+  });
+  it('Início mostra os totais da API, o carregamento e a indisponibilidade, sem o texto antigo', () => {
+    const ok = render({ total: 9, pending: 2, published: 1, error: null });
+    assert.match(ok, /9 projetos/); assert.match(ok, /1 publicado · 2 aguardando/);
+    for (const old of ['trilhas temáticas', 'guias de rep', 'Prática em destaque', 'Projetos e municípios aguardam']) assert.ok(!ok.includes(old), old);
+    assert.match(render({ total: null, pending: null, published: null, error: null }), /Carregando API/);
+    assert.match(render({ total: null, pending: null, published: null, error: 'Falhou' }), /Falha ao consultar \/pj_projetos · Falhou/);
+    assert.match(render(), /Entre com CPF para consultar a API/);
   });
 });
 

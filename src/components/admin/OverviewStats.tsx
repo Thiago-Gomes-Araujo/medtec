@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Newspaper, Lightbulb, Megaphone, Images, UsersRound, HelpCircle, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
 import type { useAdminOverview } from '@/components/admin/useAdminOverview';
+import type { ProjetosResumo } from '@/components/admin/useProjetosResumo';
 
 export type OverviewStatsIndicators = Pick<ReturnType<typeof useAdminOverview>,
   'loadingNews' | 'errorNews' | 'totalNews' | 'apiNewsPublishedCount' |
@@ -14,10 +15,11 @@ export type OverviewStatsIndicators = Pick<ReturnType<typeof useAdminOverview>,
 
 interface OverviewStatsProps {
   indicators: OverviewStatsIndicators;
+  projetosResumo?: ProjetosResumo;
   onOpenNews: () => void;
 }
 
-export default function OverviewStats({ indicators, onOpenNews }: OverviewStatsProps) {
+export default function OverviewStats({ indicators, projetosResumo, onOpenNews }: OverviewStatsProps) {
   const {
     loadingNews, errorNews, totalNews, apiNewsPublishedCount, apiNewsDraftCount,
     loadingAvisos, errorAvisos, totalAvisos,
@@ -89,12 +91,31 @@ export default function OverviewStats({ indicators, onOpenNews }: OverviewStatsP
           </div>
         </div>
         <div>
-          <p className="text-sm font-bold text-slate-900 dark:text-white">
-            Indisponível — sem integração oficial
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Projetos e municípios aguardam integração.
-          </p>
+          {!projetosResumo || projetosResumo.error ? (
+            <div className="space-y-0.5">
+              <p className="text-sm font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1.5">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <span>Indisponível</span>
+              </p>
+              <p className="text-[10px] text-slate-400">
+                {projetosResumo ? `Falha ao consultar /pj_projetos · ${projetosResumo.error}` : 'Entre com CPF para consultar a API.'}
+              </p>
+            </div>
+          ) : projetosResumo.total === null ? (
+            <div className="h-9 flex items-center gap-2 text-slate-400 text-xs">
+              <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+              <span>Carregando API...</span>
+            </div>
+          ) : (
+            <>
+              <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
+                {projetosResumo.total}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {projetosResumo.published} publicado{projetosResumo.published === 1 ? '' : 's'} · {projetosResumo.pending} aguardando
+              </p>
+            </>
+          )}
         </div>
         <Link
           href="/admin/projetos"

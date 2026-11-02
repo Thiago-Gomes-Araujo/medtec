@@ -31,6 +31,7 @@ import AdminOverview from '@/components/admin/AdminOverview';
 import { getLegacyProjectsHref } from '@/lib/admin-projects';
 import { getAdminStaticAlias } from '@/lib/admin-aliases';
 import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
+import { useProjetosResumo } from '@/components/admin/useProjetosResumo';
 import { canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminEditorialDestination } from '@/lib/admin-auth-navigation';
 import { buildAdminMenu, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
@@ -293,8 +294,9 @@ export default function AdminDashboardPage() {
   const canAccessProjects = canAccessProjetos(userSession);
   const canAccessFaqs = canAccessDuvidas(userSession);
   // A sessão local não tem token, e o Gestor sai desta página: o AdminShell conta para ele.
-  const canReadDuvidasPendentes = userSession.isGestor && medtecApi.auth.isAuthenticated();
-  const duvidasPendentes = useDuvidasPendentes(canReadDuvidasPendentes);
+  const canReadApiCounters = userSession.isGestor && medtecApi.auth.isAuthenticated();
+  const duvidasPendentes = useDuvidasPendentes(canReadApiCounters);
+  const projetosResumo = useProjetosResumo(canReadApiCounters);
   const canAccessProfessores =
     userSession.isGestor ||
     userSession.profileType === 'Editor de Notícias' ||
@@ -747,7 +749,8 @@ export default function AdminDashboardPage() {
               latestNews={latestNews}
               announcementTitle={announcementTitle}
               canAccessKanban={canAccessKanban}
-              duvidasPendentes={canReadDuvidasPendentes ? duvidasPendentes : undefined}
+              duvidasPendentes={canReadApiCounters ? duvidasPendentes : undefined}
+              projetosResumo={canReadApiCounters ? projetosResumo : undefined}
               onOpenNews={() => router.push('/admin/noticias')}
               onCreateNews={() => router.push('/admin/noticias?action=new')}
               onOpenKanban={() => router.push('/admin/kanban')}
