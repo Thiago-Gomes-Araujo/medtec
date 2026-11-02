@@ -206,7 +206,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
     ? 'A notícia continua publicada e as alterações vão para o site.'
     : canPublish
       ? 'A notícia fica aguardando aprovação. Para colocá-la no site, use o botão "Publicar" na lista.'
-      : 'A notícia vai para aprovação do Administrador.';
+      : 'A notícia vai para aprovação antes de aparecer no site.';
 
   // Keep dashboard shortcuts and drafts working while switching sections.
   useImperativeHandle(ref, () => ({ newNews: handleNewNews }));

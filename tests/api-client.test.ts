@@ -10166,8 +10166,8 @@ describe('E6 — preservação da capa e motivo de reprovação de Notícias', (
   });
 
   for (const [titulo, config, texto] of [
-    ['sem permissão de publicar vai para aprovação', { create: true }, 'A notícia vai para aprovação do Administrador.'],
-    ['correção de reprovada sem permissão volta para aprovação', {}, 'A notícia vai para aprovação do Administrador.'],
+    ['sem permissão de publicar vai para aprovação', { create: true }, 'A notícia vai para aprovação antes de aparecer no site.'],
+    ['correção de reprovada sem permissão volta para aprovação', {}, 'A notícia vai para aprovação antes de aparecer no site.'],
     ['com permissão de publicar continua dependendo do botão', { create: true, canPublish: true }, 'A notícia fica aguardando aprovação. Para colocá-la no site, use o botão "Publicar" na lista.'],
     ['edição de publicada continua no site', { news: { published: true, rejected: false } }, 'A notícia continua publicada e as alterações vão para o site.'],
   ] as const) {
