@@ -10,8 +10,6 @@ export interface NewsItem {
   author: string;
   category: string;
   publishedAt: string;
-  featured: boolean;
-  urgent?: boolean;
   folder?: string;
   published?: boolean;
   rejected?: boolean;

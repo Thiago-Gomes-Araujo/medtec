@@ -6514,7 +6514,7 @@ describe('11. Kanban controlado e permissões editoriais', () => {
   const pendingNews: NewsItem = {
     id: '7', title: 'Materia pendente', slug: 'materia-pendente', excerpt: '',
     content: 'Conteudo', coverImage: '', author: 'Equipe', category: 'Pedagogico',
-    publishedAt: '2026-10-30', featured: false, published: false, rejected: false,
+    publishedAt: '2026-10-30', published: false, rejected: false,
   };
   const callbacks = {
     onApproveNews: async () => { throw new Error('A renderização não deve publicar.'); },
@@ -10047,11 +10047,11 @@ const e6News: NewsItem = {
   excerpt: 'Resumo oficial', content: 'Conteúdo original da notícia.',
   coverImage: 'https://api.example.test/rails/active_storage/blobs/redirect/original/capa.png',
   author: 'Autora oficial', category: 'Pedagógico', publishedAt: '2026-10-31',
-  featured: false, published: false, rejected: true, rejectionReason: 'Informe a fonte da fotografia.',
+  published: false, rejected: true, rejectionReason: 'Informe a fonte da fotografia.',
 };
 
 async function mountE6(config: {
-  news?: Partial<NewsItem>; create?: boolean; list?: boolean; canEdit?: boolean;
+  news?: Partial<NewsItem>; create?: boolean; list?: boolean; canEdit?: boolean; canPublish?: boolean;
   fetcher?: (url: URL, options: RequestInit) => Promise<Response>;
 } = {}) {
   const news = { ...e6News, ...config.news };
@@ -10065,7 +10065,7 @@ async function mountE6(config: {
       effectiveNews: [news], apiNewsCategories: [{ id: 37, nome: 'Pedagógico', slug: 'pedagogico', ativo: true }],
       initialEditingNews: config.create || config.list ? undefined : news,
       loadingNews: false, errorNews: null, userSession: { name: 'Autora oficial' },
-      canCreate: true, canEdit: config.canEdit ?? true, canDelete: true, canPublish: false,
+      canCreate: true, canEdit: config.canEdit ?? true, canDelete: true, canPublish: config.canPublish ?? false,
       newsViewMode: mode, setNewsViewMode: setMode, onRefresh: refresh,
       onTogglePublished: async () => {}, onPreview() {},
     });
@@ -10146,14 +10146,15 @@ describe('E6 — preservação da capa e motivo de reprovação de Notícias', (
     } finally { await manager.restore(); }
   });
 
-  it('formulário não oferece destaque, urgência nem data, e mantém Pasta e Fluxo Editorial', async () => {
+  it('formulário não oferece pasta, destaque, urgência nem data', async () => {
     const manager = await mountE6({ create: true });
     try {
       const nodes = manager.nodes();
       assert.equal(nodes.some(node => node.props.id === 'featured' || node.props.id === 'urgent'), false);
       assert.equal(nodes.some(node => node.type === 'input' && node.props.type === 'date'), false);
-      assert.ok(nodes.some(node => node.type === 'input' && node.props.list === 'pastas-noticias'));
-      assert.ok(nodes.some(node => node.type === 'label' && node.props.children === 'Fluxo Editorial do Backend'));
+      assert.equal(nodes.some(node => node.type === 'input' && node.props.list === 'pastas-noticias'), false);
+      assert.equal(nodes.some(node => node.type === 'label' && node.props.children === 'Pasta no Painel'), false);
+      assert.ok(nodes.some(node => node.type === 'label' && node.props.children === 'O que acontece ao salvar'));
       await manager.text('Ex: Polo ribeirinho recebe novos computadores do MEDTEC...', 'Título novo');
       await manager.text('Escreva aqui os parágrafos completos da notícia...', 'Conteúdo novo.');
       await manager.submit();
@@ -10161,6 +10162,30 @@ describe('E6 — preservação da capa e motivo de reprovação de Notícias', (
       assert.deepEqual(JSON.parse(String(call.options.body)), { n_noticia: {
         titulo: 'Título novo', conteudo: 'Conteúdo novo.', n_categoria_noticia_id: 37,
       } });
+    } finally { await manager.restore(); }
+  });
+
+  for (const [titulo, config, texto] of [
+    ['sem permissão de publicar vai para aprovação', { create: true }, 'A notícia vai para aprovação do Administrador.'],
+    ['correção de reprovada sem permissão volta para aprovação', {}, 'A notícia vai para aprovação do Administrador.'],
+    ['com permissão de publicar continua dependendo do botão', { create: true, canPublish: true }, 'A notícia fica aguardando aprovação. Para colocá-la no site, use o botão "Publicar" na lista.'],
+    ['edição de publicada continua no site', { news: { published: true, rejected: false } }, 'A notícia continua publicada e as alterações vão para o site.'],
+  ] as const) {
+    it(`"O que acontece ao salvar": ${titulo}`, async () => {
+      const manager = await mountE6(config);
+      try {
+        assert.ok(manager.nodes().some(node => node.type === 'div' && node.props.children === texto), texto);
+      } finally { await manager.restore(); }
+    });
+  }
+
+  it('lista de notícias não exibe selos de destaque nem de urgência', async () => {
+    const manager = await mountE6({ list: true });
+    try {
+      const textos = manager.nodes().map(node => node.props.children);
+      assert.ok(textos.includes('Aguardando aprovação') || textos.includes('Recusada'));
+      assert.equal(textos.includes('Destaque'), false);
+      assert.equal(textos.includes('Urgente'), false);
     } finally { await manager.restore(); }
   });
 

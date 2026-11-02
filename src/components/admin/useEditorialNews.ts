@@ -50,8 +50,6 @@ export function useEditorialNews({ canApprove = false, canReject = false }: Edit
     author: news.autor_nome,
     category: news.categoria_nome,
     publishedAt: news.data_publicacao,
-    featured: false,
-    urgent: false,
     folder: news.categoria_nome || 'Geral',
     published: news.status === 'publicada',
     rejected: news.status === 'reprovada',

@@ -93,8 +93,6 @@ function NewsContent({ session }: { session: AdminSession }) {
       author: n.autor_nome,
       category: n.categoria_nome,
       publishedAt: n.data_publicacao,
-      featured: false,
-      urgent: false,
       folder: n.categoria_nome || 'Geral',
       published: n.status === 'publicada',
       rejected: n.status === 'reprovada',

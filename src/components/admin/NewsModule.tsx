@@ -49,7 +49,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
     coverImage: '',
     excerpt: '',
     content: '',
-    folder: 'Geral',
     published: false,
   });
 
@@ -127,7 +126,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
         coverImage: '',
         excerpt: '',
         content: '',
-        folder: 'Geral',
         published: false,
       });
       setNewsFolder('Todas');
@@ -190,7 +188,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
       coverImage: '',
       excerpt: '',
       content: '',
-      folder: 'Geral',
       published: false,
     });
     if (apiNewsCategories.length > 0) {
@@ -204,13 +201,18 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
   );
   const publishedCount = effectiveNews.filter(n => n.published).length;
   const draftCount = effectiveNews.filter(n => !n.published && !n.rejected).length;
+  // Salvar nunca publica: a API deixa a notícia aguardando até alguém acionar "Publicar".
+  const saveOutcome = editingNews?.published
+    ? 'A notícia continua publicada e as alterações vão para o site.'
+    : canPublish
+      ? 'A notícia fica aguardando aprovação. Para colocá-la no site, use o botão "Publicar" na lista.'
+      : 'A notícia vai para aprovação do Administrador.';
 
   // Keep dashboard shortcuts and drafts working while switching sections.
   useImperativeHandle(ref, () => ({ newNews: handleNewNews }));
 
   return (
         <div className="space-y-6">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Pasta está indisponível: não possui persistência no contrato oficial da API.</p>
           {loadingNews && (
             <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-3" role="status">
               <Loader2 className="h-6 w-6 animate-spin text-[#004A99] dark:text-sky-400" />
@@ -310,7 +312,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                     coverImage: '',
                     excerpt: '',
                     content: '',
-                    folder: 'Geral',
                     published: true,
                   });
                   setNewsViewMode('lista');
@@ -384,36 +385,12 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Pasta no Painel
-                      </label>
-                      <input
-                        type="text"
-                        list="pastas-noticias"
-                        disabled
-                        title="Sem persistência no contrato Rails; agrupamento da lista usa a categoria."
-                        value={newsForm.folder || ''}
-                        onChange={(e) => setNewsForm({ ...newsForm, folder: e.target.value })}
-                        placeholder="Ex: Institucional, Eventos, Interior"
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
-                      />
-                      <datalist id="pastas-noticias">
-                        {newsFolders.map((folder) => (
-                          <option key={folder} value={folder} />
-                        ))}
-                      </datalist>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Fluxo Editorial do Backend
-                      </label>
-                      <div className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 text-xs font-medium text-slate-600 dark:text-slate-400">
-                        {editingNews
-                          ? 'Ao salvar edições, a situação é reavaliada pelo backend.'
-                          : 'Novas notícias entram em "Aguardando aprovação" até publicação.'}
-                      </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      O que acontece ao salvar
+                    </label>
+                    <div className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 text-xs font-medium text-slate-600 dark:text-slate-400">
+                      {saveOutcome}
                     </div>
                   </div>
                 </div>
@@ -715,16 +692,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                                     <span className="text-[11px] text-slate-400 font-medium">
                                       {item.publishedAt}
                                     </span>
-                                    {item.featured && (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
-                                        Destaque
-                                      </span>
-                                    )}
-                                    {item.urgent && (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300">
-                                        Urgente
-                                      </span>
-                                    )}
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
                                       item.rejected
                                         ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'
