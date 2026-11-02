@@ -11243,6 +11243,18 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
   });
 });
 
+describe('Envelope paginado comum', () => {
+  it('per_page 0 só é aceito em lista sem registros, como page=all devolve', async () => {
+    const reply = (total_count: number, items: unknown[]) => mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+      success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count, per_page: 0 } },
+    }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    const empty = reply(0, []);
+    try { assert.deepEqual((await medtecApi.escolas.list({ page: 'all' })).data.items, []); } finally { empty.mock.restore(); }
+    const filled = reply(1, [{ id: 1 }]);
+    try { await assert.rejects(medtecApi.escolas.list({ page: 'all' }), /Resposta inválida/); } finally { filled.mock.restore(); }
+  });
+});
+
 describe('Professores e conquistas — integração com a API', () => {
   const JSON_HEADERS = { 'content-type': 'application/json' };
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
