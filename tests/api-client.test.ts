@@ -87,6 +87,7 @@ import ProjetosApprovalQueue from '../src/components/admin/ProjetosApprovalQueue
 import ProjetosAprovacaoPanel from '../src/components/admin/ProjetosAprovacaoPanel';
 import AdminProjetosAprovacaoPage from '../src/app/admin/projetos/aprovacao/page';
 import { useProjetosPendentes, notifyProjetosPendentes } from '../src/components/admin/useProjetosPendentes';
+import { useRelatosPendentes, notifyRelatosPendentes } from '../src/components/admin/useRelatosPendentes';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
 import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
@@ -1843,7 +1844,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
       assert.equal(page.session?.isGestor, true);
       assert.equal(page.loading, false);
-      assert.equal(page.overviewRequests.length, 14);
+      assert.equal(page.overviewRequests.length, 15);
       assert.equal(page.localRequests.length, 0);
       assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
@@ -1871,7 +1872,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.session?.profileType, fields.perfil_nome, label);
         assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected ? 14 : 0, label);
+        assert.equal(page.overviewRequests.length, expected ? 15 : 0, label);
         const profile = fields.perfil_nome;
         assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/galeria' }] : profile === 'Publicador de Avisos'
@@ -1912,7 +1913,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(reply.data, before, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 14 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? 15 : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -1934,7 +1935,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(page.session, expected, `${source}: ${label}`);
         assert.deepEqual(input, data, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 14 : 9) : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 15 : 9) : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -2013,7 +2014,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             assert.equal(page.session?.isGestor, isGestor, label);
             assert.equal(page.session?.profileType, profileType, label);
             assert.equal(page.loading, false, label);
-            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 14 : 9) : 0, label);
+            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 15 : 9) : 0, label);
             assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, label);
             assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, label);
           } finally { await page.restore(); }
@@ -12548,12 +12549,26 @@ describe('Professores e conquistas — integração com a API', () => {
       { ...relato, id: 12, nome: 'Publicado', status: 'publicada', status_nome: 'Publicada' },
       { ...relato, id: 13, nome: 'Reprovado', status: 'reprovada', status_nome: 'Reprovada' },
     ];
-    const view = await mountCategories(async (url, options) => options.method === 'PATCH' ? json(relato) : listReply(statuses), false,
-      { component: () => RelatosPanel(), allowedPaths: /\/p_relatos(\/\d+\/(publicar|reprovar|despublicar))?$/ });
+    const view = await mountCategories(async (url, options) => options.method === 'PATCH' ? json(relato)
+      : url.pathname.endsWith('/p_professores') ? listReply([professor]) : listReply(statuses), false,
+    { component: () => RelatosPanel(), allowedPaths: /\/(p_professores|p_relatos(\/\d+\/(publicar|reprovar|despublicar))?)$/ });
+    const relatos = () => view.calls.filter(call => call.url.pathname.endsWith('/p_relatos')).at(-1)!.url.searchParams;
     try {
       await view.act(settle);
-      assert.equal(view.calls[0].url.searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(relatos().get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(relatos().has('q[p_professor_id_eq]'), false);
       assert.match(view.html(), /joao@exemplo\.com/);
+      assert.match(view.html(), /Aluno: Aguarda/); assert.ok(view.html().includes('Professor: ' + relato.professor_nome));
+      assert.ok(view.nodes().some(node => node.type === 'a' && node.props.href === 'mailto:joao@exemplo.com'));
+      assert.ok(view.nodes().some(node => node.type === 'a' && String(node.props.href) === 'tel:' + relato.telefone.replace(/\D/g, '')));
+      assert.match(view.html(), /Enviado em /);
+      assert.equal(view.nodes().some(node => node.props.name === 'relato-nome'), false, 'O painel não cria relato');
+      await view.change('relato-filtro-professor', String(professor.id));
+      await view.act(settle);
+      assert.equal(relatos().get('q[p_professor_id_eq]'), String(professor.id)); assert.equal(relatos().get('q[n_status_noticia_slug_eq]'), 'aguardando'); assert.equal(relatos().get('page'), '1');
+      await view.change('relato-filtro-status', 'publicada');
+      await view.act(settle);
+      assert.equal(relatos().get('q[n_status_noticia_slug_eq]'), 'publicada'); assert.equal(relatos().get('q[p_professor_id_eq]'), String(professor.id));
       const labels = view.nodes().filter(node => node.type === 'button').map(node => String(node.props['aria-label']));
       for (const label of ['Publicar relato de Aguarda', 'Reprovar relato de Aguarda', 'Despublicar relato de Publicado', 'Publicar relato de Reprovado']) {
         assert.ok(labels.includes(label), label);
@@ -12566,6 +12581,42 @@ describe('Professores e conquistas — integração com a API', () => {
       assert.ok(view.calls.some(call => call.url.pathname.endsWith('/p_relatos/11/reprovar') && call.options.body === undefined));
       assert.match(view.html(), /Relato reprovado/);
     } finally { await view.restore(); }
+  });
+
+  it('excluir relato pede confirmação no próprio card e usa DELETE', async () => {
+    const view = await mountCategories(async (url, options) => options.method === 'DELETE' ? new Response(null, { status: 204 })
+      : url.pathname.endsWith('/p_professores') ? listReply([professor]) : listReply([relato]), false,
+    { component: () => RelatosPanel(), allowedPaths: /\/(p_professores|p_relatos(\/\d+)?)$/ });
+    const deletes = () => view.calls.filter(call => call.options.method === 'DELETE');
+    try {
+      await view.act(settle);
+      await view.click('Excluir relato de ' + relato.nome);
+      assert.equal(deletes().length, 0);
+      await view.click('Cancelar exclusão');
+      await view.click('Excluir relato de ' + relato.nome);
+      await view.click('Confirmar exclusão');
+      await view.act(settle);
+      assert.ok(deletes()[0].url.pathname.endsWith('/p_relatos/' + relato.id));
+      assert.match(view.html(), /Relato excluído/);
+    } finally { await view.restore(); }
+  });
+
+  it('contador de relatos conta só os aguardando, relê ao ser avisado e fica no menu', async () => {
+    let total = 4;
+    function Contador() { return createElement('output', null, String(useRelatosPendentes(true))); }
+    const view = await mountCategories(async () => json({ success: true, message: 'ok', data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: total, per_page: 1 } } }), false, { component: Contador, allowedPaths: /\/p_relatos$/ });
+    try {
+      await view.act(settle);
+      assert.equal(view.html(), '<output>4</output>');
+      assert.equal(view.calls[0].url.searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(view.calls[0].url.searchParams.get('per_page'), '1');
+      total = 3;
+      await view.act(() => notifyRelatosPendentes());
+      await view.act(settle);
+      assert.equal(view.html(), '<output>3</output>');
+    } finally { await view.restore(); }
+    assert.match(readFileSync('src/components/admin/AdminShell.tsx', 'utf8'), /professoresRelatos: relatosPendentes \|\| undefined/);
+    assert.match(readFileSync('src/app/admin/page.tsx', 'utf8'), /professoresRelatos: relatosPendentes \|\| undefined/);
   });
 
   it('município só filtra escolas e não é enviado na conquista; 403 usa a mensagem do projeto', async () => {

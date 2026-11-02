@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { SECTION_CONFIG } from '@/lib/admin-navigation';
 import { ApiError, medtecApi, type DDuvidaVisitante, type PaginationMeta } from '@/lib/api';
+import { dateLabel, mailtoHref, telHref } from '@/lib/community-content';
 import { notifyDuvidasPendentes } from './useDuvidasPendentes';
 
 const buttonClass = 'rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
@@ -16,17 +17,6 @@ function errorMessage(error: unknown): string {
   }
   return ApiError.getFriendlyMessage(error);
 }
-
-function dateLabel(value: string | null): string {
-  if (!value) return 'Não informado';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 'Data não informada'
-    : date.toLocaleString('pt-BR', { timeZone: 'America/Porto_Velho' });
-}
-
-// O e-mail vem do formulário público: a codificação impede que ele acrescente cabeçalhos ao mailto.
-const mailtoHref = (email: string) => `mailto:${encodeURIComponent(email).replace('%40', '@')}`;
-const telHref = (telefone: string) => `tel:${telefone.replace(/[^\d+]/g, '')}`;
 
 const FILTROS: { situacao: VisitanteSituacao; label: string }[] = [
   { situacao: 'pendentes', label: 'Não respondidas' },

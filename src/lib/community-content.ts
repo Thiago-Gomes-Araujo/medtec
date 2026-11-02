@@ -47,8 +47,29 @@ export function communityErrorMessage(error: unknown): string {
   return ApiError.getFriendlyMessage(error);
 }
 
+// O e-mail vem de formulário público: a codificação impede que ele acrescente cabeçalhos ao mailto.
+export const mailtoHref = (email: string) => `mailto:${encodeURIComponent(email).replace('%40', '@')}`;
+export const telHref = (telefone: string) => `tel:${telefone.replace(/[^\d+]/g, '')}`;
+
+export function dateLabel(value: string | null): string {
+  if (!value) return 'Não informado';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Data não informada'
+    : date.toLocaleString('pt-BR', { timeZone: 'America/Porto_Velho' });
+}
+
 export function relatoErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.isRateLimited()) return 'Muitos envios. Aguarde um minuto.';
   if (error instanceof ApiError && error.isNotFound()) return 'Este professor não está mais disponível no portfólio.';
   return communityErrorMessage(error);
+}
+
+// Máscara de digitação: (DD) 9999-9999 com 10 dígitos e (DD) 99999-9999 com 11.
+export function formatTelefone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (!digits) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  const corpo = digits.slice(2);
+  const prefixo = digits.length === 11 ? 5 : 4;
+  return corpo.length <= prefixo ? `(${digits.slice(0, 2)}) ${corpo}` : `(${digits.slice(0, 2)}) ${corpo.slice(0, prefixo)}-${corpo.slice(prefixo)}`;
 }

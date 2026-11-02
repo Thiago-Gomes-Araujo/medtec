@@ -31,6 +31,7 @@ import AdminOverview from '@/components/admin/AdminOverview';
 import { getLegacyProjectsHref } from '@/lib/admin-projects';
 import { getAdminStaticAlias } from '@/lib/admin-aliases';
 import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
+import { useRelatosPendentes } from '@/components/admin/useRelatosPendentes';
 import { useBannersTotal } from '@/components/admin/useBannersTotal';
 import { useProjetosResumo } from '@/components/admin/useProjetosResumo';
 import { canAccessBanners, canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
@@ -297,6 +298,7 @@ export default function AdminDashboardPage() {
   // A sessão local não tem token, e o Gestor sai desta página: o AdminShell conta para ele.
   const canReadApiCounters = userSession.isGestor && medtecApi.auth.isAuthenticated();
   const duvidasPendentes = useDuvidasPendentes(canReadApiCounters);
+  const relatosPendentes = useRelatosPendentes(canReadApiCounters);
   const projetosResumo = useProjetosResumo(canReadApiCounters);
   const bannersTotal = useBannersTotal(canReadApiCounters);
   const canAccessProfessores =
@@ -336,6 +338,7 @@ export default function AdminDashboardPage() {
     usuarios: errorUsers ? undefined : (totalUsers ?? undefined),
     duvidasPublico: duvidasPendentes.count || undefined,
     projetosAprovacao: projetosResumo.pending || undefined,
+    professoresRelatos: relatosPendentes || undefined,
   });
 
   // Pesquisa Rápida da Sidebar (Filtro Instantâneo Didático)

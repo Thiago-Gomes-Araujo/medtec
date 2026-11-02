@@ -2,6 +2,7 @@
 
 import { medtecApi, type CConquistaAluno, type PRelato } from '@/lib/api';
 import { buttonClass, panelClass, renderFeedback, renderModerationButtons, useAdminAction, useApiList, type ModeracaoAction } from './communityAdminUi';
+import { notifyRelatosPendentes } from './useRelatosPendentes';
 
 const AGUARDANDO = { page: 'all', 'q[n_status_noticia_slug_eq]': 'aguardando' };
 const readConquistas = (signal: AbortSignal) => medtecApi.conquistas.list(AGUARDANDO, signal);
@@ -26,7 +27,7 @@ export default function CommunityApprovalQueue() {
       await medtecApi.relatos[operation](item.id);
       return operation === 'publicar' ? 'Relato publicado.' : 'Relato reprovado.';
     });
-    if (done) relatos.reload();
+    if (done) { relatos.reload(); notifyRelatosPendentes(); }
   }
 
   return (

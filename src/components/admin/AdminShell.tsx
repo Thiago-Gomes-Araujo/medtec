@@ -4,6 +4,7 @@ import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useAdminTheme } from '@/components/admin/useAdminTheme';
 import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
 import { useProjetosPendentes } from '@/components/admin/useProjetosPendentes';
+import { useRelatosPendentes } from '@/components/admin/useRelatosPendentes';
 import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter from '@/components/admin/MobileDrawerFooter';
 import { filterAdminNavigation } from '@/lib/admin-navigation-filter';
@@ -234,6 +235,7 @@ export default function AdminShell({
     userSession.isGestor ||
     userSession.profileType === 'Operador de Conteúdo' ||
     userSession.profileType === 'Editor de Notícias';
+  const relatosPendentes = useRelatosPendentes(canAccessProfessores && !!userSession.apiUser);
   const canAccessAlunos =
     userSession.isGestor ||
     userSession.profileType === 'Operador de Conteúdo' ||
@@ -259,7 +261,7 @@ export default function AdminShell({
     redes: canAccessSocials,
     estadosCidades: canAccessEstados,
     usuarios: canAccessUsers,
-  }, { duvidasPublico: duvidasPendentes.count || undefined, projetosAprovacao: projetosPendentes || undefined, ...badges });
+  }, { duvidasPublico: duvidasPendentes.count || undefined, projetosAprovacao: projetosPendentes || undefined, professoresRelatos: relatosPendentes || undefined, ...badges });
 
   // Pesquisa rápida da Sidebar
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
