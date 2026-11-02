@@ -12,6 +12,7 @@ import {
   MapPin,
   Megaphone,
   MessageSquareQuote,
+  MessagesSquare,
   Newspaper,
   Presentation,
   Share2,
@@ -40,6 +41,7 @@ export type AdminSection =
   | 'projetosMembros'
   | 'projetosAprovacao'
   | 'duvidas'
+  | 'duvidasPublico'
   | 'estadosCidades'
   | 'professores'
   | 'professoresDisciplinas'
@@ -92,6 +94,12 @@ export const SECTION_CONFIG: Record<
     title: 'Dúvidas Frequentes (FAQ)',
     subtitle: 'Cadastre, edite e organize as perguntas e respostas que aparecem na Central de Dúvidas do portal.',
     href: '/admin/faq',
+  },
+  duvidasPublico: {
+    group: 'Publicações do Site',
+    title: 'Dúvidas do público',
+    subtitle: 'Acompanhe as dúvidas enviadas pelo site e registre o atendimento feito por e-mail ou telefone.',
+    href: '/admin/faq/publico',
   },
   avisos: {
     group: 'Publicações do Site',
@@ -181,6 +189,7 @@ export const SECTION_HREFS = new Map<AdminSection, string>([
   ['projetosMembros', SECTION_CONFIG.projetosMembros.href],
   ['projetosAprovacao', SECTION_CONFIG.projetosAprovacao.href],
   ['duvidas', SECTION_CONFIG.duvidas.href],
+  ['duvidasPublico', SECTION_CONFIG.duvidasPublico.href],
   ['usuarios', SECTION_CONFIG.usuarios.href],
   ['kanban', SECTION_CONFIG.kanban.href],
   ['noticias', SECTION_CONFIG.noticias.href],
@@ -238,6 +247,7 @@ const ADMIN_MENU: AdminMenuFolder[] = [
       { section: 'projetosMembros', access: 'projetos', label: 'Membros de Projeto', tooltip: 'Cadastrar e gerenciar membros de projeto', icon: UserRound },
       { section: 'projetosAprovacao', access: 'projetos', label: 'Aprovação de Projetos', tooltip: 'Publicar ou reprovar projetos aguardando', icon: ClipboardCheck },
       { section: 'duvidas', access: 'duvidas', label: 'Dúvidas Frequentes (FAQ)', tooltip: 'Cadastrar e gerenciar perguntas frequentes do portal', icon: HelpCircle },
+      { section: 'duvidasPublico', access: 'duvidas', label: 'Dúvidas do público', tooltip: 'Ver e registrar o atendimento das dúvidas enviadas pelo site', icon: MessagesSquare },
       { section: 'avisos', access: 'avisos', label: 'Avisos e Comunicados', tooltip: 'Publicar alertas no mural', icon: Megaphone },
       { section: 'fotos', access: 'fotos', label: 'Banners da Página Inicial', tooltip: 'Trocar imagens do topo da Home', icon: Presentation },
       { section: 'galeria', access: 'galeria', label: 'Galeria de Fotos', tooltip: 'Adicionar fotos das escolas', icon: Images },

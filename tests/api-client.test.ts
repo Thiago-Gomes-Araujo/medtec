@@ -31,6 +31,7 @@ import { createRoot } from 'react-dom/client';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { PathnameContext, SearchParamsContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 import AdminFaqSubroutePage from '../src/app/admin/faq/page';
+import AdminFaqPublicoPage from '../src/app/admin/faq/publico/page';
 import AdminProjetosLayout from '../src/app/admin/projetos/layout';
 import TemasProjetoPanel from '../src/components/admin/TemasProjetoPanel';
 import MembrosProjetoPanel from '../src/components/admin/MembrosProjetoPanel';
@@ -4342,6 +4343,12 @@ describe('Metadados compartilhados da navegação administrativa', () => {
         "subtitle": "Cadastre, edite e organize as perguntas e respostas que aparecem na Central de Dúvidas do portal.",
         "href": "/admin/faq"
       },
+      "duvidasPublico": {
+        "group": "Publicações do Site",
+        "title": "Dúvidas do público",
+        "subtitle": "Acompanhe as dúvidas enviadas pelo site e registre o atendimento feito por e-mail ou telefone.",
+        "href": "/admin/faq/publico"
+      },
       "avisos": {
         "group": "Publicações do Site",
         "title": "Avisos e Comunicados",
@@ -4425,9 +4432,9 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.deepEqual(Object.keys(SHARED_SECTION_CONFIG), Object.keys(expected));
   });
 
-  it('mantém os dezenove destinos na ordem definida e exclui Início do mapa de redirecionamento', () => {
+  it('mantém os vinte destinos na ordem definida e exclui Início do mapa de redirecionamento', () => {
     assert.deepEqual([...SECTION_HREFS], [
-      ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['projetosTemas', '/admin/projetos/temas'], ['projetosMembros', '/admin/projetos/membros'], ['projetosAprovacao', '/admin/projetos/aprovacao'], ['duvidas', '/admin/faq'],
+      ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['projetosTemas', '/admin/projetos/temas'], ['projetosMembros', '/admin/projetos/membros'], ['projetosAprovacao', '/admin/projetos/aprovacao'], ['duvidas', '/admin/faq'], ['duvidasPublico', '/admin/faq/publico'],
       ['usuarios', '/admin/usuarios'], ['kanban', '/admin/kanban'], ['noticias', '/admin/noticias'],
       ['avisos', '/admin/avisos'], ['galeria', '/admin/galeria'], ['estadosCidades', '/admin/estados-cidades'],
       ['professores', '/admin/professores'], ['professoresDisciplinas', '/admin/professores/disciplinas'],
@@ -4436,7 +4443,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     ]);
     assert.equal(SECTION_HREFS.has('visaoGeral'), false);
     assert.equal(SHARED_SECTION_CONFIG.visaoGeral.href, '/admin');
-    assert.equal(new Set(SECTION_HREFS.values()).size, 19);
+    assert.equal(new Set(SECTION_HREFS.values()).size, 20);
   });
 
   it('preserva exports públicos e compatibilidade dos tipos de seção e props do shell', () => {
@@ -4466,7 +4473,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
           if (item.visible) folder.props.onSelectSection!(item.section);
         }
       }
-      const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/avisos', '/admin/banners',
+      const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/faq/publico', '/admin/avisos', '/admin/banners',
         '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
       assert.deepEqual(page.calls, (mobile ? [...menuOrder, ...menuOrder] : menuOrder).map(href => ({ method: 'push', href })));
     }
@@ -4476,7 +4483,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     const desktop = capture('shell', session);
     const desktopHrefs = desktop.nodes.flatMap(node => node.props.href ? [node.props.href] : []);
     assert.deepEqual(desktopHrefs.filter(href => href.startsWith('/admin')),
-      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
+      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/faq/publico', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
     assert.match(desktop.html, /<a\b[^>]*href="\/admin"/);
     assert.deepEqual(desktop.calls, []);
     const mobile = capture('shell', session, true);
@@ -4809,7 +4816,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           }
           visit(page);
           assert.equal(overviewFound, true);
-          const expected = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/avisos', '/admin/banners',
+          const expected = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/faq/publico', '/admin/avisos', '/admin/banners',
             '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
           if (editorialProfile === 'Administrador') expected.push('/admin/kanban');
           assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
@@ -7990,11 +7997,17 @@ function DuvidasCounterProbe(enabled: boolean) {
 }
 
 describe('Visitantes C3 — interface administrativa', () => {
-  it('aba Visitantes fica dentro da guarda atual, com C1/C2 preservados e montagem sob demanda', () => {
-    const page = AdminFaqSubroutePage(); assert.equal(page.type, AdminShell); assert.equal(page.props.activeSection, 'duvidas');
-    const workspace = page.props.children();
-    const html = renderToStaticMarkup(workspace); assert.match(html, />Visitantes</); assert.match(html, />Categorias</);
-    for (const section of ['duvidas', 'categorias', 'visitantes']) {
+  it('a subrota /admin/faq/publico substitui a aba, dentro da mesma guarda e sem duplicar a tela', () => {
+    const page = AdminFaqPublicoPage();
+    assert.equal(page.type, AdminShell); assert.equal(page.props.activeSection, 'duvidasPublico');
+    assert.equal(page.props.children().type, DuvidasVisitanteModule);
+    assert.equal(SHARED_SECTION_CONFIG.duvidasPublico.href, '/admin/faq/publico');
+    assert.equal(getFolderIdForSection('duvidasPublico'), 'publicacoes');
+    assert.match(readFileSync('src/components/admin/AdminShell.tsx', 'utf8'), /activeSection === 'duvidas' \|\| activeSection === 'duvidasPublico'\s*\? canAccessFaqs/);
+    const workspace = AdminFaqSubroutePage().props.children();
+    const html = renderToStaticMarkup(workspace); assert.match(html, />Categorias</); assert.doesNotMatch(html, />Visitantes</);
+    assert.doesNotMatch(readFileSync('src/app/admin/faq/page.tsx', 'utf8'), /DuvidasVisitanteModule/);
+    for (const section of ['duvidas', 'categorias']) {
       const state = mock.method(React, 'useState', (<S,>(initial?: S | (() => S)) => {
         const value = typeof initial === 'function' ? (initial as () => S)() : initial;
         return [value === 'duvidas' ? section : value, () => {}];
@@ -8002,7 +8015,6 @@ describe('Visitantes C3 — interface administrativa', () => {
       try {
         const tree = Reflect.apply(workspace.type as () => ReactNode, undefined, [workspace.props]);
         const nodes = noticeNodes(tree);
-        assert.equal(nodes.filter(node => node.type === DuvidasVisitanteModule).length, section === 'visitantes' ? 1 : 0);
         assert.equal(nodes.filter(node => node.type === DuvidaCategoriesManager).length, section === 'categorias' ? 1 : 0);
         const faq = nodes.find(node => node.type === FaqModule); assert.ok(faq); assert.equal(faq.props.active, section === 'duvidas');
       } finally { state.mock.restore(); }
@@ -8038,13 +8050,13 @@ describe('Visitantes C3 — interface administrativa', () => {
   it('Início mostra o total, a indisponibilidade ou nada na sessão sem token', () => {
     const props = { indicators: {} as OverviewStatsIndicators, canAccessKanban: true, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {} };
     const html = (duvidasPendentes?: { count: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, { ...props, duvidasPendentes }));
-    assert.match(html({ count: 4, error: null }), /Dúvidas de visitantes sem resposta:\s*(<!-- -->)?\s*4/);
+    assert.match(html({ count: 4, error: null }), /href="\/admin\/faq\/publico"[^>]*>Dúvidas do público<\/a> sem resposta:\s*(<!-- -->)?\s*4/);
     assert.match(html({ count: null, error: 'x' }), /sem resposta:\s*(<!-- -->)?\s*indisponível/);
     assert.doesNotMatch(html(), /sem resposta/);
   });
   it('item do menu exibe o total sem depender da aba aberta', () => {
     const access = Object.fromEntries(['noticias','projetos','duvidas','avisos','fotos','galeria','professores','alunos','kanban','siteInfo','redes','estadosCidades','usuarios'].map(key => [key, true]));
-    const item = buildAdminMenu(access as Parameters<typeof buildAdminMenu>[0], { duvidas: 7 }).flatMap(folder => folder.items).find(entry => entry.section === 'duvidas');
+    const item = buildAdminMenu(access as Parameters<typeof buildAdminMenu>[0], { duvidasPublico: 7 }).flatMap(folder => folder.items).find(entry => entry.section === 'duvidasPublico');
     assert.equal(item?.badge, 7);
   });
   it('Fila lista as não respondidas, responde sem corpo e tira o item da lista', async () => {
@@ -8099,15 +8111,13 @@ describe('Visitantes C3 — interface administrativa', () => {
       return url.pathname.endsWith('/d_categorias_duvida') ? categoriaList() : duvidaList([]);
     };
 
-    it('botão só aparece em dúvida respondida e entrega o envio à tela do FAQ', async () => {
-      let chosen: DDuvidaVisitante | undefined;
+    it('o link só aparece em dúvida respondida e leva só o id à tela do FAQ', async () => {
       const view = await mountCategories(async () => visitanteList([visitanteFixture, respondida]), false, {
-        component: () => DuvidasVisitanteModule({ onTransformToFaq: item => { chosen = item; } }), allowedPaths: /\/d_duvidas_visitante$/,
+        component: () => DuvidasVisitanteModule(), allowedPaths: /\/d_duvidas_visitante$/,
       });
       try {
-        assert.doesNotMatch(view.html(), new RegExp('Transformar em FAQ: ' + visitanteFixture.nome));
-        await view.click('Transformar em FAQ: Visitante atendido');
-        assert.equal(chosen?.id, 42);
+        assert.equal(view.nodes().some(node => node.props['aria-label'] === 'Transformar em FAQ: ' + visitanteFixture.nome), false);
+        assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Transformar em FAQ: Visitante atendido')?.props.href, '/admin/faq?visitante=42');
       } finally { await view.restore(); }
     });
     it('formulário abre com a pergunta, pede categoria e resposta e só envia campos do contrato', async () => {
@@ -8174,18 +8184,6 @@ describe('Visitantes C3 — interface administrativa', () => {
       const missing = await mount(() => categoriaReply({ success: false, message: 'Registro não encontrado', errors: ['x'] }, 404), 99);
       try { await missing.act(settle); assert.match(missing.html(), /role="alert"/); } finally { await missing.restore(); }
     });
-    it('tela do FAQ abre o formulário ao transformar um envio', async () => {
-      const workspace = AdminFaqSubroutePage().props.children();
-      const view = await mountCategories(async () => duvidaList([]), false, { component: () => Reflect.apply(workspace.type as () => ReactNode, undefined, [{}]), allowedPaths: /$^/ });
-      try {
-        await view.click('Visitantes');
-        const modulo = view.nodes().find(node => node.type === DuvidasVisitanteModule);
-        await view.act(() => (modulo?.props.onTransformToFaq as (item: DDuvidaVisitante) => void)(respondida));
-        const faq = view.nodes().find(node => node.type === FaqModule);
-        assert.equal(faq?.props.active, true);
-        assert.deepEqual(faq?.props.prefill, { pergunta: respondida.descricao });
-      } finally { await view.restore(); }
-    });
     it('categorias vazias com page=all (per_page 0) não viram resposta inválida', async () => {
       const fetcher = mock.method(globalThis, 'fetch', async () => categoriaList([], { current_page: 1, total_pages: 1, total_count: 0, per_page: 0 }));
       try { assert.deepEqual((await medtecApi.categoriasDuvida.list({ page: 'all' })).data.items, []); } finally { fetcher.mock.restore(); }
@@ -8200,20 +8198,25 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.match(manager.html(), /Nenhuma dúvida de visitante/); assert.doesNotMatch(manager.html(), /role="alert"/);
     } finally { await manager.restore(); }
   });
-  it('filtros oficiais são exclusivos, reiniciam a página e persistem na paginação', async () => {
+  it('abre em "Não respondidas"; os filtros são exclusivos, reiniciam a página e persistem na paginação', async () => {
     const manager = await mountVisitantes(async url => visitanteList([visitanteFixture], { current_page: Number(url.searchParams.get('page')), total_pages: 3, total_count: 25, per_page: 10 }));
+    const params = () => manager.calls.at(-1)!.url.searchParams;
+    const pressed = (label: string) => manager.nodes().find(node => node.type === 'button' && node.props.children === label)?.props['aria-pressed'];
     try {
-      assert.equal(manager.calls[0].url.searchParams.has('q[respondida_false]'), false);
+      assert.equal(manager.calls[0].url.searchParams.get('q[respondida_false]'), '1');
       assert.equal(manager.calls[0].url.searchParams.has('q[respondida_true]'), false);
+      assert.equal(manager.calls[0].url.searchParams.get('per_page'), '10');
+      assert.equal(pressed('Não respondidas'), true); assert.equal(pressed('Respondidas'), false);
       await manager.click('Próxima'); assert.match(manager.html(), /Página 2 de 3 · 25 envios/);
-      await manager.change('situacaoVisitante', 'pendentes');
-      assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1'); assert.equal(manager.calls.at(-1)!.url.searchParams.get('page'), '1');
-      assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_true]'), false);
-      await manager.click('Próxima'); assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1');
-      await manager.change('situacaoVisitante', 'respondidas');
-      assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_true]'), '1'); assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_false]'), false);
+      assert.equal(params().get('q[respondida_false]'), '1');
+      await manager.click('Respondidas');
+      assert.equal(params().get('q[respondida_true]'), '1'); assert.equal(params().has('q[respondida_false]'), false); assert.equal(params().get('page'), '1');
+      assert.equal(pressed('Respondidas'), true);
       assert.match(manager.html(), /Tem curso de informática/, 'A coleção da API é a fonte de verdade, sem filtro local');
-      await manager.change('situacaoVisitante', 'todas'); assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_true]'), false);
+      await manager.click('Próxima'); assert.equal(params().get('q[respondida_true]'), '1'); assert.equal(params().get('page'), '2');
+      await manager.click('Não respondidas');
+      assert.equal(params().get('q[respondida_false]'), '1'); assert.equal(params().has('q[respondida_true]'), false); assert.equal(params().get('page'), '1');
+      assert.equal(manager.nodes().some(node => node.props.name === 'situacaoVisitante'), false);
     } finally { await manager.restore(); }
   });
   it('envio novo aparece ao atualizar a lista, sem recarregar a página nem perder o filtro', async () => {
@@ -8221,7 +8224,6 @@ describe('Visitantes C3 — interface administrativa', () => {
     const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(visitanteFixture) : visitanteList(items));
     const novo = { ...visitanteFixture, id: 42, nome: 'Visitante recém-chegado' };
     try {
-      await manager.change('situacaoVisitante', 'pendentes');
       assert.doesNotMatch(manager.html(), /Visitante recém-chegado/);
       items = [novo, visitanteFixture];
       await manager.click('Atualizar lista');
@@ -8229,7 +8231,7 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1');
     } finally { await manager.restore(); }
   });
-  it('lista é buscada ao voltar para a aba, salvo com detalhes abertos ou aba oculta', async () => {
+  it('lista é buscada ao voltar para a aba, salvo com confirmação aberta ou aba oculta', async () => {
     let items = [visitanteFixture];
     const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(visitanteFixture) : visitanteList(items));
     const lists = () => manager.calls.filter(call => call.url.pathname.endsWith('/d_duvidas_visitante')).length;
@@ -8239,8 +8241,8 @@ describe('Visitantes C3 — interface administrativa', () => {
       items = [{ ...visitanteFixture, id: 42, nome: 'Visitante recém-chegado' }, visitanteFixture];
       await manager.visibilityChange('visible'); assert.equal(lists(), inicial + 1);
       assert.match(manager.html(), /Visitante recém-chegado/);
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
-      await manager.visibilityChange('visible'); assert.equal(lists(), inicial + 1, 'Detalhes abertos não são interrompidos');
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await manager.visibilityChange('visible'); assert.equal(lists(), inicial + 1, 'A confirmação aberta não é interrompida');
     } finally { await manager.restore(); }
   });
   it('falha ao atualizar mostra o erro, nunca uma lista vazia', async () => {
@@ -8253,19 +8255,27 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.doesNotMatch(manager.html(), /Nenhuma dúvida de visitante/);
     } finally { await manager.restore(); }
   });
-  it('detalhes consultam ID e exibem a descrição completa e os contatos recebidos', async () => {
-    const detailed = { ...visitanteFixture, telefone: '(69) 99999-0000', descricao: 'Descrição completa recebida na consulta individual.\nSegunda linha.' };
-    const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(detailed) : visitanteList());
+  it('o card mostra nome, e-mail com mailto, telefone com tel, a dúvida completa e a data de envio', async () => {
+    const value = { ...visitanteFixture, telefone: '(69) 99999-0000', descricao: 'Primeira linha da dúvida.\nSegunda linha.' };
+    const manager = await mountVisitantes(async () => visitanteList([value]));
     try {
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
-      assert.equal(manager.calls.at(-1)!.url.pathname.endsWith('/d_duvidas_visitante/41'), true);
-      assert.match(manager.html(), /Descrição completa recebida na consulta individual/); assert.match(manager.html(), /Segunda linha/);
-      assert.match(manager.html(), /ana@example.invalid/); assert.match(manager.html(), /99999-0000/);
-      await manager.click('Fechar detalhes'); assert.doesNotMatch(manager.html(), /Detalhes do envio/);
-      assert.equal(manager.calls.filter(call => call.options.method !== 'GET').length, 0);
+      const html = manager.html();
+      for (const text of ['Ana sintética', 'Primeira linha da dúvida.', 'Segunda linha.', 'Enviada em 31/10/2026']) assert.ok(html.includes(text), text);
+      assert.doesNotMatch(html, /line-clamp/);
+      const link = (href: string) => manager.nodes().find(node => node.type === 'a' && node.props.href === href);
+      assert.equal(link('mailto:ana@example.invalid')?.props.children, 'ana@example.invalid');
+      assert.equal(link('tel:69999990000')?.props.children, '(69) 99999-0000');
+      assert.equal(manager.calls.length, 1, 'O card não precisa de outra consulta');
     } finally { await manager.restore(); }
   });
-  it('marcar respondida usa PATCH sem corpo e apenas registra atendimento externo', async () => {
+  it('e-mail do formulário público não acrescenta cabeçalhos ao mailto', async () => {
+    const manager = await mountVisitantes(async () => visitanteList([{ ...visitanteFixture, email: 'ana@example.invalid?bcc=x@example.invalid' }]));
+    try {
+      const href = String(manager.nodes().find(node => node.type === 'a' && String(node.props.href).startsWith('mailto:'))?.props.href);
+      assert.equal(href.includes('?'), false); assert.equal(href.includes('='), false);
+    } finally { await manager.restore(); }
+  });
+  it('marcar respondida pede confirmação, usa PATCH sem corpo e apenas registra atendimento externo', async () => {
     let marked = false;
     const manager = await mountVisitantes(async (url, options) => {
       if (options.method === 'PATCH') {
@@ -8277,22 +8287,21 @@ describe('Visitantes C3 — interface administrativa', () => {
     try {
       assert.match(manager.html(), /contato com o visitante é feito externamente/); assert.match(manager.html(), /nenhuma mensagem é enviada/);
       await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      assert.deepEqual(manager.calls.map(call => call.options.method), ['GET'], 'Nada é enviado antes de confirmar');
+      await manager.click('Cancelar');
+      assert.deepEqual(manager.calls.map(call => call.options.method), ['GET']);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await manager.click('Confirmar resposta');
       assert.match(manager.html(), /Dúvida marcada como respondida/);
       assert.deepEqual(manager.calls.map(call => call.options.method), ['GET', 'PATCH', 'GET']);
       assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome), false);
+      assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Confirmar atendimento'), false);
     } finally { await manager.restore(); }
   });
-  it('marcação pelo detalhe atualiza atendente e data exclusivamente com o retorno do servidor', async () => {
-    let marked = false;
-    const manager = await mountVisitantes(async (url, options) => {
-      if (options.method === 'PATCH') { marked = true; return categoriaReply(visitanteRespondida); }
-      if (url.pathname.endsWith('/41')) return categoriaReply(visitanteFixture);
-      return visitanteList([marked ? visitanteRespondida : visitanteFixture]);
-    });
+  it('respondida mostra quem respondeu e quando, com os dados do servidor', async () => {
+    const manager = await mountVisitantes(async () => visitanteList([visitanteRespondida]));
     try {
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome); await manager.click('Marcar detalhe como respondido');
-      assert.match(manager.html(), /Atendente sintética/); assert.match(manager.html(), /31\/10\/2026/);
-      assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar detalhe como respondido'), false);
+      assert.match(manager.html(), /Respondida por Atendente sintética em 31\/10\/2026/);
     } finally { await manager.restore(); }
   });
   it('filtro pendente pode ficar vazio após marcação bem-sucedida', async () => {
@@ -8302,7 +8311,7 @@ describe('Visitantes C3 — interface administrativa', () => {
       return visitanteList(marked ? [] : [visitanteFixture]);
     });
     try {
-      await manager.change('situacaoVisitante', 'pendentes'); await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome); await manager.click('Confirmar resposta');
       assert.match(manager.html(), /Nenhuma dúvida de visitante/); assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1');
     } finally { await manager.restore(); }
   });
@@ -8320,18 +8329,6 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.deepEqual(manager.calls.map(call => call.options.method), ['GET', 'DELETE', 'GET']);
     } finally { await manager.restore(); }
   });
-  it('excluir pelos detalhes fecha o registro somente após sucesso', async () => {
-    let deleted = false;
-    const manager = await mountVisitantes(async (url, options) => {
-      if (options.method === 'DELETE') { deleted = true; return categoriaReply(null, 204); }
-      return url.pathname.endsWith('/41') ? categoriaReply(visitanteFixture) : visitanteList(deleted ? [] : [visitanteFixture]);
-    });
-    try {
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome); await manager.click('Excluir este envio');
-      assert.match(manager.html(), /Detalhes do envio/); await manager.click('Confirmar exclusão');
-      assert.doesNotMatch(manager.html(), /Detalhes do envio/); assert.match(manager.html(), /Envio excluído com sucesso/);
-    } finally { await manager.restore(); }
-  });
   for (const status of [401, 403, 404, 422, 'network'] as const) {
     it('listagem com ' + status + ' não vira vazio e permite nova leitura', async () => {
       let failed = false;
@@ -8347,15 +8344,6 @@ describe('Visitantes C3 — interface administrativa', () => {
       } finally { await manager.restore(); }
     });
   }
-  for (const status of [403, 404]) {
-    it('detalhes HTTP ' + status + ' não abrem um registro da lista como se fosse consulta válida', async () => {
-      const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply({ success: false, errors: [status === 403 ? 'sem_permissao' : 'http_404'] }, status) : visitanteList());
-      try {
-        await manager.click('Ver detalhes de ' + visitanteFixture.nome);
-        assert.match(manager.html(), /role="alert"/); assert.doesNotMatch(manager.html(), /Detalhes do envio/);
-      } finally { await manager.restore(); }
-    });
-  }
   for (const status of [401, 403, 404, 422, 'network'] as const) {
     it('marcação com ' + status + ' não mostra sucesso nem altera situação localmente', async () => {
       const manager = await mountVisitantes(async (_url, options) => {
@@ -8364,8 +8352,9 @@ describe('Visitantes C3 — interface administrativa', () => {
         return categoriaReply({ success: false, message: 'Não foi possível registrar o atendimento', errors: [status === 401 ? 'nao_autenticado' : status === 403 ? 'sem_permissao' : 'Atendimento inválido'] }, status);
       });
       try {
-        await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+        await manager.click('Marcar como respondida: ' + visitanteFixture.nome); await manager.click('Confirmar resposta');
         assert.match(manager.html(), /role="alert"/); assert.doesNotMatch(manager.html(), /Dúvida marcada como respondida/);
+        if (status === 403) assert.match(manager.html(), /não possui permissão/);
         assert.ok(manager.nodes().some(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome));
         assert.equal(manager.calls.length, 2);
       } finally { await manager.restore(); }
@@ -8387,24 +8376,22 @@ describe('Visitantes C3 — interface administrativa', () => {
     const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(visitanteRespondida) : visitanteList([visitanteRespondida]));
     try {
       assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome), false);
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
-      assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar detalhe como respondido'), false);
     } finally { await manager.restore(); }
   });
   it('resposta 200 ainda não respondida não produz marcação artificial', async () => {
     const manager = await mountVisitantes(async (_url, options) => options.method === 'PATCH' ? categoriaReply(visitanteFixture) : visitanteList());
     try {
-      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome); await manager.click('Confirmar resposta');
       assert.match(manager.html(), /A dúvida permanece não respondida/); assert.doesNotMatch(manager.html(), /Dúvida marcada como respondida/);
     } finally { await manager.restore(); }
   });
   it('telefone/atendente nulos e data inválida são apresentados sem inventar dados', async () => {
-    const value = { ...visitanteFixture, created_at: 'data-invalida' };
-    const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(value) : visitanteList([value]));
+    const value = { ...visitanteRespondida, respondida_por_nome: null, created_at: 'data-invalida' };
+    const manager = await mountVisitantes(async () => visitanteList([value]));
     try {
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
-      assert.match(manager.html(), /Não informado/); assert.match(manager.html(), /Data não informada/);
-      assert.doesNotMatch(manager.html(), /Invalid Date|undefined/);
+      assert.match(manager.html(), /Data não informada/); assert.doesNotMatch(manager.html(), /Invalid Date|undefined|Respondida por/);
+      assert.match(manager.html(), /Respondida em 31\/10\/2026/);
+      assert.equal(manager.nodes().some(node => node.type === 'a' && String(node.props.href).startsWith('tel:')), false);
     } finally { await manager.restore(); }
   });
   it('falha de recarga após marcação não repete PATCH nem apaga o sucesso confirmado', async () => {
@@ -8414,7 +8401,7 @@ describe('Visitantes C3 — interface administrativa', () => {
       return marked ? categoriaReply({ success: false }, 503) : visitanteList();
     });
     try {
-      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome); await manager.click('Confirmar resposta');
       assert.match(manager.html(), /Dúvida marcada como respondida/); assert.match(manager.html(), /role="alert"/);
       assert.equal(manager.calls.filter(call => call.options.method === 'PATCH').length, 1);
     } finally { await manager.restore(); }
@@ -8423,7 +8410,7 @@ describe('Visitantes C3 — interface administrativa', () => {
     const pending = adminReturnDeferred<Response>(); let reads = 0;
     const manager = await mountVisitantes(async () => ++reads === 1 ? pending.promise : visitanteList([{ ...visitanteFixture, nome: 'Visitante vigente' }]));
     try {
-      await manager.change('situacaoVisitante', 'respondidas'); assert.match(manager.html(), /Visitante vigente/);
+      await manager.click('Respondidas'); assert.match(manager.html(), /Visitante vigente/);
       await manager.act(() => pending.resolve(visitanteList([{ ...visitanteFixture, nome: 'Visitante obsoleta' }])));
       assert.match(manager.html(), /Visitante vigente/); assert.doesNotMatch(manager.html(), /Visitante obsoleta/);
     } finally { await manager.restore(); }
@@ -8432,7 +8419,8 @@ describe('Visitantes C3 — interface administrativa', () => {
     const pending = adminReturnDeferred<Response>();
     const manager = await mountVisitantes(async (_url, options) => options.method === 'PATCH' ? pending.promise : visitanteList());
     try {
-      const button = manager.nodes().find(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome); assert.ok(button);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      const button = manager.nodes().find(node => node.props.children === 'Confirmar resposta'); assert.ok(button);
       await manager.act(() => { for (let i = 0; i < 2; i++) void Reflect.apply(button.props.onClick as () => unknown, undefined, []); });
       assert.equal(manager.calls.filter(call => call.options.method === 'PATCH').length, 1);
       await manager.act(() => pending.resolve(categoriaReply(visitanteRespondida)));
@@ -8442,7 +8430,8 @@ describe('Visitantes C3 — interface administrativa', () => {
     const pending = adminReturnDeferred<Response>();
     const manager = await mountVisitantes(async (_url, options) => options.method === 'PATCH' ? pending.promise : visitanteList());
     try {
-      const button = manager.nodes().find(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome); assert.ok(button);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      const button = manager.nodes().find(node => node.props.children === 'Confirmar resposta'); assert.ok(button);
       await manager.act(() => { void Reflect.apply(button.props.onClick as () => unknown, undefined, []); });
       await manager.unmount(); await manager.act(() => pending.resolve(categoriaReply(visitanteRespondida)));
       assert.equal(manager.calls.length, 2);

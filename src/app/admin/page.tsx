@@ -128,7 +128,7 @@ export default function AdminDashboardPage() {
   });
 
   const getFolderIdForSection = useCallback((sec: AdminSection): string | null => {
-    if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'projetosTemas', 'projetosMembros', 'projetosAprovacao', 'duvidas', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
+    if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'projetosTemas', 'projetosMembros', 'projetosAprovacao', 'duvidas', 'duvidasPublico', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
     if (['kanban'].includes(sec)) return 'aprovacao';
     if (['siteInfo', 'redes'].includes(sec)) return 'dados';
     if (['usuarios'].includes(sec)) return 'usuarios';
@@ -334,7 +334,7 @@ export default function AdminDashboardPage() {
     kanban: errorNews ? undefined : (loadingNews ? undefined : (apiNewsDraftCount !== null && apiNewsDraftCount > 0 ? apiNewsDraftCount : undefined)),
     estadosCidades: totalEstados !== null && totalEstados > 0 ? totalEstados : undefined,
     usuarios: errorUsers ? undefined : (totalUsers ?? undefined),
-    duvidas: duvidasPendentes.count || undefined,
+    duvidasPublico: duvidasPendentes.count || undefined,
     projetosAprovacao: projetosResumo.pending || undefined,
   });
 

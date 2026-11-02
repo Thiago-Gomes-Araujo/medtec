@@ -475,7 +475,7 @@ export default function AdminOverview({
 
               {duvidasPendentes && (
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Dúvidas de visitantes sem resposta:{' '}
+                  <Link href="/admin/faq/publico" className="underline">Dúvidas do público</Link> sem resposta:{' '}
                   {duvidasPendentes.error ? 'indisponível' : duvidasPendentes.count ?? 'carregando...'}
                 </p>
               )}

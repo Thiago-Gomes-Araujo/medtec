@@ -36,7 +36,7 @@ import { buildAdminMenu, SECTION_CONFIG, type AdminSection } from '@/lib/admin-n
 export { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
 export function getFolderIdForSection(sec: AdminSection): string | null {
-  if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'projetosTemas', 'projetosMembros', 'projetosAprovacao', 'duvidas', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
+  if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'projetosTemas', 'projetosMembros', 'projetosAprovacao', 'duvidas', 'duvidasPublico', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
   if (['kanban'].includes(sec)) return 'aprovacao';
   if (['siteInfo', 'redes', 'estadosCidades'].includes(sec)) return 'dados';
   if (['usuarios'].includes(sec)) return 'usuarios';
@@ -259,7 +259,7 @@ export default function AdminShell({
     redes: canAccessSocials,
     estadosCidades: canAccessEstados,
     usuarios: canAccessUsers,
-  }, { duvidas: duvidasPendentes.count || undefined, projetosAprovacao: projetosPendentes || undefined, ...badges });
+  }, { duvidasPublico: duvidasPendentes.count || undefined, projetosAprovacao: projetosPendentes || undefined, ...badges });
 
   // Pesquisa rápida da Sidebar
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
@@ -291,7 +291,7 @@ export default function AdminShell({
       ? canAccessGallery
       : activeSection === 'projetos' || activeSection === 'projetosTemas' || activeSection === 'projetosMembros' || activeSection === 'projetosAprovacao'
       ? canAccessProjects
-      : activeSection === 'duvidas'
+      : activeSection === 'duvidas' || activeSection === 'duvidasPublico'
       ? canAccessFaqs
       : activeSection === 'siteInfo'
       ? canAccessSiteInfo
