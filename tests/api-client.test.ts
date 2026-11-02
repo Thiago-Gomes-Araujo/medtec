@@ -11,6 +11,8 @@ import { ModuleKind, transpileModule } from 'typescript';
 import nextConfig from '../next.config';
 import { NextRequest, NextResponse } from 'next/server';
 import AdminLoginPage from '../src/app/admin/login/page';
+import { POST as authRoutePost } from '../src/app/api/auth/route';
+import { railsApiFetch } from '../src/lib/rails-backend';
 import PublicAvisosPage from '../src/app/avisos/page';
 import PublicAoVivoPage from '../src/app/ao-vivo/page';
 import AvisosView from '../src/components/AvisosView';
@@ -80,6 +82,7 @@ import {
   buildQueryString,
   getMediaUrl,
   apiFetch,
+  getApiBaseUrl,
 } from '../src/lib/api/client';
 import { ApiError } from '../src/lib/api/errors';
 import {
@@ -4842,7 +4845,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
       assert.equal(getOverviewMetrics(after).totalFotos, 280);
       assert.equal(getOverviewHighlights(after).latestNews, undefined);
       assert.equal(after.news.data, previous.news.data);
-      assert.ok(after.news.error?.includes('Falha de conexão com a API'));
+      assert.ok(after.news.error?.includes('API inacessível'));
       assert.equal(after.gallery.error, null);
       const initialFailure = applyOverviewSnapshot(createInitialOverviewState(), failure);
       assert.equal(initialFailure.users.data, null);
@@ -6269,6 +6272,92 @@ describe('5. Cliente HTTP apiFetch (Respostas, 204 e Renovação de Token)', () 
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+
+  it('deve distinguir 401, 403 e API inacessível (rede ou CORS) mesmo sem código de erro conhecido', async () => {
+    const replies: [() => Promise<Response>, string][] = [
+      [async () => new Response(JSON.stringify({ success: false, message: 'Token inválido', errors: ['token_invalido'] }), { headers: { 'Content-Type': 'application/json' }, status: 401 }), 'Você precisa estar autenticado para realizar esta ação.'],
+      [async () => new Response(JSON.stringify({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }), { headers: { 'Content-Type': 'application/json' }, status: 403 }), 'Você não possui permissão para executar esta operação.'],
+      [async () => new Response(JSON.stringify({ success: false, errors: [] }), { headers: { 'Content-Type': 'application/json' }, status: 403 }), 'Sem permissão'],
+      [async () => new Response(JSON.stringify({ success: false, message: 'Você não pode alterar suas próprias permissões', errors: [] }), { headers: { 'Content-Type': 'application/json' }, status: 403 }), 'Você não pode alterar suas próprias permissões'],
+      [async () => { throw new TypeError('Failed to fetch'); }, 'API inacessível: sem conexão com o servidor (rede, CORS ou URL incorreta).'],
+    ];
+    try {
+      for (const [reply, expected] of replies) {
+        globalThis.fetch = reply;
+        const failure = await apiFetch('/n_noticias', { method: 'POST', body: '{}', skipAuth: true }).catch((error: unknown) => error);
+        assert.equal(ApiError.getFriendlyMessage(failure), expected);
+      }
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+    const news = readFileSync('src/components/admin/NewsModule.tsx', 'utf8');
+    assert.doesNotMatch(news, /errors\?\.join/);
+    assert.equal(news.match(/ApiError\.getFriendlyMessage\(err\)/g)?.length, 2);
+  });
+
+  it('login e rotas do servidor usam a mesma URL de API do navegador', async () => {
+    const saved = { public: process.env.NEXT_PUBLIC_API_URL, backend: process.env.BACKEND_API_URL };
+    const urls: string[] = [];
+    process.env.NEXT_PUBLIC_API_URL = 'http://api-unica.test/api/v1';
+    delete process.env.BACKEND_API_URL;
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      urls.push(url);
+      if (url.endsWith('/auth/login')) return new Response(JSON.stringify({ success: true, data: { access_token: 'a', refresh_token: 'r' } }), { status: 200 });
+      return new Response(JSON.stringify({ success: true, data: { id: 1, nome: 'Ana', cpf: '1', perfil_nome: 'Administrador' } }), { status: 200 });
+    };
+    try {
+      const response = await authRoutePost(new Request('http://localhost:3000/api/auth', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: '1', password: 'x' }),
+      }));
+      assert.equal(response.status, 200);
+      assert.deepEqual((await response.json()).tokens, { access_token: 'a', refresh_token: 'r' });
+      assert.deepEqual(urls, ['http://api-unica.test/api/v1/auth/login', 'http://api-unica.test/api/v1/auth/me']);
+      assert.equal(getApiBaseUrl(), 'http://api-unica.test/api/v1');
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (saved.public === undefined) delete process.env.NEXT_PUBLIC_API_URL; else process.env.NEXT_PUBLIC_API_URL = saved.public;
+      if (saved.backend !== undefined) process.env.BACKEND_API_URL = saved.backend;
+    }
+    for (const source of ['src/app/api/auth/route.ts', 'src/lib/rails-backend.ts']) {
+      assert.doesNotMatch(readFileSync(source, 'utf8'), /172\.16\.|process\.env\.BACKEND_API_URL/, source);
+    }
+  });
+
+  it('rotas do servidor exigem credenciais do ambiente, sem valores padrão versionados', async () => {
+    const saved = { cpf: process.env.BACKEND_ADMIN_CPF, password: process.env.BACKEND_ADMIN_PASSWORD };
+    delete process.env.BACKEND_ADMIN_CPF;
+    delete process.env.BACKEND_ADMIN_PASSWORD;
+    let requests = 0;
+    globalThis.fetch = async () => { requests++; return new Response('{}', { status: 200 }); };
+    try {
+      await assert.rejects(railsApiFetch('/usuarios'), /defina BACKEND_ADMIN_CPF e BACKEND_ADMIN_PASSWORD/);
+      assert.equal(requests, 0);
+    } finally {
+      globalThis.fetch = originalFetch;
+      if (saved.cpf !== undefined) process.env.BACKEND_ADMIN_CPF = saved.cpf;
+      if (saved.password !== undefined) process.env.BACKEND_ADMIN_PASSWORD = saved.password;
+    }
+    assert.doesNotMatch(readFileSync('src/lib/rails-backend.ts', 'utf8'), /BACKEND_ADMIN_\w+\s*\|\|/);
+    const compose = readFileSync('docker-compose.yml', 'utf8');
+    for (const name of ['ADMIN_USER', 'ADMIN_PASSWORD', 'ADMIN_SESSION_SECRET']) {
+      assert.match(compose, new RegExp(`\\$\\{${name}:\\?Defina ${name} no \\.env\\}`));
+    }
+    const example = readFileSync('.env.example', 'utf8');
+    assert.deepEqual(example.split('\n').filter(line => /^[A-Za-z_]\w*=./.test(line)), []);
+    for (const name of ['BACKEND_ADMIN_CPF', 'BACKEND_ADMIN_PASSWORD']) assert.match(example, new RegExp(`^${name}=$`, 'm'));
+  });
+
+  it('imagem Docker recebe NEXT_PUBLIC_API_URL no build e o compose não define URL de reserva', () => {
+    const dockerfile = readFileSync('Dockerfile', 'utf8');
+    const positions = ['ARG NEXT_PUBLIC_API_URL', 'ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL', 'test -n "$NEXT_PUBLIC_API_URL"', 'RUN npm run build', 'FROM base AS runner'].map(text => dockerfile.indexOf(text));
+    assert.ok(positions.every(position => position >= 0));
+    assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
+    const compose = readFileSync('docker-compose.yml', 'utf8');
+    assert.match(compose, /args:\n\s+NEXT_PUBLIC_API_URL: \$\{NEXT_PUBLIC_API_URL:\?/);
+    assert.doesNotMatch(compose, /:-http|172\.16\./);
+    assert.match(readFileSync('docs/TESTE_LOCAL.md', 'utf8'), /--build-arg NEXT_PUBLIC_API_URL=/);
   });
 
   it('deve tratar resposta 204 No Content retornando null sem erro de JSON', async () => {
@@ -9467,7 +9556,7 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
     }[] = [
       { mode: 404, expectedError: 'Endpoint ainda não disponível no servidor.' },
       { mode: 503, expectedError: 'Falha de comunicação com o servidor. Tente novamente em instantes.' },
-      { mode: 'network', expectedError: 'Falha de conexão com a API do MEDTEC. Verifique sua rede e a URL do servidor.' },
+      { mode: 'network', expectedError: 'API inacessível: sem conexão com o servidor (rede, CORS ou URL incorreta).' },
     ];
 
     for (const scenario of scenarios) {
@@ -10369,7 +10458,7 @@ describe('E6 — preservação da capa e motivo de reprovação de Notícias', (
       await manager.change('imagem_capa_url', 'https://example.test/revisar.jpg'); await manager.submit();
       assert.equal(manager.calls.length, 1); assert.equal(manager.refreshes(), 0);
       assert.equal(manager.coverInput().props.value, 'https://example.test/revisar.jpg');
-      assert.match(manager.alerts.at(-1)!, /erro_simulado/); assert.doesNotMatch(manager.alerts.join(' '), /sucesso/);
+      assert.match(manager.alerts.at(-1)!, status === 422 ? /erro_simulado/ : /Alteração recusada/); assert.doesNotMatch(manager.alerts.join(' '), /sucesso/);
       assert.match(manager.html(), /Informe a fonte da fotografia/);
     } finally { await manager.restore(); }
   });

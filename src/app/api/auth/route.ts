@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { getApiBaseUrl } from '@/lib/api/client';
 import {
   AUTH_COOKIE_NAME,
   SESSION_MAX_AGE_SECONDS,
@@ -23,8 +24,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Informe usuário e senha' }, { status: 400 });
     }
 
-    // 1. Tenta autenticar na API Backend (Rails API v1 em http://172.16.107.63:3023/api/v1)
-    const backendUrl = process.env.BACKEND_API_URL || 'http://172.16.107.63:3023/api/v1';
+    // 1. Tenta autenticar na mesma API que o navegador usará com o token emitido aqui
+    const backendUrl = getApiBaseUrl();
     let backendTokens: { access_token: string; refresh_token: string } | null = null;
     let backendUser: { id: number; nome: string; cpf: string; perfil_nome: string } | null = null;
 

@@ -99,8 +99,9 @@ export async function GET() {
           };
         });
       }
-    } catch {
-      // fallback
+    } catch (error) {
+      // Os demais dados continuam disponíveis sem a lista de usuários.
+      console.error('Usuários indisponíveis em GET /api/data:', error);
     }
 
     }

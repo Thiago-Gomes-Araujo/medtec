@@ -3,13 +3,23 @@
  * Conforme especificado em rotas_front.md
  */
 
-const RAILS_API_URL = process.env.BACKEND_API_URL || 'http://172.16.107.63:3023/api/v1';
-const ADMIN_CPF = process.env.BACKEND_ADMIN_CPF || '111.444.777-35';
-const ADMIN_PASSWORD = process.env.BACKEND_ADMIN_PASSWORD || 'SenhaAdmin123';
+import { getApiBaseUrl } from '@/lib/api/client';
 
 let cachedAccessToken: string | null = null;
 let cachedRefreshToken: string | null = null;
 let tokenExpiresAt = 0; // timestamp em ms
+
+/**
+ * Lê a conta administrativa das rotas do servidor; sem ela, não há login a tentar.
+ */
+function getBackendAdminCredentials(): { cpf: string; password: string } {
+  const cpf = process.env.BACKEND_ADMIN_CPF;
+  const password = process.env.BACKEND_ADMIN_PASSWORD;
+  if (!cpf || !password) {
+    throw new Error('Configuração ausente: defina BACKEND_ADMIN_CPF e BACKEND_ADMIN_PASSWORD para as rotas administrativas do servidor.');
+  }
+  return { cpf, password };
+}
 
 /**
  * Obtém um token de acesso administrativo válido no Rails v1.
@@ -26,7 +36,7 @@ export async function getBackendAdminToken(): Promise<string | null> {
   // Se temos refresh_token, tenta renovar
   if (cachedRefreshToken) {
     try {
-      const refreshRes = await fetch(`${RAILS_API_URL}/auth/refresh_token`, {
+      const refreshRes = await fetch(`${getApiBaseUrl()}/auth/refresh_token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: cachedRefreshToken }),
@@ -47,11 +57,12 @@ export async function getBackendAdminToken(): Promise<string | null> {
   }
 
   // Realiza novo login com credenciais administrativas
+  const credentials = getBackendAdminCredentials();
   try {
-    const loginRes = await fetch(`${RAILS_API_URL}/auth/login`, {
+    const loginRes = await fetch(`${getApiBaseUrl()}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cpf: ADMIN_CPF, password: ADMIN_PASSWORD }),
+      body: JSON.stringify(credentials),
     });
 
     if (loginRes.ok) {
@@ -82,7 +93,7 @@ export async function railsApiFetch<T = unknown>(
     return { ok: false, status: 503, message: 'Serviço da API Rails temporariamente indisponível' };
   }
 
-  const url = `${RAILS_API_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const url = `${getApiBaseUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   const headers = new Headers(options.headers || {});
   headers.set('Content-Type', 'application/json');
   headers.set('Authorization', `Bearer ${token}`);

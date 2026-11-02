@@ -5,6 +5,9 @@
 
 import { ApiErrorResponse } from './types';
 
+// O navegador não diferencia bloqueio de CORS de falha de rede: os dois chegam como erro de fetch.
+export const API_UNREACHABLE_MESSAGE = 'API inacessível: sem conexão com o servidor (rede, CORS ou URL incorreta).';
+
 export class ApiError extends Error {
   public readonly status: number;
   public readonly errors: string[];
@@ -91,7 +94,10 @@ export class ApiError extends Error {
       if (error.errors.includes('token_expirado')) {
         return 'Sua sessão expirou. Faça login novamente.';
       }
-      if (error.errors.includes('nao_autenticado')) {
+      if (error.status === 0 || error.errors.includes('falha_de_rede')) {
+        return API_UNREACHABLE_MESSAGE;
+      }
+      if (error.status === 401 || error.errors.includes('nao_autenticado')) {
         return 'Você precisa estar autenticado para realizar esta ação.';
       }
       if (error.errors.includes('sem_permissao')) {
