@@ -6391,6 +6391,32 @@ describe('5. Cliente HTTP apiFetch (Respostas, 204 e Renovação de Token)', () 
     }
   });
 
+  it('deve enviar Content-Type só quando houver corpo JSON, evitando preflight em GET/DELETE', async () => {
+    const sent: Headers[] = [];
+    globalThis.fetch = async (_input, init) => {
+      sent.push(new Headers(init?.headers));
+      return new Response(null, { status: 204 });
+    };
+
+    try {
+      await apiFetch('/publico/n_noticias', { skipAuth: true });
+      await apiFetch('/g_estados/1', { method: 'DELETE' });
+      await apiFetch('/g_estados', { method: 'POST', body: JSON.stringify({ nome: 'Rondônia' }) });
+      await apiFetch('/c_conquistas_aluno', { method: 'POST', body: new FormData() });
+      await apiFetch('/g_estados/1', { method: 'PUT', body: '{}', headers: { 'Content-Type': 'application/vnd.api+json' } });
+
+      assert.deepEqual(sent.map(headers => headers.get('Content-Type')), [
+        null,
+        null,
+        'application/json',
+        null,
+        'application/vnd.api+json',
+      ]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it('deve lançar ApiError em respostas de erro (404, 422, 500)', async () => {
     globalThis.fetch = async () => {
       return new Response(
