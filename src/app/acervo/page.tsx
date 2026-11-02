@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
-import GallerySection from '@/components/GallerySection';
+import GaleriaView from '@/components/GaleriaView';
 
 export const metadata: Metadata = {
   title: 'Acervo Fotográfico | MEDTEC Rondônia - SEDUC-RO',
@@ -28,7 +28,7 @@ export default async function AcervoPage() {
           text="Registros das salas de aula conectadas no interior de Rondônia, dos estúdios televisivos da SEDUC em Porto Velho e dos momentos de aprendizagem prática dos nossos alunos e professores mediadores."
         />
 
-        <GallerySection gallery={[]} unavailable />
+        <GaleriaView />
       </main>
 
       <SiteFooter />

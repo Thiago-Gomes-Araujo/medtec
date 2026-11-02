@@ -20,7 +20,7 @@ import { usuariosService } from './services/usuarios.service';
 import { perfisService } from './services/perfis.service';
 import { estadosService, cidadesService } from './services/geografia.service';
 import { avisosService, tiposAvisoService } from './services/avisos.service';
-import { categoriasGaleriaService, fotosGaleriaService } from './services/galeria.service';
+import { categoriasGaleriaService, fotosGaleriaService, galeriaPublicaService } from './services/galeria.service';
 import { canaisService } from './services/canais.service';
 import { noticiasService } from './services/noticias.service';
 import { categoriasDuvidaService, duvidasService, duvidasVisitanteService, duvidasPublicasService } from './services/duvidas.service';
@@ -62,6 +62,7 @@ export const medtecApi = {
   // Galeria de Fotos e Categorias (/fotos_galeria e /categorias_galeria)
   categoriasGaleria: categoriasGaleriaService,
   fotosGaleria: fotosGaleriaService,
+  galeriaPublica: galeriaPublicaService,
 
   // Canais de Contato (/canais_contato)
   canaisContato: canaisService,

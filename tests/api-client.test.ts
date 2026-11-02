@@ -117,6 +117,7 @@ import PublicGaleriaPage from '../src/app/galeria/page';
 import PublicAcervoPage from '../src/app/acervo/page';
 import PublicRedesPage from '../src/app/redes/page';
 import GallerySection from '../src/components/GallerySection';
+import GaleriaView from '../src/components/GaleriaView';
 import SocialSection from '../src/components/SocialSection';
 import PublicNoticiasPage from '../src/app/noticias/page';
 import PublicNoticiaDetalhePage, { generateMetadata as generateNoticiaMetadata } from '../src/app/noticias/[id]/page';
@@ -8763,68 +8764,88 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
     }
   });
 
-  for (const [name, page] of [['galeria', PublicGaleriaPage], ['acervo', PublicAcervoPage]] as const) {
-    it('/' + name + ' não chama /fotos_galeria sem autenticação nem envia Bearer da sessão admin', async () => {
-      setStoredTokens({ access_token: 'admin-session-token', refresh_token: 'admin-session-refresh' });
-      let calls = 0;
-      const fetchMock = mock.method(globalThis, 'fetch', async () => {
-        calls++;
-        throw new Error('Não deve chamar endpoints protegidos em /' + name);
+  describe('Galeria pública', () => {
+    const headers = { 'content-type': 'application/json' };
+    const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+    const page = (items: unknown[]) => reply({ success: true, message: 'ok', data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: items.length } } });
+    const settle = () => new Promise(resolve => setImmediate(resolve));
+    const arquivo = { id: 1, titulo: 'Aula inaugural', descricao: 'Transmissão para polos rurais.', imagem: '/rails/active_storage/foto.jpg', categoria_nome: 'Salas de Aula', categoria_slug: 'salas-de-aula' };
+    const link = { id: 2, titulo: 'Estúdio central', descricao: null, imagem: 'https://exemplo.com/estudio.jpg', categoria_nome: 'Estúdios', categoria_slug: 'estudios', created_by: '1', autor: 'x' };
+    const mount = (fetcher: () => Promise<Response>) => mountCategories(fetcher, false, {
+      component: () => GaleriaView(), allowedPaths: /\/publico\/fotos_galeria$/, anonymous: true,
+    });
+    const section = (view: Awaited<ReturnType<typeof mount>>) => view.nodes().find(node => node.type === GallerySection)!;
+
+    for (const [name, pageComponent] of [['galeria', PublicGaleriaPage], ['acervo', PublicAcervoPage]] as const) {
+      it('/' + name + ' usa a galeria integrada, sem dados fixos', async () => {
+        const nodes = noticeNodes(await pageComponent());
+        assert.ok(nodes.some(node => node.type === GaleriaView));
+        assert.ok(!nodes.some(node => node.type === GallerySection));
       });
+    }
+    it('service usa a rota pública sem token e entrega só os campos do contrato', async () => {
+      setStoredTokens({ access_token: 'admin-session-token', refresh_token: 'admin-session-refresh' });
+      const calls: { url: URL; options: RequestInit }[] = [];
+      const spy = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options: RequestInit = {}) => { calls.push({ url: new URL(String(input)), options }); return page([link]); });
       try {
-        const tree = await page();
-        assert.equal(calls, 0);
+        const response = await medtecApi.galeriaPublica.list({ categoria: 'estudios', page: 'all' });
+        assert.ok(calls[0].url.pathname.endsWith('/publico/fotos_galeria'));
+        assert.equal(calls[0].url.searchParams.get('categoria'), 'estudios'); assert.equal(calls[0].url.searchParams.get('page'), 'all');
+        assert.equal(new Headers(calls[0].options.headers).has('Authorization'), false); assert.equal(calls[0].options.credentials, 'omit');
+        assert.deepEqual(response.data.items, [{ id: 2, titulo: 'Estúdio central', descricao: null, imagem: 'https://exemplo.com/estudio.jpg', categoria_nome: 'Estúdios', categoria_slug: 'estudios' }]);
         assert.equal(getStoredAccessToken(), 'admin-session-token');
-        assert.equal(getStoredRefreshToken(), 'admin-session-refresh');
-        const section = noticeNodes(tree).find(node => node.type === GallerySection);
-        assert.ok(section);
-        assert.deepEqual(section.props.gallery, []);
-        assert.equal(section.props.unavailable, true);
-        const html = renderToStaticMarkup(section);
-        assert.match(html, /role="alert"/);
-        assert.match(html, /Acervo fotográfico indisponível no momento/);
-        assert.doesNotMatch(html, /Nenhum registro fotográfico encontrado para a categoria selecionada/);
-      } finally {
-        fetchMock.mock.restore();
-        clearStoredTokens();
+      } finally { spy.mock.restore(); clearStoredTokens(); }
+    });
+    it('resposta fora do contrato é recusada, e lista vazia de page=all é aceita', async () => {
+      const invalid = mock.method(globalThis, 'fetch', async () => page([{ id: 'x', titulo: 1 }]));
+      try { await assert.rejects(medtecApi.galeriaPublica.list(), /Galeria/); } finally { invalid.mock.restore(); }
+      const empty = mock.method(globalThis, 'fetch', async () => page([]));
+      try { assert.deepEqual((await medtecApi.galeriaPublica.list({ page: 'all' })).data.items, []); } finally { empty.mock.restore(); }
+    });
+    it('a tela lê a API e passa as fotos para a seção', async () => {
+      const view = await mount(async () => page([arquivo, link]));
+      try {
+        await view.act(settle);
+        assert.equal(view.calls[0].url.searchParams.get('page'), 'all');
+        assert.deepEqual((section(view).props.fotos as { id: number }[]).map(item => item.id), [1, 2]);
+        assert.equal(section(view).props.loading, false); assert.equal(section(view).props.unavailable, false);
+      } finally { await view.restore(); }
+    });
+    it('falha da API vira "em breve", sem erro técnico', async () => {
+      for (const fetcher of [async () => reply({ success: false, errors: ['x'] }, 500), async () => { throw new TypeError('fetch failed'); }, async () => reply({ success: true, data: null })]) {
+        const view = await mount(fetcher);
+        let props: Parameters<typeof GallerySection>[0];
+        try {
+          await view.act(settle);
+          props = section(view).props as Parameters<typeof GallerySection>[0];
+          assert.equal(props.unavailable, true);
+        } finally { await view.restore(); }
+        // O motion só renderiza em HTML fora da janela simulada do harness.
+        const html = renderToStaticMarkup(createElement(GallerySection, props));
+        assert.match(html, /O acervo fotográfico estará disponível em breve/);
+        assert.doesNotMatch(html, /role="alert"|fetch failed|Nenhum registro/);
       }
     });
-  }
-
-  it('GallerySection apresenta estados distintos para carregamento, lista vazia legítima, indisponibilidade e erro de rede', () => {
-    const loadingHtml = renderToStaticMarkup(createElement(GallerySection, { gallery: [], loading: true }));
-    assert.match(loadingHtml, /role="status"/);
-    assert.match(loadingHtml, /Carregando acervo fotográfico/);
-    assert.doesNotMatch(loadingHtml, /indisponível|Nenhum registro/);
-
-    const unavailableHtml = renderToStaticMarkup(createElement(GallerySection, { gallery: [], unavailable: true }));
-    assert.match(unavailableHtml, /role="alert"/);
-    assert.match(unavailableHtml, /Acervo fotográfico indisponível no momento/);
-    assert.doesNotMatch(unavailableHtml, /Nenhum registro fotográfico publicado/);
-
-    const networkErrorHtml = renderToStaticMarkup(createElement(GallerySection, {
-      gallery: [],
-      error: 'Não foi possível conectar ao servidor no momento. Verifique sua conexão e tente novamente.',
-    }));
-    assert.match(networkErrorHtml, /role="alert"/);
-    assert.match(networkErrorHtml, /Verifique sua conexão e tente novamente/);
-
-    const emptyHtml = renderToStaticMarkup(createElement(GallerySection, { gallery: [] }));
-    assert.match(emptyHtml, /Nenhum registro fotográfico publicado até o momento/);
-    assert.doesNotMatch(emptyHtml, /role="alert"|categoria selecionada/);
-
-    const withPhotoHtml = renderToStaticMarkup(createElement(GallerySection, {
-      gallery: [{
-        id: '10',
-        title: 'Aula inaugural conectada',
-        description: 'Transmissão para polos rurais.',
-        imageUrl: 'https://medtec.invalid/foto.jpg',
-        category: 'Salas de Aula',
-        date: '31/10/2026',
-      }],
-    }));
-    assert.match(withPhotoHtml, /Aula inaugural conectada/);
-    assert.match(withPhotoHtml, /Salas de Aula/);
+    it('seção distingue carregando, vazio e com fotos, e completa só o caminho do arquivo', () => {
+      const loading = renderToStaticMarkup(createElement(GallerySection, { loading: true }));
+      assert.match(loading, /Carregando acervo/); assert.doesNotMatch(loading, /Nenhum registro|em breve/);
+      assert.match(renderToStaticMarkup(createElement(GallerySection, { fotos: [] })), /Nenhum registro fotográfico publicado/);
+      const html = renderToStaticMarkup(createElement(GallerySection, { fotos: [arquivo, link] }));
+      assert.match(html, /Aula inaugural/); assert.match(html, /Estúdio central/);
+      assert.match(html, /src="[^"]+\/rails\/active_storage\/foto\.jpg"/); assert.ok(html.includes('src="https://exemplo.com/estudio.jpg"'));
+      assert.match(html, /aria-label="Ampliar foto: Aula inaugural"/); assert.match(html, /tabindex="0"/);
+    });
+    it('filtros vêm das fotos, e foto sem imagem não aparece', () => {
+      const html = renderToStaticMarkup(createElement(GallerySection, { fotos: [arquivo, { ...link, id: 3, titulo: 'Sem arquivo', imagem: null }] }));
+      assert.doesNotMatch(html, /Sem arquivo/);
+      assert.match(html, />Salas de Aula</); assert.doesNotMatch(html, />Comunidades<|>Eventos<|>Estúdios</);
+      assert.match(html, /\(1\)/);
+    });
+    it('não inventa localização, infraestrutura, origem nem data', () => {
+      const html = renderToStaticMarkup(createElement(GallerySection, { fotos: [arquivo] }));
+      for (const text of ['Rondônia, Brasil', 'Transmissão via satélite', 'Coordenadoria de Mídias', 'Infraestrutura', 'Localidade', 'Data do registro', 'undefined', 'null']) assert.ok(!html.includes(text), text);
+      assert.ok(!readFileSync('src/components/GallerySection.tsx', 'utf8').includes('CATALOG_INFO'));
+    });
   });
 
   it('/redes não chama /canais_contato, preserva sessão admin e apresenta canais institucionais sem WhatsApp fictício', async () => {

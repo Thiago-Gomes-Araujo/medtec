@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { GalleryItem } from '@/types';
 import { 
   Camera, 
   LayoutGrid, 
@@ -9,104 +8,40 @@ import {
   Maximize2, 
   X, 
   ChevronLeft, 
-  ChevronRight, 
-  MapPin
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import CommunityComingSoon from '@/components/CommunityComingSoon';
+import { getMediaUrl, type FotoGaleriaPublica } from '@/lib/api';
+import { COMMUNITY_COMING_SOON } from '@/lib/community-content';
 
 interface GallerySectionProps {
-  gallery?: GalleryItem[];
+  fotos?: FotoGaleriaPublica[];
   loading?: boolean;
   unavailable?: boolean;
-  error?: string | null;
 }
 
-interface PhotoMetadata {
-  location: string;
-  municipio: string;
-  infra: string;
-  origem: string;
-  bentoClass: string;
-  aspectRatio: string;
-}
-
-// Informações institucionais de cada registro do MEDTEC
-const CATALOG_INFO: Record<string, PhotoMetadata> = {
-  'gal-1': {
-    location: 'Porto Velho, RO, Estúdios SEDUC',
-    municipio: 'Porto Velho',
-    infra: 'Estúdio Central SEDUC, Transmissão via satélite e fibra óptica',
-    origem: 'Coordenadoria de Mídias Educacionais (SEDUC-RO)',
-    bentoClass: 'md:col-span-8',
-    aspectRatio: 'h-[250px] sm:h-[270px]'
-  },
-  'gal-3': {
-    location: 'Cacoal, RO, Terra Indígena Paiter Suruí',
-    municipio: 'Cacoal',
-    infra: 'Recepção satelital com alimentação solar fotovoltaica',
-    origem: 'EEEFM Indígena Paiter Suruí (CRE Cacoal)',
-    bentoClass: 'md:col-span-4',
-    aspectRatio: 'h-[250px] sm:h-[270px]'
-  },
-  'gal-2': {
-    location: 'Ji-Paraná, RO, Zona Rural (Setor Riachuelo)',
-    municipio: 'Ji-Paraná',
-    infra: 'Receptor satelital e tela interativa de 65 polegadas',
-    origem: 'EEEFM Juscelino Kubitschek (Extensão Rural)',
-    bentoClass: 'md:col-span-5',
-    aspectRatio: 'h-[240px] sm:h-[260px]'
-  },
-  'gal-4': {
-    location: 'Porto Velho, RO, Palácio Rio Madeira',
-    municipio: 'Porto Velho',
-    infra: 'Auditório multimídia com transmissão integrada',
-    origem: 'Gerência de Capacitação Pedagógica (SEDUC-RO)',
-    bentoClass: 'md:col-span-7',
-    aspectRatio: 'h-[240px] sm:h-[260px]'
-  },
-  'gal-5': {
-    location: 'Ariquemes, RO, Vale do Jamari',
-    municipio: 'Ariquemes',
-    infra: 'Estande tecnológico com conexão de apoio',
-    origem: 'Mostra Estadual de Inovação Pedagógica MEDTEC',
-    bentoClass: 'md:col-span-6',
-    aspectRatio: 'h-[240px] sm:h-[260px]'
-  },
-  'gal-6': {
-    location: 'Porto Velho, RO, Complexo de Mídias',
-    municipio: 'Porto Velho',
-    infra: 'Mesa de corte profissional, teleprompter e iluminação LED',
-    origem: 'Estúdios de Transmissão da Coordenadoria de Mídias',
-    bentoClass: 'md:col-span-6',
-    aspectRatio: 'h-[240px] sm:h-[260px]'
-  }
-};
-
-const EMPTY_GALLERY: GalleryItem[] = [];
+const SEM_CATEGORIA = 'Geral';
+const EMPTY_FOTOS: FotoGaleriaPublica[] = [];
+// Distribuição da grade em linhas de 12 colunas: 8+4, 5+7 e 6+6.
+const BENTO_LAYOUT = [
+  'md:col-span-8 h-[250px] sm:h-[270px]', 'md:col-span-4 h-[250px] sm:h-[270px]',
+  'md:col-span-5 h-[240px] sm:h-[260px]', 'md:col-span-7 h-[240px] sm:h-[260px]',
+  'md:col-span-6 h-[240px] sm:h-[260px]', 'md:col-span-6 h-[240px] sm:h-[260px]',
+];
+const categoriaDe = (foto: FotoGaleriaPublica) => foto.categoria_nome || SEM_CATEGORIA;
 
 export default function GallerySection({
-  gallery = EMPTY_GALLERY,
+  fotos = EMPTY_FOTOS,
   loading = false,
   unavailable = false,
-  error = null,
 }: GallerySectionProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [viewMode, setViewMode] = useState<'bento' | 'list'>('bento');
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
-  // Ordenação prioritária para harmonia máxima no Bento Grid (8+4=12, 5+7=12, 6+6=12)
-  const orderedGallery = useMemo(() => {
-    const priority = ['gal-1', 'gal-3', 'gal-2', 'gal-4', 'gal-5', 'gal-6'];
-    const sorted = [...gallery].sort((a, b) => {
-      const idxA = priority.indexOf(a.id);
-      const idxB = priority.indexOf(b.id);
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-      if (idxA !== -1) return -1;
-      if (idxB !== -1) return 1;
-      return 0;
-    });
-    return sorted;
-  }, [gallery]);
+  // Foto sem arquivo nem link não tem o que mostrar.
+  const gallery = useMemo(() => fotos.filter((foto) => foto.imagem), [fotos]);
 
   // Contagem dinâmica por categoria
   const categoryCounts = useMemo(() => {
@@ -114,26 +49,19 @@ export default function GallerySection({
       Todas: gallery.length
     };
     gallery.forEach((item) => {
-      counts[item.category] = (counts[item.category] || 0) + 1;
+      counts[categoriaDe(item)] = (counts[categoriaDe(item)] || 0) + 1;
     });
     return counts;
   }, [gallery]);
 
   // Filtro ativo
   const filteredGallery = useMemo(() => {
-    if (selectedCategory === 'Todas') return orderedGallery;
-    return orderedGallery.filter((item) => item.category === selectedCategory);
-  }, [orderedGallery, selectedCategory]);
+    if (selectedCategory === 'Todas') return gallery;
+    return gallery.filter((item) => categoriaDe(item) === selectedCategory);
+  }, [gallery, selectedCategory]);
 
-  // Categorias disponíveis padronizadas
-  const categoriesList = useMemo(() => {
-    const all = ['Todas', 'Estúdios', 'Salas de Aula', 'Comunidades', 'Eventos'];
-    // Adiciona quaisquer categorias extras presentes no CMS
-    gallery.forEach((g) => {
-      if (!all.includes(g.category)) all.push(g.category);
-    });
-    return all;
-  }, [gallery]);
+  // Só as categorias que têm foto, na ordem em que aparecem
+  const categoriesList = useMemo(() => ['Todas', ...new Set(gallery.map(categoriaDe))], [gallery]);
 
   // Foto atualmente inspecionada no Lightbox
   const activePhoto = useMemo(() => {
@@ -142,18 +70,6 @@ export default function GallerySection({
     }
     return filteredGallery[selectedIndex];
   }, [selectedIndex, filteredGallery]);
-
-  const activeMeta = useMemo(() => {
-    if (!activePhoto) return null;
-    return CATALOG_INFO[activePhoto.id] || {
-      location: 'Rondônia, Brasil',
-      municipio: 'Rondônia',
-      infra: 'Transmissão via satélite e rede estadual de ensino',
-      origem: 'Coordenadoria de Mídias Educacionais (SEDUC-RO)',
-      bentoClass: 'md:col-span-6',
-      aspectRatio: 'min-h-[340px]'
-    };
-  }, [activePhoto]);
 
   // Navegação no Lightbox
   const handlePrev = useCallback(() => {
@@ -194,7 +110,7 @@ export default function GallerySection({
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-12 sm:pb-24 space-y-6 sm:space-y-8">
 
         {/* BARRA DE FERRAMENTAS INSTITUCIONAL (exibida apenas quando há itens carregados) */}
-        {!loading && !unavailable && !error && gallery.length > 0 && (
+        {!loading && !unavailable && gallery.length > 0 && (
           <div className="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
 
             {/* Filtros de Categoria */}
@@ -271,22 +187,9 @@ export default function GallerySection({
                 Carregando acervo fotográfico...
               </p>
             </motion.div>
-          ) : unavailable || error ? (
-            <motion.div
-              key="unavailable"
-              role="alert"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-white dark:bg-slate-900/60 min-w-0 max-w-full [overflow-wrap:anywhere] p-5 sm:p-12 text-center space-y-2"
-            >
-              <Camera className="mx-auto h-10 w-10 text-amber-600 dark:text-amber-400 mb-3" aria-hidden="true" />
-              <p className="text-base font-semibold text-slate-900 dark:text-white">
-                Acervo fotográfico indisponível no momento
-              </p>
-              <p className="text-sm text-slate-600 dark:text-slate-300 max-w-lg mx-auto">
-                {error || 'A consulta pública de fotografias ainda não está disponível para visitantes. Tente novamente mais tarde.'}
-              </p>
+          ) : unavailable ? (
+            <motion.div key="unavailable" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <CommunityComingSoon icon={Camera} message={COMMUNITY_COMING_SOON.galeria} />
             </motion.div>
           ) : gallery.length === 0 ? (
             <motion.div
@@ -330,28 +233,23 @@ export default function GallerySection({
               className="grid grid-cols-1 md:grid-cols-12 gap-5"
             >
               {filteredGallery.map((photo, index) => {
-                const meta = CATALOG_INFO[photo.id] || {
-                  location: 'Rondônia, Brasil',
-                  municipio: 'Rondônia',
-                  infra: 'Transmissão via satélite e rede estadual',
-                  origem: 'Coordenadoria de Mídias Educacionais (SEDUC-RO)',
-                  bentoClass: 'md:col-span-6',
-                  aspectRatio: 'min-h-[340px]'
-                };
-
-                const gridSpanClass = filteredGallery.length < 4 ? 'md:col-span-6' : meta.bentoClass;
+                const gridSpanClass = filteredGallery.length < 4 ? 'md:col-span-6 h-[240px] sm:h-[260px]' : BENTO_LAYOUT[index % BENTO_LAYOUT.length];
 
                 return (
                   <motion.div
                     key={photo.id}
                     layout
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Ampliar foto: ${photo.titulo}`}
                     onClick={() => setSelectedIndex(index)}
-                    className={`group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-900 hover:border-[#004A99] dark:hover:border-sky-500 transition-all duration-200 ease-out cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-end active:scale-[0.99] ${gridSpanClass} ${meta.aspectRatio}`}
+                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedIndex(index); } }}
+                    className={`group relative overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-900 hover:border-[#004A99] dark:hover:border-sky-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 transition-all duration-200 ease-out cursor-pointer shadow-xs hover:shadow-md flex flex-col justify-end active:scale-[0.99] ${gridSpanClass}`}
                   >
                     {/* Imagem Limpa de Fundo */}
                     <img
-                      src={photo.imageUrl}
-                      alt={photo.title}
+                      src={getMediaUrl(photo.imagem)}
+                      alt={photo.titulo}
                       className="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
                       loading="lazy"
                       decoding="async"
@@ -364,24 +262,17 @@ export default function GallerySection({
                     <div className="relative z-10 p-4 space-y-1.5">
                       <div className="flex items-center gap-2 text-xs text-sky-200 font-medium">
                         <span className="bg-black/60 px-2 py-0.5 rounded text-[11px] font-semibold text-white">
-                          {photo.category}
-                        </span>
-                        <span>•</span>
-                        <span>{photo.date}</span>
-                        <span>•</span>
-                        <span className="inline-flex items-center gap-1 truncate">
-                          <MapPin className="h-3 w-3 text-sky-300 shrink-0" />
-                          {meta.location}
+                          {categoriaDe(photo)}
                         </span>
                       </div>
 
                       <h3 className="text-sm sm:text-base font-semibold leading-snug text-white group-hover:text-sky-300 transition-colors line-clamp-2">
-                        {photo.title}
+                        {photo.titulo}
                       </h3>
 
                       <div className="max-h-0 opacity-0 group-hover:max-h-24 group-hover:opacity-100 transition-all duration-200 ease-out overflow-hidden pt-0.5">
                         <p className="text-xs text-slate-200 line-clamp-2">
-                          {photo.description}
+                          {photo.descricao}
                         </p>
 
                         <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-xs text-sky-300">
@@ -407,26 +298,21 @@ export default function GallerySection({
               className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden shadow-xs"
             >
               {filteredGallery.map((photo, index) => {
-                const meta = CATALOG_INFO[photo.id] || {
-                  location: 'Rondônia, Brasil',
-                  municipio: 'Rondônia',
-                  infra: 'Transmissão via satélite e rede estadual',
-                  origem: 'Coordenadoria de Mídias Educacionais (SEDUC-RO)',
-                  bentoClass: 'md:col-span-6',
-                  aspectRatio: 'min-h-[340px]'
-                };
-
                 return (
                   <div
                     key={photo.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Ampliar foto: ${photo.titulo}`}
                     onClick={() => setSelectedIndex(index)}
-                    className="group flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 sm:p-5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors duration-150 cursor-pointer"
+                    onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedIndex(index); } }}
+                    className="group flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 sm:p-5 hover:bg-slate-50 dark:hover:bg-slate-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-400 transition-colors duration-150 cursor-pointer"
                   >
                     <div className="flex items-center gap-4 shrink-0">
                       <div className="relative h-16 w-24 sm:h-18 sm:w-28 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-900">
                         <img
-                          src={photo.imageUrl}
-                          alt={photo.title}
+                          src={getMediaUrl(photo.imagem)}
+                          alt={photo.titulo}
                           className="h-full w-full object-cover"
                           loading="lazy"
                           decoding="async"
@@ -437,17 +323,14 @@ export default function GallerySection({
                     <div className="flex-1 min-w-0 pr-2">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="rounded-md bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 px-2 py-0.5 text-xs text-[#004A99] dark:text-sky-300 font-semibold">
-                          {photo.category}
-                        </span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {photo.date} • {meta.location}
+                          {categoriaDe(photo)}
                         </span>
                       </div>
                       <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition-colors truncate">
-                        {photo.title}
+                        {photo.titulo}
                       </h3>
                       <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-1 mt-0.5">
-                        {photo.description}
+                        {photo.descricao}
                       </p>
                     </div>
 
@@ -468,7 +351,7 @@ export default function GallerySection({
 
       {/* MODAL LIGHTBOX INSTITUCIONAL */}
       <AnimatePresence>
-        {activePhoto && activeMeta && (
+        {activePhoto && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-8 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
             onClick={() => setSelectedIndex(null)}
@@ -503,8 +386,8 @@ export default function GallerySection({
 
                 <div className="relative flex-1 flex items-center justify-center my-auto min-h-[300px] max-h-[58vh] lg:max-h-[66vh] overflow-hidden rounded-lg bg-black/60 p-2">
                   <img
-                    src={activePhoto.imageUrl}
-                    alt={activePhoto.title}
+                    src={getMediaUrl(activePhoto.imagem)}
+                    alt={activePhoto.titulo}
                     className="max-h-full max-w-full object-contain rounded-md select-none"
                   />
                 </div>
@@ -543,46 +426,18 @@ export default function GallerySection({
 
                   <div>
                     <h2 className="text-lg sm:text-xl font-bold leading-snug text-white">
-                      {activePhoto.title}
+                      {activePhoto.titulo}
                     </h2>
-                    <p className="mt-2.5 text-sm leading-relaxed text-slate-300">
-                      {activePhoto.description}
-                    </p>
+                    {activePhoto.descricao && <p className="mt-2.5 text-sm leading-relaxed text-slate-300">
+                      {activePhoto.descricao}
+                    </p>}
                   </div>
 
-                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3.5 space-y-2.5 text-xs">
-                    <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
+                  <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-3.5 text-xs">
+                    <div className="flex items-start justify-between gap-2">
                       <span className="text-slate-400 uppercase text-[11px] font-semibold">Categoria:</span>
                       <span className="text-sky-300 font-semibold text-right">
-                        {activePhoto.category}
-                      </span>
-                    </div>
-
-                    <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
-                      <span className="text-slate-400 uppercase text-[11px] font-semibold">Localidade:</span>
-                      <span className="text-slate-200 text-right">
-                        {activeMeta.location}
-                      </span>
-                    </div>
-
-                    <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
-                      <span className="text-slate-400 uppercase text-[11px] font-semibold">Data do registro:</span>
-                      <span className="text-slate-200 font-medium text-right tabular-nums">
-                        {activePhoto.date}
-                      </span>
-                    </div>
-
-                    <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
-                      <span className="text-slate-400 uppercase text-[11px] font-semibold">Infraestrutura:</span>
-                      <span className="text-slate-200 font-medium text-right">
-                        {activeMeta.infra}
-                      </span>
-                    </div>
-
-                    <div className="flex items-start justify-between gap-2 pt-0.5">
-                      <span className="text-slate-400 uppercase text-[11px] font-semibold">Origem:</span>
-                      <span className="text-slate-300 text-right">
-                        {activeMeta.origem}
+                        {categoriaDe(activePhoto)}
                       </span>
                     </div>
                   </div>

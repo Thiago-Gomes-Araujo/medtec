@@ -852,3 +852,19 @@ export interface BannerPublico {
   id: number;
   imagem: string;
 }
+
+// Galeria do site: `imagem` é um caminho do arquivo enviado ou o link externo.
+export interface FotoGaleriaPublica {
+  id: number;
+  titulo: string;
+  descricao: string | null;
+  imagem: string | null;
+  categoria_nome: string | null;
+  categoria_slug: string | null;
+}
+
+export interface PublicoGaleriaParams {
+  categoria?: string;
+  page?: number | 'all';
+  per_page?: number;
+}
