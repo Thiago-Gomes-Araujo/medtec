@@ -158,6 +158,8 @@ import TeacherProfiles from '../src/components/TeacherProfiles';
 import CommunityComingSoon from '../src/components/CommunityComingSoon';
 import StudentStories from '../src/components/StudentStories';
 import ProfessorDetalhePage from '../src/app/professores/[id]/page';
+import ProjetoDetalhePage, { generateMetadata as projetoMetadata } from '../src/app/projetos/[id]/page';
+import ProjetosView from '../src/components/ProjetosView';
 import type { ConquistaPublica, ProfessorPublico } from '../src/lib/api/types';
 import {
   CONQUISTA_IMAGE_MAX_BYTES,
@@ -10763,22 +10765,24 @@ describe('E10.2 — foco e teclado dos diálogos', () => {
 });
 
 describe('E10.2 — controles semânticos dos cards', () => {
-  it('projetos têm botão nativo de expansão e link separado', () => {
-    let selected = '';
-    const project = { id: 'p1', title: 'Projeto real no teste', shortTitle: 'Projeto', image: '', quote: '', school: '' };
-    const states = mock.method(React, 'useState', ((value: unknown) => [Array.isArray(value) ? [project] : value === true ? false : typeof value === 'string' ? selected : value,
-      (id: string) => { selected = id; }]) as typeof React.useState);
-    const effects = mock.method(React, 'useEffect', () => {});
+  it('projetos têm botão nativo de expansão e link separado', async () => {
+    const project = { id: 1, titulo: 'Projeto real no teste', relato: 'Relato', tema_nome: 'Tema', tema_slug: 't', escola_nome: 'Escola', cidade_nome: 'Cidade', imagem: null, imagem_url: null, created_at: 'x' };
+    const second = { ...project, id: 2, titulo: 'Segundo projeto' };
+    const view = await mountCategories(async () => new Response(JSON.stringify({ success: true, data: { items: [project, second], pagination: { current_page: 1, total_pages: 1, total_count: 2, per_page: 6 } } }), { status: 200, headers: { 'content-type': 'application/json' } }), false, {
+      component: () => HomeProjectsAccordionSection(), allowedPaths: /\/publico\/pj_projetos$/, anonymous: true,
+    });
+    const expand = (title: string) => view.nodes().find(node => node.type === 'button' && node.props['aria-label'] === 'Expandir projeto ' + title);
     try {
-      const nodes = noticeNodes(HomeProjectsAccordionSection());
-      const button = nodes.find(node => node.type === 'button' && String(node.props['aria-label']).startsWith('Expandir projeto'));
+      await view.act(() => new Promise(resolve => setImmediate(resolve)));
+      assert.equal(view.calls[0].url.searchParams.get('per_page'), '6');
+      assert.equal(expand('Projeto real no teste')?.props['aria-expanded'], true, 'A primeira lâmina abre expandida');
+      const button = expand('Segundo projeto');
       assert.ok(button); assert.equal(button.props.type, 'button'); assert.equal(button.props['aria-expanded'], false);
       assert.equal(noticeNodes(button.props.children as ReactNode).some(node => node.type === NextLink || node.type === 'a'), false);
-      Reflect.apply(button.props.onClick as () => unknown, undefined, []); assert.equal(selected, 'p1');
-      const expanded = noticeNodes(HomeProjectsAccordionSection());
-      assert.ok(expanded.some(node => node.type === NextLink && node.props.href === '/projetos'));
-      assert.equal(expanded.find(node => node.type === 'button')?.props['aria-expanded'], true);
-    } finally { states.mock.restore(); effects.mock.restore(); }
+      await view.click('Expandir projeto Segundo projeto');
+      assert.equal(expand('Segundo projeto')?.props['aria-expanded'], true);
+      assert.ok(view.nodes().some(node => node.type === NextLink && node.props.href === '/projetos/2'));
+    } finally { await view.restore(); }
   });
   it('mural abre perfis por botões nativos nomeados', async () => {
     const teacher: ProfessorPublico = { id: 1, nome: 'Professora do teste', pratica_pedagogica: 'Resumo', escola_nome: 'Escola', cidade_nome: 'Teste', disciplinas: [{ nome: 'Ciências', slug: 'ciencias' }] };
@@ -11157,6 +11161,121 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
         state.mock.restore();
       }
     }
+  });
+});
+
+describe('Projetos — site público', () => {
+  const headers = { 'content-type': 'application/json' };
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => json({ success: true, message: 'ok', data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: Math.max(items.length, 0) } } });
+  const settle = () => new Promise(resolve => setTimeout(resolve, 5));
+  const CPF = '01251667708';
+  const projeto = { id: 1, titulo: 'Hortas em Jirau', relato: 'Alunos montaram hortas.', tema_nome: 'Agroecologia', tema_slug: 'agroecologia', escola_nome: 'EEEF Rondon', cidade_nome: 'Rolim de Moura', imagem: null, imagem_url: 'https://x.com/c.jpg', created_at: 'x' };
+  const outro = { ...projeto, id: 2, titulo: 'Robótica solar', cidade_nome: 'Porto Velho', imagem_url: null };
+  // A API pública não traz CPF nem autor; os campos abaixo garantem que um vazamento também pararia no front.
+  const detalhe = { ...projeto, cpf: CPF, autor_nome: 'Autora', created_by: '1',
+    membros: [{ id: 5, pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: CPF, funcao: 'Professora mediadora' }],
+    anexos: [{ id: 10, nome: 'relatorio.pdf', tipo: 'application/pdf', tamanho: 52344, url: '/rails/relatorio.pdf' }] };
+  async function withFetch<T>(reply: (url: URL) => Response, run: () => Promise<T>) {
+    const spy = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) => reply(new URL(String(input))));
+    try { return await run(); } finally { spy.mock.restore(); }
+  }
+  const page = (id: string) => ProjetoDetalhePage({ params: Promise.resolve({ id }) });
+  const mountView = (reply: (url: URL) => Response) => mountCategories(async url => reply(url), false, {
+    component: () => ProjetosView(), allowedPaths: /\/publico\/(pj_projetos|pj_temas)$/, anonymous: true,
+  });
+  const temasReply = (url: URL) => url.pathname.endsWith('/pj_temas') ? json({ success: true, data: [{ nome: 'Agroecologia', slug: 'agroecologia' }] }) : null;
+
+  it('lista por page=all, filtra tema e busca na API e município pela própria lista', async () => {
+    const view = await mountView(url => temasReply(url) ?? list([projeto, outro]));
+    const lastList = () => view.calls.filter(call => call.url.pathname.endsWith('/pj_projetos')).at(-1)!.url.searchParams;
+    try {
+      await view.act(settle);
+      assert.equal(lastList().get('page'), 'all');
+      assert.match(view.html(), /Hortas em Jirau/); assert.match(view.html(), /Robótica solar/);
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ver o projeto Hortas em Jirau')?.props.href, '/projetos/1');
+      await view.change('projetos-cidade', 'Porto Velho');
+      assert.doesNotMatch(view.html(), /Hortas em Jirau/); assert.match(view.html(), /Robótica solar/);
+      await view.change('projetos-tema', 'agroecologia');
+      await view.act(settle);
+      assert.equal(lastList().get('tema'), 'agroecologia');
+      await view.change('projetos-busca', ' horta ');
+      await view.act(() => new Promise(resolve => setTimeout(resolve, 320)));
+      await view.act(settle);
+      assert.equal(lastList().get('busca'), 'horta');
+    } finally { await view.restore(); }
+  });
+  it('lista vazia é estado vazio, e falha da API vira "em breve", sem erro técnico', async () => {
+    const empty = await mountView(url => temasReply(url) ?? list([]));
+    try {
+      await empty.act(settle);
+      assert.match(empty.html(), /Nenhum projeto encontrado/);
+    } finally { await empty.restore(); }
+    for (const fail of [() => json({ success: false, message: 'Erro', errors: ['erro_interno'] }, 500), () => { throw new TypeError('fetch failed'); }]) {
+      const view = await mountView(url => temasReply(url) ?? fail());
+      try {
+        await view.act(settle);
+        assert.equal(view.nodes().find(node => node.type === CommunityComingSoon)?.props.message, 'Os projetos pedagógicos das escolas estarão disponíveis em breve.');
+        assert.doesNotMatch(view.html(), /role="alert"|erro_interno|fetch failed/);
+      } finally { await view.restore(); }
+    }
+  });
+  it('falha só nos temas mantém a lista, sem o filtro', async () => {
+    const warn = mock.method(console, 'warn', () => {});
+    const view = await mountView(url => url.pathname.endsWith('/pj_temas') ? json({}, 500) : list([projeto]));
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /Hortas em Jirau/); assert.ok(!view.nodes().some(node => node.type === CommunityComingSoon));
+    } finally { await view.restore(); warn.mock.restore(); }
+  });
+  it('home mostra "em breve" se a API falhar', async () => {
+    const view = await mountCategories(async () => json({ success: false, errors: ['x'] }, 500), false, {
+      component: () => HomeProjectsAccordionSection(), allowedPaths: /\/publico\/pj_projetos$/, anonymous: true,
+    });
+    try {
+      await view.act(settle);
+      assert.ok(view.nodes().some(node => node.type === CommunityComingSoon));
+      assert.doesNotMatch(view.html(), /role="alert"/);
+    } finally { await view.restore(); }
+  });
+  it('página do projeto mostra membros com nome e função e anexos, sem CPF', async () => {
+    await withFetch(() => json({ success: true, message: 'Projeto encontrado', data: detalhe }), async () => {
+      const nodes = noticeNodes(await page('1'));
+      const main = nodes.find(node => node.type === 'main')!;
+      const html = renderToStaticMarkup(main);
+      for (const text of ['Hortas em Jirau', 'Maria Ribeiro', 'Professora mediadora', 'EEEF Rondon', 'Rolim de Moura', 'relatorio.pdf', '51 KB']) assert.ok(html.includes(text), text);
+      const anexo = nodes.find(node => node.props['aria-label'] === 'Baixar relatorio.pdf')!;
+      assert.match(String(anexo.props.href), /\/rails\/relatorio\.pdf$/); assert.equal(anexo.props.download, 'relatorio.pdf');
+      for (const secret of [CPF, '012.516.677', 'Autora']) assert.ok(!html.includes(secret), secret);
+      assert.ok(!JSON.stringify(nodes.map(node => node.props.item ?? null)).includes(CPF));
+    });
+  });
+  it('seções sem membros ou anexos não aparecem', async () => {
+    await withFetch(() => json({ success: true, data: { ...projeto, membros: [], anexos: [] } }), async () => {
+      const html = renderToStaticMarkup(noticeNodes(await page('1')).find(node => node.type === 'main')!);
+      assert.ok(!html.includes('Quem participou')); assert.ok(!html.includes('Anexos'));
+    });
+  });
+  it('id inválido e projeto não publicado dão 404; outras falhas viram "em breve" sem indexar', async () => {
+    let calls = 0;
+    await withFetch(() => { calls++; return json({ success: false, message: 'Registro não encontrado', errors: ['x'] }, 404); }, async () => {
+      await assert.rejects(page('abc'), /NEXT_HTTP_ERROR_FALLBACK;404/);
+      assert.equal(calls, 0, 'Id inválido não consulta a API');
+      await assert.rejects(page('999'), /NEXT_HTTP_ERROR_FALLBACK;404/);
+    });
+    for (const reply of [() => json({ success: false, message: 'Erro', errors: ['erro_interno'] }, 500), () => { throw new TypeError('fetch failed'); }]) {
+      await withFetch(reply, async () => {
+        const nodes = noticeNodes(await page('1'));
+        assert.equal(nodes.find(node => node.type === CommunityComingSoon)?.props.message, 'Os projetos pedagógicos das escolas estarão disponíveis em breve.');
+        assert.deepEqual((await projetoMetadata({ params: Promise.resolve({ id: '1' }) })).robots, { index: false });
+      });
+    }
+  });
+  it('metadados do projeto vêm da API', async () => {
+    await withFetch(() => json({ success: true, data: detalhe }), async () => {
+      const metadata = await projetoMetadata({ params: Promise.resolve({ id: '1' }) });
+      assert.match(String(metadata.title), /Hortas em Jirau/); assert.equal(metadata.description, 'Alunos montaram hortas.'); assert.equal(metadata.robots, undefined);
+    });
   });
 });
 
