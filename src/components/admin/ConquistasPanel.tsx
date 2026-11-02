@@ -1,9 +1,10 @@
 'use client';
 
 import Image from 'next/image';
-import { useCallback, useId, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useCallback, useEffect, useId, useState, type ChangeEvent, type FormEvent } from 'react';
 import { medtecApi, type CCategoriaConquista, type CConquistaAluno, type ModeracaoStatus } from '@/lib/api';
 import { getConquistaImageSrc, isHttpsUrl, validateConquistaImage } from '@/lib/community-content';
+import { formatFileSize } from '@/lib/projetos-content';
 import FileButton from './FileButton';
 import {
   buttonClass,
@@ -29,13 +30,16 @@ interface ConquistaForm {
   cidadeId: string;
   escolaId: string;
   imagem: File | null;
+  imagemPreview: string;
   imagemUrl: string;
+  imagemUrlOriginal: string;
   imagemAtual: string;
+  imagemErro: string | null;
 }
 
 const EMPTY_FORM: ConquistaForm = {
   nomeAluno: '', titulo: '', relato: '', categoriaId: '', cidadeId: '', escolaId: '',
-  imagem: null, imagemUrl: '', imagemAtual: '',
+  imagem: null, imagemPreview: '', imagemUrl: '', imagemUrlOriginal: '', imagemAtual: '', imagemErro: null,
 };
 const readCategorias = (signal: AbortSignal) => medtecApi.categoriasConquista.list({ page: 'all' }, signal);
 
@@ -60,6 +64,10 @@ export default function ConquistasPanel() {
   const escolas = useEscolaOptions(form?.cidadeId ?? '');
   const action = useAdminAction();
   const blocked = action.busy || form !== null || deleting !== null;
+  const imagemPreview = form?.imagemPreview;
+
+  // A prévia do arquivo escolhido é local: a URL é liberada ao trocar a escolha ou fechar o formulário.
+  useEffect(() => () => { if (imagemPreview) URL.revokeObjectURL(imagemPreview); }, [imagemPreview]);
 
   function updateFilters(next: Partial<typeof filters>) {
     setFilters(current => ({ ...current, ...next }));
@@ -72,7 +80,7 @@ export default function ConquistasPanel() {
       setForm({
         ...EMPTY_FORM, id: value.id, nomeAluno: value.nome_aluno, titulo: value.titulo, relato: value.relato,
         categoriaId: String(value.c_categoria_conquista_aluno_id), escolaId: String(value.escola_id),
-        imagemUrl: value.imagem_url ?? '', imagemAtual: getConquistaImageSrc(value),
+        imagemUrl: value.imagem_url ?? '', imagemUrlOriginal: value.imagem_url ?? '', imagemAtual: getConquistaImageSrc(value),
       });
     });
   }
@@ -84,8 +92,14 @@ export default function ConquistasPanel() {
     event.target.value = '';
     if (!file) return;
     const problem = validateConquistaImage(file);
-    action.setError(problem);
-    if (!problem) setForm({ ...form, imagem: file, imagemUrl: '' });
+    if (problem) { setForm({ ...form, imagemErro: problem }); return; }
+    setForm({ ...form, imagem: file, imagemPreview: URL.createObjectURL(file), imagemUrl: '', imagemErro: null });
+  }
+
+  // Desfaz só a escolha ainda não salva: a imagem atual continua na conquista.
+  function removeImagemEscolhida() {
+    if (!form) return;
+    setForm({ ...form, imagem: null, imagemPreview: '', imagemUrl: form.imagemUrlOriginal, imagemErro: null });
   }
 
   async function save(event: FormEvent) {
@@ -101,7 +115,8 @@ export default function ConquistasPanel() {
       nome_aluno: form.nomeAluno.trim(), titulo: form.titulo.trim(), relato: form.relato.trim(),
       c_categoria_conquista_aluno_id: Number(form.categoriaId), escola_id: Number(form.escolaId),
       imagem: form.imagem ?? undefined,
-      imagem_url: imagemUrl || undefined,
+      // O contrato não prevê remover a imagem salva: o link só vai quando há um novo.
+      imagem_url: imagemUrl && imagemUrl !== form.imagemUrlOriginal ? imagemUrl : undefined,
     };
     const saved = await action.run(async () => {
       if (form.id) await medtecApi.conquistas.update(form.id, data);
@@ -132,6 +147,9 @@ export default function ConquistasPanel() {
     }
   }
 
+  const linkEscolhido = form?.imagemUrl.trim() ?? '';
+  const linkMudou = !!form && !form.imagem && linkEscolhido !== form.imagemUrlOriginal;
+  const novaImagem = form?.imagemPreview || (linkMudou && isHttpsUrl(linkEscolhido) ? linkEscolhido : '');
   const categoriaOptions = categorias.items.filter(item => item.ativo || String(item.id) === form?.categoriaId);
 
   return (
@@ -222,11 +240,19 @@ export default function ConquistasPanel() {
           <fieldset className="space-y-2">
             <legend className={labelClass}>Imagem (opcional)</legend>
             <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-center">
-              <FileButton name="conquista-imagem" accept="image/png,image/jpeg,image/webp" selected={form.imagem?.name} onChange={chooseFile}>Escolher imagem</FileButton>
-              <input name="conquista-imagem-url" type="url" aria-label="Link da imagem" placeholder="Ou cole um link https://..." value={form.imagemUrl} className={inputClass} onChange={event => setForm({ ...form, imagem: null, imagemUrl: event.target.value })} />
+              <FileButton name="conquista-imagem" accept="image/png,image/jpeg,image/webp" onChange={chooseFile}>Escolher imagem</FileButton>
+              <input name="conquista-imagem-url" type="url" aria-label="Link da imagem" placeholder="Ou cole um link https://..." value={form.imagemUrl} className={inputClass} onChange={event => setForm({ ...form, imagem: null, imagemPreview: '', imagemUrl: event.target.value, imagemErro: null })} />
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400">PNG, JPG ou WEBP, até 5 MB, ou link HTTPS.</p>
-            {form.imagemAtual && <Image unoptimized src={form.imagemAtual} alt="Imagem atual da conquista" width={160} height={90} className="rounded-lg object-cover" />}
+            {form.imagemErro && <p role="alert" className="text-xs text-red-700 dark:text-red-300">{form.imagemErro}</p>}
+            {linkEscolhido && !isHttpsUrl(linkEscolhido) && <p className="text-xs text-red-700 dark:text-red-300">A prévia só aparece com um link HTTPS válido.</p>}
+            {novaImagem
+              ? <figure className="space-y-1">
+                <Image unoptimized src={novaImagem} alt="Prévia da nova imagem" width={160} height={90} className="rounded-lg object-cover" />
+                <figcaption className="break-all text-xs text-slate-600 dark:text-slate-400">{form.imagem ? `${form.imagem.name} (${formatFileSize(form.imagem.size)}). ` : ''}Prévia: a imagem só muda ao salvar a conquista.</figcaption>
+              </figure>
+              : form.imagemAtual && <Image unoptimized src={form.imagemAtual} alt="Imagem atual da conquista" width={160} height={90} className="rounded-lg object-cover" />}
+            {(form.imagem || linkMudou) && <button type="button" className={buttonClass} onClick={removeImagemEscolhida}>Remover escolha</button>}
           </fieldset>
           <div className="flex flex-wrap gap-2">
             <button type="submit" className={buttonClass}>{action.busy ? 'Salvando...' : 'Salvar conquista'}</button>

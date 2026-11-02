@@ -12711,9 +12711,9 @@ describe('Professores e conquistas — integração com a API', () => {
       await view.change('conquista-imagem-url', 'https://exemplo.com/antes.jpg');
       await chooseFile(new File(['x'], 'a.png', { type: 'image/png' }));
       assert.equal(campo('conquista-imagem-url')?.props.value, '');
-      assert.equal(campo('conquista-imagem')?.props.selected, 'a.png');
+      assert.match(view.html(), /a\.png \(1 KB\)/);
       await view.change('conquista-imagem-url', 'https://exemplo.com/depois.jpg');
-      assert.equal(campo('conquista-imagem')?.props.selected, undefined);
+      assert.doesNotMatch(view.html(), /a\.png \(1 KB\)/);
       for (const link of ['http://exemplo.com/a.jpg', 'javascript:alert(1)', 'ftp://exemplo.com/a.jpg', 'exemplo.com/a.jpg']) {
         await view.change('conquista-imagem-url', link);
         await view.submit('Criar conquista');
@@ -12726,6 +12726,119 @@ describe('Professores e conquistas — integração com a API', () => {
       assert.equal(typeof posts()[before].options.body, 'string', 'O arquivo descartado não vai junto');
       assert.equal(sent(posts()[before]).c_conquista_aluno.imagem_url, 'https://exemplo.com/a.jpg');
     } finally { await view.restore(); }
+  });
+
+  describe('prévia da imagem da conquista', () => {
+    const salva = { ...conquista, imagem: '/rails/foto.png', imagem_url: null };
+    const mountConquista = (detalhe: unknown = salva) => mountCategories(async (url, options) => {
+      if (options.method === 'PATCH' || options.method === 'POST') return json(detalhe);
+      if (url.pathname.endsWith('/escolas')) return listReply([escola]);
+      if (url.pathname.endsWith('/c_categorias_conquista_aluno')) return listReply([categoria]);
+      if (/\/c_conquistas_aluno\/\d+$/.test(url.pathname)) return json(detalhe);
+      return listReply([conquista]);
+    }, false, { component: () => ConquistasPanel(), allowedPaths: /\/(escolas|c_categorias_conquista_aluno|c_conquistas_aluno(\/\d+)?)$/ });
+    type View = Awaited<ReturnType<typeof mountConquista>>;
+    const alt = (view: View, text: string) => view.nodes().find(node => node.props.alt === text);
+    const escolher = (view: View, file: File) => view.act(() => Reflect.apply(view.nodes().find(node => node.type === FileButton && node.props.name === 'conquista-imagem')!.props.onChange as () => unknown, undefined, [{ target: { files: [file], value: file.name } }]));
+    const abrirEdicao = async (view: View) => { await view.act(settle); await view.click('Editar ' + conquista.titulo); await view.act(settle); };
+    function urlsDeObjeto() {
+      const created = mock.method(URL, 'createObjectURL', () => 'blob:previa');
+      const revoked = mock.method(URL, 'revokeObjectURL', () => {});
+      return { created, revoked, restore() { created.mock.restore(); revoked.mock.restore(); } };
+    }
+
+    it('arquivo escolhido aparece na prévia sem enviar nada, e remover desfaz a escolha', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mountConquista();
+      try {
+        await view.act(settle);
+        await view.click('Nova conquista');
+        const antes = view.calls.length;
+        assert.equal(view.nodes().some(node => node.props.children === 'Remover escolha'), false);
+        await escolher(view, new File(['x'], 'foto.png', { type: 'image/png' }));
+        assert.equal(alt(view, 'Prévia da nova imagem')?.props.src, 'blob:previa');
+        assert.equal(view.calls.length, antes, 'Escolher não envia o arquivo');
+        await view.click('Remover escolha');
+        assert.equal(alt(view, 'Prévia da nova imagem'), undefined);
+        assert.equal(urls.revoked.mock.callCount(), 1, 'A URL local é liberada');
+      } finally { await view.restore(); urls.restore(); }
+    });
+    it('arquivo recusado não gera prévia, mostra o erro no campo e mantém a escolha anterior', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mountConquista();
+      try {
+        await view.act(settle);
+        await view.click('Nova conquista');
+        await escolher(view, new File(['x'], 'foto.gif', { type: 'image/gif' }));
+        assert.equal(alt(view, 'Prévia da nova imagem'), undefined); assert.equal(urls.created.mock.callCount(), 0);
+        assert.ok(view.nodes().some(node => node.props.role === 'alert' && node.props.children === 'A imagem deve ser PNG, JPG ou WEBP.'));
+        await escolher(view, new File(['x'], 'foto.png', { type: 'image/png' }));
+        await escolher(view, new File(['x'], 'foto.gif', { type: 'image/gif' }));
+        assert.equal(alt(view, 'Prévia da nova imagem')?.props.src, 'blob:previa');
+      } finally { await view.restore(); urls.restore(); }
+    });
+    it('link HTTPS aparece na prévia; outro link só orienta; remover limpa', async () => {
+      const view = await mountConquista();
+      try {
+        await view.act(settle);
+        await view.click('Nova conquista');
+        await view.change('conquista-imagem-url', 'http://exemplo.com/a.jpg');
+        assert.equal(alt(view, 'Prévia da nova imagem'), undefined);
+        assert.match(view.html(), /A prévia só aparece com um link HTTPS válido/);
+        await view.change('conquista-imagem-url', ' https://exemplo.com/a.jpg ');
+        assert.equal(alt(view, 'Prévia da nova imagem')?.props.src, 'https://exemplo.com/a.jpg');
+        await view.click('Remover escolha');
+        assert.equal(alt(view, 'Prévia da nova imagem'), undefined);
+        assert.equal(view.nodes().find(node => node.props.name === 'conquista-imagem-url')?.props.value, '');
+      } finally { await view.restore(); }
+    });
+    it('na edição mostra o arquivo salvo; a nova escolha o substitui na tela e remover volta a ele, sem enviar troca', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mountConquista();
+      try {
+        await abrirEdicao(view);
+        assert.match(String(alt(view, 'Imagem atual da conquista')?.props.src), /\/rails\/foto\.png$/);
+        assert.equal(view.nodes().some(node => node.props.children === 'Remover escolha'), false, 'Sem escolha, não há o que remover');
+        await escolher(view, new File(['x'], 'nova.png', { type: 'image/png' }));
+        assert.equal(alt(view, 'Imagem atual da conquista'), undefined);
+        await view.click('Remover escolha');
+        assert.match(String(alt(view, 'Imagem atual da conquista')?.props.src), /\/rails\/foto\.png$/);
+        await view.submit('Editar conquista');
+        await view.act(settle);
+        const patch = view.calls.find(call => call.options.method === 'PATCH')!;
+        assert.equal(typeof patch.options.body, 'string');
+        const enviado = sent(patch).c_conquista_aluno;
+        assert.equal('imagem' in enviado, false); assert.equal('imagem_url' in enviado, false);
+      } finally { await view.restore(); urls.restore(); }
+    });
+    it('na edição com link salvo, mostra o link; remover a troca volta a ele e nada de imagem é enviado', async () => {
+      const view = await mountConquista({ ...conquista, imagem: null, imagem_url: 'https://exemplo.com/salva.jpg' });
+      try {
+        await abrirEdicao(view);
+        const campo = () => view.nodes().find(node => node.props.name === 'conquista-imagem-url');
+        assert.equal(alt(view, 'Imagem atual da conquista')?.props.src, 'https://exemplo.com/salva.jpg');
+        assert.equal(campo()?.props.value, 'https://exemplo.com/salva.jpg');
+        await view.change('conquista-imagem-url', 'https://exemplo.com/nova.jpg');
+        assert.equal(alt(view, 'Prévia da nova imagem')?.props.src, 'https://exemplo.com/nova.jpg');
+        await view.click('Remover escolha');
+        assert.equal(campo()?.props.value, 'https://exemplo.com/salva.jpg');
+        assert.equal(alt(view, 'Imagem atual da conquista')?.props.src, 'https://exemplo.com/salva.jpg');
+        await view.submit('Editar conquista');
+        await view.act(settle);
+        assert.equal('imagem_url' in sent(view.calls.find(call => call.options.method === 'PATCH')!).c_conquista_aluno, false);
+      } finally { await view.restore(); }
+    });
+    it('não há ação para apagar a imagem salva: limpar o link não envia remoção', async () => {
+      const view = await mountConquista({ ...conquista, imagem: null, imagem_url: 'https://exemplo.com/salva.jpg' });
+      try {
+        await abrirEdicao(view);
+        await view.change('conquista-imagem-url', '');
+        assert.equal(alt(view, 'Imagem atual da conquista')?.props.src, 'https://exemplo.com/salva.jpg');
+        await view.submit('Editar conquista');
+        await view.act(settle);
+        assert.equal('imagem_url' in sent(view.calls.find(call => call.options.method === 'PATCH')!).c_conquista_aluno, false);
+      } finally { await view.restore(); }
+    });
   });
 
   it('Fila de Aprovação lista conquistas e relatos aguardando e os publica', async () => {
