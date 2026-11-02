@@ -38,6 +38,7 @@ import AdminBannersSubroutePage from '../src/app/admin/banners/page';
 import AdminDashboardRoute from '../src/app/admin/page';
 import DesktopSidebarContainer from '../src/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter, { type MobileDrawerFooterProps } from '../src/components/admin/MobileDrawerFooter';
+import NextImage from 'next/image';
 import NextLink from 'next/link';
 import { ExternalLink, LogOut } from 'lucide-react';
 import {
@@ -55,7 +56,7 @@ import type { OverviewStatsIndicators } from '../src/components/admin/OverviewSt
 import OverviewStats from '../src/components/admin/OverviewStats';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
-import SitePhotosManager from '../src/components/SitePhotosManager';
+import BannersPanel from '../src/components/admin/BannersPanel';
 import FaqModule from '../src/components/admin/FaqModule';
 import AnnouncementsModule, { type AnnouncementsModuleProps } from '../src/components/admin/AnnouncementsModule';
 import GalleryModule, { type GalleryModuleProps } from '../src/components/admin/GalleryModule';
@@ -84,7 +85,7 @@ import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG,
 import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
 import { useAdminTheme } from '../src/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '../src/lib/admin-navigation-filter';
-import type { BannerItem, FaqItem, NewsItem } from '../src/types';
+import type { FaqItem, NewsItem } from '../src/types';
 
 import {
   buildQueryString,
@@ -104,9 +105,6 @@ import {
 import { medtecApi } from '../src/lib/api/index';
 import { getLegacyFaqHref, readAdminFaqs } from '../src/lib/admin-faq';
 import { getLegacyProjectsHref } from '../src/lib/admin-projects';
-import { getLegacyBannersHref, readAdminBanners, readBannerNews, readBannerGallery, prepareLocalBannerPreview,
-  type AdminBannersData, type BannerNewsCover, type BannerGalleryPhoto } from '../src/lib/admin-banners';
-import AdminLiveSimulator from '../src/components/AdminLiveSimulator';
 import { applyOverviewSnapshot, createAdminOverviewLoader, createInitialOverviewState, getOverviewHighlights, getOverviewMetrics, startOverviewLoading } from '../src/lib/admin-overview';
 import AdminRedesSubroutePage from '../src/app/admin/redes/page';
 import SocialChannelsModule, { type SocialChannelsModuleProps } from '../src/components/admin/SocialChannelsModule';
@@ -432,16 +430,6 @@ describe('Decisão editorial pura (12D-5 Lote 3)', () => {
 function AdminDashboardPage() {
   const query = typeof window === 'undefined' ? '' : window.location?.search || '';
   return createElement(SearchParamsContext.Provider, { value: new URLSearchParams(query) }, AdminDashboardRoute());
-}
-
-function bannerManagerProps(data: AdminBannersData & { news: BannerNewsCover[]; gallery: BannerGalleryPhoto[] }, saving = false): Parameters<typeof SitePhotosManager>[0] {
-  const ready = { loading: false, error: null, status: null, retry() {} };
-  return {
-    saving,
-    local: { ...ready, data: { banners: data.banners, siteInfo: data.siteInfo } },
-    news: { ...ready, data: { items: data.news, total: data.news.length } },
-    gallery: { ...ready, data: { items: data.gallery, total: data.gallery.length } },
-  };
 }
 
 describe('Contêiner compartilhado da sidebar desktop', () => {
@@ -5029,731 +5017,162 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
   });
 });
 
-describe('Rota independente de Banners e seleção local protegida', () => {
-  const source = {
-    banners: [{ id: 'b1', imageUrl: '/banner.jpg', title: 'Banner recebido', linkUrl: '/noticias' }],
-    siteInfo: { heroImage: '/hero.jpg', studioImage: '/studio.jpg', title: 'Não necessário' },
-    news: [{ id: 'n1', title: 'Notícia recebida', coverImage: '/cover.jpg', content: 'Não necessário' }],
-    gallery: [{ id: 'g1', title: 'Foto recebida', imageUrl: '/photo.jpg', description: 'Não necessário' }],
-    users: [{ id: 'não necessário' }],
-  };
+describe('Banners — painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: items.length } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const FILE_URL = 'http://172.16.107.63:3001/rails/active_storage/blobs/redirect/x/banner.png';
+  const arquivo = { id: 1, imagem: FILE_URL, imagem_url: null };
+  const link = { id: 2, imagem: null, imagem_url: 'https://exemplo.com/banner.jpg' };
+  function mount(items: unknown[] = [arquivo, link], write: (options: RequestInit) => Response = () => reply(arquivo, 201)) {
+    return mountCategories(async (_url, options) => options.method && options.method !== 'GET' ? write(options) : list(items), false, {
+      component: () => BannersPanel(), allowedPaths: /\/b_banners(\/\d+)?$/,
+    });
+  }
+  type View = Awaited<ReturnType<typeof mount>>;
+  const files = (value: File) => ({ target: { files: [value], value: 'x' } });
+  const pick = (view: View, event: unknown) => view.act(() => {
+    const node = view.nodes().find(item => item.type === 'input' && item.props.name === 'banner-imagem');
+    assert.ok(node);
+    return Reflect.apply(node.props.onChange as (value: unknown) => unknown, undefined, [event]);
+  });
+  const useLink = (view: View) => view.act(() => {
+    const node = view.nodes().find(item => item.props.name === 'banner-modo' && item.props.value === 'link');
+    return Reflect.apply(node!.props.onChange as () => unknown, undefined, []);
+  });
+  const writes = (view: View, method: string) => view.calls.filter(call => call.options.method === method);
 
-  it('aguarda autorização no shell sem consultar dados ou iniciar upload', () => {
+  it('o shell aguarda a sessão, sem consultar banners', () => {
     const originalFetch = globalThis.fetch;
     let requests = 0;
-    globalThis.fetch = async () => { requests += 1; throw new Error('Acesso ainda não autorizado.'); };
+    globalThis.fetch = async () => { requests += 1; throw new Error('Não deve consultar antes da autorização.'); };
     try {
       const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'banners-test' };
-      const html = renderToStaticMarkup(createElement(
-        AppRouterContext.Provider, { value: router },
-        createElement(PathnameContext.Provider, { value: '/admin/banners' }, createElement(AdminBannersSubroutePage)),
-      ));
+      const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router },
+        createElement(PathnameContext.Provider, { value: '/admin/banners' }, createElement(AdminBannersSubroutePage))));
       assert.ok(html.includes('Autenticando e carregando painel de gestão...'));
-      assert.ok(!html.includes('Carrossel de banners'));
       assert.equal(requests, 0);
       assert.equal(SECTION_CONFIG.fotos.href, '/admin/banners');
-      assert.equal(getFolderIdForSection('fotos'), 'publicacoes');
-      assert.equal(SECTION_CONFIG.galeria.href, '/admin/galeria');
+      assert.equal(AdminBannersSubroutePage().props.activeSection, 'fotos', 'Mantém a regra de acesso da seção');
     } finally { globalThis.fetch = originalFetch; }
   });
-
-  it('encaminha fotos e variantes banners sem capturar as dez subrotas anteriores', () => {
-    for (const key of ['tab', 'section']) {
-      for (const id of ['fotos', 'banners']) {
-        assert.equal(getLegacyBannersHref(new URLSearchParams({ [key]: id })), '/admin/banners');
-      }
-    }
-    for (const id of ['noticias', 'kanban', 'usuarios', 'duvidas', 'projetos', 'avisos', 'galeria', 'redes', 'siteInfo', 'estadosCidades']) {
-      assert.equal(getLegacyBannersHref(new URLSearchParams({ tab: id })), null);
-    }
-    assert.equal(getLegacyBannersHref(new URLSearchParams()), null);
-    assert.equal(getLegacyBannersHref(new URLSearchParams('tab=galeria&section=fotos')), null);
-  });
-
-  it('faz somente GET cancelável da fonte legada e retém apenas os campos necessários', async () => {
-    const originalFetch = globalThis.fetch;
-    const controller = new AbortController();
-    let requests = 0;
-    globalThis.fetch = async (url, options) => {
-      requests += 1;
-      assert.equal(url, '/api/data');
-      assert.equal(options?.method, 'GET');
-      assert.equal(options?.cache, 'no-store');
-      assert.equal(options?.signal, controller.signal);
-      return new Response(JSON.stringify(source));
-    };
+  it('lista em grade, na ordem recebida, sem juntar a URL com a base da API', async () => {
+    const view = await mount();
     try {
-      const result = await readAdminBanners(controller.signal);
-      assert.deepEqual(result, {
-        banners: source.banners,
-        siteInfo: { heroImage: '/hero.jpg', studioImage: '/studio.jpg' },
-      });
-      assert.equal(requests, 1);
-    } finally { globalThis.fetch = originalFetch; }
+      await view.act(settle);
+      assert.equal(view.calls[0].url.searchParams.get('page'), 'all');
+      const images = view.nodes().filter(node => node.type === NextImage);
+      assert.deepEqual(images.map(node => node.props.src), [FILE_URL, 'https://exemplo.com/banner.jpg']);
+      assert.deepEqual(images.map(node => node.props.alt), ['Banner 1', 'Banner 2']);
+      assert.ok(images.every(node => node.props.unoptimized === true), 'Link pode ser de qualquer domínio');
+    } finally { await view.restore(); }
   });
-
-  it('preserva uma coleção vazia confirmada sem gerar banner substituto', async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => new Response(JSON.stringify({ ...source, banners: [], news: [], gallery: [] }));
+  it('não oferece recursos fora da API: link de clique, ordem, título ou ocultar', async () => {
+    const view = await mount();
     try {
-      assert.deepEqual((await readAdminBanners()).banners, []);
-    } finally { globalThis.fetch = originalFetch; }
+      await view.act(settle);
+      for (const text of ['Link ao clicar', 'Salvar link', 'Subir banner', 'Descer banner', 'Foto do estúdio', 'Capas das notícias', 'Ocultar']) assert.ok(!view.html().includes(text), text);
+    } finally { await view.restore(); }
   });
-
-  it('expõe falhas HTTP, rede, cancelamento, JSON e dados inválidos sem fallback', async () => {
-    const originalFetch = globalThis.fetch;
-    try {
-      globalThis.fetch = async () => new Response('', { status: 403 });
-      await assert.rejects(readAdminBanners(), /HTTP 403/);
-      globalThis.fetch = async () => { throw new Error('Rede indisponível'); };
-      await assert.rejects(readAdminBanners(), /Rede indisponível/);
-      globalThis.fetch = async () => { throw new DOMException('Cancelado', 'AbortError'); };
-      await assert.rejects(readAdminBanners(), { name: 'AbortError' });
-      for (const payload of ['inválido', '{}', JSON.stringify({ ...source, banners: null }),
-        JSON.stringify({ ...source, banners: [{ id: 'inválido' }] }),
-        JSON.stringify({ ...source, siteInfo: {} }), JSON.stringify({ ...source, siteInfo: { heroImage: 1, studioImage: '/studio.jpg' } }),
-        JSON.stringify({ ...source, siteInfo: { heroImage: '/hero.jpg' } })]) {
-        globalThis.fetch = async () => new Response(payload);
-        await assert.rejects(readAdminBanners(), /Resposta inválida/);
-      }
-    } finally { globalThis.fetch = originalFetch; }
-  });
-
-  it('a seleção usada por Banners prepara prévia local sem disparar upload ou gravação', async () => {
-    const originalFetch = globalThis.fetch;
-    const originalReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
-    const file = new File(['imagem sintética apenas para teste'], 'banner.png', { type: 'image/png' });
-    let requests = 0;
-    let reads = 0;
-    class LocalReader {
-      result = 'data:image/png;base64,aW1hZ2Vt';
-      onload: (() => void) | null = null;
-      readAsDataURL(blob: Blob) {
-        assert.equal(blob, file);
-        reads += 1;
-        queueMicrotask(() => this.onload?.());
-      }
-    }
-    Object.defineProperty(globalThis, 'FileReader', { configurable: true, value: LocalReader });
-    globalThis.fetch = async () => { requests += 1; throw new Error('Upload ou gravação proibidos.'); };
-    try {
-      const preview = await prepareLocalBannerPreview(file);
-      assert.equal(preview?.imageUrl, 'data:image/png;base64,aW1hZ2Vt');
-      assert.equal(preview?.title, 'banner.png');
-      assert.equal(reads, 1);
-      assert.equal(requests, 0);
-      const html = renderToStaticMarkup(createElement(AdminLiveSimulator, { type: 'banner', data: preview! }));
-      assert.ok(html.includes('data:image/png;base64,aW1hZ2Vt'));
-      assert.ok(html.includes('banner.png'));
-      assert.equal(requests, 0);
-    } finally {
-      globalThis.fetch = originalFetch;
-      if (originalReader) Object.defineProperty(globalThis, 'FileReader', originalReader);
-      else Reflect.deleteProperty(globalThis, 'FileReader');
-    }
-  });
-
-  it('trata cancelamento e arquivos inválidos antes de iniciar a leitura local', async () => {
-    assert.equal(await prepareLocalBannerPreview(undefined), null);
-    await assert.rejects(prepareLocalBannerPreview(new File(['texto'], 'banner.svg', { type: 'image/svg+xml' })), /JPEG, PNG, WEBP ou AVIF/);
-    await assert.rejects(prepareLocalBannerPreview(new File([], 'vazio.png', { type: 'image/png' })), /até 5 MB/);
-    await assert.rejects(prepareLocalBannerPreview(new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'grande.png', { type: 'image/png' })), /até 5 MB/);
-  });
-
-  it('expõe falha de leitura da imagem sem retornar sucesso de upload', async () => {
-    const originalReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
-    class FailedReader {
-      onerror: (() => void) | null = null;
-      readAsDataURL() { queueMicrotask(() => this.onerror?.()); }
-    }
-    Object.defineProperty(globalThis, 'FileReader', { configurable: true, value: FailedReader });
-    try {
-      await assert.rejects(prepareLocalBannerPreview(new File(['imagem'], 'banner.png', { type: 'image/png' })), /Não foi possível ler a imagem/);
-    } finally {
-      if (originalReader) Object.defineProperty(globalThis, 'FileReader', originalReader);
-      else Reflect.deleteProperty(globalThis, 'FileReader');
-    }
-  });
-});
-
-describe('Banners no gerenciador de fotos existente', () => {
-  function renderBanners(banners: BannerItem[] = [], saving = false) {
-    return renderToStaticMarkup(createElement(SitePhotosManager, bannerManagerProps({
-      banners,
-      siteInfo: { heroImage: '/hero-recebido.jpg', studioImage: '/estudio-recebido.jpg' },
-      news: [{ id: 1, title: 'Capa recebida', coverImage: '/capa-recebida.jpg', status: 'aguardando', statusName: 'Aguardando aprovação', publicationDate: null }],
-      gallery: [{ id: 1, title: 'Foto recebida', imageUrl: '/foto-recebida.jpg', category: null }],
-    }, saving)));
-  }
-
-  it('renderiza somente a coleção recebida, preservando links e controles do carrossel', () => {
-    const html = renderBanners([
-      { id: 'banner-teste', title: 'Banner recebido', imageUrl: '/banner-recebido.jpg', linkUrl: '/destino-recebido' },
-      { id: 'outro-banner', title: 'Outro banner', imageUrl: '/outro-banner.jpg' },
-    ]);
-    for (const text of ['Banner recebido', 'Outro banner', '/destino-recebido', 'Salvar link', 'Subir banner', 'Descer banner', 'Remover banner', 'Ver prévia no site']) {
-      assert.ok(html.includes(text), text);
-    }
-    assert.ok(html.includes('Capa recebida'));
-    assert.ok(html.includes('Foto recebida'));
-    assert.ok(html.includes('/estudio-recebido.jpg'));
-    assert.ok(html.includes('Simulador do Site Oficial'));
-    assert.equal((html.match(/aria-label="Remover banner"/g) || []).length, 2);
-    assert.ok(!html.includes('role="dialog"'));
-  });
-
-  it('mantém a lista vazia e usa a imagem de referência apenas no simulador', () => {
-    const html = renderBanners();
-    assert.ok(html.includes('Carrossel de banners'));
-    assert.ok(html.includes('/hero-recebido.jpg'));
-    assert.ok(!html.includes('aria-label="Remover banner"'));
-    assert.ok(!html.includes('name="destino"'));
-    assert.ok(html.includes('Ou cole o link da imagem'));
-    assert.ok(html.includes('Selecionar banner para prévia local'));
-  });
-
-  it('mostra o bloqueio e preserva seletores sem iniciar requisições ao renderizar', () => {
-    const originalFetch = globalThis.fetch;
-    let requests = 0;
-    globalThis.fetch = async () => {
-      requests += 1;
-      throw new Error('Renderizar Banners não deve iniciar leitura, upload ou gravação.');
-    };
-    try {
-      const html = renderBanners([{ id: 'banner-teste', imageUrl: '/banner-recebido.jpg' }], true);
-      assert.ok(html.includes('aguarda a disponibilização do endpoint oficial no backend Rails'));
-      assert.ok(html.includes('a gravação deste módulo está bloqueada'));
-      assert.ok(!html.includes('O envio vale na hora'));
-      assert.ok(/<button[^>]*type="submit"[^>]*disabled=""[^>]*>Salvar link<\/button>/.test(html));
-      assert.ok(html.includes('type="file"'));
-      assert.ok(html.includes('accept="image/*"'));
-      assert.equal(requests, 0);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-});
-
-describe('Banners sem uploads ou gravações sem persistência', () => {
-  const source = bannerManagerProps({
-    banners: [
-      { id: 'banner-1', title: 'Primeiro banner', imageUrl: '/banners/primeiro.svg', linkUrl: '#primeiro' },
-      { id: 'banner-2', title: 'Segundo banner', imageUrl: '/uploads/existente.png', linkUrl: '/segundo' },
-    ],
-    siteInfo: { heroImage: '/hero-existente.jpg', studioImage: '/estudio-existente.jpg' },
-    news: [{ id: 1, title: 'Notícia existente', coverImage: '/capa-existente.jpg', status: 'aguardando', statusName: 'Aguardando aprovação', publicationDate: null }],
-    gallery: [{ id: 1, title: 'Foto existente', imageUrl: '/foto-existente.jpg', category: null }],
-  });
-  type ControlProps = {
-    children?: ReactNode; type?: string; name?: string; disabled?: boolean; 'aria-label'?: string;
-    onClick?: () => void;
-    onChange?: (event: { target: { files?: File[]; value: string } }) => void;
-    onSubmit?: (event: { preventDefault(): void }) => void;
-  };
-  async function withManager(run: (manager: {
-    render(): string;
-    controls(): React.ReactElement<ControlProps>[];
-    requests: string[];
-    data: typeof source;
-  }) => Promise<void> | void) {
-    const originalFetch = globalThis.fetch;
-    const originalState = React.useState;
-    const states: unknown[] = [];
-    const data = { ...source, local: { ...source.local, data: structuredClone(source.local.data) },
-      news: { ...source.news, data: structuredClone(source.news.data) }, gallery: { ...source.gallery, data: structuredClone(source.gallery.data) } };
-    const requests: string[] = [];
-    let capturing = false;
-    let cursor = 0;
-    let tree: ReactNode;
-    globalThis.fetch = async (input, options) => {
-      requests.push(`${options?.method || 'GET'} ${String(input)}`);
-      throw new Error('O gerenciador consultivo não deve enviar requisições.');
-    };
-    // Conserva o estado do gerenciador entre renderizações; os componentes visuais usam seus hooks reais.
-    const stateMock = mock.method(React, 'useState', (initial: unknown) => {
-      if (!capturing) return originalState(initial);
-      const index = cursor++;
-      if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial;
-      const state: [unknown, React.Dispatch<React.SetStateAction<unknown>>] = [states[index], (next) => {
-        states[index] = typeof next === 'function' ? next(states[index]) : next;
-      }];
-      return state;
+  it('lista vazia é estado vazio, e falha de leitura permite tentar de novo', async () => {
+    const empty = await mount([]);
+    try { await empty.act(settle); assert.match(empty.html(), /Nenhum banner cadastrado/); assert.doesNotMatch(empty.html(), /role="alert"/); } finally { await empty.restore(); }
+    let fail = true;
+    const view = await mountCategories(async () => fail ? reply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403) : list([arquivo]), false, {
+      component: () => BannersPanel(), allowedPaths: /\/b_banners$/,
     });
-    function Capture() {
-      cursor = 0;
-      capturing = true;
-      try { tree = SitePhotosManager(data); }
-      finally { capturing = false; }
-      return tree;
-    }
-    function controls() {
-      const result: React.ReactElement<ControlProps>[] = [];
-      function visit(node: ReactNode) {
-        if (Array.isArray(node)) { node.forEach(visit); return; }
-        if (!isValidElement<ControlProps>(node)) return;
-        if (typeof node.type === 'function' && ['BannerCarousel', 'PhotoSlot', 'FileButton'].includes(node.type.name)) {
-          // Expande os três componentes internos sem hooks para acionar seus controles reais.
-          visit((node.type as (props: ControlProps) => ReactNode)(node.props));
-          return;
-        }
-        if (typeof node.type === 'string') result.push(node);
-        visit(node.props.children);
-      }
-      visit(tree);
-      return result;
-    }
     try {
-      const render = () => renderToStaticMarkup(createElement(Capture));
-      render();
-      await run({ render, controls, requests, data });
-      assert.deepEqual(data, source, 'As coleções, identificadores, ordem e URLs recebidos não podem mudar.');
-      assert.deepEqual(requests, [], 'Não pode haver POST /api/upload, PUT /api/data ou escrita Rails.');
-    } finally {
-      stateMock.mock.restore();
-      globalThis.fetch = originalFetch;
-    }
-  }
-
-  for (const [area, label] of [['estúdio', 'Enviar do computador'], ['notícia', 'Trocar capa'], ['galeria', 'Trocar foto']]) {
-    it(`bloqueia a seleção e o envio da imagem de ${area}, inclusive sem saving ativo`, async () => {
-      await withManager(async ({ controls, requests, render }) => {
-        const input = controls().find((node) => node.type === 'input' && node.props['aria-label'] === label);
-        assert.ok(input, label);
-        assert.equal(input.props.disabled, true);
-        const target = { files: [new File(['imagem'], 'nova.png', { type: 'image/png' })], value: 'nova.png' };
-        input.props.onChange?.({ target });
-        await new Promise<void>((resolve) => setImmediate(resolve));
-        assert.equal(input.props.onChange, undefined);
-        assert.deepEqual(requests, []);
-        const html = render();
-        for (const path of ['/estudio-existente.jpg', '/capa-existente.jpg', '/foto-existente.jpg']) assert.ok(html.includes(path));
-        assert.ok(html.includes('Edição indisponível'));
-      });
-    });
-  }
-
-  it('mantém ações de gravação desabilitadas e neutraliza submissões sem alterar os registros', async () => {
-    await withManager(({ controls, render }) => {
-      const before = render();
-      const buttons = controls().filter((node) => node.type === 'button' && node.props['aria-label'] !== 'Ver prévia no site');
-      assert.equal(buttons.length, 10);
-      for (const button of buttons) {
-        assert.equal(button.props.disabled, true);
-        button.props.onClick?.();
-        assert.equal(button.props.onClick, undefined);
-      }
-      let prevented = 0;
-      const forms = controls().filter((node) => node.type === 'form');
-      assert.equal(forms.length, 4);
-      for (const form of forms) form.props.onSubmit?.({ preventDefault() { prevented += 1; } });
-      assert.equal(prevented, forms.length);
-      for (const input of controls().filter((node) => node.type === 'input' && node.props.type !== 'file')) {
-        assert.equal(input.props.disabled, true);
-        input.props.onChange?.({ target: { value: 'https://example.test/nao-salvar' } });
-        assert.equal(input.props.onChange, undefined);
-      }
-      assert.equal(render(), before);
-    });
+      await view.act(settle);
+      assert.match(view.html(), /não possui permissão/); assert.doesNotMatch(view.html(), /Nenhum banner cadastrado/);
+      fail = false;
+      await view.click('Tentar novamente');
+      await view.act(settle);
+      assert.ok(view.nodes().some(node => node.type === NextImage));
+    } finally { await view.restore(); }
   });
-
-  it('mantém prévia e modal dos banners existentes sem enviar arquivos ou alterar URLs', async () => {
-    await withManager(({ controls, render }) => {
-      const preview = controls().find((node) => node.type === 'button' && node.props['aria-label'] === 'Ver prévia no site');
-      assert.ok(preview?.props.onClick);
-      assert.ok(!preview.props.disabled);
-      preview.props.onClick();
-      const html = render();
-      assert.ok(html.includes('role="dialog"'));
-      assert.ok(html.includes('/banners/primeiro.svg'));
-      assert.ok(html.includes('Primeiro banner'));
-      assert.ok(html.includes('#primeiro'));
-      assert.ok(html.includes('Desktop'));
-      assert.ok(html.includes('Celular'));
-    });
-  });
-
-  it('aciona a seleção local, exibe a imagem no simulador e no modal e mantém as validações', async () => {
-    const originalReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
-    let reads = 0;
-    class LocalReader {
-      result = 'data:image/png;base64,cHJldmlh';
-      onload: (() => void) | null = null;
-      readAsDataURL() { reads += 1; queueMicrotask(() => this.onload?.()); }
-    }
-    Object.defineProperty(globalThis, 'FileReader', { configurable: true, value: LocalReader });
+  it('cadastra por arquivo em multipart e recusa arquivo fora das regras', async () => {
+    const view = await mount();
     try {
-      await withManager(async ({ controls, render }) => {
-        const input = controls().find((node) => node.type === 'input' && node.props['aria-label'] === 'Selecionar banner para prévia local');
-        assert.ok(input?.props.onChange);
-        assert.equal(input.props.disabled, false);
-        const target = { files: [new File(['imagem'], 'previa.png', { type: 'image/png' })], value: 'previa.png' };
-        input.props.onChange({ target });
-        assert.equal(target.value, '');
-        await new Promise<void>((resolve) => setImmediate(resolve));
-        const html = render();
-        assert.ok(html.includes('role="dialog"'));
-        assert.ok((html.match(/data:image\/png;base64,cHJldmlh/g) || []).length >= 2);
-        assert.ok(html.includes('previa.png'));
-        assert.ok(html.includes('A imagem local não foi salva nem publicada.'));
-        assert.equal(reads, 1);
-        for (const file of [new File(['svg'], 'vetor.svg', { type: 'image/svg+xml' }),
-          new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'grande.png', { type: 'image/png' })]) {
-          input.props.onChange({ target: { files: [file], value: file.name } });
-          await new Promise<void>((resolve) => setImmediate(resolve));
-          assert.ok(render().includes('role="alert"'));
-        }
-        assert.equal(reads, 1, 'Arquivos inválidos não devem ser lidos.');
-        assert.ok(render().includes('data:image/png;base64,cHJldmlh'));
-      });
-    } finally {
-      if (originalReader) Object.defineProperty(globalThis, 'FileReader', originalReader);
-      else Reflect.deleteProperty(globalThis, 'FileReader');
-    }
+      await view.act(settle);
+      await view.click('Novo banner');
+      assert.doesNotMatch(view.html(), /substitui a anterior/);
+      await view.submit('Cadastrar banner');
+      assert.match(view.html(), /Selecione a imagem do banner/); assert.equal(writes(view, 'POST').length, 0);
+      await pick(view, files(new File(['x'], 'a.gif', { type: 'image/gif' })));
+      assert.match(view.html(), /PNG, JPG ou WEBP\.<\/p>/);
+      const grande = new File(['x'], 'a.png', { type: 'image/png' }); Object.defineProperty(grande, 'size', { value: 5 * 1024 * 1024 + 1 });
+      await pick(view, files(grande));
+      assert.match(view.html(), /até 5 MB\.<\/p>/);
+      await view.submit('Cadastrar banner');
+      assert.equal(writes(view, 'POST').length, 0, 'Arquivo recusado não fica selecionado');
+      await pick(view, files(new File(['x'], 'arte.webp', { type: 'image/webp' })));
+      await view.submit('Cadastrar banner');
+      await view.act(settle);
+      const form = writes(view, 'POST')[0].options.body as FormData;
+      assert.ok(form instanceof FormData); assert.equal((form.get('b_banner[imagem]') as File).name, 'arte.webp');
+      assert.match(view.html(), /Banner cadastrado/);
+    } finally { await view.restore(); }
   });
-});
-
-describe('Acervos oficiais independentes no gerenciador de Banners', () => {
-  const local = { banners: [{ id: 'banner-original', title: 'Banner original', imageUrl: '/banner-original.svg', linkUrl: '#original' }],
-    siteInfo: { heroImage: '/hero-original.jpg', studioImage: '/studio-original.jpg' },
-    news: [{ title: 'Notícia local proibida' }], gallery: [{ title: 'Foto local proibida' }] };
-  const news = [
-    { id: 1, titulo: 'Notícia oficial aguardando', imagem_capa: '/rails/active_storage/capa.png', status: 'aguardando', status_nome: 'Aguardando aprovação', data_publicacao: '2099-01-01' },
-    { id: 2, titulo: 'Notícia oficial sem capa', imagem_capa: null, status: 'publicada', status_nome: 'Publicada', data_publicacao: '2099-01-02' },
-  ];
-  const photos = [
-    { id: 1, titulo: 'Foto oficial', imagem: '/rails/active_storage/foto.png', imagem_url: 'https://example.test/nao-priorizar.png',
-      categoria_galeria: { id: 7, nome: 'Categoria recebida', ativo: false } },
-    { id: 2, titulo: 'Foto externa', imagem: null, imagem_url: 'https://example.test/foto.png' },
-    { id: 3, titulo: 'Foto sem imagem', imagem: null, imagem_url: null },
-  ];
-  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
-  const envelope = (items: unknown[], total = items.length) => ({ success: true, data: {
-    items, pagination: { total_count: total, current_page: 1, total_pages: 1, per_page: items.length },
-  } });
-  function serve(input: string) {
-    if (input === '/api/data') return json(local);
-    const endpoint = new URL(input).pathname.split('/').pop();
-    if (endpoint === 'n_noticias') return json(envelope(news));
-    if (endpoint === 'fotos_galeria') return json(envelope(photos));
-    throw new Error('Endpoint inesperado: ' + input);
-  }
-  const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
-
-  it('retém apenas os campos locais necessários e ignora acervos locais ausentes ou inválidos', async () => {
-    const original = globalThis.fetch;
+  it('cadastra por link só com HTTPS', async () => {
+    const view = await mount();
     try {
-      for (const extras of [{}, { news: null, gallery: 'inválida' }, { news: [{ id: 99 }], gallery: [{}] }]) {
-        globalThis.fetch = async () => json({ banners: local.banners, siteInfo: local.siteInfo, ...extras });
-        assert.deepEqual(await readAdminBanners(), { banners: local.banners, siteInfo: local.siteInfo });
+      await view.act(settle);
+      await view.click('Novo banner');
+      await useLink(view);
+      for (const value of ['', 'http://x.com/a.jpg', 'javascript:alert(1)', 'nao-e-link']) {
+        await view.change('banner-imagem-url', value);
+        await view.submit('Cadastrar banner');
+        assert.match(view.html(), /link HTTPS válido/, value);
       }
-    } finally { globalThis.fetch = original; }
+      assert.equal(writes(view, 'POST').length, 0);
+      await view.change('banner-imagem-url', ' https://x.com/a.jpg ');
+      await view.submit('Cadastrar banner');
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(writes(view, 'POST')[0].options.body)), { b_banner: { imagem_url: 'https://x.com/a.jpg' } });
+    } finally { await view.restore(); }
   });
-
-  it('consulta somente os dois serviços autenticados com page=all, IDs oficiais e URLs conforme o contrato', async () => {
-    const original = globalThis.fetch;
-    const requests: string[] = [];
-    setStoredTokens({ access_token: 'token-acervos', refresh_token: 'refresh-acervos' });
-    globalThis.fetch = async (input, options) => {
-      assert.equal(options?.method, 'GET');
-      assert.equal(new Headers(options.headers).get('Authorization'), 'Bearer token-acervos');
-      const url = new URL(String(input));
-      assert.equal(url.searchParams.get('page'), 'all');
-      requests.push(url.pathname.split('/').pop()!);
-      return serve(String(input));
-    };
+  it('trocar a imagem avisa da substituição e usa PATCH', async () => {
+    const view = await mount([arquivo, link], () => reply(arquivo));
     try {
-      const [covers, gallery] = await Promise.all([readBannerNews(), readBannerGallery()]);
-      assert.deepEqual(requests.sort(), ['fotos_galeria', 'n_noticias']);
-      assert.equal(covers.total, 2);
-      assert.deepEqual(covers.items[0], { id: 1, title: news[0].titulo, coverImage: getMediaUrl(news[0].imagem_capa),
-        status: 'aguardando', statusName: 'Aguardando aprovação', publicationDate: '2099-01-01' });
-      assert.equal(covers.items[1].coverImage, null);
-      assert.equal(gallery.total, 3);
-      assert.equal(gallery.items[0].id, 1);
-      assert.equal(gallery.items[0].imageUrl, getMediaUrl(photos[0].imagem));
-      assert.deepEqual(gallery.items[0].category, { id: 7, name: 'Categoria recebida', active: false });
-      assert.equal(gallery.items[1].imageUrl, 'https://example.test/foto.png');
-      assert.equal(gallery.items[2].imageUrl, null);
-      assert.equal(gallery.items[2].category, null);
-    } finally { clearStoredTokens(); globalThis.fetch = original; }
+      await view.act(settle);
+      await view.click('Trocar imagem do banner 2');
+      assert.match(view.html(), /A nova imagem substitui a anterior/);
+      assert.ok(view.nodes().some(node => node.type === NextImage && node.props.alt === 'Imagem atual do banner 2' && node.props.src === 'https://exemplo.com/banner.jpg'));
+      await pick(view, files(new File(['x'], 'nova.png', { type: 'image/png' })));
+      await view.submit('Trocar imagem do banner 2');
+      await view.act(settle);
+      const patch = writes(view, 'PATCH')[0];
+      assert.ok(patch.url.pathname.endsWith('/b_banners/2'));
+      assert.equal(((patch.options.body as FormData).get('b_banner[imagem]') as File).name, 'nova.png');
+      assert.match(view.html(), /Imagem do banner trocada/);
+    } finally { await view.restore(); }
   });
-
-  it('aceita zero oficial e rejeita paginação incompleta, envelopes inválidos e identificadores ambíguos', async () => {
-    const original = globalThis.fetch;
+  it('excluir pede confirmação e usa DELETE', async () => {
+    const view = await mount([arquivo], () => reply(null, 204));
     try {
-      globalThis.fetch = async () => json(envelope([]));
-      assert.deepEqual(await readBannerNews(), { items: [], total: 0 });
-      assert.deepEqual(await readBannerGallery(), { items: [], total: 0 });
-      for (const reader of [readBannerNews, readBannerGallery]) {
-        for (const body of [null, {}, { success: false, data: { items: [] } }, envelope([], 1), envelope([], -1),
-          envelope([{ id: '1' }]), envelope([{ id: 1 }, { id: 1 }]), envelope([null]), envelope([{ id: 1, titulo: 9 }]),
-          { success: true, data: { items: [], pagination: { total_count: '0' } } }]) {
-          globalThis.fetch = async () => json(body);
-          await assert.rejects(reader(), /inválid|incomplet|duplicad/);
-        }
-      }
-      globalThis.fetch = async () => json(envelope(news, 3));
-      await assert.rejects(readBannerNews(), /incompleta/);
-    } finally { globalThis.fetch = original; }
+      await view.act(settle);
+      await view.click('Excluir banner 1');
+      assert.equal(writes(view, 'DELETE').length, 0, 'Nada é apagado antes de confirmar');
+      await view.click('Cancelar exclusão');
+      await view.click('Excluir banner 1');
+      await view.click('Confirmar exclusão');
+      await view.act(settle);
+      assert.ok(writes(view, 'DELETE')[0].url.pathname.endsWith('/b_banners/1'));
+      assert.match(view.html(), /Banner excluído/);
+    } finally { await view.restore(); }
   });
-
-  it('preserva falhas 401 e 403 sem fallback local ou tentativa de endpoints públicos', async () => {
-    const original = globalThis.fetch;
+  it('mostra o 422 da API sem fechar o formulário', async () => {
+    const view = await mount([arquivo], () => reply({ success: false, message: 'Erro de validação', errors: ['Imagem deve ser PNG, JPG ou WEBP'] }, 422));
     try {
-      for (const status of [401, 403, 503]) {
-        const requests: string[] = [];
-        globalThis.fetch = async (input, options) => {
-          requests.push(String(input)); assert.equal(options?.method, 'GET');
-          return json({ success: false, message: 'Consulta recusada', errors: [status === 403 ? 'sem_permissao' : 'nao_autenticado'] }, status);
-        };
-        for (const reader of [readBannerNews, readBannerGallery]) {
-          await assert.rejects(reader(), (error) => error instanceof ApiError && error.status === status);
-        }
-        assert.equal(requests.length, 2);
-        assert.ok(!requests.some((url) => url.includes('/api/data') || url.includes('/publico/')));
-      }
-    } finally { globalThis.fetch = original; }
-  });
-
-  it('reutiliza o refresh existente sem executar operações de escrita nas entidades', async () => {
-    const original = globalThis.fetch;
-    const requests: string[] = [];
-    setStoredTokens({ access_token: 'expirado', refresh_token: 'refresh-valido' });
-    globalThis.fetch = async (input, options) => {
-      const url = String(input); requests.push(`${options?.method} ${url}`);
-      if (url.includes('/auth/refresh_token')) {
-        assert.equal(options?.method, 'POST');
-        return json({ success: true, data: { access_token: 'renovado', refresh_token: 'refresh-novo' } });
-      }
-      assert.equal(options?.method, 'GET');
-      return new Headers(options.headers).get('Authorization') === 'Bearer expirado'
-        ? json({ success: false, errors: ['token_expirado'] }, 401) : serve(url);
-    };
-    try {
-      assert.equal((await readBannerNews()).total, 2);
-      assert.equal(requests.length, 3);
-      assert.equal(requests.filter((request) => request.startsWith('POST')).length, 1);
-      assert.ok(requests.find((request) => request.startsWith('POST'))?.includes('/auth/refresh_token'));
-    } finally { clearStoredTokens(); globalThis.fetch = original; }
-  });
-
-  type ManagerProps = Parameters<typeof SitePhotosManager>[0];
-  async function withPage(fetcher: typeof fetch, run: (page: {
-    render(): string; props(): ManagerProps; unmount(): void; updates(): number;
-  }) => Promise<void>) {
-    const originalFetch = globalThis.fetch;
-    const originalState = React.useState;
-    const originalEffect = React.useEffect;
-    const states: unknown[] = [];
-    type Effect = { callback: React.EffectCallback; dependencies?: React.DependencyList; cleanup?: () => void };
-    let effects: Effect[] = [];
-    let nextEffects: Effect[] = [];
-    let capturing = false;
-    let cursor = 0;
-    let updates = 0;
-    let disposed = false;
-    let managerProps: ManagerProps;
-    const shell: React.ReactElement<{ children: () => React.ReactElement }> = AdminBannersSubroutePage();
-    const Content = shell.props.children().type as () => ReactNode;
-    globalThis.fetch = fetcher;
-    const stateMock = mock.method(React, 'useState', (initial: unknown) => {
-      if (!capturing) return originalState(initial);
-      const index = cursor++;
-      if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial;
-      const state: [unknown, React.Dispatch<React.SetStateAction<unknown>>] = [states[index], (next) => {
-        updates += 1; states[index] = typeof next === 'function' ? next(states[index]) : next;
-      }];
-      return state;
-    });
-    const effectMock = mock.method(React, 'useEffect', (callback: React.EffectCallback, dependencies?: React.DependencyList) => {
-      if (capturing) nextEffects.push({ callback, dependencies });
-      else originalEffect(callback, dependencies);
-    });
-    function Capture() {
-      cursor = 0; capturing = true;
-      let tree: ReactNode;
-      try { tree = Content(); } finally { capturing = false; }
-      function visit(node: ReactNode) {
-        if (Array.isArray(node)) { node.forEach(visit); return; }
-        if (!isValidElement<{ children?: ReactNode }>(node)) return;
-        if (node.type === SitePhotosManager) managerProps = node.props as ManagerProps;
-        visit(node.props.children);
-      }
-      visit(tree);
-      return tree;
-    }
-    function render() {
-      assert.equal(disposed, false);
-      nextEffects = [];
-      const html = renderToStaticMarkup(createElement(Capture));
-      effects = nextEffects.map((effect, index) => {
-        const previous = effects[index];
-        if (previous && effect.dependencies?.every((value, i) => Object.is(value, previous.dependencies?.[i]))) return previous;
-        previous?.cleanup?.();
-        const cleanup = effect.callback();
-        return { ...effect, cleanup: typeof cleanup === 'function' ? cleanup : undefined };
-      });
-      return html;
-    }
-    function unmount() { if (!disposed) { disposed = true; effects.forEach((effect) => effect.cleanup?.()); } }
-    try { render(); await run({ render, props: () => managerProps, unmount, updates: () => updates }); }
-    finally { unmount(); effectMock.mock.restore(); stateMock.mock.restore(); globalThis.fetch = originalFetch; }
-  }
-
-  it('carrega banners e fotos mesmo com Notícias pendentes e repete somente o acervo recusado', async () => {
-    const counts = { local: 0, news: 0, gallery: 0 };
-    let finishNews!: (response: Response) => void;
-    await withPage(async (input, options) => {
-      assert.equal(options?.method, 'GET');
-      const url = String(input);
-      if (url === '/api/data') counts.local += 1;
-      else if (url.includes('/n_noticias')) { counts.news += 1; if (counts.news === 1) return new Promise((resolve) => { finishNews = resolve; }); }
-      else counts.gallery += 1;
-      return serve(url);
-    }, async (page) => {
-      await tick();
-      let html = page.render();
-      assert.ok(html.includes('Banner original'));
-      assert.ok(html.includes('Foto oficial'));
-      assert.ok(html.includes('Carregando Notícias'));
-      assert.ok(!html.includes('Notícia local proibida'));
-      finishNews(json({ success: false, errors: ['sem_permissao'] }, 403));
-      await tick(); html = page.render();
-      assert.ok(html.includes('Sem permissão para consultar Notícias'));
-      assert.ok(html.includes('Foto oficial'));
-      page.props().news.retry();
-      assert.ok(page.render().includes('Carregando Notícias'));
-      await tick(); html = page.render();
-      assert.ok(html.includes('Notícia oficial aguardando'));
-      assert.ok(html.includes('data-resource-id="noticia:1"'));
-      assert.ok(html.includes('data-resource-id="galeria:1"'));
-      assert.ok(html.includes('Aguardando aprovação'));
-      assert.ok(html.includes('2099-01-01'));
-      assert.ok(html.includes('Categoria recebida'));
-      assert.ok(html.includes('— inativa'));
-      assert.ok(html.includes('Capa não informada.'));
-      assert.ok(html.includes('Imagem não informada.'));
-      assert.deepEqual(counts, { local: 1, news: 2, gallery: 1 });
-    });
-  });
-
-  for (const resource of ['local', 'news', 'gallery'] as const) {
-    it(`isola erro e recarga de ${resource}, preserva cache sem exibi-lo como atual e recupera somente esse recurso`, async () => {
-      let failure = false;
-      const counts = { local: 0, news: 0, gallery: 0 };
-      await withPage(async (input, options) => {
-        assert.equal(options?.method, 'GET');
-        const key = String(input) === '/api/data' ? 'local' : String(input).includes('/n_noticias') ? 'news' : 'gallery';
-        counts[key] += 1;
-        return failure && key === resource ? json({ success: false, errors: ['falha'] }, 503) : serve(String(input));
-      }, async (page) => {
-        await tick(); page.render();
-        const previous = page.props()[resource].data;
-        failure = true; page.props()[resource].retry();
-        const pending = page.render();
-        assert.equal(page.props()[resource].data, previous);
-        const text = { local: 'Banner original', news: 'Notícia oficial aguardando', gallery: 'Foto oficial' };
-        assert.ok(!pending.includes(text[resource]));
-        await tick(); const failed = page.render();
-        assert.equal(page.props()[resource].data, previous);
-        assert.equal(page.props()[resource].status, 503);
-        assert.ok(!failed.includes(text[resource]));
-        for (const key of ['local', 'news', 'gallery'] as const) if (key !== resource) assert.ok(failed.includes(text[key]));
-        failure = false; page.props()[resource].retry(); page.render();
-        await tick(); assert.ok(page.render().includes(text[resource]));
-        for (const key of ['local', 'news', 'gallery'] as const) assert.equal(counts[key], key === resource ? 3 : 1);
-      });
-    });
-  }
-
-  it('mostra vazio confirmado por acervo e mantém a sessão recusada distinta de vazio', async () => {
-    await withPage(async (input) => String(input) === '/api/data' ? json(local) : json(envelope([])), async (page) => {
-      await tick(); const html = page.render();
-      assert.ok(html.includes('Nenhuma notícia encontrada no acervo oficial.'));
-      assert.ok(html.includes('Nenhuma foto encontrada no acervo oficial.'));
-      assert.ok(html.includes('Banner original'));
-    });
-    await withPage(async (input) => String(input).includes('/n_noticias')
-      ? json({ success: false, errors: ['nao_autenticado'] }, 401) : serve(String(input)), async (page) => {
-      await tick(); const html = page.render();
-      assert.ok(html.includes('Sessão inválida ou expirada ao consultar Notícias'));
-      assert.ok(html.includes('Entrar novamente'));
-      assert.ok(!html.includes('Nenhuma notícia encontrada'));
-      assert.ok(html.includes('Banner original'));
-      assert.ok(html.includes('Foto oficial'));
-    });
-  });
-
-  it('descarta respostas e falhas dos três recursos após desmontagem e aborta a leitura local', async () => {
-    const pending: { resolve(response: Response): void; reject(error: Error): void }[] = [];
-    let signal: AbortSignal | undefined;
-    await withPage(async (input, options) => {
-      if (String(input) === '/api/data') signal = options?.signal || undefined;
-      return new Promise<Response>((resolve, reject) => { pending.push({ resolve, reject }); });
-    }, async (page) => {
-      await tick(); assert.equal(pending.length, 3);
-      page.unmount(); assert.equal(signal?.aborted, true);
-      const updates = page.updates();
-      pending[0].resolve(json(local));
-      pending[1].resolve(json(envelope(news)));
-      pending[2].reject(new Error('Falha tardia'));
-      await tick(); assert.equal(page.updates(), updates);
-    });
-  });
-
-  it('identifica imagens quebradas por recurso sem esconder a foto de mesmo ID ou inventar substitutos', async () => {
-    const originalFetch = globalThis.fetch;
-    const originalState = React.useState;
-    let requests = 0;
-    globalThis.fetch = async (input, options) => { requests += 1; assert.equal(options?.method, 'GET'); return serve(String(input)); };
-    let stateMock: ReturnType<typeof mock.method> | undefined;
-    try {
-      const [covers, gallery] = await Promise.all([readBannerNews(), readBannerGallery()]);
-      const props = bannerManagerProps({ banners: local.banners, siteInfo: local.siteInfo, news: covers.items, gallery: gallery.items });
-      let capturing = false;
-      let cursor = 0;
-      let tree: ReactNode;
-      const states: unknown[] = [];
-      stateMock = mock.method(React, 'useState', (initial: unknown) => {
-        if (!capturing) return originalState(initial);
-        const index = cursor++;
-        if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial;
-        const state: [unknown, React.Dispatch<React.SetStateAction<unknown>>] = [states[index], (next) => {
-          states[index] = typeof next === 'function' ? next(states[index]) : next;
-        }];
-        return state;
-      });
-      function Capture() {
-        capturing = true; cursor = 0;
-        try { tree = SitePhotosManager(props); } finally { capturing = false; }
-        return tree;
-      }
-      function image(resource: string) {
-        let found: React.ReactElement<{ onError(): void }> | undefined;
-        function visit(node: ReactNode, parent = '') {
-          if (Array.isArray(node)) { node.forEach((child) => visit(child, parent)); return; }
-          if (!isValidElement<{ children?: ReactNode; 'data-resource-id'?: string; onError(): void }>(node)) return;
-          const key = node.props['data-resource-id'] || parent;
-          if (node.type === 'img' && key === resource) found = node;
-          visit(node.props.children, key);
-        }
-        visit(tree);
-        assert.ok(found, resource);
-        return found;
-      }
-      const render = () => renderToStaticMarkup(createElement(Capture));
-      render(); image('noticia:1').props.onError();
-      let html = render();
-      assert.ok(html.includes('Capa indisponível.'));
-      assert.ok(html.includes(getMediaUrl(photos[0].imagem)));
-      image('galeria:1').props.onError(); html = render();
-      assert.ok(html.includes('Imagem indisponível.'));
-      assert.ok(html.includes('Notícia oficial aguardando'));
-      assert.ok(html.includes('Foto oficial'));
-      assert.ok(html.includes('/banner-original.svg'));
-      assert.ok(!html.includes('src="/hero.jpg"'));
-      assert.equal(requests, 2);
-    } finally { stateMock?.mock.restore(); globalThis.fetch = originalFetch; }
+      await view.act(settle);
+      await view.click('Novo banner');
+      await pick(view, files(new File(['x'], 'arte.png', { type: 'image/png' })));
+      await view.submit('Cadastrar banner');
+      await view.act(settle);
+      assert.match(view.html(), /Imagem deve ser PNG, JPG ou WEBP/);
+      assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Cadastrar banner'));
+    } finally { await view.restore(); }
   });
 });
 
