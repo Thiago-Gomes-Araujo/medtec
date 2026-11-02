@@ -170,6 +170,7 @@ import AlunosView from '../src/components/AlunosView';
 import ProfessoresView from '../src/components/ProfessoresView';
 import TeacherProfiles from '../src/components/TeacherProfiles';
 import CommunityComingSoon from '../src/components/CommunityComingSoon';
+import TransparencySection from '../src/components/TransparencySection';
 import StudentStories from '../src/components/StudentStories';
 import ProfessorDetalhePage from '../src/app/professores/[id]/page';
 import ProjetoDetalhePage, { generateMetadata as projetoMetadata } from '../src/app/projetos/[id]/page';
@@ -188,6 +189,7 @@ import {
   isHttpsUrl,
   validateConquistaImage,
   formatTelefone,
+  COMMUNITY_COMING_SOON,
 } from '../src/lib/community-content';
 
 // Inclui dados fora do contrato Rails para caracterizar as comparações em
@@ -13582,5 +13584,69 @@ describe('Tempo limite das chamadas à API', () => {
     assert.match(html, /Tentar novamente/);
     assert.match(html, /href="\/admin\/login"/);
     assert.doesNotMatch(html, /Autenticando/);
+  });
+});
+
+describe('/transparencia sem rota oficial', () => {
+  type Tree = { nodes(): React.ReactElement<NoticeNodeProps>[] };
+  async function renderSection(reply: () => Promise<Response>, run: (view: Tree, click: (label: string) => Promise<void>) => Promise<void>) {
+    const doc = { nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null, defaultView: null as unknown, documentElement: { classList: { contains() { return false; } } } };
+    const browser = { document: doc, HTMLIFrameElement: class {} };
+    doc.defaultView = browser;
+    const globals = { window: browser, document: doc, IS_REACT_ACT_ENVIRONMENT: true };
+    const descriptors = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+    for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+    const spy = mock.method(globalThis, 'fetch', reply);
+    const error = mock.method(console, 'error', () => {});
+    let tree: ReactNode = null;
+    function Host() { tree = TransparencySection(); return null; }
+    const root = createRoot({ nodeType: 1, tagName: 'DIV', namespaceURI: 'http://www.w3.org/1999/xhtml', ownerDocument: doc, addEventListener() {}, removeEventListener() {}, textContent: '' } as unknown as Element);
+    const flush = () => React.act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); });
+    const view = { nodes: () => noticeNodes(tree) };
+    try {
+      await React.act(async () => { root.render(createElement(Host)); });
+      await flush();
+      await run(view, async (label) => {
+        const button = view.nodes().find(node => node.type === 'button' && React.Children.toArray(node.props.children).some(child => String(child).includes(label)));
+        assert.ok(button, label);
+        await React.act(async () => { Reflect.apply(button.props.onClick as () => void, undefined, []); });
+        await flush();
+      });
+    } finally {
+      await React.act(async () => { root.unmount(); });
+      spy.mock.restore(); error.mock.restore();
+      for (const [key, descriptor] of descriptors) {
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key);
+      }
+    }
+  }
+  const respond = (body: unknown, status = 200) => async () => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+
+  it('listas vazias viram "em breve", sem busca nem abas', async () => {
+    await renderSection(respond({ indicadores: [], contratos: [] }), async (view) => {
+      assert.equal(view.nodes().find(node => node.type === CommunityComingSoon)?.props.message, COMMUNITY_COMING_SOON.transparencia);
+      assert.ok(!view.nodes().some(node => node.type === 'input'));
+      assert.ok(!view.nodes().some(node => node.props.role === 'alert'));
+    });
+  });
+
+  it('erro de carga mostra aviso, e não "em breve", e permite tentar de novo', async () => {
+    for (const reply of [respond({}, 500), async () => { throw new TypeError('fetch failed'); }]) {
+      await renderSection(reply, async (view, click) => {
+        assert.ok(view.nodes().some(node => node.props.role === 'alert'));
+        assert.ok(!view.nodes().some(node => node.type === CommunityComingSoon));
+        const calls = (globalThis.fetch as unknown as { mock: { callCount(): number } }).mock.callCount();
+        await click('Tentar novamente');
+        assert.equal((globalThis.fetch as unknown as { mock: { callCount(): number } }).mock.callCount(), calls + 1);
+      });
+    }
+  });
+
+  it('com dados da API, mostra a busca e os itens', async () => {
+    const indicador = { ano: 2026, data: '01/2026', metrica: 'Matrículas', valor: '6.000', fonte: { nome: 'INEP', url: 'https://example.com' } };
+    await renderSection(respond({ indicadores: [indicador], contratos: [] }), async (view) => {
+      assert.ok(view.nodes().some(node => node.type === 'input'));
+      assert.ok(!view.nodes().some(node => node.type === CommunityComingSoon));
+    });
   });
 });
