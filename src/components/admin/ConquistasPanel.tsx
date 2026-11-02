@@ -28,7 +28,6 @@ interface ConquistaForm {
   categoriaId: string;
   cidadeId: string;
   escolaId: string;
-  imagemModo: 'upload' | 'link';
   imagem: File | null;
   imagemUrl: string;
   imagemAtual: string;
@@ -36,7 +35,7 @@ interface ConquistaForm {
 
 const EMPTY_FORM: ConquistaForm = {
   nomeAluno: '', titulo: '', relato: '', categoriaId: '', cidadeId: '', escolaId: '',
-  imagemModo: 'upload', imagem: null, imagemUrl: '', imagemAtual: '',
+  imagem: null, imagemUrl: '', imagemAtual: '',
 };
 const readCategorias = (signal: AbortSignal) => medtecApi.categoriasConquista.list({ page: 'all' }, signal);
 
@@ -73,18 +72,20 @@ export default function ConquistasPanel() {
       setForm({
         ...EMPTY_FORM, id: value.id, nomeAluno: value.nome_aluno, titulo: value.titulo, relato: value.relato,
         categoriaId: String(value.c_categoria_conquista_aluno_id), escolaId: String(value.escola_id),
-        imagemModo: value.imagem_url ? 'link' : 'upload', imagemUrl: value.imagem_url ?? '', imagemAtual: getConquistaImageSrc(value),
+        imagemUrl: value.imagem_url ?? '', imagemAtual: getConquistaImageSrc(value),
       });
     });
   }
 
+  // Arquivo e link são alternativos: escolher um descarta o outro.
   function chooseFile(event: ChangeEvent<HTMLInputElement>) {
     if (!form) return;
-    const file = event.target.files?.[0] ?? null;
-    const problem = file ? validateConquistaImage(file) : null;
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const problem = validateConquistaImage(file);
     action.setError(problem);
-    if (problem) event.target.value = '';
-    setForm({ ...form, imagem: problem ? null : file });
+    if (!problem) setForm({ ...form, imagem: file, imagemUrl: '' });
   }
 
   async function save(event: FormEvent) {
@@ -94,12 +95,12 @@ export default function ConquistasPanel() {
       action.setError('Informe aluno, título, relato, categoria e escola.');
       return;
     }
-    const imagemUrl = form.imagemModo === 'link' ? form.imagemUrl.trim() : '';
+    const imagemUrl = form.imagemUrl.trim();
     if (imagemUrl && !isHttpsUrl(imagemUrl)) { action.setError('Informe um link HTTPS válido para a imagem.'); return; }
     const data = {
       nome_aluno: form.nomeAluno.trim(), titulo: form.titulo.trim(), relato: form.relato.trim(),
       c_categoria_conquista_aluno_id: Number(form.categoriaId), escola_id: Number(form.escolaId),
-      imagem: form.imagemModo === 'upload' && form.imagem ? form.imagem : undefined,
+      imagem: form.imagem ?? undefined,
       imagem_url: imagemUrl || undefined,
     };
     const saved = await action.run(async () => {
@@ -220,14 +221,11 @@ export default function ConquistasPanel() {
           </div>
           <fieldset className="space-y-2">
             <legend className={labelClass}>Imagem (opcional)</legend>
-            <div className="flex flex-wrap gap-4 text-sm text-slate-700 dark:text-slate-200">
-              <label className="flex items-center gap-2"><input type="radio" name="conquista-imagem-modo" value="upload" checked={form.imagemModo === 'upload'} onChange={() => setForm({ ...form, imagemModo: 'upload' })} /> Enviar arquivo</label>
-              <label className="flex items-center gap-2"><input type="radio" name="conquista-imagem-modo" value="link" checked={form.imagemModo === 'link'} onChange={() => setForm({ ...form, imagemModo: 'link', imagem: null })} /> Usar link</label>
+            <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-center">
+              <FileButton name="conquista-imagem" accept="image/png,image/jpeg,image/webp" selected={form.imagem?.name} onChange={chooseFile}>Escolher imagem</FileButton>
+              <input name="conquista-imagem-url" type="url" aria-label="Link da imagem" placeholder="Ou cole um link https://..." value={form.imagemUrl} className={inputClass} onChange={event => setForm({ ...form, imagem: null, imagemUrl: event.target.value })} />
             </div>
-            {form.imagemModo === 'upload'
-              ? <FileButton name="conquista-imagem" accept="image/png,image/jpeg,image/webp" selected={form.imagem?.name} onChange={chooseFile}>Escolher imagem</FileButton>
-              : <input name="conquista-imagem-url" type="url" aria-label="Link da imagem" placeholder="https://..." value={form.imagemUrl} className={inputClass} onChange={event => setForm({ ...form, imagemUrl: event.target.value })} />}
-            <p className="text-xs text-slate-600 dark:text-slate-400">PNG, JPG ou WEBP, até 5 MB.</p>
+            <p className="text-xs text-slate-600 dark:text-slate-400">PNG, JPG ou WEBP, até 5 MB, ou link HTTPS.</p>
             {form.imagemAtual && <Image unoptimized src={form.imagemAtual} alt="Imagem atual da conquista" width={160} height={90} className="rounded-lg object-cover" />}
           </fieldset>
           <div className="flex flex-wrap gap-2">

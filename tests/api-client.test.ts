@@ -5081,10 +5081,6 @@ describe('Banners — painel', () => {
     assert.ok(node);
     return Reflect.apply(node.props.onChange as (value: unknown) => unknown, undefined, [event]);
   });
-  const useLink = (view: View) => view.act(() => {
-    const node = view.nodes().find(item => item.props.name === 'banner-modo' && item.props.value === 'link');
-    return Reflect.apply(node!.props.onChange as () => unknown, undefined, []);
-  });
   const writes = (view: View, method: string) => view.calls.filter(call => call.options.method === method);
 
   it('o shell aguarda a sessão, sem consultar banners', () => {
@@ -5158,12 +5154,44 @@ describe('Banners — painel', () => {
       assert.match(view.html(), /Banner cadastrado/);
     } finally { await view.restore(); }
   });
+  it('botão de arquivo e link ficam sempre visíveis, e escolher um limpa o outro', async () => {
+    const view = await mount();
+    const campo = (name: string) => view.nodes().find(item => item.props.name === name);
+    try {
+      await view.act(settle);
+      await view.click('Novo banner');
+      assert.equal(campo('banner-modo'), undefined);
+      assert.ok(campo('banner-imagem')); assert.ok(campo('banner-imagem-url'));
+      await view.change('banner-imagem-url', 'https://x.com/a.jpg');
+      await pick(view, files(new File(['x'], 'arte.png', { type: 'image/png' })));
+      assert.equal(campo('banner-imagem-url')?.props.value, '');
+      assert.equal(campo('banner-imagem')?.props.selected, 'arte.png');
+      await view.change('banner-imagem-url', 'https://x.com/b.jpg');
+      assert.equal(campo('banner-imagem')?.props.selected, undefined);
+      await view.submit('Cadastrar banner');
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(writes(view, 'POST')[0].options.body)), { b_banner: { imagem_url: 'https://x.com/b.jpg' } });
+      await view.click('Trocar imagem do banner 2');
+      assert.ok(campo('banner-imagem')); assert.ok(campo('banner-imagem-url'));
+    } finally { await view.restore(); }
+  });
+  it('arquivo recusado mantém a escolha anterior do banner', async () => {
+    const view = await mount();
+    const campo = (name: string) => view.nodes().find(item => item.props.name === name);
+    try {
+      await view.act(settle);
+      await view.click('Novo banner');
+      await view.change('banner-imagem-url', 'https://x.com/a.jpg');
+      await pick(view, files(new File(['x'], 'arte.gif', { type: 'image/gif' })));
+      assert.match(view.html(), /PNG, JPG ou WEBP/);
+      assert.equal(campo('banner-imagem-url')?.props.value, 'https://x.com/a.jpg');
+    } finally { await view.restore(); }
+  });
   it('cadastra por link só com HTTPS', async () => {
     const view = await mount();
     try {
       await view.act(settle);
       await view.click('Novo banner');
-      await useLink(view);
       for (const value of ['', 'http://x.com/a.jpg', 'javascript:alert(1)', 'nao-e-link']) {
         await view.change('banner-imagem-url', value);
         await view.submit('Cadastrar banner');
@@ -12568,11 +12596,6 @@ describe('Professores e conquistas — integração com a API', () => {
       assert.ok(input);
       return view.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { files: [file], value: file.name } }]));
     };
-    const useLink = () => {
-      const radio = view.nodes().find(node => node.props.name === 'conquista-imagem-modo' && node.props.value === 'link');
-      assert.ok(radio);
-      return view.act(() => Reflect.apply(radio.props.onChange as () => unknown, undefined, []));
-    };
     try {
       await view.act(settle);
       await fill();
@@ -12602,7 +12625,15 @@ describe('Professores e conquistas — integração com a API', () => {
 
       const before = posts().length;
       await fill();
-      await useLink();
+      const campo = (name: string) => view.nodes().find(node => node.props.name === name);
+      assert.equal(campo('conquista-imagem-modo'), undefined);
+      assert.ok(campo('conquista-imagem')); assert.ok(campo('conquista-imagem-url'));
+      await view.change('conquista-imagem-url', 'https://exemplo.com/antes.jpg');
+      await chooseFile(new File(['x'], 'a.png', { type: 'image/png' }));
+      assert.equal(campo('conquista-imagem-url')?.props.value, '');
+      assert.equal(campo('conquista-imagem')?.props.selected, 'a.png');
+      await view.change('conquista-imagem-url', 'https://exemplo.com/depois.jpg');
+      assert.equal(campo('conquista-imagem')?.props.selected, undefined);
       for (const link of ['http://exemplo.com/a.jpg', 'javascript:alert(1)', 'ftp://exemplo.com/a.jpg', 'exemplo.com/a.jpg']) {
         await view.change('conquista-imagem-url', link);
         await view.submit('Criar conquista');
@@ -12612,6 +12643,7 @@ describe('Professores e conquistas — integração com a API', () => {
       await view.change('conquista-imagem-url', 'https://exemplo.com/a.jpg');
       await view.submit('Criar conquista');
       await view.act(settle);
+      assert.equal(typeof posts()[before].options.body, 'string', 'O arquivo descartado não vai junto');
       assert.equal(sent(posts()[before]).c_conquista_aluno.imagem_url, 'https://exemplo.com/a.jpg');
     } finally { await view.restore(); }
   });
