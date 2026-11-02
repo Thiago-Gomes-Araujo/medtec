@@ -5,7 +5,7 @@ import { useDialogFocus } from '@/components/useDialogFocus';
 import SidebarNavItem from '@/components/admin/SidebarNavItem';
 import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter from '@/components/admin/MobileDrawerFooter';
-import SidebarFolderAccordion, { type NavFolderDef } from '@/components/admin/SidebarFolderAccordion';
+import SidebarFolderAccordion from '@/components/admin/SidebarFolderAccordion';
 import { useAdminTheme } from '@/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '@/lib/admin-navigation-filter';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -161,8 +161,8 @@ export default function AdminDashboardPage() {
   // A sessão Rails confirma o perfil editorial; permissões de edição não aprovam notícias.
   const canAccessKanban = userSession.isGestor && userSession.editorialProfile === 'Administrador';
   const {
-    latestNews, loadingNews, errorNews, totalNews,
-    announcementTitle, loadingAvisos, errorAvisos, totalAvisos,
+    loadingNews, errorNews, totalNews,
+    loadingAvisos, errorAvisos, totalAvisos,
     loadingFotos, errorFotos, totalFotos, totalCategorias, totalEstados,
     loadingFaqs, errorFaqs, totalFaqs, apiFaqsPendingCount, apiFaqsPublishedCount,
     apiNewsPublishedCount, apiNewsDraftCount, apiAvisosAtivosCount, apiAvisosUrgentesCount,
@@ -306,7 +306,7 @@ export default function AdminDashboardPage() {
   const canAccessEstados = userSession.isGestor;
 
   // Árvore de Navegação em Pastas Expansíveis (Didático - Estilo Accordion JOER SEDUC-RO)
-  const folders: NavFolderDef[] = buildAdminMenu({
+  const folders = buildAdminMenu({
     noticias: canAccessNews,
     projetos: canAccessProjects,
     duvidas: canAccessFaqs,
@@ -750,16 +750,18 @@ export default function AdminDashboardPage() {
                 loadingFaqs, errorFaqs, totalFaqs, apiFaqsPendingCount, apiFaqsPublishedCount,
                 usersCountLabel,
               }}
+              menu={folders}
               userName={userSession.name || userSession.username}
-              latestNews={latestNews}
-              announcementTitle={announcementTitle}
-              canAccessKanban={canAccessKanban}
-              duvidasPendentes={canReadApiCounters ? duvidasPendentes : undefined}
+              pendencias={canReadApiCounters ? {
+                // O mesmo valor do item Aprovações do menu, conforme o acesso à Fila.
+                aprovacoes: canAccessKanban ? aprovacoesPendentes : projetosResumo.pending,
+                duvidas: duvidasPendentes.count,
+                relatos: relatosPendentes,
+              } : undefined}
+              totalEstados={totalEstados}
               projetosResumo={canReadApiCounters ? projetosResumo : undefined}
               bannersTotal={canReadApiCounters ? bannersTotal : undefined}
-              onOpenNews={() => router.push('/admin/noticias')}
               onCreateNews={() => router.push('/admin/noticias?action=new')}
-              onOpenKanban={() => router.push('/admin/kanban')}
             />
           )}
 

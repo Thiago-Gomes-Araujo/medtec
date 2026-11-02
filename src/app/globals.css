@@ -20,10 +20,12 @@
   --color-admin-accent: var(--admin-accent);
   --color-admin-accent-hover: var(--admin-accent-hover);
   --color-admin-accent-fg: var(--admin-accent-fg);
+  --color-admin-accent-soft: var(--admin-accent-soft);
   --color-admin-success: var(--admin-success);
   --color-admin-success-soft: var(--admin-success-soft);
   --color-admin-warning: var(--admin-warning);
   --color-admin-warning-soft: var(--admin-warning-soft);
+  --color-admin-warning-strong: var(--admin-warning-strong);
   --color-admin-danger: var(--admin-danger);
   --color-admin-danger-soft: var(--admin-danger-soft);
 }
@@ -41,10 +43,12 @@
     --admin-accent: #004A99;
     --admin-accent-hover: #003875;
     --admin-accent-fg: #FFFFFF;
+    --admin-accent-soft: #E0F2FE;
     --admin-success: #047857;
     --admin-success-soft: #ECFDF5;
     --admin-warning: #92400E;
     --admin-warning-soft: #FEF3C7;
+    --admin-warning-strong: #D97706;
     --admin-danger: #B91C1C;
     --admin-danger-soft: #FEF2F2;
 
@@ -98,10 +102,12 @@
     --admin-accent: #38BDF8;
     --admin-accent-hover: #7DD3FC;
     --admin-accent-fg: #0B1528;
+    --admin-accent-soft: #172844;
     --admin-success: #6EE7B7;
     --admin-success-soft: #064E3B;
     --admin-warning: #FDE68A;
     --admin-warning-soft: #78350F;
+    --admin-warning-strong: #F59E0B;
     --admin-danger: #FECACA;
     --admin-danger-soft: #7F1D1D;
 

@@ -42,7 +42,7 @@ import MobileDrawerFooter, { type MobileDrawerFooterProps } from '../src/compone
 import NextImage from 'next/image';
 import NextLink from 'next/link';
 import { ExternalLink, LogOut } from 'lucide-react';
-import { sidebarBadgeClass, sidebarFolderClass, sidebarIconButtonClass, sidebarIconClass, sidebarItemClass, sidebarPortalLinkClass } from '../src/components/admin/adminTheme';
+import { adminPrimaryButtonClass, adminSecondaryButtonClass, sidebarBadgeClass, sidebarFolderClass, sidebarIconButtonClass, sidebarIconClass, sidebarItemClass, sidebarPortalLinkClass } from '../src/components/admin/adminTheme';
 import {
   ADMIN_STATIC_TAB_ALIASES,
   ADMIN_STATIC_ROUTE_ALIASES,
@@ -55,7 +55,6 @@ import SidebarNavItem, { type SidebarNavItemProps } from '../src/components/admi
 import SidebarFolderAccordion, { type SidebarFolderAccordionProps, type NavFolderDef } from '../src/components/admin/SidebarFolderAccordion';
 import AdminOverview, { type AdminOverviewProps } from '../src/components/admin/AdminOverview';
 import type { OverviewStatsIndicators } from '../src/components/admin/OverviewStats';
-import OverviewStats from '../src/components/admin/OverviewStats';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
 import BannersPanel from '../src/components/admin/BannersPanel';
@@ -4047,7 +4046,7 @@ describe('Menu do painel por tarefa e cores centralizadas', () => {
       const pairs: [string, string, number][] = [
         ['text', 'bg', 4.5], ['text', 'surface', 4.5], ['text', 'surface-muted', 4.5],
         ['muted', 'bg', 4.5], ['muted', 'surface', 4.5], ['muted', 'surface-muted', 4.5],
-        ['accent', 'surface', 4.5], ['accent', 'surface-muted', 4.5], ['accent-fg', 'accent', 4.5], ['accent-fg', 'accent-hover', 4.5],
+        ['accent', 'surface', 4.5], ['accent', 'surface-muted', 4.5], ['accent-fg', 'accent', 4.5], ['accent-fg', 'accent-hover', 4.5], ['accent', 'accent-soft', 4.5], ['warning-strong', 'surface', 3],
         ['success', 'success-soft', 4.5], ['success', 'surface', 4.5],
         ['warning', 'warning-soft', 4.5], ['warning', 'surface', 4.5],
         ['danger', 'danger-soft', 4.5], ['danger', 'surface', 4.5],
@@ -4665,6 +4664,10 @@ describe('Metadados compartilhados da navegação administrativa', () => {
 });
 
 
+function fullOverviewMenu(overrides: Partial<Parameters<typeof buildAdminMenu>[0]> = {}, badges: Parameters<typeof buildAdminMenu>[1] = {}) {
+  return buildAdminMenu({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, siteInfo: true, redes: true, estadosCidades: true, usuarios: true, ...overrides }, badges);
+}
+
 describe('Interface componentizada da Visão Geral', () => {
   function props(overrides: Partial<AdminOverviewProps> = {}): AdminOverviewProps {
     return {
@@ -4675,118 +4678,133 @@ describe('Interface componentizada da Visão Geral', () => {
         totalFotos: 280, totalCategorias: 12, usersCountLabel: 120,
         loadingFaqs: false, errorFaqs: null, totalFaqs: 35, apiFaqsPublishedCount: 28, apiFaqsPendingCount: 5,
       },
+      menu: fullOverviewMenu(),
       userName: 'Gestora de teste',
-      latestNews: { titulo: 'Notícia recebida', data_publicacao: '2026-10-30', autor_nome: 'Autoria recebida' },
-      announcementTitle: 'Aviso recebido', canAccessKanban: true,
-      onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+      pendencias: { aprovacoes: 10, duvidas: 4, relatos: 3 },
+      totalEstados: 27,
+      projetosResumo: { total: 9, pending: 2, published: 6, error: null },
+      bannersTotal: { count: 3, error: null },
+      onCreateNews() {},
       ...overrides,
     };
   }
-  function render(overrides: Partial<AdminOverviewProps> = {}) {
-    return renderToStaticMarkup(createElement(AdminOverview, props(overrides)));
-  }
+  const render = (overrides: Partial<AdminOverviewProps> = {}) => renderToStaticMarkup(createElement(AdminOverview, props(overrides)));
+  const secao = (html: string, id: string) => {
+    const start = html.indexOf(`aria-labelledby="${id}"`);
+    assert.ok(start >= 0, id);
+    return html.slice(start, html.indexOf('</section>', start));
+  };
 
-  it('renderiza os totais preparados, destaques e grades responsivas sem consultar APIs', () => {
+  it('saúda, usa só "Nova notícia" como ação principal e não consulta APIs', () => {
     const originalFetch = globalThis.fetch;
     let requests = 0;
     globalThis.fetch = async () => { requests += 1; throw new Error('Componente visual não consulta dados.'); };
     try {
       const html = render();
-      for (const value of ['450', '231', '280', '120', '35']) assert.ok(html.includes('>' + value + '</p>'));
-      for (const text of ['Gestora de teste', '400', '50', '12', 'Notícia recebida', 'Autoria recebida', 'Aviso recebido']) {
-        assert.ok(html.includes(text), text);
-      }
-      assert.ok(html.includes('grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'));
-      assert.ok(html.includes('grid-cols-1 md:grid-cols-2 lg:grid-cols-3'));
+      assert.ok(html.includes('Olá, Gestora de teste'));
       assert.equal(requests, 0);
+      assert.equal((html.match(new RegExp(adminPrimaryButtonClass.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'), 'g')) || []).length, 1, 'Só um botão preenchido');
+      assert.match(html, /<button[^>]*class="inline-flex[^"]*bg-admin-accent[^"]*"[^>]*>.*?Nova notícia/);
+      for (const label of ['Novo projeto', 'Ver o site']) {
+        const link = html.match(new RegExp(`<a\\b[^>]*>(?:(?!</a>).)*${label}`))?.[0];
+        assert.ok(link?.includes(adminSecondaryButtonClass), label);
+      }
+      assert.ok(html.includes('target="_blank"')); assert.ok(html.includes('rel="noopener noreferrer"'));
     } finally { globalThis.fetch = originalFetch; }
   });
-
-  it('preserva zero confirmado e os textos vazios sem inserir destaques fictícios', () => {
-    const base = props();
-    const html = render({ indicators: { ...base.indicators,
-      totalNews: 0, apiNewsPublishedCount: 0, apiNewsDraftCount: 0,
-      totalAvisos: 0, apiAvisosAtivosCount: 0, apiAvisosUrgentesCount: 0,
-      totalFotos: 0, totalCategorias: 0, usersCountLabel: 0,
-      totalFaqs: 0, apiFaqsPublishedCount: 0, apiFaqsPendingCount: 0,
-    }, latestNews: undefined, announcementTitle: undefined });
-    assert.equal((html.match(/>0<\/p>/g) || []).length, 5);
-    for (const text of ['Nenhuma notícia cadastrada', 'Nenhuma foto cadastrada',
-      'Nenhuma notícia publicada ainda',
-      'Sem comunicados urgentes no momento', 'Nenhum comunicado urgente ativo', 'Nenhuma dúvida cadastrada']) {
-      assert.ok(html.includes(text), text);
-    }
-    assert.ok(!html.includes('Notícia recebida'));
-    assert.ok(!html.includes('Prática recebida'));
+  it('sem nome na sessão, a saudação não mostra undefined', () => {
+    assert.doesNotMatch(render({ userName: undefined }), /undefined/);
   });
-
-  it('mantém carregamento e falha distintos de vazio sem exibir totais antigos nos cards', () => {
-    const base = props();
-    const loading = render({ indicators: { ...base.indicators,
-      loadingNews: true, loadingAvisos: true, loadingFotos: true, loadingFaqs: true, usersCountLabel: '...',
-    } });
-    assert.ok(loading.includes('Carregando...'));
-    assert.ok(!loading.includes('API'));
-    assert.ok(!loading.includes('>450</p>'));
-    assert.ok(!loading.includes('Nenhuma notícia cadastrada'));
-    for (const text of ['Notícia recebida', 'Autoria recebida', '2026-10-30', 'Aviso recebido', '200 avisos no site']) {
-      assert.ok(!loading.includes(text), text);
+  it('"Precisa da sua atenção" mostra só o que está pendente, com número, faixa âmbar e ação', () => {
+    const atencao = secao(render(), 'inicio-atencao');
+    for (const [value, title, action, href] of [['10', 'Aprovações', 'Revisar', '/admin/kanban'], ['4', 'Dúvidas do público', 'Responder', '/admin/faq/publico'], ['3', 'Relatos', 'Moderar', '/admin/professores/relatos']]) {
+      assert.ok(atencao.includes(`>${value}</p>`), title);
+      assert.ok(atencao.includes(`>${title}</h4>`), title);
+      assert.match(atencao, new RegExp(`href="${href}"[^>]*>${action}<|aria-label="${action}: ${title}"[^>]*>${action}<`), action);
     }
-    const failed = render({ indicators: { ...base.indicators,
-      errorNews: 'Falha de notícias', errorAvisos: 'Falha de avisos', errorFotos: 'Falha de fotos', errorFaqs: 'Falha de dúvidas', usersCountLabel: 'Indisponível',
-    } });
-    for (const text of ['Indisponível', 'Não foi possível carregar agora', 'Falha de dúvidas']) {
-      assert.ok(failed.includes(text), text);
-    }
-    assert.doesNotMatch(failed, /\/n_noticias|\/a_avisos|\/fotos_galeria|\/d_duvidas|API/, 'Sem termos técnicos');
-    assert.ok(!failed.includes('>450</p>'));
-    assert.ok(!failed.includes('Nenhuma notícia cadastrada'));
-    for (const text of ['Notícia recebida', 'Autoria recebida', '2026-10-30', 'Aviso recebido', '200 avisos no site']) {
-      assert.ok(!failed.includes(text), text);
-    }
+    assert.equal((atencao.match(/border-l-admin-warning-strong/g) || []).length, 3);
+    const parcial = secao(render({ pendencias: { aprovacoes: 0, duvidas: 2, relatos: 0 } }), 'inicio-atencao');
+    assert.ok(parcial.includes('Dúvidas do público'));
+    assert.ok(!parcial.includes('Aprovações')); assert.ok(!parcial.includes('Relatos')); assert.ok(!parcial.includes('Tudo em dia'));
   });
-
-  it('identifica cada indicador sem integração e não inventa números ou nomes para preenchê-lo', () => {
-    const html = render();
-    assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 0);
-    for (const text of ['52 Municípios', '4 trilhas', '4 categorias', 'Nenhum projeto cadastrado',
-      'Nenhuma dúvida cadastrada', 'missões', 'banners ativos', 'Transmissão ao vivo integrada']) {
-      assert.ok(!html.includes(text), text);
-    }
-    const withoutAuthor = render({ latestNews: { titulo: 'Sem autoria', data_publicacao: '', autor_nome: '' } });
-    assert.ok(!withoutAuthor.includes('• SEDUC-RO'));
+  it('"Tudo em dia" só aparece com todos os totais confirmados em zero', () => {
+    assert.match(secao(render({ pendencias: { aprovacoes: 0, duvidas: 0, relatos: 0 } }), 'inicio-atencao'), /role="status"[\s\S]*Tudo em dia/);
+    const incerto = secao(render({ pendencias: { aprovacoes: null, duvidas: 0, relatos: 0 } }), 'inicio-atencao');
+    assert.ok(!incerto.includes('Tudo em dia')); assert.ok(incerto.includes('Não foi possível confirmar as pendências agora'));
+    const semToken = secao(render({ pendencias: undefined }), 'inicio-atencao');
+    assert.ok(!semToken.includes('Tudo em dia')); assert.ok(semToken.includes('Entre com seu CPF para ver as pendências'));
+    const parcialComFalha = secao(render({ pendencias: { aprovacoes: null, duvidas: 2, relatos: 0 } }), 'inicio-atencao');
+    assert.ok(parcialComFalha.includes('Dúvidas do público')); assert.ok(!parcialComFalha.includes('Não foi possível'));
   });
-
-  it('preserva links de lista e Novo e mantém a ação editorial restrita desabilitada', () => {
-    const html = render({ canAccessKanban: false });
-    for (const href of ['/admin/projetos', '/admin/projetos?action=new', '/admin/avisos', '/admin/banners',
-      '/admin/galeria', '/admin/faq', '/admin/institucional', '/admin/redes', '/admin/usuarios']) {
-      assert.ok(html.includes('href="' + href + '"'), href);
-    }
-    assert.ok(/<button[^>]*disabled=""[^>]*><span>Abrir Aprovações<\/span>/.test(html));
-    assert.equal(SECTION_CONFIG.estadosCidades.href, '/admin/estados-cidades');
-    assert.ok(html.includes('target="_blank"'));
-    assert.ok(html.includes('rel="noopener noreferrer"'));
+  it('Aprovações usa o mesmo total do menu', () => {
+    const page = readFileSync('src/app/admin/page.tsx', 'utf8');
+    assert.match(page, /kanban: aprovacoesPendentes \|\| undefined/);
+    assert.match(page, /projetosAprovacao: projetosResumo\.pending \|\| undefined/);
+    assert.match(page, /aprovacoes: canAccessKanban \? aprovacoesPendentes : projetosResumo\.pending/);
+    assert.ok(secao(render({ menu: fullOverviewMenu({ kanban: false }) }), 'inicio-atencao').includes('href="/admin/projetos/aprovacao"'), 'Sem a Fila, segue o item do menu');
   });
-
-  it('encaminha as ações Novo, Notícias e Kanban pelos callbacks recebidos', () => {
+  it('"Resumo do site" é só uma faixa de números, sem botões nem links', () => {
+    const resumo = secao(render(), 'inicio-resumo');
+    assert.doesNotMatch(resumo, /<a\b|<button\b/);
+    for (const [label, value] of [['Notícias', '450'], ['Projetos', '9'], ['Avisos', '231'], ['Banners', '3'], ['Fotos', '280'], ['Perguntas', '35']]) {
+      assert.match(resumo, new RegExp(`<dt[^>]*>${label}</dt><dd[^>]*>${value}</dd>`), label);
+    }
+    assert.ok(resumo.includes('grid-cols-2')); assert.ok(resumo.includes('lg:grid-cols-6'));
+  });
+  it('no Resumo, carregando e falha não viram zero, e zero confirmado aparece', () => {
+    const base = props().indicators;
+    const loading = secao(render({ indicators: { ...base, loadingNews: true, loadingAvisos: true, loadingFotos: true, loadingFaqs: true }, projetosResumo: { total: null, pending: null, published: null, error: null }, bannersTotal: { count: null, error: null } }), 'inicio-resumo');
+    assert.equal((loading.match(/aria-label="Carregando"/g) || []).length, 6);
+    assert.doesNotMatch(loading, />0</);
+    const failed = secao(render({ indicators: { ...base, errorNews: 'x', errorAvisos: 'x', errorFotos: 'x', errorFaqs: 'x' }, projetosResumo: undefined, bannersTotal: undefined }), 'inicio-resumo');
+    assert.equal((failed.match(/aria-label="Indisponível"/g) || []).length, 6);
+    assert.doesNotMatch(failed, />0</);
+    const zero = secao(render({ indicators: { ...base, totalNews: 0, totalAvisos: 0, totalFotos: 0, totalFaqs: 0 }, projetosResumo: { total: 0, pending: 0, published: 0, error: null }, bannersTotal: { count: 0, error: null } }), 'inicio-resumo');
+    assert.equal((zero.match(/>0<\/dd>/g) || []).length, 6);
+  });
+  it('"Gerenciar" repete as seções e os itens do menu, com ícone, frase e "Abrir"', () => {
+    const menu = fullOverviewMenu();
+    const gerenciar = secao(render({ menu }), 'inicio-gerenciar');
+    const positions = menu.map(folder => gerenciar.indexOf(`>${folder.label}</h4>`));
+    assert.ok(positions.every(position => position >= 0)); assert.deepEqual(positions, [...positions].sort((x, y) => x - y));
+    const items = menu.flatMap(folder => folder.items.filter(item => item.visible));
+    assert.equal((gerenciar.match(/>Abrir<\/span>/g) || []).length, items.length);
+    assert.equal((gerenciar.match(/bg-admin-accent-soft text-admin-accent/g) || []).length, items.length);
+    for (const item of items) {
+      assert.ok(gerenciar.includes(`>${item.label}</h5>`), item.label);
+      assert.ok(item.summary.length > 0 && gerenciar.includes(item.summary), item.label);
+      assert.match(gerenciar, new RegExp(`<a\\b(?=[^>]*href="${item.href}")(?=[^>]*aria-label="Abrir ${item.label}")`), item.label);
+    }
+    assert.ok(gerenciar.includes('grid-cols-1 gap-4 md:grid-cols-2'), 'Uma coluna no celular');
+    assert.ok(secao(render(), 'inicio-atencao').includes('grid-cols-1'));
+  });
+  it('os contadores dos cartões não repetem os totais do Resumo', () => {
+    const gerenciar = secao(render(), 'inicio-gerenciar');
+    for (const total of ['450', '231', '280', '35']) assert.ok(!gerenciar.includes(`>${total}`) && !gerenciar.includes(` ${total} `), total);
+    for (const text of ['50 aguardando', '200 ativos', '12 categorias', '2 aguardando', '3 relatos aguardando', '5 aguardando', '4 sem resposta', '10 pendentes', '27 estados', '120 usuários']) {
+      assert.ok(gerenciar.includes(text), text);
+    }
+    const semDados = secao(render({ indicators: { ...props().indicators, loadingNews: true, errorFaqs: 'x' }, projetosResumo: undefined, pendencias: undefined, totalEstados: null }), 'inicio-gerenciar');
+    assert.doesNotMatch(semDados, /undefined|null|\d+ aguardando|sem resposta|pendentes|relatos? aguardando/);
+  });
+  it('cartão ou seção sem acesso não aparece, nem nas ações e pendências', () => {
+    const html = render({ menu: fullOverviewMenu({ noticias: false, projetos: false, kanban: false, duvidas: false, professores: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false }) });
+    assert.ok(!html.includes('Nova notícia')); assert.ok(!html.includes('Novo projeto'));
+    const atencao = secao(html, 'inicio-atencao');
+    for (const text of ['Aprovações', 'Dúvidas do público', 'Relatos']) assert.ok(!atencao.includes(text), text);
+    const gerenciar = secao(html, 'inicio-gerenciar');
+    assert.ok(gerenciar.includes('>Conteúdo do site</h4>'));
+    assert.ok(!gerenciar.includes('>Atendimento</h4>')); assert.ok(!gerenciar.includes('>Configurações</h4>'));
+    for (const href of ['/admin/noticias', '/admin/projetos', '/admin/usuarios', '/admin/kanban', '/admin/faq']) assert.ok(!gerenciar.includes(`href="${href}"`), href);
+    assert.ok(gerenciar.includes('href="/admin/avisos"'));
+  });
+  it('"Nova notícia" usa o callback recebido', () => {
     const calls: string[] = [];
-    const input = props({
-      onOpenNews: () => calls.push('/admin/noticias'),
-      onCreateNews: () => calls.push('/admin/noticias?action=new'),
-      onOpenKanban: () => calls.push('/admin/kanban'),
-    });
-    function activateButtons(node: ReactNode) {
-      if (Array.isArray(node)) { node.forEach(activateButtons); return; }
-      if (!isValidElement<{ children?: ReactNode; actions?: ReactNode; action?: ReactNode; disabled?: boolean; onClick?: () => void }>(node)) return;
-      if (node.type === 'button' && !node.props.disabled) node.props.onClick?.();
-      activateButtons(node.props.children);
-      activateButtons(node.props.actions);
-      activateButtons(node.props.action);
-    }
-    activateButtons(AdminOverview(input));
-    activateButtons(OverviewStats({ indicators: input.indicators, onOpenNews: input.onOpenNews }));
-    assert.deepEqual(calls, ['/admin/noticias?action=new', '/admin/noticias', '/admin/kanban', '/admin/noticias']);
+    const nodes = noticeNodes(AdminOverview(props({ onCreateNews: () => calls.push('nova') })));
+    const buttons = nodes.filter(node => node.type === 'button');
+    assert.equal(buttons.length, 1);
+    Reflect.apply(buttons[0].props.onClick as () => unknown, undefined, []);
+    assert.deepEqual(calls, ['nova']);
   });
 });
 
@@ -4836,7 +4854,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
       const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'overview-test' };
       const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminDashboardPage)));
       assert.ok(html.includes('Autenticando e carregando painel de gestão...'));
-      assert.ok(!html.includes('O que você deseja gerenciar agora?'));
+      assert.ok(!html.includes('Precisa da sua atenção'));
       assert.equal(requests, 0);
     } finally { globalThis.fetch = originalFetch; }
   });
@@ -4911,9 +4929,9 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
         try {
           const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(CapturePage)));
           assert.ok(html.includes('Olá, Sessão confirmada'));
-          assert.ok(html.includes('Carregando...'));
+          assert.ok(html.includes('aria-label="Carregando"'));
           assert.ok(!html.includes('Central Executiva') && !html.includes('API Rails'));
-          assert.ok(html.includes('Indisponível nesta sessão'));
+          assert.ok(html.includes('Entre com seu CPF para ver as pendências'));
           assert.ok(!html.includes('Autenticando e carregando painel de gestão...'));
           type NavigationProps = { children?: ReactNode; folder?: { items: { section: string; badge?: number; visible: boolean }[] };
             onSelectSection?: (section: string) => void; canAccessKanban?: boolean };
@@ -4923,7 +4941,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
             if (!isValidElement<NavigationProps>(node)) return;
             if (node.type === AdminOverview) {
               overviewFound = true;
-              assert.equal(node.props.canAccessKanban, editorialProfile === 'Administrador');
+              assert.equal((node.props as { menu?: ReturnType<typeof buildAdminMenu> }).menu?.some(folder => folder.items.some(item => item.section === 'kanban' && item.visible)), editorialProfile === 'Administrador');
             }
             if (node.props.folder && node.props.onSelectSection) {
               for (const item of node.props.folder.items) {
@@ -5137,8 +5155,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           indicators: { ...getOverviewMetrics(state), loadingNews: false, errorNews: state.news.error,
             loadingAvisos: false, errorAvisos: state.avisos.error, loadingFotos: false, errorFotos: state.gallery.error,
             loadingFaqs: false, errorFaqs: state.faqs.error },
-          ...getOverviewHighlights(state), canAccessKanban: true,
-          onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+          menu: fullOverviewMenu(), onCreateNews() {},
         }));
         for (const href of ['/admin/projetos', '/admin/faq', '/admin/banners', '/admin/usuarios', '/admin/avisos', '/admin/galeria']) {
           assert.ok(html.includes('href="' + href + '"'), href);
@@ -5176,13 +5193,12 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           indicators: { ...getOverviewMetrics(state), loadingNews: false, errorNews: state.news.error,
             loadingAvisos: false, errorAvisos: state.avisos.error, loadingFotos: false, errorFotos: state.gallery.error,
             loadingFaqs: false, errorFaqs: state.faqs.error },
-          ...getOverviewHighlights(state), canAccessKanban: false,
-          onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+          menu: fullOverviewMenu({ kanban: false }), onCreateNews() {},
         }));
-        assert.ok(html.includes('O que você deseja gerenciar agora?'));
-        assert.ok(html.includes('Indisponível nesta sessão'));
+        assert.ok(html.includes('Precisa da sua atenção'));
+        assert.ok(html.includes('aria-label="Indisponível"'));
         assert.ok(html.includes('href="/admin/usuarios"'));
-        assert.ok(!html.includes('>0</p>'));
+        assert.ok(!html.includes('>0</dd>'));
       }
     } finally { globalThis.fetch = originalFetch; }
   });
@@ -8167,12 +8183,12 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.match(failing.html(), /não possui permissão/); assert.doesNotMatch(failing.html(), /<output>0/);
     } finally { await failing.restore(); }
   });
-  it('Início mostra o total, a indisponibilidade ou nada na sessão sem token', () => {
-    const props = { indicators: {} as OverviewStatsIndicators, canAccessKanban: true, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {} };
-    const html = (duvidasPendentes?: { count: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, { ...props, duvidasPendentes }));
-    assert.match(html({ count: 4, error: null }), /href="\/admin\/faq\/publico"[^>]*>Dúvidas do público<\/a> sem resposta:\s*(<!-- -->)?\s*4/);
-    assert.match(html({ count: null, error: 'x' }), /sem resposta:\s*(<!-- -->)?\s*indisponível/);
-    assert.doesNotMatch(html(), /sem resposta/);
+  it('Início mostra as dúvidas sem resposta, e nada sem pendências confirmadas', () => {
+    const html = (duvidas: number | null) => renderToStaticMarkup(createElement(AdminOverview, { indicators: {} as OverviewStatsIndicators, menu: fullOverviewMenu(), pendencias: { aprovacoes: 0, duvidas, relatos: 0 }, onCreateNews() {} }));
+    assert.match(html(4), /aria-label="Responder: Dúvidas do público"/);
+    assert.match(html(4), /4 sem resposta/);
+    assert.doesNotMatch(html(0), /Responder: Dúvidas do público/);
+    assert.doesNotMatch(html(null), /sem resposta/);
   });
   it('item do menu exibe o total sem depender da aba aberta', () => {
     const access = Object.fromEntries(['noticias','projetos','duvidas','avisos','fotos','galeria','professores','alunos','kanban','siteInfo','redes','estadosCidades','usuarios'].map(key => [key, true]));
@@ -9403,7 +9419,6 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
 
   function renderOverviewFromState(state: ReturnType<typeof createInitialOverviewState>) {
     const metrics = getOverviewMetrics(state);
-    const highlights = getOverviewHighlights(state);
     return renderToStaticMarkup(createElement(AdminOverview, {
       indicators: {
         ...metrics,
@@ -9416,12 +9431,9 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
         loadingFaqs: state.faqs.loading,
         errorFaqs: state.faqs.error,
       },
+      menu: fullOverviewMenu(),
       userName: 'Gestor MEDTEC',
-      ...highlights,
-      canAccessKanban: true,
-      onOpenNews() {},
       onCreateNews() {},
-      onOpenKanban() {},
     }));
   }
 
@@ -9473,11 +9485,9 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
       assert.equal(metrics.apiAvisosUrgentesCount, 1);
 
       const html = renderOverviewFromState(state);
-      assert.ok(html.includes('>42</p>'));
-      assert.ok(html.includes('30 publicadas · 9 aguardando'));
+      assert.ok(html.includes('>42</dd>'));
+      assert.ok(html.includes('9 aguardando'));
       assert.ok(!html.includes('API Rails'));
-      assert.ok(html.includes('42 dúvidas'));
-      assert.ok(html.includes('30 publicadas · 9 aguardando aprovação'));
       assert.ok(html.includes('href="/admin/faq"'));
       assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 0);
     } finally {
@@ -9502,12 +9512,9 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
       assert.equal(metrics.apiFaqsPublishedCount, 0);
 
       const html = renderOverviewFromState(state);
-      assert.ok(html.includes('0 publicadas · 0 aguardando'));
-      assert.ok(html.includes('Nenhuma dúvida cadastrada'));
-      assert.ok(html.includes('0 dúvidas'));
-      assert.ok(html.includes('Nenhuma dúvida cadastrada até o momento'));
+      assert.ok(html.includes('0 aguardando'));
+      assert.match(html, /<dt[^>]*>Perguntas<\/dt><dd[^>]*>0<\/dd>/);
       assert.ok(html.includes('href="/admin/faq"'));
-      assert.ok(!html.includes('Falha ao consultar /d_duvidas'));
     } finally {
       fetchMock.mock.restore();
     }
@@ -9544,13 +9551,10 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
         assert.equal(metrics.totalAvisos, 14);
 
         const html = renderOverviewFromState(state);
-        assert.ok(html.includes(expectedMessage));
-        assert.ok(html.includes(`Não foi possível carregar agora (${expectedMessage})`));
-        assert.ok(!html.includes('0 publicadas · 0 aguardando'));
-        assert.ok(!html.includes('Nenhuma dúvida cadastrada'));
-        assert.ok(!html.includes('0 dúvidas'));
-        assert.ok(html.includes('>18</p>'));
-        assert.ok(html.includes('>14</p>'));
+        assert.ok(expectedMessage.length > 0);
+        assert.match(html, /<dt[^>]*>Perguntas<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/, 'Falha não vira zero');
+        assert.ok(html.includes('>18</dd>'));
+        assert.ok(html.includes('>14</dd>'));
         assert.ok(html.includes('href="/admin/faq"'));
       } finally {
         fetchMock.mock.restore();
@@ -9590,10 +9594,7 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
         assert.equal(metrics.apiFaqsPublishedCount, null);
 
         const html = renderOverviewFromState(state);
-        assert.ok(html.includes(scenario.expectedError));
-        assert.ok(html.includes(`Não foi possível carregar agora (${scenario.expectedError})`));
-        assert.ok(!html.includes('Nenhuma dúvida cadastrada'));
-        assert.ok(!html.includes('0 dúvidas'));
+        assert.match(html, /<dt[^>]*>Perguntas<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/, scenario.expectedError);
       } finally {
         fetchMock.mock.restore();
       }
@@ -11084,7 +11085,7 @@ describe('Banners — Início do painel', () => {
     return createElement('output', null, JSON.stringify(useBannersTotal(enabled)));
   }
   const render = (bannersTotal?: { count: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, {
-    indicators: {} as OverviewStatsIndicators, canAccessKanban: true, bannersTotal, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+    indicators: {} as OverviewStatsIndicators, menu: fullOverviewMenu(), bannersTotal, onCreateNews() {},
   }));
 
   it('conta sem trazer os banners, não consulta se desativado, e falha não vira zero', async () => {
@@ -11101,11 +11102,12 @@ describe('Banners — Início do painel', () => {
     try { await failing.act(settle); assert.match(failing.html(), /&quot;count&quot;:null/); } finally { await failing.restore(); }
   });
   it('Início mostra o total da API e sai do texto antigo', () => {
-    assert.match(render({ count: 3, error: null }), /3 banners/);
-    assert.match(render({ count: 1, error: null }), /1 banner</);
-    assert.match(render({ count: null, error: null }), /Carregando\.\.\./);
-    for (const props of [undefined, { count: null, error: 'x' }]) assert.ok(!render(props).includes('sem integração oficial'));
-    for (const old of ['fotos de estúdio', 'Carrossel &amp; Transmissão']) assert.ok(!render({ count: 3, error: null }).includes(old), old);
+    const banners = (value: Parameters<typeof render>[0]) => render(value);
+    assert.match(banners({ count: 3, error: null }), /<dt[^>]*>Banners<\/dt><dd[^>]*>3<\/dd>/);
+    assert.match(banners({ count: null, error: null }), /<dt[^>]*>Banners<\/dt><dd[^>]*><span[^>]*aria-label="Carregando"/);
+    assert.match(banners({ count: null, error: 'x' }), /<dt[^>]*>Banners<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/);
+    assert.match(banners(undefined), /<dt[^>]*>Banners<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/);
+    for (const old of ['fotos de estúdio', 'Carrossel &amp; Transmissão', 'Carrossel']) assert.ok(!banners({ count: 3, error: null }).includes(old), old);
   });
 });
 
@@ -11894,7 +11896,7 @@ describe('Projetos — Início do painel', () => {
     return createElement('output', null, JSON.stringify(useProjetosResumo(enabled)));
   }
   const render = (projetosResumo?: { total: number | null; pending: number | null; published: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, {
-    indicators: {} as OverviewStatsIndicators, canAccessKanban: true, projetosResumo, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+    indicators: {} as OverviewStatsIndicators, menu: fullOverviewMenu(), projetosResumo, onCreateNews() {},
   }));
 
   it('resumo conta total, aguardando e publicados sem trazer os projetos', async () => {
@@ -11919,13 +11921,13 @@ describe('Projetos — Início do painel', () => {
       assert.match(failing.html(), /&quot;total&quot;:null/); assert.match(failing.html(), /não possui permissão/);
     } finally { await failing.restore(); }
   });
-  it('Início mostra os totais da API, o carregamento e a indisponibilidade, sem o texto antigo', () => {
+  it('Início mostra o total e os pendentes da API, o carregamento e a indisponibilidade, sem o texto antigo', () => {
     const ok = render({ total: 9, pending: 2, published: 1, error: null });
-    assert.match(ok, /9 projetos/); assert.match(ok, /1 publicado · 2 aguardando/);
+    assert.match(ok, /<dt[^>]*>Projetos<\/dt><dd[^>]*>9<\/dd>/); assert.match(ok, /2 aguardando/);
     for (const old of ['trilhas temáticas', 'guias de rep', 'Prática em destaque', 'Projetos e municípios aguardam']) assert.ok(!ok.includes(old), old);
-    assert.match(render({ total: null, pending: null, published: null, error: null }), /Carregando\.\.\./);
-    assert.match(render({ total: null, pending: null, published: null, error: 'Falhou' }), /Indisponível[\s\S]*Falhou/);
-    assert.match(render(), /Entre com seu CPF para ver este número/);
+    assert.match(render({ total: null, pending: null, published: null, error: null }), /<dt[^>]*>Projetos<\/dt><dd[^>]*><span[^>]*aria-label="Carregando"/);
+    assert.match(render({ total: null, pending: null, published: null, error: 'Falhou' }), /<dt[^>]*>Projetos<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/);
+    assert.match(render(), /<dt[^>]*>Projetos<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/);
   });
 });
 

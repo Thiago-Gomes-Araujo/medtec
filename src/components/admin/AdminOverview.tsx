@@ -1,234 +1,168 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
-import { Plus, ExternalLink, Newspaper, Lightbulb, Megaphone, Presentation, Images,
-  ClipboardCheck, Settings, BarChart3, Share2, UserCog, HelpCircle, ChevronRight, ArrowRight, type LucideIcon } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ExternalLink, Plus } from 'lucide-react';
 import OverviewStats, { type OverviewStatsIndicators } from '@/components/admin/OverviewStats';
 import type { ProjetosResumo } from '@/components/admin/useProjetosResumo';
-import { adminBadgeClass, adminCardClass, adminFocusClass, adminPrimaryButtonClass, adminSecondaryButtonClass } from '@/components/admin/adminTheme';
-import type { NNoticia } from '@/lib/api';
+import { adminCardClass, adminLinkClass, adminPrimaryButtonClass, adminSecondaryButtonClass } from '@/components/admin/adminTheme';
+import { SECTION_CONFIG, type AdminSection, type buildAdminMenu } from '@/lib/admin-navigation';
+
+export interface AdminOverviewPendencias {
+  /** O mesmo total mostrado no item Aprovações do menu. */
+  aprovacoes: number | null;
+  duvidas: number | null;
+  relatos: number | null;
+}
 
 export interface AdminOverviewProps {
   indicators: OverviewStatsIndicators;
+  /** A mesma árvore do menu: quem não tem acesso ao item também não vê o cartão. */
+  menu: ReturnType<typeof buildAdminMenu>;
   userName?: string;
-  latestNews?: Pick<NNoticia, 'titulo' | 'data_publicacao' | 'autor_nome'>;
-  announcementTitle?: string;
-  canAccessKanban: boolean;
-  duvidasPendentes?: { count: number | null; error: string | null };
+  /** Ausente quando a sessão não consulta a API, como no acesso local. */
+  pendencias?: AdminOverviewPendencias;
+  totalEstados?: number | null;
   projetosResumo?: ProjetosResumo;
   bannersTotal?: { count: number | null; error: string | null };
-  onOpenNews: () => void;
   onCreateNews: () => void;
-  onOpenKanban: () => void;
 }
 
-const FALHA = 'Não foi possível carregar agora';
+const plural = (value: number, singular: string, varios: string) => `${value} ${value === 1 ? singular : varios}`;
 
-function ModuleCard({ title, icon: Icon, badge, description, children, actions }: {
-  title: string; icon: LucideIcon; badge?: ReactNode; description: string; children?: ReactNode; actions: ReactNode;
-}) {
+function AttentionCard({ value, title, detail, href, action }: { value: number; title: string; detail: string; href: string; action: string }) {
   return (
-    <div className={`${adminCardClass} p-5 flex flex-col justify-between space-y-4`}>
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Icon className="h-4 w-4 shrink-0 text-admin-muted" aria-hidden="true" />
-            <h4 className="font-semibold text-sm text-admin-text">{title}</h4>
-          </div>
-          {badge !== undefined && <span className={adminBadgeClass}>{badge}</span>}
-        </div>
-        <p className="text-xs text-admin-muted leading-relaxed">{description}</p>
-        {children}
+    <div className={`${adminCardClass} flex items-center justify-between gap-4 border-l-4 border-l-admin-warning-strong p-4`}>
+      <div className="min-w-0">
+        <p className="text-3xl font-bold leading-none text-admin-text">{value}</p>
+        <h4 className="mt-2 text-sm font-semibold text-admin-text">{title}</h4>
+        <p className="text-xs text-admin-muted">{detail}</p>
       </div>
-      {actions}
+      <Link href={href} aria-label={`${action}: ${title}`} className={`${adminSecondaryButtonClass} shrink-0`}>{action}</Link>
     </div>
-  );
-}
-
-function ModuleNote({ label, children, detail }: { label: string; children: ReactNode; detail?: ReactNode }) {
-  return (
-    <div className="p-3 rounded-lg bg-admin-surface-muted space-y-1">
-      <span className="text-[11px] font-semibold text-admin-muted block">{label}</span>
-      <p className="text-xs font-semibold text-admin-text line-clamp-2">{children}</p>
-      {detail && <p className="text-[11px] text-admin-muted pt-0.5">{detail}</p>}
-    </div>
-  );
-}
-
-function OpenLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <Link href={href} className={`${adminSecondaryButtonClass} w-full`}>
-      <span>{children}</span>
-      <ArrowRight className="h-3.5 w-3.5" />
-    </Link>
-  );
-}
-
-function ShortcutLink({ href, icon: Icon, children }: { href: string; icon: LucideIcon; children: ReactNode }) {
-  return (
-    <Link href={href} className={`w-full px-3 py-1.5 rounded-lg bg-admin-surface-muted text-xs font-semibold text-admin-text flex items-center justify-between transition hover:underline cursor-pointer ${adminFocusClass}`}>
-      <span className="flex items-center gap-2">
-        <Icon className="h-3.5 w-3.5 text-admin-muted" aria-hidden="true" />
-        <span>{children}</span>
-      </span>
-      <ChevronRight className="h-3.5 w-3.5 text-admin-muted" aria-hidden="true" />
-    </Link>
   );
 }
 
 export default function AdminOverview({
-  indicators, userName, latestNews, announcementTitle,
-  canAccessKanban, duvidasPendentes, projetosResumo, bannersTotal, onOpenNews, onCreateNews, onOpenKanban,
+  indicators, menu, userName, pendencias, totalEstados, projetosResumo, bannersTotal, onCreateNews,
 }: AdminOverviewProps) {
-  const {
-    loadingNews, errorNews, totalNews, apiNewsDraftCount,
-    loadingAvisos, errorAvisos, totalAvisos, apiAvisosAtivosCount,
-    loadingFotos, errorFotos, totalFotos,
-    loadingFaqs, errorFaqs, totalFaqs, apiFaqsPendingCount, apiFaqsPublishedCount,
-    usersCountLabel,
-  } = indicators;
-  const projetosSemDados = !projetosResumo || !!projetosResumo.error;
-  const bannersLabel = !bannersTotal || bannersTotal.error ? 'Indisponível'
-    : bannersTotal.count === null ? 'Carregando...' : `${bannersTotal.count} banner${bannersTotal.count === 1 ? '' : 's'}`;
+  const { loadingNews, errorNews, apiNewsDraftCount, loadingAvisos, errorAvisos, apiAvisosAtivosCount,
+    loadingFotos, errorFotos, totalCategorias, loadingFaqs, errorFaqs, apiFaqsPendingCount, usersCountLabel } = indicators;
+  const visibleItems = menu.flatMap(folder => folder.items.filter(item => item.visible));
+  const canSee = (section: AdminSection) => visibleItems.some(item => item.section === section);
+  const aprovacoes = visibleItems.find(item => item.section === 'kanban' || item.section === 'projetosAprovacao');
+
+  const cards = [
+    aprovacoes && { key: 'aprovacoes', value: pendencias?.aprovacoes ?? null, title: 'Aprovações', detail: 'aguardando aprovação', href: aprovacoes.href, action: 'Revisar' },
+    canSee('duvidasPublico') && { key: 'duvidas', value: pendencias?.duvidas ?? null, title: 'Dúvidas do público', detail: 'sem resposta', href: SECTION_CONFIG.duvidasPublico.href, action: 'Responder' },
+    canSee('professores') && { key: 'relatos', value: pendencias?.relatos ?? null, title: 'Relatos', detail: 'aguardando moderação', href: SECTION_CONFIG.professoresRelatos.href, action: 'Moderar' },
+  ].filter(card => !!card);
+  const pendentes = cards.filter(card => card.value !== null && card.value > 0);
+  // "Tudo em dia" só com todos os totais confirmados: carregando ou com falha, nada é afirmado.
+  const tudoEmDia = !!pendencias && cards.every(card => card.value === 0);
+
+  // Só o que o Resumo não mostra: pendências e detalhes, nunca os mesmos totais.
+  const contadores: Partial<Record<AdminSection, string | null>> = {
+    noticias: loadingNews || errorNews || apiNewsDraftCount == null ? null : `${apiNewsDraftCount} aguardando`,
+    avisos: loadingAvisos || errorAvisos || apiAvisosAtivosCount == null ? null : plural(apiAvisosAtivosCount, 'ativo', 'ativos'),
+    galeria: loadingFotos || errorFotos || totalCategorias == null ? null : plural(totalCategorias, 'categoria', 'categorias'),
+    projetos: projetosResumo?.pending == null || projetosResumo.error ? null : `${projetosResumo.pending} aguardando`,
+    professores: pendencias?.relatos == null ? null : plural(pendencias.relatos, 'relato aguardando', 'relatos aguardando'),
+    duvidas: loadingFaqs || errorFaqs || apiFaqsPendingCount == null ? null : `${apiFaqsPendingCount} aguardando`,
+    duvidasPublico: pendencias?.duvidas == null ? null : `${pendencias.duvidas} sem resposta`,
+    kanban: pendencias?.aprovacoes == null ? null : plural(pendencias.aprovacoes, 'pendente', 'pendentes'),
+    projetosAprovacao: pendencias?.aprovacoes == null ? null : plural(pendencias.aprovacoes, 'pendente', 'pendentes'),
+    estadosCidades: totalEstados == null ? null : plural(totalEstados, 'estado', 'estados'),
+    usuarios: `${usersCountLabel} usuários`,
+  };
 
   return (
-    <div className="space-y-6">
-      <div className={`${adminCardClass} p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4`}>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h2 className="text-lg sm:text-xl font-bold tracking-tight text-admin-text">
-            Olá, {userName}
-          </h2>
-          <p className="text-xs text-admin-muted">
-            Veja o resumo do site e escolha o que deseja fazer.
-          </p>
+          <h2 className="text-xl font-bold tracking-tight text-admin-text">{userName ? `Olá, ${userName}` : 'Olá'}</h2>
+          <p className="text-xs text-admin-muted">Veja o que precisa de atenção e escolha o que deseja fazer.</p>
         </div>
-
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <button type="button" onClick={onCreateNews} className={adminPrimaryButtonClass}>
-            <Plus className="h-3.5 w-3.5" />
-            <span>Nova notícia</span>
-          </button>
-          <Link href="/admin/projetos?action=new" className={adminPrimaryButtonClass}>
-            <Plus className="h-3.5 w-3.5" />
-            <span>Novo projeto</span>
-          </Link>
+          {canSee('noticias') && (
+            <button type="button" onClick={onCreateNews} className={adminPrimaryButtonClass}>
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Nova notícia</span>
+            </button>
+          )}
+          {canSee('projetos') && (
+            <Link href="/admin/projetos?action=new" className={adminSecondaryButtonClass}>
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Novo projeto</span>
+            </Link>
+          )}
           <Link href="/" target="_blank" rel="noopener noreferrer" className={adminSecondaryButtonClass}>
-            <ExternalLink className="h-3.5 w-3.5" />
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Ver o site</span>
           </Link>
         </div>
       </div>
 
-      <OverviewStats indicators={indicators} projetosResumo={projetosResumo} onOpenNews={onOpenNews} />
+      <section aria-labelledby="inicio-atencao" className="space-y-3">
+        <h3 id="inicio-atencao" className="text-sm font-semibold text-admin-text">Precisa da sua atenção</h3>
+        {pendentes.length > 0 && (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {pendentes.map(card => (
+              <AttentionCard key={card.key} value={card.value as number} title={card.title} detail={card.detail} href={card.href} action={card.action} />
+            ))}
+          </div>
+        )}
+        {pendentes.length === 0 && tudoEmDia && (
+          <p role="status" className={`${adminCardClass} flex items-center gap-2 p-4 text-sm font-semibold text-admin-success`}>
+            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>Tudo em dia</span>
+          </p>
+        )}
+        {pendentes.length === 0 && !tudoEmDia && (
+          <p role="status" className={`${adminCardClass} p-4 text-sm text-admin-muted`}>
+            {pendencias ? 'Não foi possível confirmar as pendências agora.' : 'Entre com seu CPF para ver as pendências.'}
+          </p>
+        )}
+      </section>
 
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-admin-border pb-2">
-          <h3 className="text-sm font-semibold text-admin-text">O que você deseja gerenciar agora?</h3>
-          <span className="text-xs text-admin-muted">Escolha uma área para abrir</span>
-        </div>
+      <section aria-labelledby="inicio-resumo" className="space-y-3">
+        <h3 id="inicio-resumo" className="text-sm font-semibold text-admin-text">Resumo do site</h3>
+        <OverviewStats indicators={indicators} projetosResumo={projetosResumo} bannersTotal={bannersTotal} />
+      </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          <ModuleCard title="Notícias" icon={Newspaper}
-            badge={loadingNews ? 'Carregando...' : errorNews ? 'Indisponível' : `${totalNews} notícias`}
-            description="Depois de aprovadas, as notícias aparecem na página “Notícias” do site."
-            actions={
-              <button type="button" onClick={onOpenNews} className={`${adminSecondaryButtonClass} w-full`}>
-                <span>Abrir Notícias</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            }>
-            <ModuleNote label="Última publicação:"
-              detail={!loadingNews && !errorNews && latestNews ? [latestNews.data_publicacao, latestNews.autor_nome].filter(Boolean).join(' • ') : undefined}>
-              {loadingNews ? 'Carregando...' : errorNews ? FALHA : (latestNews?.titulo || 'Nenhuma notícia publicada ainda')}
-            </ModuleNote>
-          </ModuleCard>
-
-          <ModuleCard title="Projetos" icon={Lightbulb}
-            badge={projetosSemDados ? 'Indisponível' : projetosResumo?.total === null ? 'Carregando...' : `${projetosResumo?.total} projeto${projetosResumo?.total === 1 ? '' : 's'}`}
-            description="Cadastre projetos com tema, relato, capa, anexos e membros, e acompanhe a aprovação."
-            actions={
-              <div className="flex items-center gap-2">
-                <div className="flex-1"><OpenLink href="/admin/projetos">Abrir Projetos</OpenLink></div>
-                <Link href="/admin/projetos?action=new" title="Cadastrar novo projeto" className={adminPrimaryButtonClass}>
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>Novo</span>
-                </Link>
-              </div>
-            }>
-            <ModuleNote label="Situação dos projetos:">
-              {projetosSemDados ? 'Indisponível nesta sessão' : projetosResumo?.total === null ? 'Carregando...'
-                : `${projetosResumo?.published} publicado${projetosResumo?.published === 1 ? '' : 's'} · ${projetosResumo?.pending} aguardando`}
-            </ModuleNote>
-          </ModuleCard>
-
-          <ModuleCard title="Avisos" icon={Megaphone}
-            badge={loadingAvisos ? 'Carregando...' : errorAvisos ? 'Indisponível' : `${totalAvisos} avisos`}
-            description="Publique comunicados oficiais. Os avisos ativos aparecem em destaque na página inicial do site."
-            actions={<OpenLink href="/admin/avisos">Abrir Avisos</OpenLink>}>
-            <ModuleNote label="Último comunicado urgente:"
-              detail={loadingAvisos ? 'Carregando...' : errorAvisos ? 'Indisponível' : `${apiAvisosAtivosCount} avisos no site`}>
-              {loadingAvisos ? 'Carregando...' : errorAvisos ? FALHA : (announcementTitle || 'Sem comunicados urgentes no momento')}
-            </ModuleNote>
-          </ModuleCard>
-
-          <ModuleCard title="Banners" icon={Presentation} badge={bannersLabel}
-            description="Cadastre, troque e exclua as imagens que aparecem no fundo do topo da página inicial do site."
-            actions={<OpenLink href="/admin/banners">Abrir Banners</OpenLink>}>
-            <ModuleNote label="No site agora:">{bannersLabel}</ModuleNote>
-          </ModuleCard>
-
-          <ModuleCard title="Galeria de fotos" icon={Images}
-            badge={loadingFotos ? 'Carregando...' : errorFotos ? 'Indisponível' : `${totalFotos} fotos`}
-            description="As fotos enviadas aqui aparecem na página “Galeria” do site, com as salas de aula, os estúdios e as feiras escolares."
-            actions={<OpenLink href="/admin/galeria">Abrir Galeria de fotos</OpenLink>}>
-            <ModuleNote label="Fotos cadastradas:">
-              {loadingFotos ? 'Carregando...' : errorFotos ? FALHA : `${totalFotos} fotos no site`}
-            </ModuleNote>
-          </ModuleCard>
-
-          <ModuleCard title="Aprovações" icon={ClipboardCheck}
-            badge={loadingNews ? 'Carregando...' : errorNews ? 'Indisponível' : `${apiNewsDraftCount} notícia${apiNewsDraftCount === 1 ? '' : 's'}`}
-            description="Veja as notícias e os demais conteúdos enviados que estão aguardando aprovação, e publique ou recuse cada um."
-            actions={
-              <button type="button" disabled={!canAccessKanban} onClick={onOpenKanban} className={`${adminSecondaryButtonClass} w-full`}>
-                <span>Abrir Aprovações</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            }>
-            <ModuleNote label="Notícias aguardando:">
-              {loadingNews ? 'Carregando...' : errorNews ? FALHA : `${apiNewsDraftCount} notícia${apiNewsDraftCount === 1 ? '' : 's'} aguardando aprovação`}
-            </ModuleNote>
-          </ModuleCard>
-
-          <ModuleCard title="Configurações" icon={Settings} badge={`${usersCountLabel} usuários`}
-            description="Atualize os números do site, os links das redes sociais e as pessoas com acesso ao painel."
-            actions={<OpenLink href="/admin/institucional">Abrir Configurações</OpenLink>}>
-            <div className="space-y-1.5 pt-1">
-              <ShortcutLink href="/admin/institucional" icon={BarChart3}>Números do site</ShortcutLink>
-              <ShortcutLink href="/admin/redes" icon={Share2}>Redes sociais</ShortcutLink>
-              <ShortcutLink href="/admin/usuarios" icon={UserCog}>Usuários e acessos ({usersCountLabel})</ShortcutLink>
+      <section aria-labelledby="inicio-gerenciar" className="space-y-5">
+        <h3 id="inicio-gerenciar" className="text-sm font-semibold text-admin-text">Gerenciar</h3>
+        {menu.filter(folder => folder.visible).map(folder => (
+          <div key={folder.id} className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-admin-muted">{folder.label}</h4>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {folder.items.filter(item => item.visible).map(item => {
+                const Icon = item.icon;
+                const contador = contadores[item.section];
+                return (
+                  <div key={item.section} className={`${adminCardClass} flex flex-col justify-between gap-3 p-4`}>
+                    <div className="flex items-start gap-3">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-admin-accent-soft text-admin-accent">
+                        <Icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+                          <h5 className="text-sm font-semibold text-admin-text">{item.label}</h5>
+                          {contador && <span className="text-[11px] text-admin-muted">{contador}</span>}
+                        </div>
+                        <p className="mt-0.5 text-xs leading-relaxed text-admin-muted">{item.summary}</p>
+                      </div>
+                    </div>
+                    <Link href={item.href} aria-label={`Abrir ${item.label}`} className={`${adminLinkClass} self-end`}>
+                      <span>Abrir</span>
+                      <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
-          </ModuleCard>
-
-          <ModuleCard title="Perguntas frequentes" icon={HelpCircle}
-            badge={loadingFaqs ? 'Carregando...' : errorFaqs ? 'Indisponível' : `${totalFaqs} dúvida${totalFaqs === 1 ? '' : 's'}`}
-            description="Cadastre e edite as perguntas e respostas da Central de Dúvidas do site."
-            actions={<OpenLink href="/admin/faq">Abrir Perguntas frequentes</OpenLink>}>
-            <ModuleNote label="Situação das perguntas:"
-              detail={loadingFaqs ? 'Carregando...' : errorFaqs ? 'Indisponível' : undefined}>
-              {loadingFaqs ? 'Carregando...' : errorFaqs ? `${FALHA} (${errorFaqs})` : totalFaqs === 0 ? 'Nenhuma dúvida cadastrada até o momento'
-                : `${apiFaqsPublishedCount} publicada${apiFaqsPublishedCount === 1 ? '' : 's'} · ${apiFaqsPendingCount} aguardando aprovação`}
-            </ModuleNote>
-            {duvidasPendentes && (
-              <p className="text-xs font-semibold text-admin-text">
-                <Link href="/admin/faq/publico" className="underline">Dúvidas do público</Link> sem resposta:{' '}
-                {duvidasPendentes.error ? 'indisponível' : duvidasPendentes.count ?? 'carregando...'}
-              </p>
-            )}
-          </ModuleCard>
-        </div>
-      </div>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }
