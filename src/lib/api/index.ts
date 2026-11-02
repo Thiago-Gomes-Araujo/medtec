@@ -3,7 +3,7 @@
  * Concentra cliente HTTP, autenticação, gerenciamento de tokens, erros e serviços por domínio.
  */
 
-import { apiFetch, getApiBaseUrl, getApiServerUrl, getMediaUrl, API_BASE_URL, API_SERVER_URL } from './client';
+import { apiFetch, fetchWithTimeout, isConnectionFailure, isTimeoutError, getApiBaseUrl, getApiServerUrl, getMediaUrl, API_BASE_URL, API_SERVER_URL } from './client';
 import { ApiError } from './errors';
 import {
   getStoredAccessToken,
@@ -105,6 +105,9 @@ export const medtecApi = {
 // Exportações de infraestrutura e utilitários
 export {
   apiFetch,
+  fetchWithTimeout,
+  isConnectionFailure,
+  isTimeoutError,
   getApiBaseUrl,
   getApiServerUrl,
   getMediaUrl,

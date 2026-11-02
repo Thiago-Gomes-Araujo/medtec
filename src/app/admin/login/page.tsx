@@ -17,8 +17,11 @@ import {
   Info
 } from 'lucide-react';
 
-import { setStoredTokens } from '@/lib/api';
+import { fetchWithTimeout, setStoredTokens } from '@/lib/api';
 import { getSafeAdminReturnTarget } from '@/lib/admin-auth-navigation';
+
+// /api/auth espera até 5 s em cada uma das duas consultas à API antes de responder.
+const LOGIN_TIMEOUT_MS = 15000;
 
 export default function AdminLoginPage() {
   const [cpf, setCpf] = useState('');
@@ -44,11 +47,11 @@ export default function AdminLoginPage() {
 
     try {
       // O servidor autentica e cria o cookie necessário para acessar o painel.
-      const res = await fetch('/api/auth', {
+      const res = await fetchWithTimeout('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: cleanCpf, password }),
-      });
+      }, LOGIN_TIMEOUT_MS);
 
       const data = await res.json();
       if (res.ok && data.success) {

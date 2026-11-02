@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -21,7 +21,8 @@ type FetchProfessorResult =
   | { status: 'not_found' }
   | { status: 'unavailable' };
 
-async function fetchProfessor(id: string): Promise<FetchProfessorResult> {
+// fetch com signal não é memoizado: cache evita consultar a API de novo entre metadados e página.
+const fetchProfessor = cache(async (id: string): Promise<FetchProfessorResult> => {
   if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) return { status: 'not_found' };
   try {
     const response = await medtecApi.professoresPublicos.get(Number(id));
@@ -30,7 +31,7 @@ async function fetchProfessor(id: string): Promise<FetchProfessorResult> {
     // Rota ainda não implantada e professor inexistente respondem 404 do mesmo jeito.
     return { status: 'unavailable' };
   }
-}
+});
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;

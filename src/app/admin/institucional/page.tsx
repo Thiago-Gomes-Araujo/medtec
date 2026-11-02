@@ -10,6 +10,7 @@ import {
   type PreviewItemData,
   type PreviewContentType,
 } from '@/components/AdminLiveSimulator';
+import { fetchWithTimeout } from '@/lib/api';
 import type { DatabaseSchema } from '@/types';
 
 function SiteInfoWorkspace() {
@@ -37,7 +38,7 @@ function SiteInfoWorkspace() {
       setLoadingData(true);
       setErrorData(null);
       try {
-        const res = await fetch('/api/data', { cache: 'no-store', signal: controller.signal });
+        const res = await fetchWithTimeout('/api/data', { cache: 'no-store', signal: controller.signal });
         if (!res.ok) {
           throw new Error(`Falha ao carregar dados institucionais (HTTP ${res.status}).`);
         }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { cache } from 'react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -22,7 +22,8 @@ type FetchProjetoResult =
   | { status: 'not_found' }
   | { status: 'unavailable' };
 
-async function fetchProjeto(id: string): Promise<FetchProjetoResult> {
+// fetch com signal não é memoizado: cache evita consultar a API de novo entre metadados e página.
+const fetchProjeto = cache(async (id: string): Promise<FetchProjetoResult> => {
   if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) return { status: 'not_found' };
   try {
     const response = await medtecApi.projetosPublicos.get(Number(id));
@@ -31,7 +32,7 @@ async function fetchProjeto(id: string): Promise<FetchProjetoResult> {
     // Projeto não publicado ou excluído responde 404; qualquer outra falha é da API.
     return { status: error instanceof ApiError && error.isNotFound() ? 'not_found' : 'unavailable' };
   }
-}
+});
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, ExternalLink, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { Indicador, Contrato } from '@/types';
 import { sanitizeSearchInput } from '@/lib/security';
+import { fetchWithTimeout } from '@/lib/api/client';
 
 export default function TransparencySection() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,7 +19,7 @@ export default function TransparencySection() {
     async function loadTransparency() {
       setLoading(true);
       try {
-        const res = await fetch('/api/transparency');
+        const res = await fetchWithTimeout('/api/transparency');
         if (res.ok) {
           const data = await res.json();
           if (isMounted) {
