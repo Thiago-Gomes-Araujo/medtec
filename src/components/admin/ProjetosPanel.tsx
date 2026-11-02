@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useId, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { getMediaUrl, medtecApi, type ModeracaoStatus, type PjAnexo, type PjMembro, type PjProjeto, type PjProjetoMembro, type PjTema } from '@/lib/api';
 import { isHttpsUrl, validateConquistaImage } from '@/lib/community-content';
 import { diffProjetoMembros, formatFileSize, getProjetoImageSrc, hasMembroDuplicado, PROJETO_ANEXO_ACCEPT, validateProjetoAnexo, type MembroDraft } from '@/lib/projetos-content';
@@ -32,6 +32,7 @@ interface ProjetoForm {
   escolaId: string;
   imagemModo: 'upload' | 'link';
   imagem: File | null;
+  imagemPreview: string;
   imagemUrl: string;
   imagemUrlOriginal: string;
   imagemAtual: string;
@@ -42,7 +43,7 @@ interface ProjetoForm {
 }
 
 const EMPTY_FORM: ProjetoForm = {
-  titulo: '', relato: '', temaId: '', cidadeId: '', escolaId: '', imagemModo: 'upload', imagem: null, imagemUrl: '',
+  titulo: '', relato: '', temaId: '', cidadeId: '', escolaId: '', imagemModo: 'upload', imagem: null, imagemPreview: '', imagemUrl: '',
   imagemUrlOriginal: '', imagemAtual: '', anexosAtuais: [], anexosNovos: [], membros: [], membrosOriginais: [],
 };
 const readTemas = (signal: AbortSignal) => medtecApi.temasProjeto.list({ page: 'all' }, signal);
@@ -73,6 +74,11 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
   const escolasForm = useEscolaOptions(form?.cidadeId ?? '');
   const action = useAdminAction();
   const blocked = action.busy || form !== null || deleting !== null;
+  const imagemInput = useRef<HTMLInputElement>(null);
+  const imagemPreview = form?.imagemPreview;
+
+  // A prévia do arquivo escolhido é local: a URL é liberada ao trocar a escolha ou fechar o formulário.
+  useEffect(() => () => { if (imagemPreview) URL.revokeObjectURL(imagemPreview); }, [imagemPreview]);
 
   function updateFilters(next: Partial<typeof filters>) {
     setFilters(current => ({ ...current, ...next }));
@@ -97,7 +103,14 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
     const problem = file ? validateConquistaImage(file) : null;
     action.setError(problem);
     if (problem) event.target.value = '';
-    setForm({ ...form, imagem: problem ? null : file });
+    setForm({ ...form, imagem: problem ? null : file, imagemPreview: file && !problem ? URL.createObjectURL(file) : '' });
+  }
+
+  // Desfaz só a escolha ainda não salva: a capa atual continua no projeto.
+  function removeCapaEscolhida() {
+    if (!form) return;
+    if (imagemInput.current) imagemInput.current.value = '';
+    setForm({ ...form, imagem: null, imagemPreview: '', imagemUrl: form.imagemUrlOriginal });
   }
 
   function chooseAnexos(event: ChangeEvent<HTMLInputElement>) {
@@ -172,6 +185,9 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
   }
 
   const temaOptions = temas.items.filter(item => item.ativo || String(item.id) === form?.temaId);
+  const linkEscolhido = form?.imagemModo === 'link' ? form.imagemUrl.trim() : '';
+  const linkMudou = !!form && form.imagemModo === 'link' && linkEscolhido !== form.imagemUrlOriginal;
+  const novaCapa = form?.imagemPreview || (linkMudou && isHttpsUrl(linkEscolhido) ? linkEscolhido : '');
 
   return (
     <section aria-labelledby={`${id}-heading`} className={panelClass}>
@@ -267,13 +283,20 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
             <legend className={labelClass}>Capa (opcional)</legend>
             <div className="flex flex-wrap gap-4 text-sm text-slate-700 dark:text-slate-200">
               <label className="flex items-center gap-2"><input type="radio" name="projeto-imagem-modo" value="upload" checked={form.imagemModo === 'upload'} onChange={() => setForm({ ...form, imagemModo: 'upload' })} /> Enviar arquivo</label>
-              <label className="flex items-center gap-2"><input type="radio" name="projeto-imagem-modo" value="link" checked={form.imagemModo === 'link'} onChange={() => setForm({ ...form, imagemModo: 'link', imagem: null })} /> Usar link</label>
+              <label className="flex items-center gap-2"><input type="radio" name="projeto-imagem-modo" value="link" checked={form.imagemModo === 'link'} onChange={() => setForm({ ...form, imagemModo: 'link', imagem: null, imagemPreview: '' })} /> Usar link</label>
             </div>
             {form.imagemModo === 'upload'
-              ? <input name="projeto-imagem" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Arquivo da capa (PNG, JPG ou WEBP, até 5 MB)" className="block text-sm text-slate-700 dark:text-slate-200" onChange={chooseImage} />
+              ? <input ref={imagemInput} name="projeto-imagem" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Arquivo da capa (PNG, JPG ou WEBP, até 5 MB)" className="block text-sm text-slate-700 dark:text-slate-200" onChange={chooseImage} />
               : <input name="projeto-imagem-url" type="url" aria-label="Link da capa" placeholder="https://..." value={form.imagemUrl} className={inputClass} onChange={event => setForm({ ...form, imagemUrl: event.target.value })} />}
             <p className="text-xs text-slate-600 dark:text-slate-400">PNG, JPG ou WEBP, até 5 MB, ou link HTTPS.</p>
-            {form.imagemAtual && <Image unoptimized src={form.imagemAtual} alt="Capa atual do projeto" width={160} height={90} className="rounded-lg object-cover" />}
+            {linkEscolhido && !isHttpsUrl(linkEscolhido) && <p className="text-xs text-red-700 dark:text-red-300">A prévia só aparece com um link HTTPS válido.</p>}
+            {novaCapa
+              ? <figure className="space-y-1">
+                <Image unoptimized src={novaCapa} alt="Prévia da nova capa" width={160} height={90} className="rounded-lg object-cover" />
+                <figcaption className="text-xs text-slate-600 dark:text-slate-400">Prévia: a capa só muda ao salvar o projeto.</figcaption>
+              </figure>
+              : form.imagemAtual && <Image unoptimized src={form.imagemAtual} alt="Capa atual do projeto" width={160} height={90} className="rounded-lg object-cover" />}
+            {(form.imagem || linkMudou) && <button type="button" className={buttonClass} onClick={removeCapaEscolhida}>Remover escolha</button>}
           </fieldset>
 
           <fieldset className="space-y-2">

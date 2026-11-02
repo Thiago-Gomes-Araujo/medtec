@@ -11382,6 +11382,92 @@ describe('Projetos — painel', () => {
       assert.equal(JSON.parse(String(sentBy(view, 'POST')[0].options.body)).pj_projeto.imagem_url, 'https://x.com/capa.jpg');
     } finally { await view.restore(); }
   });
+  describe('prévia da capa', () => {
+    const alt = (view: View, text: string) => view.nodes().find(item => item.props.alt === text);
+    const escolherModo = (view: View, modo: string) => view.act(() => Reflect.apply(view.nodes().find(item => item.props.name === 'projeto-imagem-modo' && item.props.value === modo)!.props.onChange as () => unknown, undefined, []));
+    function urlsDeObjeto() {
+      const created = mock.method(URL, 'createObjectURL', () => 'blob:previa');
+      const revoked = mock.method(URL, 'revokeObjectURL', () => {});
+      return { created, revoked, restore() { created.mock.restore(); revoked.mock.restore(); } };
+    }
+
+    it('arquivo escolhido aparece na prévia sem enviar nada, e remover desfaz a escolha', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        const antes = view.calls.length;
+        assert.equal(view.nodes().some(item => item.props.children === 'Remover escolha'), false);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'blob:previa');
+        assert.equal(view.calls.length, antes, 'Escolher não envia o arquivo');
+        await view.click('Remover escolha');
+        assert.equal(alt(view, 'Prévia da nova capa'), undefined);
+        assert.equal(urls.revoked.mock.callCount(), 1, 'A URL local é liberada');
+        await fillBase(view);
+        await view.submit('Criar projeto');
+        await view.act(settle);
+        assert.equal(typeof sentBy(view, 'POST')[0].options.body, 'string', 'Sem arquivo, vai JSON');
+        assert.equal(JSON.parse(String(sentBy(view, 'POST')[0].options.body)).pj_projeto.imagem_url, undefined);
+      } finally { await view.restore(); urls.restore(); }
+    });
+    it('arquivo recusado não gera prévia e fechar o formulário libera a URL', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.gif', { type: 'image/gif' })));
+        assert.equal(alt(view, 'Prévia da nova capa'), undefined); assert.equal(urls.created.mock.callCount(), 0);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+        await view.click('Cancelar');
+        assert.equal(urls.revoked.mock.callCount(), 1);
+      } finally { await view.restore(); urls.restore(); }
+    });
+    it('link HTTPS aparece na prévia; outro link só orienta; remover limpa', async () => {
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        await escolherModo(view, 'link');
+        await view.change('projeto-imagem-url', 'http://x.com/capa.jpg');
+        assert.equal(alt(view, 'Prévia da nova capa'), undefined);
+        assert.match(view.html(), /A prévia só aparece com um link HTTPS válido/);
+        await view.change('projeto-imagem-url', ' https://x.com/nova.jpg ');
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'https://x.com/nova.jpg');
+        await view.click('Remover escolha');
+        assert.equal(alt(view, 'Prévia da nova capa'), undefined);
+        assert.equal(view.nodes().find(item => item.props.name === 'projeto-imagem-url')?.props.value, '');
+      } finally { await view.restore(); }
+    });
+    it('na edição mostra a capa atual; a nova escolha a substitui na tela e remover volta à atual, sem enviar troca', async () => {
+      const view = await mount({}, () => reply(projeto));
+      try {
+        await view.act(settle);
+        await view.click('Editar Hortas em Jirau');
+        await view.act(settle);
+        assert.equal(alt(view, 'Capa atual do projeto')?.props.src, 'https://x.com/capa.jpg');
+        assert.equal(view.nodes().some(item => item.props.children === 'Remover escolha'), false);
+        await view.change('projeto-imagem-url', 'https://x.com/outra.jpg');
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'https://x.com/outra.jpg');
+        assert.equal(alt(view, 'Capa atual do projeto'), undefined);
+        await view.click('Remover escolha');
+        assert.equal(alt(view, 'Capa atual do projeto')?.props.src, 'https://x.com/capa.jpg');
+        await view.submit('Editar projeto');
+        await view.act(settle);
+        assert.equal(JSON.parse(String(sentBy(view, 'PATCH')[0].options.body)).pj_projeto.imagem_url, undefined, 'A capa atual é preservada');
+      } finally { await view.restore(); }
+    });
+    it('passar para link descarta o arquivo escolhido', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+        await escolherModo(view, 'link');
+        assert.equal(alt(view, 'Prévia da nova capa'), undefined);
+        assert.equal(urls.revoked.mock.callCount(), 1);
+      } finally { await view.restore(); urls.restore(); }
+    });
+  });
   it('recusa capa e anexos fora das regras e envia os válidos em multipart', async () => {
     const view = await mount({ startNew: true });
     try {
