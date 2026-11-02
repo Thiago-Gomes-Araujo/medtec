@@ -67,6 +67,7 @@ import type { ATipoAviso, AAviso, FotoGaleria, CategoriaGaleria, Estado } from '
 import DuvidasVisitanteModule from '../src/components/admin/DuvidasVisitanteModule';
 import { notifyDuvidasPendentes, useDuvidasPendentes } from '../src/components/admin/useDuvidasPendentes';
 import { useProjetosResumo } from '../src/components/admin/useProjetosResumo';
+import { useBannersTotal } from '../src/components/admin/useBannersTotal';
 import FaqCentralSection from '../src/components/FaqCentralSection';
 import DuvidaVisitanteForm from '../src/components/DuvidaVisitanteForm';
 import PublicFaqPage from '../src/app/faq/page';
@@ -1830,7 +1831,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
       assert.equal(page.session?.isGestor, true);
       assert.equal(page.loading, false);
-      assert.equal(page.overviewRequests.length, 13);
+      assert.equal(page.overviewRequests.length, 14);
       assert.equal(page.localRequests.length, 0);
       assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
@@ -1858,7 +1859,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.session?.profileType, fields.perfil_nome, label);
         assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected ? 13 : 0, label);
+        assert.equal(page.overviewRequests.length, expected ? 14 : 0, label);
         const profile = fields.perfil_nome;
         assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : profile === 'Publicador de Avisos'
@@ -1899,7 +1900,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(reply.data, before, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 13 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? 14 : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -1921,7 +1922,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(page.session, expected, `${source}: ${label}`);
         assert.deepEqual(input, data, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 13 : 9) : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 14 : 9) : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -2000,7 +2001,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             assert.equal(page.session?.isGestor, isGestor, label);
             assert.equal(page.session?.profileType, profileType, label);
             assert.equal(page.loading, false, label);
-            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 13 : 9) : 0, label);
+            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 14 : 9) : 0, label);
             assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, label);
             assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, label);
           } finally { await page.restore(); }
@@ -4546,7 +4547,7 @@ describe('Interface componentizada da Visão Geral', () => {
     }, latestNews: undefined, announcementTitle: undefined });
     assert.equal((html.match(/>0<\/p>/g) || []).length, 5);
     for (const text of ['Nenhuma matéria cadastrada', 'Nenhuma fotografia catalogada',
-      'Nenhuma notícia publicada ainda', 'Indisponível — sem integração oficial',
+      'Nenhuma notícia publicada ainda',
       'Sem comunicados urgentes no momento', 'Nenhum comunicado urgente ativo', 'Nenhuma dúvida cadastrada']) {
       assert.ok(html.includes(text), text);
     }
@@ -4582,7 +4583,7 @@ describe('Interface componentizada da Visão Geral', () => {
 
   it('identifica cada indicador sem integração e não inventa números ou nomes para preenchê-lo', () => {
     const html = render();
-    assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 2);
+    assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 0);
     for (const text of ['52 Municípios', '4 trilhas', '4 categorias', 'Nenhum projeto cadastrado',
       'Nenhuma dúvida cadastrada', 'missões', 'banners ativos', 'Transmissão ao vivo integrada']) {
       assert.ok(!html.includes(text), text);
@@ -4744,7 +4745,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(CapturePage)));
           assert.ok(html.includes('Painel do Gestor • Central Executiva CMS'));
           assert.ok(html.includes('Carregando API...'));
-          assert.ok(html.includes('Indisponível — sem integração oficial'));
+          assert.ok(html.includes('Indisponível nesta sessão'));
           assert.ok(!html.includes('Autenticando e carregando painel de gestão...'));
           type NavigationProps = { children?: ReactNode; folder?: { items: { section: string; badge?: number; visible: boolean }[] };
             onSelectSection?: (section: string) => void; canAccessKanban?: boolean };
@@ -5010,7 +5011,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
         }));
         assert.ok(html.includes('Painel do Gestor • Central Executiva CMS'));
-        assert.ok(html.includes('Indisponível — sem integração oficial'));
+        assert.ok(html.includes('Indisponível nesta sessão'));
         assert.ok(html.includes('href="/admin/usuarios"'));
         assert.ok(!html.includes('>0</p>'));
       }
@@ -9085,7 +9086,7 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
       assert.ok(html.includes('30 publicadas · 9 aguardando aprovação'));
       assert.ok(html.includes('42 registros no catálogo oficial'));
       assert.ok(html.includes('href="/admin/faq"'));
-      assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 2);
+      assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 0);
     } finally {
       fetchMock.mock.restore();
       clearStoredTokens();
@@ -10636,6 +10637,39 @@ describe('Banners — service', () => {
     for (const body of [{ success: true, data: null }, { success: false, data: [] }, { success: true, data: [{ id: 1 }] }, { success: true, data: [{ id: 'x', imagem: 'a' }] }, { success: true, data: [{ id: 1, imagem: '' }] }]) {
       await assert.rejects(capture(json(body), () => medtecApi.bannersPublicos.list()), /API pública de Banners/);
     }
+  });
+});
+
+describe('Banners — Início do painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  function TotalProbe(enabled: boolean) {
+    return createElement('output', null, JSON.stringify(useBannersTotal(enabled)));
+  }
+  const render = (bannersTotal?: { count: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, {
+    indicators: {} as OverviewStatsIndicators, canAccessKanban: true, bannersTotal, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+  }));
+
+  it('conta sem trazer os banners, não consulta se desativado, e falha não vira zero', async () => {
+    const view = await mountCategories(async () => reply({ success: true, data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: 3, per_page: 1 } } }), false, {
+      component: () => TotalProbe(true), allowedPaths: /\/b_banners$/,
+    });
+    try {
+      await view.act(settle);
+      assert.equal(view.calls[0].url.searchParams.get('per_page'), '1'); assert.match(view.html(), /&quot;count&quot;:3/);
+    } finally { await view.restore(); }
+    const off = await mountCategories(async () => reply({}), false, { component: () => TotalProbe(false), allowedPaths: /$^/ });
+    try { assert.equal(off.calls.length, 0); } finally { await off.restore(); }
+    const failing = await mountCategories(async () => reply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403), false, { component: () => TotalProbe(true), allowedPaths: /\/b_banners$/ });
+    try { await failing.act(settle); assert.match(failing.html(), /&quot;count&quot;:null/); } finally { await failing.restore(); }
+  });
+  it('Início mostra o total da API e sai do texto antigo', () => {
+    assert.match(render({ count: 3, error: null }), /3 banners/);
+    assert.match(render({ count: 1, error: null }), /1 banner</);
+    assert.match(render({ count: null, error: null }), /Carregando\.\.\./);
+    for (const props of [undefined, { count: null, error: 'x' }]) assert.ok(!render(props).includes('sem integração oficial'));
+    for (const old of ['fotos de estúdio', 'Carrossel &amp; Transmissão']) assert.ok(!render({ count: 3, error: null }).includes(old), old);
   });
 });
 

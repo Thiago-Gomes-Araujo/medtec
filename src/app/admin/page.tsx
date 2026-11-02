@@ -31,6 +31,7 @@ import AdminOverview from '@/components/admin/AdminOverview';
 import { getLegacyProjectsHref } from '@/lib/admin-projects';
 import { getAdminStaticAlias } from '@/lib/admin-aliases';
 import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
+import { useBannersTotal } from '@/components/admin/useBannersTotal';
 import { useProjetosResumo } from '@/components/admin/useProjetosResumo';
 import { canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminEditorialDestination } from '@/lib/admin-auth-navigation';
@@ -297,6 +298,7 @@ export default function AdminDashboardPage() {
   const canReadApiCounters = userSession.isGestor && medtecApi.auth.isAuthenticated();
   const duvidasPendentes = useDuvidasPendentes(canReadApiCounters);
   const projetosResumo = useProjetosResumo(canReadApiCounters);
+  const bannersTotal = useBannersTotal(canReadApiCounters);
   const canAccessProfessores =
     userSession.isGestor ||
     userSession.profileType === 'Editor de Notícias' ||
@@ -751,6 +753,7 @@ export default function AdminDashboardPage() {
               canAccessKanban={canAccessKanban}
               duvidasPendentes={canReadApiCounters ? duvidasPendentes : undefined}
               projetosResumo={canReadApiCounters ? projetosResumo : undefined}
+              bannersTotal={canReadApiCounters ? bannersTotal : undefined}
               onOpenNews={() => router.push('/admin/noticias')}
               onCreateNews={() => router.push('/admin/noticias?action=new')}
               onOpenKanban={() => router.push('/admin/kanban')}

@@ -15,6 +15,7 @@ export interface AdminOverviewProps {
   canAccessKanban: boolean;
   duvidasPendentes?: { count: number | null; error: string | null };
   projetosResumo?: ProjetosResumo;
+  bannersTotal?: { count: number | null; error: string | null };
   onOpenNews: () => void;
   onCreateNews: () => void;
   onOpenKanban: () => void;
@@ -22,7 +23,7 @@ export interface AdminOverviewProps {
 
 export default function AdminOverview({
   indicators, userName, latestNews, announcementTitle,
-  canAccessKanban, duvidasPendentes, projetosResumo, onOpenNews, onCreateNews, onOpenKanban,
+  canAccessKanban, duvidasPendentes, projetosResumo, bannersTotal, onOpenNews, onCreateNews, onOpenKanban,
 }: AdminOverviewProps) {
   const {
     loadingNews, errorNews, totalNews, apiNewsDraftCount,
@@ -32,6 +33,8 @@ export default function AdminOverview({
     usersCountLabel,
   } = indicators;
   const projetosSemDados = !projetosResumo || !!projetosResumo.error;
+  const bannersLabel = !bannersTotal || bannersTotal.error ? 'Indisponível'
+    : bannersTotal.count === null ? 'Carregando...' : `${bannersTotal.count} banner${bannersTotal.count === 1 ? '' : 's'}`;
 
   return (
     <div className="space-y-6">
@@ -248,20 +251,20 @@ export default function AdminOverview({
                   </h4>
                 </div>
                 <span className="max-w-36 shrink-0 text-right text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  Indisponível — sem integração oficial
+                  {bannersLabel}
                 </span>
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Troque as imagens grandes que passam no carrossel de entrada da Página Inicial do portal, fotos de estúdio e transmissão ao vivo.
+                Cadastre, troque e exclua as imagens do carrossel no topo da Página Inicial do portal.
               </p>
 
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800/80 space-y-1">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Carrossel & Transmissão:
+                  Carrossel no site:
                 </span>
                 <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                  Indisponível — sem integração oficial
+                  {bannersLabel}
                 </p>
               </div>
             </div>
