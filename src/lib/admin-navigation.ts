@@ -1,28 +1,21 @@
 import {
   Award,
   BarChart3,
-  BookOpen,
-  CheckCircle2,
   ClipboardCheck,
   FolderKanban,
   GraduationCap,
+  Headphones,
   HelpCircle,
   Images,
   Lightbulb,
   MapPin,
   Megaphone,
-  MessageSquareQuote,
   MessagesSquare,
   Newspaper,
   Presentation,
+  Settings,
   Share2,
-  Shapes,
-  ShieldCheck,
-  SlidersHorizontal,
-  Tags,
   UserCog,
-  UserRound,
-  UsersRound,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -55,127 +48,127 @@ export const SECTION_CONFIG: Record<
 > = {
   visaoGeral: {
     group: 'Início',
-    title: 'Início (Resumo do Painel)',
-    subtitle: 'Visão executiva unificada, indicadores em tempo real e atalhos didáticos de acesso rápido.',
+    title: 'Início',
+    subtitle: 'Resumo do site e atalhos para o que você mais usa.',
     href: '/admin',
   },
   noticias: {
-    group: 'Publicações do Site',
-    title: 'Notícias e Matérias',
+    group: 'Conteúdo do site',
+    title: 'Notícias',
     subtitle: 'Aqui você escreve novas matérias, escolhe a foto de capa e edita notícias já publicadas no portal.',
     href: '/admin/noticias',
   },
   projetos: {
-    group: 'Publicações do Site',
-    title: 'Projetos Pedagógicos',
+    group: 'Conteúdo do site',
+    title: 'Projetos',
     subtitle: 'Cadastre os projetos das escolas com tema, relato, capa, anexos e membros, e acompanhe a aprovação.',
     href: '/admin/projetos',
   },
   projetosTemas: {
-    group: 'Publicações do Site',
-    title: 'Temas de Projeto',
+    group: 'Conteúdo do site',
+    title: 'Temas de projeto',
     subtitle: 'Cadastre e organize os temas usados nos projetos pedagógicos.',
     href: '/admin/projetos/temas',
   },
   projetosMembros: {
-    group: 'Publicações do Site',
-    title: 'Membros de Projeto',
+    group: 'Conteúdo do site',
+    title: 'Membros de projeto',
     subtitle: 'Cadastre as pessoas que participam dos projetos. O CPF não aparece no site.',
     href: '/admin/projetos/membros',
   },
   projetosAprovacao: {
-    group: 'Publicações do Site',
-    title: 'Aprovação de Projetos',
+    group: 'Conteúdo do site',
+    title: 'Aprovação de projetos',
     subtitle: 'Confira os projetos aguardando e publique ou reprove cada um.',
     href: '/admin/projetos/aprovacao',
   },
   duvidas: {
-    group: 'Publicações do Site',
-    title: 'Dúvidas Frequentes (FAQ)',
+    group: 'Conteúdo do site',
+    title: 'Perguntas frequentes',
     subtitle: 'Cadastre, edite e organize as perguntas e respostas que aparecem na Central de Dúvidas do portal.',
     href: '/admin/faq',
   },
   duvidasPublico: {
-    group: 'Publicações do Site',
+    group: 'Conteúdo do site',
     title: 'Dúvidas do público',
     subtitle: 'Acompanhe as dúvidas enviadas pelo site e registre o atendimento feito por e-mail ou telefone.',
     href: '/admin/faq/publico',
   },
   avisos: {
-    group: 'Publicações do Site',
-    title: 'Avisos e Comunicados',
+    group: 'Conteúdo do site',
+    title: 'Avisos',
     subtitle: 'Use esta área para postar comunicados oficiais, calendários e avisos urgentes para as escolas.',
     href: '/admin/avisos',
   },
   fotos: {
-    group: 'Publicações do Site',
-    title: 'Banners da Página Inicial',
+    group: 'Conteúdo do site',
+    title: 'Banners',
     subtitle: 'Gerencie as imagens grandes que passam no topo da Página Inicial do site.',
     href: '/admin/banners',
   },
   galeria: {
-    group: 'Publicações do Site',
-    title: 'Galeria de Fotos',
+    group: 'Conteúdo do site',
+    title: 'Galeria de fotos',
     subtitle: 'Envie fotografias das salas de aula, estúdios e projetos realizados nos municípios.',
     href: '/admin/galeria',
   },
   professores: {
-    group: 'Publicações do Site',
-    title: 'Professores e Mediadores',
+    group: 'Conteúdo do site',
+    title: 'Professores',
     subtitle: 'Cadastre e gerencie os perfis docentes de ministrantes e mediadores, disciplinas e relatos.',
     href: '/admin/professores',
   },
   professoresDisciplinas: {
-    group: 'Publicações do Site',
+    group: 'Conteúdo do site',
     title: 'Disciplinas dos Professores',
     subtitle: 'Cadastre e organize as disciplinas vinculadas aos perfis docentes.',
     href: '/admin/professores/disciplinas',
   },
   professoresRelatos: {
-    group: 'Publicações do Site',
+    group: 'Conteúdo do site',
     title: 'Relatos sobre Professores',
     subtitle: 'Modere os relatos enviados pelos alunos antes de aparecerem no site.',
     href: '/admin/professores/relatos',
   },
   alunos: {
-    group: 'Publicações do Site',
+    group: 'Conteúdo do site',
     title: 'Alunos que Inspiram',
     subtitle: 'Cadastre, publique e gerencie as conquistas dos estudantes e suas categorias.',
     href: '/admin/alunos',
   },
   alunosCategorias: {
-    group: 'Publicações do Site',
-    title: 'Categorias de Conquista',
+    group: 'Conteúdo do site',
+    title: 'Categorias de conquista',
     subtitle: 'Cadastre e organize as categorias usadas nas conquistas dos estudantes.',
     href: '/admin/alunos/categorias',
   },
   kanban: {
-    group: 'Aprovação e Revisão',
-    title: 'Fila de Aprovação (Passo a Passo)',
-    subtitle: 'Acompanhe as reportagens em rascunho, envie para revisão e publique oficialmente no portal.',
+    group: 'Atendimento',
+    title: 'Aprovações',
+    subtitle: 'Veja o que está aguardando aprovação e publique ou recuse cada item.',
     href: '/admin/kanban',
   },
   siteInfo: {
-    group: 'Dados e Contatos do Site',
-    title: 'Números de Alunos e Escolas',
+    group: 'Configurações',
+    title: 'Números do site',
     subtitle: 'Atualize a quantidade oficial de estudantes, escolas, turmas e municípios atendidos.',
     href: '/admin/institucional',
   },
   redes: {
-    group: 'Dados e Contatos do Site',
-    title: 'Redes Sociais e WhatsApp',
+    group: 'Configurações',
+    title: 'Redes sociais',
     subtitle: 'Atualize os links oficiais de transmissão, redes sociais e canais de atendimento.',
     href: '/admin/redes',
   },
   usuarios: {
-    group: 'Usuários e Acessos',
-    title: 'Gerenciar Equipe e Senhas',
+    group: 'Configurações',
+    title: 'Usuários e acessos',
     subtitle: 'Cadastre operadores por CPF, redefina senhas e gerencie permissões de acesso ao sistema.',
     href: '/admin/usuarios',
   },
   estadosCidades: {
-    group: 'Dados e Contatos do Site',
-    title: 'Estados e Municípios',
+    group: 'Configurações',
+    title: 'Estados e municípios',
     subtitle: 'Cadastre e gerencie a base de unidades federativas (UF) e municípios atendidos pelo MEDTEC.',
     href: '/admin/estados-cidades',
   },
@@ -223,6 +216,8 @@ export type AdminMenuAccess =
 interface AdminMenuItem {
   section: AdminSection;
   access: AdminMenuAccess;
+  /** Esconde o item de quem tem este outro acesso: evita dois itens para a mesma tarefa. */
+  hiddenWithAccess?: AdminMenuAccess;
   label: string;
   tooltip: string;
   icon: LucideIcon;
@@ -235,56 +230,69 @@ interface AdminMenuFolder {
   items: AdminMenuItem[];
 }
 
+// As dicas também alimentam a busca: citam as telas que ficam em abas dentro de cada módulo.
 const ADMIN_MENU: AdminMenuFolder[] = [
   {
-    id: 'publicacoes',
-    label: 'Publicações do Site',
+    id: 'conteudo',
+    label: 'Conteúdo do site',
     icon: FolderKanban,
     items: [
-      { section: 'noticias', access: 'noticias', label: 'Notícias e Matérias', tooltip: 'Criar ou editar reportagens', icon: Newspaper },
-      { section: 'projetos', access: 'projetos', label: 'Projetos Pedagógicos', tooltip: 'Cadastrar e gerenciar projetos pedagógicos das escolas', icon: Lightbulb },
-      { section: 'projetosTemas', access: 'projetos', label: 'Temas de Projeto', tooltip: 'Cadastrar e gerenciar temas de projeto', icon: Shapes },
-      { section: 'projetosMembros', access: 'projetos', label: 'Membros de Projeto', tooltip: 'Cadastrar e gerenciar membros de projeto', icon: UserRound },
-      { section: 'projetosAprovacao', access: 'projetos', label: 'Aprovação de Projetos', tooltip: 'Publicar ou reprovar projetos aguardando', icon: ClipboardCheck },
-      { section: 'duvidas', access: 'duvidas', label: 'Dúvidas Frequentes (FAQ)', tooltip: 'Cadastrar e gerenciar perguntas frequentes do portal', icon: HelpCircle },
+      { section: 'noticias', access: 'noticias', label: 'Notícias', tooltip: 'Criar e editar notícias e matérias', icon: Newspaper },
+      { section: 'avisos', access: 'avisos', label: 'Avisos', tooltip: 'Publicar avisos e comunicados', icon: Megaphone },
+      { section: 'fotos', access: 'fotos', label: 'Banners', tooltip: 'Trocar as imagens do topo da página inicial', icon: Presentation },
+      { section: 'galeria', access: 'galeria', label: 'Galeria de fotos', tooltip: 'Adicionar fotos das escolas', icon: Images },
+      { section: 'projetos', access: 'projetos', label: 'Projetos', tooltip: 'Projetos das escolas, temas e membros', icon: Lightbulb },
+      { section: 'professores', access: 'professores', label: 'Professores', tooltip: 'Professores e mediadores, disciplinas e relatos dos alunos', icon: GraduationCap },
+      { section: 'alunos', access: 'alunos', label: 'Alunos que Inspiram', tooltip: 'Conquistas dos alunos e categorias', icon: Award },
+      { section: 'duvidas', access: 'duvidas', label: 'Perguntas frequentes', tooltip: 'Perguntas e respostas do site (FAQ) e categorias', icon: HelpCircle },
+    ],
+  },
+  {
+    id: 'atendimento',
+    label: 'Atendimento',
+    icon: Headphones,
+    items: [
       { section: 'duvidasPublico', access: 'duvidas', label: 'Dúvidas do público', tooltip: 'Ver e registrar o atendimento das dúvidas enviadas pelo site', icon: MessagesSquare },
-      { section: 'avisos', access: 'avisos', label: 'Avisos e Comunicados', tooltip: 'Publicar alertas no mural', icon: Megaphone },
-      { section: 'fotos', access: 'fotos', label: 'Banners da Página Inicial', tooltip: 'Trocar imagens do topo da Home', icon: Presentation },
-      { section: 'galeria', access: 'galeria', label: 'Galeria de Fotos', tooltip: 'Adicionar fotos das escolas', icon: Images },
-      { section: 'professores', access: 'professores', label: 'Professores e Mediadores', tooltip: 'Cadastrar e gerenciar perfis docentes', icon: GraduationCap },
-      { section: 'professoresDisciplinas', access: 'professores', label: 'Disciplinas', tooltip: 'Cadastrar e gerenciar disciplinas dos professores', icon: BookOpen },
-      { section: 'professoresRelatos', access: 'professores', label: 'Relatos dos Alunos', tooltip: 'Moderar relatos enviados sobre os professores', icon: MessageSquareQuote },
-      { section: 'alunos', access: 'alunos', label: 'Alunos que Inspiram', tooltip: 'Cadastrar e gerenciar conquistas de alunos', icon: Award },
-      { section: 'alunosCategorias', access: 'alunos', label: 'Categorias de Conquista', tooltip: 'Cadastrar e gerenciar categorias de conquista', icon: Tags },
+      { section: 'kanban', access: 'kanban', label: 'Aprovações', tooltip: 'Notícias, projetos, conquistas e relatos aguardando aprovação', icon: ClipboardCheck },
+      // Quem aprova projetos, mas não tem a Fila, chega direto à aprovação de projetos.
+      { section: 'projetosAprovacao', access: 'projetos', hiddenWithAccess: 'kanban', label: 'Aprovações', tooltip: 'Projetos aguardando aprovação', icon: ClipboardCheck },
     ],
   },
   {
-    id: 'aprovacao',
-    label: 'Aprovação e Revisão',
-    icon: ShieldCheck,
+    id: 'configuracoes',
+    label: 'Configurações',
+    icon: Settings,
     items: [
-      { section: 'kanban', access: 'kanban', label: 'Fila de Aprovação (Passo a Passo)', tooltip: 'Abre o fluxo Rascunho > Revisão > Publicado', icon: CheckCircle2 },
-    ],
-  },
-  {
-    id: 'dados',
-    label: 'Dados e Contatos do Site',
-    icon: SlidersHorizontal,
-    items: [
-      { section: 'siteInfo', access: 'siteInfo', label: 'Números de Alunos e Escolas', tooltip: 'Edita os contadores e textos institucionais', icon: BarChart3 },
-      { section: 'redes', access: 'redes', label: 'Redes Sociais e WhatsApp', tooltip: 'Edita os links de YouTube, Instagram e suporte', icon: Share2 },
-      { section: 'estadosCidades', access: 'estadosCidades', label: 'Estados e Municípios', tooltip: 'Cadastrar e gerenciar estados (UF) e municípios da API', icon: MapPin },
-    ],
-  },
-  {
-    id: 'usuarios',
-    label: 'Usuários e Acessos',
-    icon: UsersRound,
-    items: [
-      { section: 'usuarios', access: 'usuarios', label: 'Gerenciar Equipe e Senhas', tooltip: 'Abre o cadastro de operadores por CPF', icon: UserCog },
+      { section: 'siteInfo', access: 'siteInfo', label: 'Números do site', tooltip: 'Quantidade de alunos, escolas e textos institucionais', icon: BarChart3 },
+      { section: 'redes', access: 'redes', label: 'Redes sociais', tooltip: 'Links de YouTube, Instagram, WhatsApp e contatos', icon: Share2 },
+      { section: 'estadosCidades', access: 'estadosCidades', label: 'Estados e municípios', tooltip: 'Cadastrar estados (UF) e municípios', icon: MapPin },
+      { section: 'usuarios', access: 'usuarios', label: 'Usuários e acessos', tooltip: 'Cadastrar a equipe por CPF, senhas e permissões', icon: UserCog },
     ],
   },
 ];
+
+// Telas que ficam em abas: o menu destaca o módulo delas.
+const MENU_PARENT: Partial<Record<AdminSection, AdminSection>> = {
+  projetosTemas: 'projetos',
+  projetosMembros: 'projetos',
+  projetosAprovacao: 'projetos',
+  professoresDisciplinas: 'professores',
+  professoresRelatos: 'professores',
+  alunosCategorias: 'alunos',
+};
+
+export function getFolderIdForSection(section: AdminSection): string | null {
+  const inMenu = (target: AdminSection) => ADMIN_MENU.find(folder => folder.items.some(item => item.section === target))?.id;
+  return inMenu(section) ?? (MENU_PARENT[section] ? inMenu(MENU_PARENT[section]) ?? null : null);
+}
+
+export function getActiveMenuSection(section: AdminSection, folders: { items: { section: AdminSection; visible: boolean }[] }[]): AdminSection {
+  const visible = folders.some(folder => folder.items.some(item => item.section === section && item.visible));
+  return visible ? section : MENU_PARENT[section] ?? section;
+}
+
+// Contadores de pendência aparecem em âmbar; os totais ficam neutros.
+export const PENDING_BADGE_SECTIONS: ReadonlySet<AdminSection> = new Set<AdminSection>(['duvidasPublico', 'kanban', 'projetosAprovacao', 'professores']);
 
 // Fonte única da árvore da sidebar; cada tela informa as próprias permissões e contadores.
 export function buildAdminMenu(
@@ -292,11 +300,11 @@ export function buildAdminMenu(
   badges: Partial<Record<AdminSection, number | string>> = {},
 ) {
   return ADMIN_MENU.map(folder => {
-    const items = folder.items.map(({ access: rule, ...item }) => ({
+    const items = folder.items.map(({ access: rule, hiddenWithAccess, ...item }) => ({
       ...item,
       href: SECTION_CONFIG[item.section].href,
       badge: badges[item.section],
-      visible: access[rule],
+      visible: access[rule] && !(hiddenWithAccess && access[hiddenWithAccess]),
     }));
     return { ...folder, items, visible: items.some(item => item.visible) };
   });

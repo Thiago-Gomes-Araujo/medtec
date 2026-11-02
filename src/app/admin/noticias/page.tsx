@@ -4,6 +4,7 @@ import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'reac
 import { useRouter, useSearchParams } from 'next/navigation';
 import { medtecApi, ApiError, type NNoticia, type NCategoriaNoticia, getMediaUrl } from '@/lib/api';
 import NewsModule from '@/components/admin/NewsModule';
+import { notifyAprovacoesPendentes } from '@/components/admin/useAprovacoesPendentes';
 import AdminShell, { type AdminSession } from '@/components/admin/AdminShell';
 import type { NewsItem } from '@/types';
 import { AdminPreviewModal, type PreviewContentType, type PreviewItemData } from '@/components/AdminLiveSimulator';
@@ -110,6 +111,7 @@ function NewsContent({ session }: { session: AdminSession }) {
     try {
       await medtecApi.noticias[action](current.id);
       alert(action === 'publicar' ? 'Notícia publicada com sucesso!' : 'Notícia despublicada. Ela retornou à fila de aprovação.');
+      notifyAprovacoesPendentes();
       await loadNewsData();
     } catch (err) {
       alert(ApiError.getFriendlyMessage(err));
@@ -139,7 +141,7 @@ function NewsContent({ session }: { session: AdminSession }) {
         canUnpublish={permissions.includes('despublicar')}
         newsViewMode={newsViewMode}
         setNewsViewMode={setNewsViewMode}
-        onRefresh={loadNewsData}
+        onRefresh={async () => { await loadNewsData(); notifyAprovacoesPendentes(); }}
         onTogglePublished={handleTogglePublished}
         onPreview={setPreviewModal}
       />}

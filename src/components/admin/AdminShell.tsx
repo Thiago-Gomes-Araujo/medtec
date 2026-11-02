@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useAdminTheme } from '@/components/admin/useAdminTheme';
 import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
+import { useAprovacoesPendentes } from '@/components/admin/useAprovacoesPendentes';
 import { useProjetosPendentes } from '@/components/admin/useProjetosPendentes';
 import { useRelatosPendentes } from '@/components/admin/useRelatosPendentes';
 import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
@@ -32,17 +33,10 @@ import { medtecApi, clearStoredTokens, type AuthUser } from '@/lib/api';
 import { canAccessBanners, canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
-import { buildAdminMenu, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
+import { buildAdminMenu, getActiveMenuSection, getFolderIdForSection, PENDING_BADGE_SECTIONS, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
+import { adminPrimaryButtonClass, sidebarBadgeClass, sidebarFolderClass, sidebarIconButtonClass, sidebarIconClass, sidebarItemClass, sidebarPortalLinkClass, sidebarSearchInputClass } from '@/components/admin/adminTheme';
 
-export { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
-
-export function getFolderIdForSection(sec: AdminSection): string | null {
-  if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'projetosTemas', 'projetosMembros', 'projetosAprovacao', 'duvidas', 'duvidasPublico', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
-  if (['kanban'].includes(sec)) return 'aprovacao';
-  if (['siteInfo', 'redes', 'estadosCidades'].includes(sec)) return 'dados';
-  if (['usuarios'].includes(sec)) return 'usuarios';
-  return null;
-}
+export { getFolderIdForSection, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
 export interface AdminSession {
   isGestor: boolean;
@@ -92,15 +86,8 @@ export default function AdminShell({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [sidebarSearch, setSidebarSearch] = useState('');
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>(() => {
-    const activeFolder = getFolderIdForSection(activeSection);
-    return {
-      publicacoes: true, // Garante que a pasta de publicações esteja expandida na subrota
-      aprovacao: activeFolder === 'aprovacao',
-      dados: activeFolder === 'dados',
-      usuarios: activeFolder === 'usuarios',
-    };
-  });
+  // O menu abre inteiro: quem usa pouco o painel vê todas as opções de uma vez.
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({ conteudo: true, atendimento: true, configuracoes: true });
 
   // Estado de Autenticação / Sessão
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -230,7 +217,6 @@ export default function AdminShell({
   const canAccessFaqs = canAccessDuvidas(userSession);
   // A sessão local não tem token: a consulta só devolveria 401.
   const duvidasPendentes = useDuvidasPendentes(canAccessFaqs && !!userSession.apiUser);
-  const projetosPendentes = useProjetosPendentes(canAccessProjects && !!userSession.apiUser);
   const canAccessProfessores =
     userSession.isGestor ||
     userSession.profileType === 'Operador de Conteúdo' ||
@@ -243,6 +229,9 @@ export default function AdminShell({
   const canAccessSocials = userSession.isGestor;
   const canAccessSiteInfo = userSession.isGestor;
   const canAccessKanban = userSession.isGestor && userSession.apiUser?.perfil_nome === 'Administrador';
+  // Quem tem a Fila vê o total; quem só aprova projetos vê os projetos.
+  const aprovacoesPendentes = useAprovacoesPendentes(canAccessKanban);
+  const projetosPendentes = useProjetosPendentes(canAccessProjects && !canAccessKanban && !!userSession.apiUser);
   const canAccessUsers = canAccessAdminUsers(userSession);
   const canAccessEstados = userSession.isGestor;
 
@@ -261,19 +250,20 @@ export default function AdminShell({
     redes: canAccessSocials,
     estadosCidades: canAccessEstados,
     usuarios: canAccessUsers,
-  }, { duvidasPublico: duvidasPendentes.count || undefined, projetosAprovacao: projetosPendentes || undefined, professoresRelatos: relatosPendentes || undefined, ...badges });
+  }, { duvidasPublico: duvidasPendentes.count || undefined, kanban: aprovacoesPendentes || undefined, projetosAprovacao: projetosPendentes || undefined, professores: relatosPendentes || undefined, ...badges });
 
   // Pesquisa rápida da Sidebar
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
+  const activeMenuSection = getActiveMenuSection(activeSection, folders);
 
   // Tela de carregamento enquanto valida sessão
   if (loadingAuth || !isLoggedIn) {
     return (
-      <div className="min-h-screen bg-[#07152B] flex flex-col items-center justify-center space-y-4 text-white">
-        <div className="w-9 h-9 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-admin-bg flex flex-col items-center justify-center space-y-4 text-admin-text">
+        <div className="w-9 h-9 border-2 border-admin-accent border-t-transparent rounded-full animate-spin" />
         <div className="text-center space-y-1">
           <p className="text-sm font-bold tracking-wide">MEDTEC Rondônia • SEDUC-RO</p>
-          <p className="text-xs text-slate-400">Autenticando e carregando painel de gestão...</p>
+          <p className="text-xs text-admin-muted">Autenticando e carregando painel de gestão...</p>
         </div>
       </div>
     );
@@ -316,30 +306,30 @@ export default function AdminShell({
   return (
     <div
       translate="no"
-      className="notranslate h-screen h-[100dvh] w-full flex overflow-hidden bg-slate-50 dark:bg-[#060D1A] text-slate-800 dark:text-slate-100"
+      className="notranslate h-screen h-[100dvh] w-full flex overflow-hidden bg-admin-bg text-admin-text"
     >
       {/* ========================================================
           1. SIDEBAR DESKTOP (FIXA E RETRÁTIL COM ACCORDION JOER)
       ======================================================== */}
       <DesktopSidebarContainer isCollapsed={isCollapsed}>
         {/* Topo da Sidebar: Identidade + Botão de Recolher */}
-        <div className="h-16 px-4 border-b border-slate-800/80 flex items-center justify-between shrink-0">
+        <div className="h-16 px-4 border-b border-admin-border flex items-center justify-between shrink-0">
           {!isCollapsed ? (
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-[#004A99] flex items-center justify-center text-white font-bold shrink-0 shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-admin-accent flex items-center justify-center text-admin-accent-fg font-bold shrink-0">
                 <Tv className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <h1 className="font-extrabold text-xs text-white tracking-tight truncate">
+                <h1 className="font-bold text-sm text-admin-text tracking-tight truncate">
                   MEDTEC Rondônia
                 </h1>
-                <p className="text-[10px] text-slate-400 font-mono tracking-wider truncate">
-                  SEDUC-RO • Painel Gestor
+                <p className="text-[11px] text-admin-muted truncate">
+                  Painel de gestão
                 </p>
               </div>
             </div>
           ) : (
-            <div className="mx-auto w-8 h-8 rounded-lg bg-[#004A99] flex items-center justify-center text-white font-bold shrink-0 shadow-sm">
+            <div className="mx-auto w-8 h-8 rounded-lg bg-admin-accent flex items-center justify-center text-admin-accent-fg font-bold shrink-0">
               <Tv className="h-4 w-4" />
             </div>
           )}
@@ -348,7 +338,9 @@ export default function AdminShell({
             type="button"
             onClick={() => setIsCollapsed(!isCollapsed)}
             title={isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
-            className="text-slate-400 hover:text-white p-1.5 rounded-md hover:bg-slate-800 transition cursor-pointer"
+            aria-label={isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+            aria-expanded={!isCollapsed}
+            className={sidebarIconButtonClass}
           >
             {isCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </button>
@@ -358,19 +350,21 @@ export default function AdminShell({
         {!isCollapsed && (
           <div className="px-3 pt-3 pb-1 shrink-0">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-admin-muted pointer-events-none" />
               <input
                 type="text"
                 value={sidebarSearch}
                 onChange={(e) => setSidebarSearch(e.target.value)}
-                placeholder="Pesquisar função ou menu..."
-                className="w-full pl-8 pr-7 py-1.5 rounded-lg text-xs bg-slate-900/90 text-slate-100 placeholder-slate-400 border border-slate-700/70 focus:outline-hidden focus:ring-1 focus:ring-sky-500 focus:border-sky-500 transition shadow-inner"
+                placeholder="Buscar no menu..."
+                aria-label="Pesquisar no menu"
+                className={sidebarSearchInputClass}
               />
               {sidebarSearch && (
                 <button
                   type="button"
                   onClick={() => setSidebarSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+                  aria-label="Limpar pesquisa"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-admin-muted hover:text-admin-text p-0.5 rounded cursor-pointer"
                   title="Limpar pesquisa"
                 >
                   <X className="h-3 w-3" />
@@ -381,26 +375,24 @@ export default function AdminShell({
         )}
 
         {/* Corpo Navegável com Árvore Expansível */}
-        <div className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-3 scrollbar-thin">
-          {/* 1. Início (Resumo do Painel) */}
+        <nav aria-label="Menu do painel" className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-4 scrollbar-thin">
+          {/* 1. Início */}
           {userSession.isGestor && homeMatchesSearch && (
             <div className="space-y-1">
               <Link
                 href="/admin"
-                title={isCollapsed ? 'Início (Resumo do Painel)' : 'Visão geral e atalhos rápidos do painel'}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer ${
-                  activeSection === 'visaoGeral'
-                    ? 'bg-[#004A99] text-white font-semibold shadow-xs ring-1 ring-white/10'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/60 font-medium'
-                } ${isCollapsed ? 'justify-center px-2' : ''}`}
+                title={isCollapsed ? 'Início' : 'Resumo do site e atalhos'}
+                aria-label={isCollapsed ? 'Início' : undefined}
+                aria-current={activeSection === 'visaoGeral' ? 'page' : undefined}
+                className={`${sidebarItemClass(activeSection === 'visaoGeral')} ${isCollapsed ? 'justify-center px-2' : ''}`}
               >
-                <Home className={`h-4 w-4 shrink-0 ${activeSection === 'visaoGeral' ? 'text-white' : 'text-slate-400'}`} />
-                {!isCollapsed && <span className="truncate text-left flex-1">Início (Resumo do Painel)</span>}
+                <Home className={sidebarIconClass(activeSection === 'visaoGeral')} />
+                {!isCollapsed && <span className="text-left flex-1">Início</span>}
               </Link>
             </div>
           )}
 
-          {/* 2. Pastas / Módulos Expansíveis */}
+          {/* 2. Grupos do menu */}
           {filteredFolders.map((folder) => {
             const isFolderActive = getFolderIdForSection(activeSection) === folder.id;
             const isOpen = isSearching ? true : (openFolders[folder.id] ?? isFolderActive);
@@ -412,80 +404,41 @@ export default function AdminShell({
                   type="button"
                   onClick={() => {
                     setIsCollapsed(false);
-                    toggleFolder(folder.id);
+                    setOpenFolders((prev) => ({ ...prev, [folder.id]: true }));
                   }}
                   title={folder.label}
-                  className={`w-full flex items-center justify-center p-2 rounded-lg transition cursor-pointer ${
-                    isFolderActive
-                      ? 'bg-[#004A99] text-white shadow-xs'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
-                  }`}
+                  aria-label={folder.label}
+                  className={`${sidebarItemClass(isFolderActive)} justify-center px-2`}
                 >
-                  <folder.icon className="h-4 w-4 shrink-0" />
+                  <folder.icon className={sidebarIconClass(isFolderActive)} />
                 </button>
               );
             }
 
             return (
-              <div key={folder.id} className="space-y-1">
-                <button
-                  type="button"
-                  onClick={() => toggleFolder(folder.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer select-none ${
-                    isFolderActive
-                      ? 'text-white bg-slate-800/80 ring-1 ring-white/10'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/40'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <folder.icon
-                      className={`h-4 w-4 shrink-0 transition-colors ${
-                        isFolderActive ? 'text-sky-400' : 'text-slate-400'
-                      }`}
-                    />
-                    <span className="truncate text-left">{folder.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0 text-slate-400">
-                    {isOpen ? (
-                      <ChevronDown className="h-3.5 w-3.5 transition-transform duration-200" />
-                    ) : (
-                      <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200" />
-                    )}
-                  </div>
+              <div key={folder.id} className="space-y-0.5">
+                <button type="button" onClick={() => toggleFolder(folder.id)} aria-expanded={isOpen} className={sidebarFolderClass}>
+                  <span className="text-left">{folder.label}</span>
+                  {isOpen ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
                 </button>
 
                 {isOpen && (
-                  <div className="ml-4 pl-3 border-l-2 border-slate-800 space-y-1 pt-0.5 pb-1 transition-all">
+                  <div className="space-y-0.5">
                     {folder.items.map((item) => {
-                      const isItemActive = activeSection === item.section;
+                      const isItemActive = activeMenuSection === item.section;
                       const ItemIcon = item.icon;
                       return (
                         <Link
                           key={item.section}
                           href={item.href}
                           title={item.tooltip}
-                          className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs transition cursor-pointer group ${
-                            isItemActive
-                              ? 'bg-[#004A99] text-white font-bold shadow-xs ring-1 ring-sky-400/30'
-                              : 'text-slate-300 hover:text-white hover:bg-slate-800/60 font-medium'
-                          }`}
+                          aria-current={isItemActive ? 'page' : undefined}
+                          className={sidebarItemClass(isItemActive)}
                         >
-                          <ItemIcon
-                            className={`h-3.5 w-3.5 shrink-0 transition ${
-                              isItemActive ? 'text-white' : 'text-slate-400 group-hover:text-sky-300'
-                            }`}
-                          />
-                          <span className="truncate text-left flex-1">{item.label}</span>
+                          <ItemIcon className={sidebarIconClass(isItemActive)} />
+                          <span className="text-left flex-1">{item.label}</span>
                           {item.badge !== undefined && (
-                            <span
-                              className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${
-                                isItemActive
-                                  ? 'bg-white/20 text-white font-bold'
-                                  : 'bg-slate-800 text-slate-400 border border-slate-700/60'
-                              }`}
-                            >
-                              {item.badge}
-                            </span>
+                            <span className={sidebarBadgeClass(isItemActive, PENDING_BADGE_SECTIONS.has(item.section))}>{item.badge}</span>
                           )}
                         </Link>
                       );
@@ -497,47 +450,46 @@ export default function AdminShell({
           })}
 
           {!hasAnySearchResult && (
-            <div className="px-2 py-6 text-center text-xs text-slate-400 space-y-2">
+            <div className="px-2 py-6 text-center text-xs text-admin-muted space-y-2">
               <p className="leading-snug">
-                Nenhuma função encontrada para &ldquo;<strong className="text-white">{sidebarSearch}</strong>&rdquo;.
+                Nada encontrado para &ldquo;<strong className="text-admin-text">{sidebarSearch}</strong>&rdquo;.
               </p>
               <button
                 type="button"
                 onClick={() => setSidebarSearch('')}
-                className="text-sky-400 hover:text-sky-300 font-semibold underline cursor-pointer text-xs"
+                className="text-admin-accent font-semibold underline cursor-pointer text-xs"
               >
                 Limpar pesquisa
               </button>
             </div>
           )}
-        </div>
+        </nav>
 
         {/* Rodapé Fixo da Sidebar */}
-        <div className="shrink-0 border-t border-slate-800/80 p-3 space-y-2 bg-[#051021]">
+        <div className="shrink-0 border-t border-admin-border p-3 space-y-2">
           <Link
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            title="Ver Portal Público"
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/60 transition text-xs font-medium ${
-              isCollapsed ? 'justify-center px-1' : ''
-            }`}
+            title="Ver o site"
+            aria-label={isCollapsed ? 'Ver o site' : undefined}
+            className={`${sidebarPortalLinkClass} ${isCollapsed ? 'justify-center px-1' : ''}`}
           >
-            <ExternalLink className="h-3.5 w-3.5 text-sky-400 shrink-0" />
-            {!isCollapsed && <span className="truncate">Ver Portal Público</span>}
+            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+            {!isCollapsed && <span>Ver o site</span>}
           </Link>
 
           <div
-            className={`pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 ${
+            className={`pt-2 border-t border-admin-border flex items-center justify-between gap-2 ${
               isCollapsed ? 'flex-col' : ''
             }`}
           >
             {!isCollapsed ? (
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-white truncate">
+                <p className="text-xs font-semibold text-admin-text truncate">
                   {userSession.name || userSession.username}
                 </p>
-                <p className="text-[10px] text-slate-400 truncate">
+                <p className="text-[11px] text-admin-muted truncate">
                   {userSession.isGestor ? 'Gestor Geral' : userSession.profileType || 'Operador'}
                 </p>
               </div>
@@ -546,8 +498,9 @@ export default function AdminShell({
             <button
               type="button"
               onClick={handleLogout}
-              title="Sair do Sistema"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition cursor-pointer shrink-0"
+              title="Sair do painel"
+              aria-label="Sair do painel"
+              className={`${sidebarIconButtonClass} shrink-0`}
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -564,71 +517,97 @@ export default function AdminShell({
             className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
             onClick={() => setIsMobileOpen(false)}
           />
-          <div className="relative w-72 max-w-[85vw] bg-[#07152B] text-slate-200 flex flex-col h-full z-10 shadow-2xl">
-            <div className="h-16 px-4 border-b border-slate-800 flex items-center justify-between">
+          <div className="relative w-72 max-w-[85vw] bg-admin-surface text-admin-text flex flex-col h-full z-10 shadow-2xl">
+            <div className="h-16 px-4 border-b border-admin-border flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-[#004A99] flex items-center justify-center text-white font-bold">
+                <div className="w-8 h-8 rounded-lg bg-admin-accent flex items-center justify-center text-admin-accent-fg font-bold">
                   <Tv className="h-4 w-4" />
                 </div>
                 <div>
-                  <h1 className="font-extrabold text-xs text-white">MEDTEC Rondônia</h1>
-                  <p className="text-[10px] text-slate-400 font-mono">SEDUC-RO • Painel Gestor</p>
+                  <h1 className="font-bold text-sm text-admin-text">MEDTEC Rondônia</h1>
+                  <p className="text-[11px] text-admin-muted">Painel de gestão</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsMobileOpen(false)}
-                className="text-slate-400 hover:text-white p-1 rounded"
+                aria-label="Fechar menu lateral"
+                className={`${sidebarIconButtonClass} inline-flex min-h-11 min-w-11 items-center justify-center`}
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {userSession.isGestor && (
+            <div className="px-3 pt-3 pb-1 shrink-0">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-admin-muted pointer-events-none" />
+                <input
+                  type="text"
+                  value={sidebarSearch}
+                  onChange={(e) => setSidebarSearch(e.target.value)}
+                  placeholder="Buscar no menu..."
+                  aria-label="Pesquisar no menu"
+                  className={sidebarSearchInputClass}
+                />
+              </div>
+            </div>
+
+            <nav aria-label="Menu do painel" className="flex-1 overflow-y-auto p-3 space-y-4">
+              {userSession.isGestor && homeMatchesSearch && (
                 <Link
                   href="/admin"
                   onClick={() => setIsMobileOpen(false)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold ${
-                    activeSection === 'visaoGeral' ? 'bg-[#004A99] text-white' : 'text-slate-300'
-                  }`}
+                  aria-current={activeSection === 'visaoGeral' ? 'page' : undefined}
+                  className={sidebarItemClass(activeSection === 'visaoGeral')}
                 >
-                  <Home className="h-4 w-4" />
-                  <span>Início (Resumo do Painel)</span>
+                  <Home className={sidebarIconClass(activeSection === 'visaoGeral')} />
+                  <span>Início</span>
                 </Link>
               )}
 
               {filteredFolders.map((folder) => (
-                <div key={folder.id} className="space-y-1">
-                  <div className="px-3 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                    <folder.icon className="h-3.5 w-3.5 text-sky-400" />
-                    <span>{folder.label}</span>
+                <div key={folder.id} className="space-y-0.5">
+                  <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-admin-muted">
+                    {folder.label}
                   </div>
-                  <div className="space-y-0.5 pl-2">
-                    {folder.items.map((item) => (
-                      <Link
-                        key={item.section}
-                        href={item.href}
-                        onClick={() => setIsMobileOpen(false)}
-                        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
-                          activeSection === item.section
-                            ? 'bg-[#004A99] text-white font-bold'
-                            : 'text-slate-300 hover:bg-slate-800/40'
-                        }`}
-                      >
-                        <item.icon className="h-3.5 w-3.5" />
-                        <span className="flex-1">{item.label}</span>
-                        {item.badge !== undefined && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">
-                            {item.badge}
-                          </span>
-                        )}
-                      </Link>
-                    ))}
+                  <div className="space-y-0.5">
+                    {folder.items.map((item) => {
+                      const isItemActive = activeMenuSection === item.section;
+                      return (
+                        <Link
+                          key={item.section}
+                          href={item.href}
+                          onClick={() => setIsMobileOpen(false)}
+                          aria-current={isItemActive ? 'page' : undefined}
+                          className={sidebarItemClass(isItemActive)}
+                        >
+                          <item.icon className={sidebarIconClass(isItemActive)} />
+                          <span className="flex-1">{item.label}</span>
+                          {item.badge !== undefined && (
+                            <span className={sidebarBadgeClass(isItemActive, PENDING_BADGE_SECTIONS.has(item.section))}>{item.badge}</span>
+                          )}
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
-            </div>
+
+              {!hasAnySearchResult && (
+                <div className="px-2 py-6 text-center text-xs text-admin-muted space-y-2">
+                  <p className="leading-snug">
+                    Nada encontrado para &ldquo;<strong className="text-admin-text">{sidebarSearch}</strong>&rdquo;.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSidebarSearch('')}
+                    className="text-admin-accent font-semibold underline cursor-pointer text-xs"
+                  >
+                    Limpar pesquisa
+                  </button>
+                </div>
+              )}
+            </nav>
 
             <MobileDrawerFooter
               userName={userSession.name || userSession.username}
@@ -644,28 +623,28 @@ export default function AdminShell({
       ======================================================== */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden relative">
         {/* TOPBAR CONTEXTUAL STICKY */}
-        <header className="h-16 sticky top-0 z-20 shrink-0 bg-white/95 dark:bg-[#0B1528]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between gap-4">
+        <header className="h-16 sticky top-0 z-20 shrink-0 bg-admin-surface border-b border-admin-border px-4 sm:px-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setIsMobileOpen(true)}
-              className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              className="lg:hidden p-2 rounded-lg text-admin-muted hover:bg-admin-surface-muted cursor-pointer"
               aria-label="Abrir menu lateral"
             >
               <Menu className="h-5 w-5" />
             </button>
 
             <div className="min-w-0">
-              <nav className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                <span className="hidden sm:inline">Painel Gestor</span>
-                <ChevronRight className="h-3.5 w-3.5 hidden sm:inline text-slate-400" />
+              <nav aria-label="Você está em" className="flex items-center gap-1.5 text-xs font-medium text-admin-muted">
+                <span className="hidden sm:inline">Painel</span>
+                <ChevronRight className="h-3.5 w-3.5 hidden sm:inline" />
                 <span className="hidden md:inline">{currentConfig.group}</span>
-                <ChevronRight className="h-3.5 w-3.5 hidden md:inline text-slate-400" />
-                <span className="font-semibold text-slate-900 dark:text-white truncate">
+                <ChevronRight className="h-3.5 w-3.5 hidden md:inline" />
+                <span className="font-semibold text-admin-text truncate">
                   {currentConfig.title}
                 </span>
               </nav>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xl hidden sm:block">
+              <p className="text-[11px] text-admin-muted truncate max-w-xl hidden sm:block">
                 {currentConfig.subtitle}
               </p>
             </div>
@@ -676,9 +655,10 @@ export default function AdminShell({
               type="button"
               onClick={toggleTheme}
               title={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-              className="p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              aria-label={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+              className="p-2 rounded-lg border border-admin-border text-admin-muted hover:bg-admin-surface-muted transition cursor-pointer"
             >
-              {isDark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-600" />}
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
           </div>
         </header>
@@ -689,31 +669,31 @@ export default function AdminShell({
         <main className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
           {/* Barra de Topo do Módulo com Botão "← Voltar para o Início" */}
           {activeSection !== 'visaoGeral' && userSession.isGestor && (
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-admin-border">
               <Link
                 href="/admin"
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#0B1729] border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[#004A99] dark:hover:text-sky-400 transition shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-admin-text bg-admin-surface border border-admin-border hover:bg-admin-surface-muted transition cursor-pointer"
               >
-                <ArrowLeft className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400" />
+                <ArrowLeft className="h-3.5 w-3.5 text-admin-muted" />
                 <span>Voltar para o Início</span>
               </Link>
 
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-2 text-xs font-semibold text-admin-muted">
                 <span>{currentConfig.group}</span>
                 <span>•</span>
-                <span className="text-slate-800 dark:text-slate-200 font-bold">{currentConfig.title}</span>
+                <span className="text-admin-text font-bold">{currentConfig.title}</span>
               </div>
             </div>
           )}
 
           {/* Guia Visual Didático ("O que esta tela faz?") */}
           {activeSection !== 'visaoGeral' && (
-            <div className="flex items-start sm:items-center gap-3 p-3.5 rounded-xl bg-blue-50/80 dark:bg-[#08182F] border border-blue-200/80 dark:border-blue-900/60 text-slate-700 dark:text-slate-200 text-xs shadow-xs">
-              <div className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-[#004A99] dark:text-sky-400 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+            <div className="flex items-start sm:items-center gap-3 p-3.5 rounded-xl bg-admin-surface border border-admin-border text-admin-text text-xs">
+              <div className="w-6 h-6 rounded-lg text-admin-muted flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                 <Info className="h-4 w-4" />
               </div>
               <p className="flex-1 leading-relaxed">
-                <strong className="font-bold text-slate-900 dark:text-white mr-1.5">O que esta tela faz:</strong>
+                <strong className="font-bold text-admin-text mr-1.5">O que esta tela faz:</strong>
                 {currentConfig.subtitle}
               </p>
             </div>
@@ -723,17 +703,17 @@ export default function AdminShell({
           {isAuthorized ? (
             typeof children === 'function' ? children(userSession) : children
           ) : (
-            <div className="p-12 text-center space-y-4 rounded-2xl bg-white dark:bg-[#0B1729] border border-slate-200 dark:border-slate-800">
-              <div className="w-12 h-12 mx-auto rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center">
+            <div className="p-12 text-center space-y-4 rounded-2xl bg-admin-surface border border-admin-border">
+              <div className="w-12 h-12 mx-auto rounded-full bg-admin-danger-soft text-admin-danger flex items-center justify-center">
                 <Lock className="h-6 w-6" />
               </div>
-              <h2 className="text-lg font-black text-slate-900 dark:text-white">Acesso Restrito</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+              <h2 className="text-lg font-bold text-admin-text">Acesso Restrito</h2>
+              <p className="text-xs text-admin-muted max-w-md mx-auto">
                 Seu perfil de acesso ({userSession.profileType || 'Operador'}) não possui permissão para visualizar ou gerenciar este módulo.
               </p>
               <Link
                 href="/admin"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs"
+                className={adminPrimaryButtonClass}
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 <span>Voltar ao Painel Geral</span>

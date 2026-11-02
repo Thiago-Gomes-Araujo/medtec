@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { medtecApi } from '@/lib/api';
+import { notifyAprovacoesPendentes } from './useAprovacoesPendentes';
 
 const listeners = new Set<() => void>();
 
 // O menu fica fora das telas que moderam projetos: elas avisam quando o total muda.
 export function notifyProjetosPendentes() {
   listeners.forEach(listener => listener());
+  notifyAprovacoesPendentes();
 }
 
 // Só o total importa: per_page=1 evita trazer os projetos para contar. Sem permissão, o menu fica sem contador.

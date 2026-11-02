@@ -31,12 +31,14 @@ import AdminOverview from '@/components/admin/AdminOverview';
 import { getLegacyProjectsHref } from '@/lib/admin-projects';
 import { getAdminStaticAlias } from '@/lib/admin-aliases';
 import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
+import { useAprovacoesPendentes } from '@/components/admin/useAprovacoesPendentes';
 import { useRelatosPendentes } from '@/components/admin/useRelatosPendentes';
 import { useBannersTotal } from '@/components/admin/useBannersTotal';
 import { useProjetosResumo } from '@/components/admin/useProjetosResumo';
 import { canAccessBanners, canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminEditorialDestination } from '@/lib/admin-auth-navigation';
-import { buildAdminMenu, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
+import { buildAdminMenu, getActiveMenuSection, getFolderIdForSection, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
+import { sidebarIconButtonClass, sidebarPortalLinkClass, sidebarSearchInputClass } from '@/components/admin/adminTheme';
 import {
   medtecApi,
   clearStoredTokens,
@@ -121,20 +123,8 @@ export default function AdminDashboardPage() {
     return () => desktop.removeEventListener('change', closeOnDesktop);
   }, [isMobileOpen]);
   const [sidebarSearch, setSidebarSearch] = useState('');
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
-    publicacoes: false,
-    aprovacao: false,
-    dados: false,
-    usuarios: false,
-  });
-
-  const getFolderIdForSection = useCallback((sec: AdminSection): string | null => {
-    if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'projetosTemas', 'projetosMembros', 'projetosAprovacao', 'duvidas', 'duvidasPublico', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
-    if (['kanban'].includes(sec)) return 'aprovacao';
-    if (['siteInfo', 'redes'].includes(sec)) return 'dados';
-    if (['usuarios'].includes(sec)) return 'usuarios';
-    return null;
-  }, []);
+  // O menu abre inteiro: quem usa pouco o painel vê todas as opções de uma vez.
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({ conteudo: true, atendimento: true, configuracoes: true });
 
   const toggleFolder = (folderId: string) => {
     setOpenFolders((prev) => {
@@ -158,7 +148,7 @@ export default function AdminDashboardPage() {
     if (activeFolder) {
       setOpenFolders((prev) => ({ ...prev, [activeFolder]: true }));
     }
-  }, [router, getFolderIdForSection]);
+  }, [router]);
 
   const [userSession, setUserSession] = useState<{
     isGestor: boolean;
@@ -299,6 +289,7 @@ export default function AdminDashboardPage() {
   const canReadApiCounters = userSession.isGestor && medtecApi.auth.isAuthenticated();
   const duvidasPendentes = useDuvidasPendentes(canReadApiCounters);
   const relatosPendentes = useRelatosPendentes(canReadApiCounters);
+  const aprovacoesPendentes = useAprovacoesPendentes(canReadApiCounters && canAccessKanban);
   const projetosResumo = useProjetosResumo(canReadApiCounters);
   const bannersTotal = useBannersTotal(canReadApiCounters);
   const canAccessProfessores =
@@ -333,16 +324,17 @@ export default function AdminDashboardPage() {
     noticias: errorNews ? undefined : (loadingNews ? undefined : (totalNews ?? undefined)),
     avisos: errorAvisos ? undefined : (loadingAvisos ? undefined : (totalAvisos ?? undefined)),
     galeria: errorFotos ? undefined : (loadingFotos ? undefined : (totalFotos ?? undefined)),
-    kanban: errorNews ? undefined : (loadingNews ? undefined : (apiNewsDraftCount !== null && apiNewsDraftCount > 0 ? apiNewsDraftCount : undefined)),
+    kanban: aprovacoesPendentes || undefined,
     estadosCidades: totalEstados !== null && totalEstados > 0 ? totalEstados : undefined,
     usuarios: errorUsers ? undefined : (totalUsers ?? undefined),
     duvidasPublico: duvidasPendentes.count || undefined,
     projetosAprovacao: projetosResumo.pending || undefined,
-    professoresRelatos: relatosPendentes || undefined,
+    professores: relatosPendentes || undefined,
   });
 
   // Pesquisa Rápida da Sidebar (Filtro Instantâneo Didático)
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
+  const activeMenuSection = getActiveMenuSection(currentSection, folders);
   const aliasNavigation = (
     <Suspense fallback={null}>
       <AdminAliasNavigation onSelectSection={handleSelectSection} onLoadData={loadData} />
@@ -354,11 +346,11 @@ export default function AdminDashboardPage() {
     return (
       <>
       {aliasNavigation}
-      <div className="min-h-screen bg-[#07152B] flex flex-col items-center justify-center space-y-4 text-white">
-        <div className="w-9 h-9 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-admin-bg flex flex-col items-center justify-center space-y-4 text-admin-text">
+        <div className="w-9 h-9 border-2 border-admin-accent border-t-transparent rounded-full animate-spin" />
         <div className="text-center space-y-1">
           <p className="text-sm font-bold tracking-wide">MEDTEC Rondônia • SEDUC-RO</p>
-          <p className="text-xs text-slate-400">Autenticando e carregando painel de gestão...</p>
+          <p className="text-xs text-admin-muted">Autenticando e carregando painel de gestão...</p>
         </div>
       </div>
       </>
@@ -370,30 +362,30 @@ export default function AdminDashboardPage() {
   return (
     <>
     {aliasNavigation}
-    <div translate="no" className="notranslate h-screen h-[100dvh] w-full flex overflow-hidden bg-slate-50 dark:bg-[#060D1A] text-slate-800 dark:text-slate-100">
+    <div translate="no" className="notranslate h-screen h-[100dvh] w-full flex overflow-hidden bg-admin-bg text-admin-text">
       
       {/* ========================================================
           1. SIDEBAR DESKTOP (FIXA E RETRÁTIL COM ACCORDION JOER)
       ======================================================== */}
       <DesktopSidebarContainer isCollapsed={isCollapsed}>
         {/* Topo da Sidebar: Identidade + Botão de Recolher */}
-        <div className="h-16 px-4 border-b border-slate-800/80 flex items-center justify-between shrink-0">
+        <div className="h-16 px-4 border-b border-admin-border flex items-center justify-between shrink-0">
           {!isCollapsed ? (
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-[#004A99] flex items-center justify-center text-white font-bold shrink-0 shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-admin-accent flex items-center justify-center text-admin-accent-fg font-bold shrink-0">
                 <Tv className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <h1 className="font-extrabold text-xs text-white tracking-tight truncate">
+                <h1 className="font-bold text-sm text-admin-text tracking-tight truncate">
                   MEDTEC Rondônia
                 </h1>
-                <p className="text-[10px] text-slate-400 font-mono tracking-wider truncate">
-                  SEDUC-RO • Painel Gestor
+                <p className="text-[11px] text-admin-muted truncate">
+                  Painel de gestão
                 </p>
               </div>
             </div>
           ) : (
-            <div className="mx-auto w-8 h-8 rounded-lg bg-[#004A99] flex items-center justify-center text-white font-bold shrink-0 shadow-sm">
+            <div className="mx-auto w-8 h-8 rounded-lg bg-admin-accent flex items-center justify-center text-admin-accent-fg font-bold shrink-0">
               <Tv className="h-4 w-4" />
             </div>
           )}
@@ -402,7 +394,9 @@ export default function AdminDashboardPage() {
             type="button"
             onClick={() => setIsCollapsed(!isCollapsed)}
             title={isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
-            className="text-slate-400 hover:text-white p-1.5 rounded-md hover:bg-slate-800 transition cursor-pointer"
+            aria-label={isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+            aria-expanded={!isCollapsed}
+            className={sidebarIconButtonClass}
           >
             {isCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </button>
@@ -412,19 +406,21 @@ export default function AdminDashboardPage() {
         {!isCollapsed && (
           <div className="px-3 pt-3 pb-1 shrink-0">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-admin-muted pointer-events-none" />
               <input
                 type="text"
                 value={sidebarSearch}
                 onChange={(e) => setSidebarSearch(e.target.value)}
-                placeholder="Pesquisar função ou menu..."
-                className="w-full pl-8 pr-7 py-1.5 rounded-lg text-xs bg-slate-900/90 text-slate-100 placeholder-slate-400 border border-slate-700/70 focus:outline-hidden focus:ring-1 focus:ring-sky-500 focus:border-sky-500 transition shadow-inner"
+                placeholder="Buscar no menu..."
+                aria-label="Pesquisar no menu"
+                className={sidebarSearchInputClass}
               />
               {sidebarSearch && (
                 <button
                   type="button"
                   onClick={() => setSidebarSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+                  aria-label="Limpar pesquisa"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-admin-muted hover:text-admin-text p-0.5 rounded cursor-pointer"
                   title="Limpar pesquisa"
                 >
                   <X className="h-3 w-3" />
@@ -435,14 +431,14 @@ export default function AdminDashboardPage() {
         )}
 
         {/* Corpo Navegável com Árvore Expansível (Accordion) */}
-        <div className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-3 scrollbar-thin">
+        <nav aria-label="Menu do painel" className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-4 scrollbar-thin">
           {/* 1. Início (Resumo do Painel) - Item Direto no Topo */}
           {userSession.isGestor && homeMatchesSearch && (
             <div className="space-y-1">
               <SidebarNavItem
-                label="Início (Resumo do Painel)"
+                label="Início"
                 icon={Home}
-                tooltip="Visão geral e atalhos rápidos do painel"
+                tooltip="Resumo do site e atalhos"
                 isActive={currentSection === 'visaoGeral'}
                 isCollapsed={isCollapsed}
                 onClick={() => handleSelectSection('visaoGeral')}
@@ -460,7 +456,7 @@ export default function AdminDashboardPage() {
                 folder={folder}
                 isOpen={isOpen}
                 isFolderActive={isFolderActive}
-                currentSection={currentSection}
+                currentSection={activeMenuSection}
                 isCollapsed={isCollapsed}
                 onToggle={() => {
                   if (isCollapsed) setIsCollapsed(false);
@@ -473,49 +469,48 @@ export default function AdminDashboardPage() {
 
           {/* Mensagem quando a pesquisa rápida não encontrar resultados */}
           {!hasAnySearchResult && (
-            <div className="px-2 py-6 text-center text-xs text-slate-400 space-y-2">
+            <div className="px-2 py-6 text-center text-xs text-admin-muted space-y-2">
               <p className="leading-snug">
-                Nenhuma função encontrada para &ldquo;<strong className="text-white">{sidebarSearch}</strong>&rdquo;.
+                Nada encontrado para &ldquo;<strong className="text-admin-text">{sidebarSearch}</strong>&rdquo;.
               </p>
               <button
                 type="button"
                 onClick={() => setSidebarSearch('')}
-                className="text-sky-400 hover:text-sky-300 font-semibold underline cursor-pointer text-xs"
+                className="text-admin-accent font-semibold underline cursor-pointer text-xs"
               >
                 Limpar pesquisa
               </button>
             </div>
           )}
-        </div>
+        </nav>
 
         {/* Rodapé Fixo da Sidebar: Link Público + Usuário Autenticado */}
-        <div className="shrink-0 border-t border-slate-800/80 p-3 space-y-2 bg-[#051021]">
+        <div className="shrink-0 border-t border-admin-border p-3 space-y-2">
           {/* Link para o Portal */}
           <Link
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            title="Ver Portal Público"
-            className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/80 text-xs transition ${
-              isCollapsed ? 'justify-center' : ''
-            }`}
+            title="Ver o site"
+            aria-label={isCollapsed ? 'Ver o site' : undefined}
+            className={`${sidebarPortalLinkClass} ${isCollapsed ? 'justify-center' : ''}`}
           >
-            <ExternalLink className="h-3.5 w-3.5 text-sky-400 shrink-0" />
-            {!isCollapsed && <span className="truncate">Ver Portal Público</span>}
+            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+            {!isCollapsed && <span>Ver o site</span>}
           </Link>
 
           {/* Card do Usuário Logado */}
-          <div className={`pt-2 border-t border-slate-800/60 flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-2`}>
+          <div className={`pt-2 border-t border-admin-border flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} gap-2`}>
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-md bg-slate-800 text-sky-300 border border-slate-700/80 flex items-center justify-center text-xs font-bold shrink-0">
+              <div className="w-7 h-7 rounded-md bg-admin-surface-muted text-admin-text flex items-center justify-center text-xs font-bold shrink-0">
                 {(userSession.name || userSession.username || 'AD').substring(0, 2).toUpperCase()}
               </div>
               {!isCollapsed && (
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-white truncate leading-tight">
+                  <p className="text-xs font-semibold text-admin-text truncate leading-tight">
                     {userSession.name || userSession.username || 'Administrador'}
                   </p>
-                  <p className="text-[10px] text-slate-400 truncate leading-tight">
+                  <p className="text-[11px] text-admin-muted truncate leading-tight">
                     {userSession.isGestor ? 'Gestor Geral' : (userSession.profileType || 'Operador')}
                   </p>
                 </div>
@@ -525,8 +520,9 @@ export default function AdminDashboardPage() {
             <button
               type="button"
               onClick={handleLogout}
-              title="Encerrar Sessão"
-              className="text-slate-400 hover:text-rose-400 p-1.5 rounded-md hover:bg-rose-950/30 transition cursor-pointer shrink-0"
+              title="Sair do painel"
+              aria-label="Sair do painel"
+              className={`${sidebarIconButtonClass} shrink-0`}
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -543,22 +539,22 @@ export default function AdminDashboardPage() {
             className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs"
             onClick={() => setIsMobileOpen(false)}
           />
-          <div ref={mobileDrawerRef} role="dialog" aria-modal="true" aria-label="Navegação administrativa" tabIndex={-1} className="fixed inset-y-0 left-0 w-72 h-full h-[100dvh] bg-[#07152B] text-slate-200 border-r border-slate-800 flex flex-col z-50 shadow-2xl">
-            <div className="h-16 px-4 border-b border-slate-800 flex items-center justify-between">
+          <div ref={mobileDrawerRef} role="dialog" aria-modal="true" aria-label="Navegação administrativa" tabIndex={-1} className="fixed inset-y-0 left-0 w-72 h-full h-[100dvh] bg-admin-surface text-admin-text border-r border-admin-border flex flex-col z-50 shadow-2xl">
+            <div className="h-16 px-4 border-b border-admin-border flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#004A99] flex items-center justify-center text-white font-bold">
+                <div className="w-8 h-8 rounded-lg bg-admin-accent flex items-center justify-center text-admin-accent-fg font-bold">
                   <Tv className="h-4 w-4" />
                 </div>
                 <div>
-                  <h2 className="font-extrabold text-xs text-white">MEDTEC Rondônia</h2>
-                  <p className="text-[10px] text-slate-400 font-mono">SEDUC-RO • Painel Gestor</p>
+                  <h2 className="font-bold text-sm text-admin-text">MEDTEC Rondônia</h2>
+                  <p className="text-[11px] text-admin-muted">Painel de gestão</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsMobileOpen(false)}
                 aria-label="Fechar menu lateral"
-                className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center text-slate-400 hover:text-white p-1.5 rounded-md hover:bg-slate-800"
+                className={`${sidebarIconButtonClass} inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center`}
               >
                 <X className="h-5 w-5" />
               </button>
@@ -567,19 +563,21 @@ export default function AdminDashboardPage() {
             {/* Campo de Pesquisa Mobile */}
             <div className="px-3 pt-3 pb-1 shrink-0">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-admin-muted pointer-events-none" />
                 <input
                   type="text"
                   value={sidebarSearch}
                   onChange={(e) => setSidebarSearch(e.target.value)}
-                  placeholder="Pesquisar função ou menu..."
-                  className="w-full pl-8 pr-7 py-1.5 rounded-lg text-xs bg-slate-900/90 text-slate-100 placeholder-slate-400 border border-slate-700/70 focus:outline-hidden focus:ring-1 focus:ring-sky-500 focus:border-sky-500 transition shadow-inner"
+                  placeholder="Buscar no menu..."
+                  aria-label="Pesquisar no menu"
+                className={sidebarSearchInputClass}
                 />
                 {sidebarSearch && (
                   <button
                     type="button"
                     onClick={() => setSidebarSearch('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-0.5 rounded cursor-pointer"
+                    aria-label="Limpar pesquisa"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-admin-muted hover:text-admin-text p-0.5 rounded cursor-pointer"
                     title="Limpar pesquisa"
                   >
                     <X className="h-3 w-3" />
@@ -589,13 +587,13 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Lista Mobile com Accordion */}
-            <div className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-3 scrollbar-thin">
+            <nav aria-label="Menu do painel" className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-4 scrollbar-thin">
               {userSession.isGestor && homeMatchesSearch && (
                 <div className="space-y-1">
                   <SidebarNavItem
-                    label="Início (Resumo do Painel)"
+                    label="Início"
                     icon={Home}
-                    tooltip="Visão geral e atalhos rápidos do painel"
+                    tooltip="Resumo do site e atalhos"
                     isActive={currentSection === 'visaoGeral'}
                     isCollapsed={false}
                     onClick={() => {
@@ -615,7 +613,7 @@ export default function AdminDashboardPage() {
                     folder={folder}
                     isOpen={isOpen}
                     isFolderActive={isFolderActive}
-                    currentSection={currentSection}
+                    currentSection={activeMenuSection}
                     isCollapsed={false}
                     onToggle={() => toggleFolder(folder.id)}
                     onSelectSection={(sec) => {
@@ -627,20 +625,20 @@ export default function AdminDashboardPage() {
               })}
 
               {!hasAnySearchResult && (
-                <div className="px-2 py-6 text-center text-xs text-slate-400 space-y-2">
+                <div className="px-2 py-6 text-center text-xs text-admin-muted space-y-2">
                   <p className="leading-snug">
-                    Nenhuma função encontrada para &ldquo;<strong className="text-white">{sidebarSearch}</strong>&rdquo;.
+                    Nada encontrado para &ldquo;<strong className="text-admin-text">{sidebarSearch}</strong>&rdquo;.
                   </p>
                   <button
                     type="button"
                     onClick={() => setSidebarSearch('')}
-                    className="text-sky-400 hover:text-sky-300 font-semibold underline cursor-pointer text-xs"
+                    className="text-admin-accent font-semibold underline cursor-pointer text-xs"
                   >
                     Limpar pesquisa
                   </button>
                 </div>
               )}
-            </div>
+            </nav>
 
             <MobileDrawerFooter
               userName={userSession.name || userSession.username}
@@ -657,30 +655,30 @@ export default function AdminDashboardPage() {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden relative">
         
         {/* TOPBAR CONTEXTUAL STICKY */}
-        <header className="h-16 sticky top-0 z-20 shrink-0 bg-white/95 dark:bg-[#0B1528]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 flex items-center justify-between gap-4">
+        <header className="h-16 sticky top-0 z-20 shrink-0 bg-admin-surface border-b border-admin-border px-4 sm:px-6 flex items-center justify-between gap-4">
           
           {/* Esquerda: Botão Menu Mobile + Breadcrumb + Subtítulo */}
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setIsMobileOpen(true)}
-              className="lg:hidden inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              className="lg:hidden inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center p-2 rounded-lg text-admin-muted hover:bg-admin-surface-muted cursor-pointer"
               aria-label="Abrir menu lateral"
             >
               <Menu className="h-5 w-5" />
             </button>
 
             <div className="min-w-0">
-              <nav className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-                <span className="hidden sm:inline">Painel Gestor</span>
-                <ChevronRight className="h-3.5 w-3.5 hidden sm:inline text-slate-400" />
+              <nav aria-label="Você está em" className="flex items-center gap-1.5 text-xs font-medium text-admin-muted">
+                <span className="hidden sm:inline">Painel</span>
+                <ChevronRight className="h-3.5 w-3.5 hidden sm:inline" />
                 <span className="hidden md:inline">{currentConfig.group}</span>
-                <ChevronRight className="h-3.5 w-3.5 hidden md:inline text-slate-400" />
-                <span className="font-semibold text-slate-900 dark:text-white truncate">
+                <ChevronRight className="h-3.5 w-3.5 hidden md:inline" />
+                <span className="font-semibold text-admin-text truncate">
                   {currentConfig.title}
                 </span>
               </nav>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xl hidden sm:block">
+              <p className="text-[11px] text-admin-muted truncate max-w-xl hidden sm:block">
                 {currentConfig.subtitle}
               </p>
             </div>
@@ -693,9 +691,10 @@ export default function AdminDashboardPage() {
               type="button"
               onClick={toggleTheme}
               title={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-              className="inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 items-center justify-center p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              aria-label={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+              className="inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 items-center justify-center p-2 rounded-lg border border-admin-border text-admin-muted hover:bg-admin-surface-muted transition cursor-pointer"
             >
-              {isDark ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-600" />}
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
           </div>
         </header>
@@ -707,32 +706,32 @@ export default function AdminDashboardPage() {
           
           {/* Barra de Topo do Módulo com Botão "← Voltar para o Início" */}
           {currentSection !== 'visaoGeral' && userSession.isGestor && (
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-admin-border">
               <button
                 type="button"
                 onClick={() => setCurrentSection('visaoGeral')}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-[#0B1729] border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[#004A99] dark:hover:text-sky-400 transition shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold text-admin-text bg-admin-surface border border-admin-border hover:bg-admin-surface-muted transition cursor-pointer"
               >
-                <ArrowLeft className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400" />
+                <ArrowLeft className="h-3.5 w-3.5 text-admin-muted" />
                 <span>Voltar para o Início</span>
               </button>
 
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-2 text-xs font-semibold text-admin-muted">
                 <span>{SECTION_CONFIG[currentSection].group}</span>
                 <span>•</span>
-                <span className="text-slate-800 dark:text-slate-200 font-bold">{SECTION_CONFIG[currentSection].title}</span>
+                <span className="text-admin-text font-bold">{SECTION_CONFIG[currentSection].title}</span>
               </div>
             </div>
           )}
 
           {/* Guia Visual Didático ("O que esta tela faz?") no Topo de Cada Módulo Aberto */}
           {currentSection !== 'visaoGeral' && (
-            <div className="flex items-start sm:items-center gap-3 p-3.5 rounded-xl bg-blue-50/80 dark:bg-[#08182F] border border-blue-200/80 dark:border-blue-900/60 text-slate-700 dark:text-slate-200 text-xs shadow-xs">
-              <div className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-[#004A99] dark:text-sky-400 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+            <div className="flex items-start sm:items-center gap-3 p-3.5 rounded-xl bg-admin-surface border border-admin-border text-admin-text text-xs">
+              <div className="w-6 h-6 rounded-lg text-admin-muted flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
                 <Info className="h-4 w-4" />
               </div>
               <p className="flex-1 leading-relaxed">
-                <strong className="font-bold text-slate-900 dark:text-white mr-1.5">O que esta tela faz:</strong>
+                <strong className="font-bold text-admin-text mr-1.5">O que esta tela faz:</strong>
                 {SECTION_CONFIG[currentSection].subtitle}
               </p>
             </div>

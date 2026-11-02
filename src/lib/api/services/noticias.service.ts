@@ -29,10 +29,11 @@ export const noticiasService = {
    * Filtros úteis: q[n_status_noticia_slug_eq]=aguardando (fila de aprovação)
    * Endpoint: GET /n_noticias
    */
-  async list(params?: QueryParams | Record<string, unknown>): Promise<ApiResponse<PaginatedData<NNoticia>>> {
+  async list(params?: QueryParams | Record<string, unknown>, signal?: AbortSignal): Promise<ApiResponse<PaginatedData<NNoticia>>> {
     return apiFetch<ApiResponse<PaginatedData<NNoticia>>>('/n_noticias', {
       method: 'GET',
       params,
+      signal,
     });
   },
 

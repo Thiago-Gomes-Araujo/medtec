@@ -6,6 +6,7 @@ import { medtecApi, type CCategoriaConquista, type CConquistaAluno, type Moderac
 import { getConquistaImageSrc, isHttpsUrl, validateConquistaImage } from '@/lib/community-content';
 import { formatFileSize } from '@/lib/projetos-content';
 import FileButton from './FileButton';
+import { notifyAprovacoesPendentes } from './useAprovacoesPendentes';
 import {
   buttonClass,
   inputClass,
@@ -123,7 +124,7 @@ export default function ConquistasPanel() {
       else await medtecApi.conquistas.create(data);
       return 'Conquista salva com sucesso.';
     });
-    if (saved) { setForm(null); reload(); }
+    if (saved) { setForm(null); reload(); notifyAprovacoesPendentes(); }
   }
 
   async function moderate(item: CConquistaAluno, operation: ModeracaoAction) {
@@ -131,7 +132,7 @@ export default function ConquistasPanel() {
       await medtecApi.conquistas[operation](item.id);
       return operation === 'publicar' ? 'Conquista publicada.' : operation === 'reprovar' ? 'Conquista reprovada.' : 'Conquista retirada do site.';
     });
-    if (done) reload();
+    if (done) { reload(); notifyAprovacoesPendentes(); }
   }
 
   async function remove() {
@@ -142,6 +143,7 @@ export default function ConquistasPanel() {
     });
     setDeleting(null);
     if (removed) {
+      notifyAprovacoesPendentes();
       if (items.length === 1 && page > 1) setPage(page - 1);
       else reload();
     }

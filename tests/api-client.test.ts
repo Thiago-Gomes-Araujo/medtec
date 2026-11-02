@@ -42,6 +42,7 @@ import MobileDrawerFooter, { type MobileDrawerFooterProps } from '../src/compone
 import NextImage from 'next/image';
 import NextLink from 'next/link';
 import { ExternalLink, LogOut } from 'lucide-react';
+import { sidebarBadgeClass, sidebarFolderClass, sidebarIconButtonClass, sidebarIconClass, sidebarItemClass, sidebarPortalLinkClass } from '../src/components/admin/adminTheme';
 import {
   ADMIN_STATIC_TAB_ALIASES,
   ADMIN_STATIC_ROUTE_ALIASES,
@@ -88,9 +89,10 @@ import ProjetosAprovacaoPanel from '../src/components/admin/ProjetosAprovacaoPan
 import AdminProjetosAprovacaoPage from '../src/app/admin/projetos/aprovacao/page';
 import { useProjetosPendentes, notifyProjetosPendentes } from '../src/components/admin/useProjetosPendentes';
 import { useRelatosPendentes, notifyRelatosPendentes } from '../src/components/admin/useRelatosPendentes';
+import { useAprovacoesPendentes, notifyAprovacoesPendentes } from '../src/components/admin/useAprovacoesPendentes';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
-import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
+import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, getActiveMenuSection, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
 import { useAdminTheme } from '../src/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '../src/lib/admin-navigation-filter';
 import type { FaqItem, NewsItem, SocialLinks } from '../src/types';
@@ -449,7 +451,7 @@ function AdminDashboardPage() {
 }
 
 describe('Contêiner compartilhado da sidebar desktop', () => {
-  const baseClasses = 'hidden lg:flex flex-col shrink-0 h-full bg-[#07152B] text-slate-200 border-r border-slate-800 select-none z-30 transition-all duration-300 ease-in-out';
+  const baseClasses = 'hidden lg:flex flex-col shrink-0 h-full bg-admin-surface text-admin-text border-r border-admin-border select-none z-30 transition-all duration-300 ease-in-out';
   type ContainerElementProps = { children?: ReactNode; className?: string; isCollapsed?: boolean; title?: string; onClick?: () => void };
   function elements(node: ReactNode): React.ReactElement<ContainerElementProps>[] {
     if (Array.isArray(node)) return node.flatMap(elements);
@@ -520,8 +522,8 @@ describe('Contêiner compartilhado da sidebar desktop', () => {
         assert.equal((html.match(/<aside\b/g) || []).length, 1);
         assert.ok(html.includes('<aside class="' + baseClasses + (isCollapsed ? ' w-20' : ' w-64') + '">'));
         const content = elements(containers[0].props.children);
-        assert.ok(content.some(node => node.props.className === 'flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-3 scrollbar-thin'));
-        assert.ok(content.some(node => node.props.className === 'shrink-0 border-t border-slate-800/80 p-3 space-y-2 bg-[#051021]'));
+        assert.ok(content.some(node => node.props.className === 'flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-4 scrollbar-thin'));
+        assert.ok(content.some(node => node.props.className === 'shrink-0 border-t border-admin-border p-3 space-y-2'));
         assert.ok(nodes.some(node => typeof node.props.className === 'string' && node.props.className.includes('fixed inset-0') && node.props.className.includes('lg:hidden')));
         const toggle = content.find(node => node.props.title === (isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'));
         assert.ok(toggle?.props.onClick);
@@ -542,26 +544,24 @@ describe('Rodapé compartilhado da gaveta mobile', () => {
   const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'mobile-footer-test' };
   const withRouter = (node: ReactNode) => createElement(AppRouterContext.Provider, { value: router },
     createElement(PathnameContext.Provider, { value: '/admin' }, node));
-  // Marcação idêntica à que existia inline nos dois consumidores antes da extração.
-  function originalFooter(userName: string | undefined, roleLabel: string, onLogout: () => void) {
-    return createElement('div', { className: 'shrink-0 border-t border-slate-800 p-3 space-y-2 bg-[#051021]' },
-      createElement(NextLink, { href: '/', target: '_blank', rel: 'noopener noreferrer',
-        className: 'flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white text-xs' },
-        createElement(ExternalLink, { className: 'h-3.5 w-3.5 text-sky-400' }),
-        createElement('span', null, 'Ver Portal Público')),
-      createElement('div', { className: 'pt-2 border-t border-slate-800 flex items-center justify-between' },
+  function expectedFooter(userName: string | undefined, roleLabel: string, onLogout: () => void) {
+    return createElement('div', { className: 'shrink-0 border-t border-admin-border p-3 space-y-2' },
+      createElement(NextLink, { href: '/', target: '_blank', rel: 'noopener noreferrer', className: sidebarPortalLinkClass },
+        createElement(ExternalLink, { className: 'h-3.5 w-3.5 shrink-0' }),
+        createElement('span', null, 'Ver o site')),
+      createElement('div', { className: 'pt-2 border-t border-admin-border flex items-center justify-between gap-2' },
         createElement('div', { className: 'min-w-0' },
-          createElement('p', { className: 'text-xs font-semibold text-white truncate' }, userName),
-          createElement('p', { className: 'text-[10px] text-slate-400' }, roleLabel)),
-        createElement('button', { type: 'button', onClick: onLogout, className: 'text-rose-400 p-1.5 cursor-pointer' },
+          createElement('p', { className: 'text-xs font-semibold text-admin-text truncate' }, userName),
+          createElement('p', { className: 'text-[11px] text-admin-muted' }, roleLabel)),
+        createElement('button', { type: 'button', onClick: onLogout, 'aria-label': 'Sair do painel', title: 'Sair do painel', className: sidebarIconButtonClass },
           createElement(LogOut, { className: 'h-4 w-4' }))));
   }
 
-  it('renderiza a mesma marcação, classes e textos do rodapé mobile original', () => {
+  it('renderiza o rodapé mobile com link do site, usuário e saída acessível', () => {
     const onLogout = () => {};
     for (const [userName, roleLabel] of [['Ana Gestora', 'Gestor Geral'], ['12345678900', 'Operador'], [undefined, 'Curador de Fotos']] as const) {
       const actual = renderToStaticMarkup(withRouter(createElement(MobileDrawerFooter, { userName, roleLabel, onLogout })));
-      const expected = renderToStaticMarkup(withRouter(originalFooter(userName, roleLabel, onLogout)));
+      const expected = renderToStaticMarkup(withRouter(expectedFooter(userName, roleLabel, onLogout)));
       assert.equal(actual, expected);
     }
   });
@@ -607,11 +607,10 @@ describe('Rodapé compartilhado da gaveta mobile', () => {
         assert.equal(nodes.filter(node => node.type === MobileDrawerFooter).length, 1);
         assert.equal(footers[0].props.userName, expected.userName);
         assert.equal(footers[0].props.roleLabel, expected.roleLabel);
-        const desktopLogout = nodes.find(node => node.props.title === (kind === 'page' ? 'Encerrar Sessão' : 'Sair do Sistema'));
+        const desktopLogout = nodes.find(node => node.props.title === 'Sair do painel');
         assert.ok(desktopLogout?.props.onClick);
         assert.strictEqual(footers[0].props.onLogout, desktopLogout.props.onClick);
-        assert.equal((html.match(/shrink-0 border-t border-slate-800 p-3 space-y-2 bg-\[#051021\]/g) || []).length, 1);
-        assert.equal((html.match(/shrink-0 border-t border-slate-800\/80 p-3 space-y-2 bg-\[#051021\]/g) || []).length, 1);
+        assert.equal((html.match(/shrink-0 border-t border-admin-border p-3 space-y-2/g) || []).length, 2, 'Rodapés do desktop e da gaveta');
         assert.equal(nodes.filter(node => node.type === DesktopSidebarContainer).length, 1);
       } finally { stateMock.mock.restore(); }
     }
@@ -1845,7 +1844,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
       assert.equal(page.session?.isGestor, true);
       assert.equal(page.loading, false);
-      assert.equal(page.overviewRequests.length, 15);
+      assert.equal(page.overviewRequests.length, 19);
       assert.equal(page.localRequests.length, 0);
       assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
@@ -1873,7 +1872,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.session?.profileType, fields.perfil_nome, label);
         assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected ? 15 : 0, label);
+        assert.equal(page.overviewRequests.length, expected ? (fields.perfil_nome === 'Administrador' ? 19 : 15) : 0, label);
         const profile = fields.perfil_nome;
         assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/galeria' }] : profile === 'Publicador de Avisos'
@@ -1914,7 +1913,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(reply.data, before, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 15 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? (expected.profileType === 'Administrador' ? 19 : 15) : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -1936,7 +1935,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(page.session, expected, `${source}: ${label}`);
         assert.deepEqual(input, data, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 15 : 9) : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? (expected.profileType === 'Administrador' ? 19 : 15) : 9) : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -2015,7 +2014,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             assert.equal(page.session?.isGestor, isGestor, label);
             assert.equal(page.session?.profileType, profileType, label);
             assert.equal(page.loading, false, label);
-            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 15 : 9) : 0, label);
+            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? (profileType === 'Administrador' ? 19 : 15) : 9) : 0, label);
             assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, label);
             assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, label);
           } finally { await page.restore(); }
@@ -3486,13 +3485,13 @@ describe('Componentes extraídos da navegação administrativa', () => {
   const renderItem = (props: SidebarNavItemProps) => renderToStaticMarkup(createElement(SidebarNavItem, props));
   const renderFolder = (props: SidebarFolderAccordionProps) => renderToStaticMarkup(createElement(SidebarFolderAccordion, props));
 
-  it('renderiza item inativo com label, tooltip, ícone e classes originais', () => {
+  it('renderiza item inativo com label, tooltip, ícone e classes do tema', () => {
     const tree = SidebarNavItem(item());
     const nodes = elements(tree);
     assert.equal(nodes[0].type, 'button');
     assert.equal(nodes[0].props.title, 'Criar ou editar reportagens');
-    assert.equal(nodes[0].props.className, 'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800/60 font-medium ');
-    assert.equal(nodes.find(node => node.type === Icon)?.props.className, 'h-4 w-4 shrink-0 text-slate-400');
+    assert.equal(nodes[0].props.className?.trim(), sidebarItemClass(false));
+    assert.equal(nodes.find(node => node.type === Icon)?.props.className, sidebarIconClass(false));
     const html = renderItem(item());
     assert.ok(html.includes('type="button"'));
     assert.ok(html.includes('Notícias e Matérias'));
@@ -3503,8 +3502,9 @@ describe('Componentes extraídos da navegação administrativa', () => {
     let clicks = 0;
     const onClick = () => { clicks++; };
     const nodes = elements(SidebarNavItem(item({ isActive: true, onClick })));
-    assert.ok(nodes[0].props.className?.includes('bg-[#004A99] text-white font-semibold shadow-xs ring-1 ring-white/10'));
-    assert.equal(nodes.find(node => node.type === Icon)?.props.className, 'h-4 w-4 shrink-0 text-white');
+    assert.ok(nodes[0].props.className?.includes(sidebarItemClass(true)));
+    assert.equal((nodes[0].props as { 'aria-current'?: string })['aria-current'], 'page');
+    assert.equal(nodes.find(node => node.type === Icon)?.props.className, sidebarIconClass(true));
     assert.strictEqual(nodes[0].props.onClick, onClick);
     nodes[0].props.onClick!();
     assert.equal(clicks, 1);
@@ -3514,18 +3514,19 @@ describe('Componentes extraídos da navegação administrativa', () => {
     for (const badge of [0, 7, 'novo']) {
       const html = renderItem(item({ badge }));
       assert.ok(html.includes('>' + badge + '</span>'));
-      assert.ok(html.includes('text-[10px] font-mono px-1.5 py-0.5 rounded'));
+      assert.ok(html.includes(sidebarBadgeClass(false, false)));
     }
-    assert.ok(!renderItem(item()).includes('font-mono'));
-    assert.ok(renderItem(item({ isActive: true, badge: 0 })).includes('bg-white/20 text-white'));
+    assert.ok(!renderItem(item()).includes(sidebarBadgeClass(false, false)));
+    assert.ok(renderItem(item({ isActive: true, badge: 0 })).includes(sidebarBadgeClass(true, false)));
   });
 
   it('preserva sidebar recolhida, tooltip alternativo e valores padrão das props', () => {
     const collapsed = item({ isCollapsed: true, badge: 7 });
     const html = renderItem(collapsed);
     assert.ok(html.includes('justify-center px-2'));
-    assert.ok(!html.includes('Notícias e Matérias'));
-    assert.ok(!html.includes('font-mono'));
+    assert.ok(!html.includes('>Notícias e Matérias<'));
+    assert.ok(html.includes('aria-label="Notícias e Matérias"'), 'Sem texto visível, o nome fica acessível');
+    assert.ok(!html.includes(sidebarBadgeClass(false, false)));
     assert.equal(elements(SidebarNavItem(collapsed))[0].props.title, 'Criar ou editar reportagens');
     for (const tooltip of [undefined, '']) {
       assert.equal(elements(SidebarNavItem(item({ isCollapsed: true, tooltip })))[0].props.title, 'Notícias e Matérias');
@@ -3533,14 +3534,15 @@ describe('Componentes extraídos da navegação administrativa', () => {
     assert.equal(renderItem(item()), renderItem(item({ isCollapsed: false })));
   });
 
-  it('renderiza pasta fechada com título, ícone e indicador sem revelar subitens', () => {
+  it('renderiza pasta fechada com título e indicador sem revelar subitens', () => {
     let toggles = 0;
     const props = folder({ onToggle: () => { toggles++; } });
     const tree = SidebarFolderAccordion(props);
     const nodes = elements(tree);
     assert.equal(nodes.filter(node => node.type === 'button').length, 1);
-    assert.equal(nodes.find(node => node.type === Icon)?.props.className, 'h-4 w-4 shrink-0 transition-colors text-slate-400');
+    assert.equal(nodes.find(node => node.type === 'button')?.props.className, sidebarFolderClass);
     const html = renderFolder(props);
+    assert.ok(html.includes('aria-expanded="false"'));
     assert.ok(html.includes('Publicações do Site'));
     assert.ok(html.includes('lucide-chevron-right'));
     assert.ok(!html.includes('Notícias e Matérias'));
@@ -3554,19 +3556,17 @@ describe('Componentes extraídos da navegação administrativa', () => {
     const buttons = nodes.filter(node => node.type === 'button');
     assert.equal(buttons.length, 3);
     assert.deepEqual(buttons.slice(1).map(node => node.props.title), ['Criar ou editar reportagens', 'Cadastrar projetos das escolas']);
-    assert.ok(buttons[0].props.className?.includes('text-white bg-slate-800/80 ring-1 ring-white/10'));
-    assert.ok(buttons[1].props.className?.includes('bg-[#004A99] text-white font-bold shadow-xs ring-1 ring-sky-400/30'));
-    assert.ok(buttons[2].props.className?.includes('text-slate-300 hover:text-white hover:bg-slate-800/60 font-medium'));
+    assert.equal(buttons[0].props.className, sidebarFolderClass);
+    assert.equal(buttons[1].props.className, sidebarItemClass(true));
+    assert.equal(buttons[2].props.className, sidebarItemClass(false));
     const html = renderFolder(props);
-    for (const text of ['lucide-chevron-down', 'ml-4 pl-3 border-l-2 border-slate-800', '>0</span>', '>novo</span>']) {
+    for (const text of ['lucide-chevron-down', 'aria-expanded="true"', 'aria-current="page"', '>0</span>', '>novo</span>']) {
       assert.ok(html.includes(text), text);
     }
     assert.ok(!html.includes('Aviso proibido'));
     assert.ok(!html.includes('Tooltip proibido'));
     assert.ok(!html.includes('999'));
-    assert.equal(nodes.filter(node => node.type === Icon).length, 3);
-    assert.equal(nodes.filter(node => node.type === Icon)[1].props.className, 'h-3.5 w-3.5 shrink-0 transition text-white');
-    assert.equal(nodes.filter(node => node.type === Icon)[2].props.className, 'h-3.5 w-3.5 shrink-0 transition text-slate-400 group-hover:text-sky-300');
+    assert.deepEqual(nodes.filter(node => node.type === Icon).map(node => node.props.className), [sidebarIconClass(true), sidebarIconClass(false)]);
   });
 
   it('encaminha as seções corretas ao selecionar itens e mantém alternância separada da seleção', () => {
@@ -3602,7 +3602,7 @@ describe('Componentes extraídos da navegação administrativa', () => {
       const nodes = elements(SidebarFolderAccordion(props));
       assert.equal(nodes[0].type, 'button');
       assert.equal(nodes[0].props.title, 'Publicações do Site');
-      assert.ok(nodes[0].props.className?.includes(isFolderActive ? 'bg-[#004A99] text-white shadow-xs' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'));
+      assert.ok(nodes[0].props.className?.includes(sidebarItemClass(isFolderActive)));
       assert.equal(nodes.filter(node => node.type === Icon).length, 1);
       assert.equal(nodes.filter(node => node.type === 'button').length, 1);
       assert.ok(!renderFolder(props).includes('Notícias e Matérias'));
@@ -3659,17 +3659,17 @@ describe('Componentes extraídos da navegação administrativa', () => {
       const nodes = elements(tree);
       assert.equal(nodes.filter(node => node.type === SidebarNavItem).length, 2);
       const groups = nodes.filter(node => node.type === SidebarFolderAccordion);
-      assert.equal(groups.length, 8);
-      assert.deepEqual(groups.slice(0, 4).map(node => node.props.folder!.id), ['publicacoes', 'aprovacao', 'dados', 'usuarios']);
-      for (let position = 0; position < 4; position++) {
-        assert.strictEqual(groups[position].props.folder, groups[position + 4].props.folder);
-        assert.equal(groups[position].props.isOpen, false);
-        assert.equal(groups[position + 4].props.isCollapsed, false);
+      assert.equal(groups.length, 6);
+      assert.deepEqual(groups.slice(0, 3).map(node => node.props.folder!.id), ['conteudo', 'atendimento', 'configuracoes']);
+      for (let position = 0; position < 3; position++) {
+        assert.strictEqual(groups[position].props.folder, groups[position + 3].props.folder);
+        assert.equal(groups[position].props.isOpen, true);
+        assert.equal(groups[position + 3].props.isCollapsed, false);
         assert.equal(groups[position].props.currentSection, 'visaoGeral');
       }
       groups[0].props.onSelectSection!('noticias');
       assert.deepEqual(mobileUpdates, []);
-      groups[4].props.onSelectSection!('noticias');
+      groups[3].props.onSelectSection!('noticias');
       assert.deepEqual(destinations, ['/admin/noticias', '/admin/noticias']);
       assert.deepEqual(mobileUpdates, [false]);
     } finally { stateMock.mock.restore(); }
@@ -3713,10 +3713,10 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
   });
 
   it('pesquisa nomes de grupos e inclui somente seus itens permitidos', () => {
-    const result = filterAdminNavigation(fixture(), 'Publicações do Site');
+    const result = filterAdminNavigation(fixture(), 'Conteúdo do site');
     assert.deepEqual(result.filteredFolders.map(folder => folder.id), ['publicacoes']);
     assert.deepEqual(result.filteredFolders[0].items.map(item => item.section), ['noticias', 'projetos']);
-    assert.deepEqual(sections('Dados e Contatos'), ['redes']);
+    assert.deepEqual(sections('Configurações'), ['redes']);
   });
 
   it('ignora maiúsculas e minúsculas e espaços nas bordas sem normalizar espaços internos', () => {
@@ -3788,7 +3788,7 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
 
   function navigation(kind: 'page' | 'shell', session: AdminSession & { editorialProfile?: string }, mobile = false, collapsed = false) {
     let search = '';
-    let openFolders = { publicacoes: kind === 'shell', aprovacao: false, dados: false, usuarios: false };
+    let openFolders = { conteudo: true, atendimento: true, configuracoes: true };
     const destinations: string[] = [];
     const router = { back() {}, forward() {}, refresh() {}, replace() {}, prefetch() {}, bfcacheId: 'menu-search-test',
       push(href: string) { destinations.push(href); } };
@@ -3822,7 +3822,7 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
     return {
       render, destinations, isMobileOpen: () => mobile,
       setSearch(value: string) {
-        const input = render().nodes.find(node => node.props.placeholder === 'Pesquisar função ou menu...');
+        const input = render().nodes.find(node => node.props.placeholder === 'Buscar no menu...');
         assert.ok(input?.props.onChange);
         input.props.onChange({ target: { value } });
       },
@@ -3833,32 +3833,33 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
     apiUser: { id: 100, nome: 'Admin', cpf: '', ativo: true, perfil_id: 3, perfil_nome: 'Administrador' },
   };
 
-  it('expande resultados na página e restaura as pastas anteriores ao limpar pelos controles existentes', () => {
+  it('filtra na página e restaura o menu inteiro ao limpar pelos controles existentes', () => {
     const page = navigation('page', admin, true);
-    assert.ok(page.render().nodes.filter(node => node.props.folder).every(node => node.props.isOpen === false));
+    assert.ok(page.render().nodes.filter(node => node.props.folder).every(node => node.props.isOpen === true));
     page.setSearch('YouTube');
     const filtered = page.render();
     const groups = filtered.nodes.filter(node => node.props.folder);
-    assert.deepEqual(groups.map(node => node.props.folder!.id), ['dados', 'dados']);
+    assert.deepEqual(groups.map(node => node.props.folder!.id), ['configuracoes', 'configuracoes']);
     assert.ok(groups.every(node => node.props.isOpen === true));
     assert.deepEqual(groups[0].props.folder!.items.map(item => item.section), ['redes']);
-    assert.equal(filtered.nodes.filter(node => node.props.placeholder === 'Pesquisar função ou menu...').length, 2);
+    assert.equal(filtered.nodes.filter(node => node.props.placeholder === 'Buscar no menu...').length, 2);
     const clear = filtered.nodes.filter(node => node.props.title === 'Limpar pesquisa');
     assert.equal(clear.length, 2);
     clear[1].props.onClick!();
     const restored = page.render().nodes.filter(node => node.props.folder);
-    assert.equal(restored.length, 8);
-    assert.ok(restored.every(node => node.props.isOpen === false));
+    assert.equal(restored.length, 6);
+    assert.ok(restored.every(node => node.props.isOpen === true));
   });
 
-  it('preserva expansão inicial do shell, pesquisa somente no desktop e navegação mobile por links', () => {
+  it('o shell abre o menu inteiro, tem busca no desktop e na gaveta e navega por links', () => {
     const shell = navigation('shell', admin, true);
     const initial = shell.render();
     assert.ok(initial.nodes.some(node => node.props.href === '/admin/noticias'));
-    assert.ok(!initial.nodes.some(node => node.props.href === '/admin/redes' && !node.props.onClick));
+    assert.ok(initial.nodes.some(node => node.props.href === '/admin/redes'));
     shell.setSearch('YouTube');
     const filtered = shell.render();
-    assert.equal(filtered.nodes.filter(node => node.props.placeholder === 'Pesquisar função ou menu...').length, 1);
+    assert.equal(filtered.nodes.filter(node => node.props.placeholder === 'Buscar no menu...').length, 2);
+    assert.ok(!filtered.nodes.some(node => node.props.href === '/admin/noticias'));
     const links = filtered.nodes.filter(node => node.props.href === '/admin/redes');
     assert.equal(links.length, 2);
     assert.ok(links[1].props.onClick);
@@ -3870,7 +3871,6 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
     clear.props.onClick();
     const restored = shell.render();
     assert.ok(restored.nodes.some(node => node.props.href === '/admin/noticias'));
-    assert.ok(!restored.nodes.some(node => node.props.href === '/admin/redes'));
   });
 
   it('E10.2 — gaveta tem diálogo nomeado, referências de foco e fechamento acessível', () => {
@@ -3891,37 +3891,37 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
     groups[1].props.onSelectSection!('redes');
     assert.deepEqual(page.destinations, ['/admin/redes']);
     assert.equal(page.isMobileOpen(), false);
-    assert.equal(page.render().nodes.filter(node => node.props.placeholder === 'Pesquisar função ou menu...').length, 1);
+    assert.equal(page.render().nodes.filter(node => node.props.placeholder === 'Buscar no menu...').length, 1);
     assert.ok(page.render().nodes.find(node => node.props.folder)?.props.isOpen);
   });
 
-  it('preserva diferenças de Início e mensagens vazias nos menus mobile existentes', () => {
+  it('Início e a mensagem de busca vazia seguem a busca no desktop e na gaveta', () => {
     const page = navigation('page', admin, true);
     const shell = navigation('shell', admin, true);
     for (const menu of [page, shell]) menu.setSearch('termo inexistente');
     const root = page.render();
     const subroute = shell.render();
-    assert.equal((root.html.match(/Nenhuma função encontrada para/g) || []).length, 2);
-    assert.equal((subroute.html.match(/Nenhuma função encontrada para/g) || []).length, 1);
-    assert.ok(!root.nodes.some(node => node.props.label === 'Início (Resumo do Painel)'));
-    assert.equal(subroute.nodes.filter(node => node.props.href === '/admin').length, 1);
+    assert.equal((root.html.match(/Nada encontrado para/g) || []).length, 2);
+    assert.equal((subroute.html.match(/Nada encontrado para/g) || []).length, 2);
+    assert.ok(!root.nodes.some(node => node.props.label === 'Início'));
+    assert.equal(subroute.nodes.filter(node => node.props.href === '/admin').length, 0);
     const clear = root.nodes.find(node => node.type === 'button' && node.props.children === 'Limpar pesquisa');
     assert.ok(clear?.props.onClick);
     clear.props.onClick();
-    assert.ok(!page.render().html.includes('Nenhuma função encontrada para'));
+    assert.ok(!page.render().html.includes('Nada encontrado para'));
   });
 
   it('não revela Usuários ou Kanban pela pesquisa e mantém as diferenças de autorização existentes', () => {
     for (const session of [admin, { isGestor: true }, { isGestor: false, profileType: 'Operador de Conteúdo' }]) {
       for (const kind of ['page', 'shell'] as const) {
         const menu = navigation(kind, session, true);
-        menu.setSearch('Equipe e Senhas');
+        menu.setSearch('Usuários e acessos');
         const users = menu.render();
         const hasUsers = kind === 'page'
           ? users.nodes.some(node => node.props.folder?.items.some(item => item.section === 'usuarios'))
           : users.nodes.some(node => node.props.href === '/admin/usuarios');
         assert.equal(hasUsers, kind === 'page' ? session.isGestor : session === admin);
-        menu.setSearch('Rascunho');
+        menu.setSearch('Aprovações');
         const kanban = menu.render();
         const hasKanban = kind === 'page'
           ? kanban.nodes.some(node => node.props.folder?.items.some(item => item.section === 'kanban'))
@@ -3936,22 +3936,137 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
       const menu = navigation(kind, admin);
       menu.setSearch('YouTube');
       const expanded = menu.render();
-      assert.equal(expanded.nodes.filter(node => node.props.placeholder === 'Pesquisar função ou menu...').length, 1);
+      assert.equal(expanded.nodes.filter(node => node.props.placeholder === 'Buscar no menu...').length, 1);
       const collapse = expanded.nodes.find(node => node.props.title === 'Recolher menu lateral');
       assert.ok(collapse?.props.onClick);
       collapse.props.onClick();
       const collapsed = menu.render();
-      assert.equal(collapsed.nodes.filter(node => node.props.placeholder === 'Pesquisar função ou menu...').length, 0);
+      assert.equal(collapsed.nodes.filter(node => node.props.placeholder === 'Buscar no menu...').length, 0);
       if (kind === 'page') {
         const groups = collapsed.nodes.filter(node => node.props.folder);
         assert.equal(groups.length, 1);
         assert.equal(groups[0].props.isCollapsed, true);
-        assert.equal(groups[0].props.folder!.id, 'dados');
+        assert.equal(groups[0].props.folder!.id, 'configuracoes');
       } else {
-        assert.ok(collapsed.nodes.some(node => node.props.title === 'Dados e Contatos do Site'));
+        assert.ok(collapsed.nodes.some(node => node.props.title === 'Configurações'));
         assert.ok(!collapsed.nodes.some(node => node.props.href === '/admin/redes'));
       }
       assert.deepEqual(menu.destinations, []);
+    }
+  });
+});
+
+describe('Menu do painel por tarefa e cores centralizadas', () => {
+  const access = { noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, siteInfo: true, redes: true, estadosCidades: true, usuarios: true };
+  const labels = (menu: ReturnType<typeof buildAdminMenu>) => menu.map(folder => [folder.label, folder.items.filter(item => item.visible).map(item => item.label)]);
+
+  it('agrupa por tarefa, com rótulos curtos, e as telas auxiliares saem do menu', () => {
+    const menu = buildAdminMenu(access);
+    assert.deepEqual(labels(menu), [
+      ['Conteúdo do site', ['Notícias', 'Avisos', 'Banners', 'Galeria de fotos', 'Projetos', 'Professores', 'Alunos que Inspiram', 'Perguntas frequentes']],
+      ['Atendimento', ['Dúvidas do público', 'Aprovações']],
+      ['Configurações', ['Números do site', 'Redes sociais', 'Estados e municípios', 'Usuários e acessos']],
+    ]);
+    const sections = menu.flatMap(folder => folder.items.filter(item => item.visible).map(item => item.section));
+    for (const section of ['projetosTemas', 'projetosMembros', 'professoresDisciplinas', 'professoresRelatos', 'alunosCategorias'] as const) {
+      assert.ok(!sections.includes(section), section);
+      assert.ok(ADMIN_SUBROUTE_GROUPS.some(group => group.items.some(item => item.section === section)), 'Continua como aba: ' + section);
+      assert.ok(SECTION_HREFS.get(section), 'A subrota continua: ' + section);
+    }
+  });
+  it('item sem acesso não aparece, e Aprovações leva quem não tem a Fila à aprovação de projetos', () => {
+    const semFila = buildAdminMenu({ ...access, kanban: false }).flatMap(folder => folder.items).filter(item => item.visible && item.label === 'Aprovações');
+    assert.deepEqual(semFila.map(item => item.href), ['/admin/projetos/aprovacao']);
+    const comFila = buildAdminMenu(access).flatMap(folder => folder.items).filter(item => item.visible && item.label === 'Aprovações');
+    assert.deepEqual(comFila.map(item => item.href), ['/admin/kanban']);
+    assert.equal(buildAdminMenu({ ...access, kanban: false, projetos: false }).flatMap(folder => folder.items).some(item => item.visible && item.label === 'Aprovações'), false);
+    const vazio = Object.fromEntries(Object.keys(access).map(key => [key, false])) as typeof access;
+    assert.ok(buildAdminMenu(vazio).every(folder => !folder.visible));
+  });
+  it('as telas em abas destacam o módulo no menu', () => {
+    const menu = buildAdminMenu(access);
+    for (const [section, parent] of [['projetosTemas', 'projetos'], ['projetosMembros', 'projetos'], ['projetosAprovacao', 'projetos'], ['professoresRelatos', 'professores'], ['professoresDisciplinas', 'professores'], ['alunosCategorias', 'alunos'], ['noticias', 'noticias'], ['kanban', 'kanban']] as const) {
+      assert.equal(getActiveMenuSection(section, menu), parent, section);
+    }
+    assert.equal(getActiveMenuSection('projetosAprovacao', buildAdminMenu({ ...access, kanban: false })), 'projetosAprovacao', 'Sem a Fila, é o próprio item');
+  });
+  it('a busca ainda encontra as telas que viraram abas, sem revelar item sem acesso', () => {
+    const search = (query: string, grants = access) => filterAdminNavigation(buildAdminMenu(grants), query).filteredFolders.flatMap(folder => folder.items.map(item => item.section));
+    for (const [query, section] of [['temas', 'projetos'], ['membros', 'projetos'], ['disciplinas', 'professores'], ['relatos', 'professores'], ['categorias', 'alunos']] as const) {
+      assert.ok(search(query).includes(section), query);
+    }
+    assert.deepEqual(search('disciplinas', { ...access, professores: false }), []);
+  });
+  it('contador de Aprovações soma a Fila, ignora a parte que falhou e relê ao ser avisado', async () => {
+    let totals: Record<string, number> = { n_noticias: 2, c_conquistas_aluno: 1, p_relatos: 3, pj_projetos: 4 };
+    function Contador() { return createElement('output', null, String(useAprovacoesPendentes(true))); }
+    const view = await mountCategories(async url => {
+      const name = url.pathname.split('/').pop()!;
+      if (!(name in totals)) return new Response(JSON.stringify({ success: false, errors: ['sem_permissao'] }), { status: 403, headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ success: true, message: 'ok', data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: totals[name], per_page: 1 } } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }, false, { component: Contador, allowedPaths: /\/(n_noticias|c_conquistas_aluno|p_relatos|pj_projetos)$/ });
+    const settle = () => new Promise(resolve => setImmediate(resolve));
+    try {
+      await view.act(settle);
+      assert.equal(view.html(), '<output>10</output>');
+      assert.ok(view.calls.every(call => call.url.searchParams.get('q[n_status_noticia_slug_eq]') === 'aguardando' && call.url.searchParams.get('per_page') === '1'));
+      totals = { n_noticias: 2, c_conquistas_aluno: 1, pj_projetos: 4 };
+      await view.act(() => notifyAprovacoesPendentes());
+      await view.act(settle);
+      assert.equal(view.html(), '<output>7</output>', 'A parte sem permissão não vira zero nem erro');
+      totals = {};
+      await view.act(() => notifyAprovacoesPendentes());
+      await view.act(settle);
+      assert.equal(view.html(), '<output>null</output>', 'Tudo recusado: sem contador');
+    } finally { await view.restore(); }
+  });
+  it('moderar em qualquer tela avisa o contador', () => {
+    assert.match(readFileSync('src/components/admin/useProjetosPendentes.ts', 'utf8'), /notifyAprovacoesPendentes\(\)/);
+    assert.match(readFileSync('src/components/admin/useRelatosPendentes.ts', 'utf8'), /notifyAprovacoesPendentes\(\)/);
+    for (const file of ['src/components/admin/CommunityApprovalQueue.tsx', 'src/components/admin/ConquistasPanel.tsx', 'src/components/admin/useEditorialNews.ts', 'src/app/admin/noticias/page.tsx']) {
+      assert.match(readFileSync(file, 'utf8'), /notifyAprovacoesPendentes\(\)/, file);
+    }
+  });
+  it('as cores do painel têm contraste WCAG AA nos modos claro e escuro', () => {
+    const css = readFileSync('src/app/globals.css', 'utf8');
+    const block = (selector: string) => css.slice(css.indexOf(selector));
+    const token = (source: string, name: string) => {
+      const value = source.match(new RegExp(`--admin-${name}:\\s*(#[0-9A-Fa-f]{6})`))?.[1];
+      assert.ok(value, name);
+      return value;
+    };
+    const luminance = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map(start => parseInt(hex.slice(start, start + 2), 16) / 255).map(channel => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const contrast = (a: string, b: string) => {
+      const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+      return (high + 0.05) / (low + 0.05);
+    };
+    for (const [mode, source] of [['claro', block(':root {')], ['escuro', block('.dark {')]] as const) {
+      const pairs: [string, string, number][] = [
+        ['text', 'bg', 4.5], ['text', 'surface', 4.5], ['text', 'surface-muted', 4.5],
+        ['muted', 'bg', 4.5], ['muted', 'surface', 4.5], ['muted', 'surface-muted', 4.5],
+        ['accent', 'surface', 4.5], ['accent', 'surface-muted', 4.5], ['accent-fg', 'accent', 4.5], ['accent-fg', 'accent-hover', 4.5],
+        ['success', 'success-soft', 4.5], ['success', 'surface', 4.5],
+        ['warning', 'warning-soft', 4.5], ['warning', 'surface', 4.5],
+        ['danger', 'danger-soft', 4.5], ['danger', 'surface', 4.5],
+        ['input', 'surface', 3],
+      ];
+      for (const [text, background, minimum] of pairs) {
+        const ratio = contrast(token(source, text), token(source, background));
+        assert.ok(ratio >= minimum, `${mode}: ${text} sobre ${background} = ${ratio.toFixed(2)}`);
+      }
+    }
+  });
+  it('menu e Início usam só as variáveis do tema, sem cores por módulo nem termos técnicos', () => {
+    const paleta = /\b(?:bg|text|border|ring|from|via|to)-(?:amber|emerald|orange|rose|sky|blue|green|teal|violet|red|slate)-\d|\[#[0-9A-Fa-f]{3,8}\]/;
+    for (const file of ['AdminOverview', 'OverviewStats', 'SidebarNavItem', 'SidebarFolderAccordion', 'DesktopSidebarContainer', 'MobileDrawerFooter', 'adminTheme']) {
+      const source = readFileSync(`src/components/admin/${file}.${file === 'adminTheme' ? 'ts' : 'tsx'}`, 'utf8');
+      assert.doesNotMatch(source, paleta, file);
+    }
+    for (const file of ['src/components/admin/AdminOverview.tsx', 'src/components/admin/OverviewStats.tsx']) {
+      assert.doesNotMatch(readFileSync(file, 'utf8'), /Central Executiva|API Rails|\bCMS\b|Carregando API|Governança|LGPD|Falha ao consultar/, file);
     }
   });
 });
@@ -4214,10 +4329,10 @@ describe('Tema administrativo compartilhado', () => {
           const dark = initialClass === 'dark';
           assert.equal(control.props.title, dark ? 'Mudar para tema claro' : 'Mudar para tema escuro');
           const touchClass = kind === 'page' ? 'inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 items-center justify-center ' : '';
-          assert.equal(control.props.className, touchClass + 'p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer');
+          assert.equal(control.props.className, touchClass + 'p-2 rounded-lg border border-admin-border text-admin-muted hover:bg-admin-surface-muted transition cursor-pointer');
           assert.ok(isValidElement<{ className: string }>(control.props.children));
           assert.equal(control.props.children.type, dark ? Sun : Moon);
-          assert.equal(control.props.children.props.className, dark ? 'h-4 w-4 text-amber-400' : 'h-4 w-4 text-slate-600');
+          assert.equal(control.props.children.props.className, 'h-4 w-4', 'Ícone monocromático');
           control.props.onClick!();
           assert.equal(browser.classes.has('dark'), !dark);
           assert.deepEqual(browser.writes, [['medtec-theme', dark ? 'light' : 'dark']]);
@@ -4301,131 +4416,131 @@ describe('Metadados compartilhados da navegação administrativa', () => {
       perfil_nome: 'Administrador' },
   };
 
-  it('preserva integralmente a ordem, grupos, títulos, descrições e URLs das doze seções', () => {
+  it('mantém a ordem, os grupos, os títulos, as descrições e as URLs das seções', () => {
     const expected = {
       "visaoGeral": {
         "group": "Início",
-        "title": "Início (Resumo do Painel)",
-        "subtitle": "Visão executiva unificada, indicadores em tempo real e atalhos didáticos de acesso rápido.",
+        "title": "Início",
+        "subtitle": "Resumo do site e atalhos para o que você mais usa.",
         "href": "/admin"
       },
       "noticias": {
-        "group": "Publicações do Site",
-        "title": "Notícias e Matérias",
+        "group": "Conteúdo do site",
+        "title": "Notícias",
         "subtitle": "Aqui você escreve novas matérias, escolhe a foto de capa e edita notícias já publicadas no portal.",
         "href": "/admin/noticias"
       },
       "projetos": {
-        "group": "Publicações do Site",
-        "title": "Projetos Pedagógicos",
+        "group": "Conteúdo do site",
+        "title": "Projetos",
         "subtitle": "Cadastre os projetos das escolas com tema, relato, capa, anexos e membros, e acompanhe a aprovação.",
         "href": "/admin/projetos"
       },
       "projetosTemas": {
-        "group": "Publicações do Site",
-        "title": "Temas de Projeto",
+        "group": "Conteúdo do site",
+        "title": "Temas de projeto",
         "subtitle": "Cadastre e organize os temas usados nos projetos pedagógicos.",
         "href": "/admin/projetos/temas"
       },
       "projetosMembros": {
-        "group": "Publicações do Site",
-        "title": "Membros de Projeto",
+        "group": "Conteúdo do site",
+        "title": "Membros de projeto",
         "subtitle": "Cadastre as pessoas que participam dos projetos. O CPF não aparece no site.",
         "href": "/admin/projetos/membros"
       },
       "projetosAprovacao": {
-        "group": "Publicações do Site",
-        "title": "Aprovação de Projetos",
+        "group": "Conteúdo do site",
+        "title": "Aprovação de projetos",
         "subtitle": "Confira os projetos aguardando e publique ou reprove cada um.",
         "href": "/admin/projetos/aprovacao"
       },
       "duvidas": {
-        "group": "Publicações do Site",
-        "title": "Dúvidas Frequentes (FAQ)",
+        "group": "Conteúdo do site",
+        "title": "Perguntas frequentes",
         "subtitle": "Cadastre, edite e organize as perguntas e respostas que aparecem na Central de Dúvidas do portal.",
         "href": "/admin/faq"
       },
       "duvidasPublico": {
-        "group": "Publicações do Site",
+        "group": "Conteúdo do site",
         "title": "Dúvidas do público",
         "subtitle": "Acompanhe as dúvidas enviadas pelo site e registre o atendimento feito por e-mail ou telefone.",
         "href": "/admin/faq/publico"
       },
       "avisos": {
-        "group": "Publicações do Site",
-        "title": "Avisos e Comunicados",
+        "group": "Conteúdo do site",
+        "title": "Avisos",
         "subtitle": "Use esta área para postar comunicados oficiais, calendários e avisos urgentes para as escolas.",
         "href": "/admin/avisos"
       },
       "fotos": {
-        "group": "Publicações do Site",
-        "title": "Banners da Página Inicial",
+        "group": "Conteúdo do site",
+        "title": "Banners",
         "subtitle": "Gerencie as imagens grandes que passam no topo da Página Inicial do site.",
         "href": "/admin/banners"
       },
       "galeria": {
-        "group": "Publicações do Site",
-        "title": "Galeria de Fotos",
+        "group": "Conteúdo do site",
+        "title": "Galeria de fotos",
         "subtitle": "Envie fotografias das salas de aula, estúdios e projetos realizados nos municípios.",
         "href": "/admin/galeria"
       },
       "professores": {
-        "group": "Publicações do Site",
-        "title": "Professores e Mediadores",
+        "group": "Conteúdo do site",
+        "title": "Professores",
         "subtitle": "Cadastre e gerencie os perfis docentes de ministrantes e mediadores, disciplinas e relatos.",
         "href": "/admin/professores"
       },
       "professoresDisciplinas": {
-        "group": "Publicações do Site",
+        "group": "Conteúdo do site",
         "title": "Disciplinas dos Professores",
         "subtitle": "Cadastre e organize as disciplinas vinculadas aos perfis docentes.",
         "href": "/admin/professores/disciplinas"
       },
       "professoresRelatos": {
-        "group": "Publicações do Site",
+        "group": "Conteúdo do site",
         "title": "Relatos sobre Professores",
         "subtitle": "Modere os relatos enviados pelos alunos antes de aparecerem no site.",
         "href": "/admin/professores/relatos"
       },
       "alunos": {
-        "group": "Publicações do Site",
+        "group": "Conteúdo do site",
         "title": "Alunos que Inspiram",
         "subtitle": "Cadastre, publique e gerencie as conquistas dos estudantes e suas categorias.",
         "href": "/admin/alunos"
       },
       "alunosCategorias": {
-        "group": "Publicações do Site",
-        "title": "Categorias de Conquista",
+        "group": "Conteúdo do site",
+        "title": "Categorias de conquista",
         "subtitle": "Cadastre e organize as categorias usadas nas conquistas dos estudantes.",
         "href": "/admin/alunos/categorias"
       },
       "kanban": {
-        "group": "Aprovação e Revisão",
-        "title": "Fila de Aprovação (Passo a Passo)",
-        "subtitle": "Acompanhe as reportagens em rascunho, envie para revisão e publique oficialmente no portal.",
+        "group": "Atendimento",
+        "title": "Aprovações",
+        "subtitle": "Veja o que está aguardando aprovação e publique ou recuse cada item.",
         "href": "/admin/kanban"
       },
       "siteInfo": {
-        "group": "Dados e Contatos do Site",
-        "title": "Números de Alunos e Escolas",
+        "group": "Configurações",
+        "title": "Números do site",
         "subtitle": "Atualize a quantidade oficial de estudantes, escolas, turmas e municípios atendidos.",
         "href": "/admin/institucional"
       },
       "redes": {
-        "group": "Dados e Contatos do Site",
-        "title": "Redes Sociais e WhatsApp",
+        "group": "Configurações",
+        "title": "Redes sociais",
         "subtitle": "Atualize os links oficiais de transmissão, redes sociais e canais de atendimento.",
         "href": "/admin/redes"
       },
       "usuarios": {
-        "group": "Usuários e Acessos",
-        "title": "Gerenciar Equipe e Senhas",
+        "group": "Configurações",
+        "title": "Usuários e acessos",
         "subtitle": "Cadastre operadores por CPF, redefina senhas e gerencie permissões de acesso ao sistema.",
         "href": "/admin/usuarios"
       },
       "estadosCidades": {
-        "group": "Dados e Contatos do Site",
-        "title": "Estados e Municípios",
+        "group": "Configurações",
+        "title": "Estados e municípios",
         "subtitle": "Cadastre e gerencie a base de unidades federativas (UF) e municípios atendidos pelo MEDTEC.",
         "href": "/admin/estados-cidades"
       }
@@ -4455,50 +4570,49 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.equal(publicProps.activeSection, 'estadosCidades');
     assert.strictEqual(SECTION_CONFIG, SHARED_SECTION_CONFIG);
     assert.equal(typeof AdminShell, 'function');
-    assert.equal(getFolderIdForSection('estadosCidades'), 'dados');
+    assert.equal(getFolderIdForSection('estadosCidades'), 'configuracoes');
     assert.equal(canAccessAdminUsers(session), true);
   });
 
-  it('preserva Início como seleção local e os onze router.push na página, no desktop e mobile', () => {
+  const MENU_ORDER = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+
+  it('mantém Início como seleção local e o router.push de cada item na página, no desktop e mobile', () => {
     for (const mobile of [false, true]) {
       const page = capture('page', session, mobile);
-      const homes = page.nodes.filter(node => node.props.label === 'Início (Resumo do Painel)');
+      const homes = page.nodes.filter(node => node.props.label === 'Início');
       assert.equal(homes.length, mobile ? 2 : 1);
       for (const home of homes) home.props.onClick!();
       assert.deepEqual(page.selections, mobile ? ['visaoGeral', 'visaoGeral'] : ['visaoGeral']);
       assert.deepEqual(page.calls, []);
       const folders = page.nodes.filter(node => node.props.folder && node.props.onSelectSection);
-      assert.equal(folders.length, mobile ? 8 : 4);
+      assert.equal(folders.length, mobile ? 6 : 3);
       for (const folder of folders) {
-        assert.equal(folder.props.isOpen, false);
+        assert.equal(folder.props.isOpen, true);
         for (const item of folder.props.folder!.items) {
           if (item.visible) folder.props.onSelectSection!(item.section);
         }
       }
-      const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/faq/publico', '/admin/avisos', '/admin/banners',
-        '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
-      assert.deepEqual(page.calls, (mobile ? [...menuOrder, ...menuOrder] : menuOrder).map(href => ({ method: 'push', href })));
+      assert.deepEqual(page.calls, (mobile ? [...MENU_ORDER, ...MENU_ORDER] : MENU_ORDER).map(href => ({ method: 'push', href })));
     }
   });
 
-  it('preserva links e pastas inicialmente abertas no shell e a divergência de Estados/Cidades', () => {
+  it('o shell abre o menu inteiro por links, e página e shell agrupam Estados e municípios do mesmo jeito', () => {
     const desktop = capture('shell', session);
     const desktopHrefs = desktop.nodes.flatMap(node => node.props.href ? [node.props.href] : []);
-    assert.deepEqual(desktopHrefs.filter(href => href.startsWith('/admin')),
-      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/faq/publico', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
+    assert.deepEqual(desktopHrefs.filter(href => href.startsWith('/admin')), ['/admin', ...MENU_ORDER]);
     assert.match(desktop.html, /<a\b[^>]*href="\/admin"/);
     assert.deepEqual(desktop.calls, []);
     const mobile = capture('shell', session, true);
     const mobileHrefs = mobile.nodes.flatMap(node => node.props.href ? [node.props.href] : []);
-    for (const href of SECTION_HREFS.values()) assert.ok(mobileHrefs.includes(href), href);
+    for (const href of MENU_ORDER) assert.ok(mobileHrefs.includes(href), href);
     assert.equal(mobileHrefs.filter(href => href === '/admin').length, 2);
-    assert.equal((mobile.html.match(/placeholder="Pesquisar função ou menu\.\.\."/g) || []).length, 1);
+    assert.equal((mobile.html.match(/placeholder="Buscar no menu\.\.\."/g) || []).length, 2);
     const root = capture('page', session, true, 'estadosCidades');
-    assert.equal((root.html.match(/placeholder="Pesquisar função ou menu\.\.\."/g) || []).length, 2);
-    const dataFolders = root.nodes.filter(node => node.props.folder?.id === 'dados');
+    assert.equal((root.html.match(/placeholder="Buscar no menu\.\.\."/g) || []).length, 2);
+    const dataFolders = root.nodes.filter(node => node.props.folder?.id === 'configuracoes');
     assert.equal(dataFolders.length, 2);
-    assert.ok(dataFolders.every(node => node.props.isFolderActive === false && node.props.isOpen === false));
-    assert.equal(getFolderIdForSection('estadosCidades'), 'dados');
+    assert.ok(dataFolders.every(node => node.props.isFolderActive === true && node.props.isOpen === true));
+    assert.equal(getFolderIdForSection('estadosCidades'), 'configuracoes');
     assert.ok(capture('shell', session, false, 'estadosCidades').html.includes('href="/admin/estados-cidades"'));
   });
 
@@ -4597,7 +4711,7 @@ describe('Interface componentizada da Visão Geral', () => {
       totalFaqs: 0, apiFaqsPublishedCount: 0, apiFaqsPendingCount: 0,
     }, latestNews: undefined, announcementTitle: undefined });
     assert.equal((html.match(/>0<\/p>/g) || []).length, 5);
-    for (const text of ['Nenhuma matéria cadastrada', 'Nenhuma fotografia catalogada',
+    for (const text of ['Nenhuma notícia cadastrada', 'Nenhuma foto cadastrada',
       'Nenhuma notícia publicada ainda',
       'Sem comunicados urgentes no momento', 'Nenhum comunicado urgente ativo', 'Nenhuma dúvida cadastrada']) {
       assert.ok(html.includes(text), text);
@@ -4611,23 +4725,23 @@ describe('Interface componentizada da Visão Geral', () => {
     const loading = render({ indicators: { ...base.indicators,
       loadingNews: true, loadingAvisos: true, loadingFotos: true, loadingFaqs: true, usersCountLabel: '...',
     } });
-    assert.ok(loading.includes('Carregando API...'));
     assert.ok(loading.includes('Carregando...'));
+    assert.ok(!loading.includes('API'));
     assert.ok(!loading.includes('>450</p>'));
-    assert.ok(!loading.includes('Nenhuma matéria cadastrada'));
-    for (const text of ['Notícia recebida', 'Autoria recebida', '2026-10-30', 'Aviso recebido', '200 avisos em exibição']) {
+    assert.ok(!loading.includes('Nenhuma notícia cadastrada'));
+    for (const text of ['Notícia recebida', 'Autoria recebida', '2026-10-30', 'Aviso recebido', '200 avisos no site']) {
       assert.ok(!loading.includes(text), text);
     }
     const failed = render({ indicators: { ...base.indicators,
       errorNews: 'Falha de notícias', errorAvisos: 'Falha de avisos', errorFotos: 'Falha de fotos', errorFaqs: 'Falha de dúvidas', usersCountLabel: 'Indisponível',
     } });
-    for (const text of ['Indisponível', 'Galeria Indisponível', 'Falha ao consultar /n_noticias',
-      'Falha ao consultar /a_avisos', 'Falha ao consultar /fotos_galeria', 'Falha ao consultar /d_duvidas', 'Falha de comunicação com a API']) {
+    for (const text of ['Indisponível', 'Não foi possível carregar agora', 'Falha de dúvidas']) {
       assert.ok(failed.includes(text), text);
     }
+    assert.doesNotMatch(failed, /\/n_noticias|\/a_avisos|\/fotos_galeria|\/d_duvidas|API/, 'Sem termos técnicos');
     assert.ok(!failed.includes('>450</p>'));
-    assert.ok(!failed.includes('Nenhuma matéria cadastrada'));
-    for (const text of ['Notícia recebida', 'Autoria recebida', '2026-10-30', 'Aviso recebido', '200 avisos em exibição']) {
+    assert.ok(!failed.includes('Nenhuma notícia cadastrada'));
+    for (const text of ['Notícia recebida', 'Autoria recebida', '2026-10-30', 'Aviso recebido', '200 avisos no site']) {
       assert.ok(!failed.includes(text), text);
     }
   });
@@ -4649,7 +4763,7 @@ describe('Interface componentizada da Visão Geral', () => {
       '/admin/galeria', '/admin/faq', '/admin/institucional', '/admin/redes', '/admin/usuarios']) {
       assert.ok(html.includes('href="' + href + '"'), href);
     }
-    assert.ok(/<button[^>]*disabled=""[^>]*><span>Abrir Fila de Aprovação<\/span>/.test(html));
+    assert.ok(/<button[^>]*disabled=""[^>]*><span>Abrir Aprovações<\/span>/.test(html));
     assert.equal(SECTION_CONFIG.estadosCidades.href, '/admin/estados-cidades');
     assert.ok(html.includes('target="_blank"'));
     assert.ok(html.includes('rel="noopener noreferrer"'));
@@ -4664,9 +4778,11 @@ describe('Interface componentizada da Visão Geral', () => {
     });
     function activateButtons(node: ReactNode) {
       if (Array.isArray(node)) { node.forEach(activateButtons); return; }
-      if (!isValidElement<{ children?: ReactNode; disabled?: boolean; onClick?: () => void }>(node)) return;
+      if (!isValidElement<{ children?: ReactNode; actions?: ReactNode; action?: ReactNode; disabled?: boolean; onClick?: () => void }>(node)) return;
       if (node.type === 'button' && !node.props.disabled) node.props.onClick?.();
       activateButtons(node.props.children);
+      activateButtons(node.props.actions);
+      activateButtons(node.props.action);
     }
     activateButtons(AdminOverview(input));
     activateButtons(OverviewStats({ indicators: input.indicators, onOpenNews: input.onOpenNews }));
@@ -4720,7 +4836,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
       const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'overview-test' };
       const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminDashboardPage)));
       assert.ok(html.includes('Autenticando e carregando painel de gestão...'));
-      assert.ok(!html.includes('Painel do Gestor • Central Executiva CMS'));
+      assert.ok(!html.includes('O que você deseja gerenciar agora?'));
       assert.equal(requests, 0);
     } finally { globalThis.fetch = originalFetch; }
   });
@@ -4771,7 +4887,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
     } finally { globalThis.fetch = originalFetch; }
   });
 
-  it('abre o dashboard autenticado sem dados locais e preserva os onze destinos e a autorização do Kanban', () => {
+  it('abre o dashboard autenticado sem dados locais e mantém os destinos do menu e a autorização da Fila', () => {
     const originalState = React.useState;
     const originalFetch = globalThis.fetch;
     let requests = 0;
@@ -4794,8 +4910,9 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
         function CapturePage() { page = AdminDashboardPage(); return page; }
         try {
           const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(CapturePage)));
-          assert.ok(html.includes('Painel do Gestor • Central Executiva CMS'));
-          assert.ok(html.includes('Carregando API...'));
+          assert.ok(html.includes('Olá, Sessão confirmada'));
+          assert.ok(html.includes('Carregando...'));
+          assert.ok(!html.includes('Central Executiva') && !html.includes('API Rails'));
           assert.ok(html.includes('Indisponível nesta sessão'));
           assert.ok(!html.includes('Autenticando e carregando painel de gestão...'));
           type NavigationProps = { children?: ReactNode; folder?: { items: { section: string; badge?: number; visible: boolean }[] };
@@ -4818,9 +4935,10 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           }
           visit(page);
           assert.equal(overviewFound, true);
-          const expected = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/faq/publico', '/admin/avisos', '/admin/banners',
-            '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
-          if (editorialProfile === 'Administrador') expected.push('/admin/kanban');
+          const expected = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico',
+            '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+          // Sem a Fila, Aprovações leva direto à aprovação de projetos.
+          expected.push(editorialProfile === 'Administrador' ? '/admin/kanban' : '/admin/projetos/aprovacao');
           assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
         } finally { stateMock.mock.restore(); }
       }
@@ -5061,7 +5179,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           ...getOverviewHighlights(state), canAccessKanban: false,
           onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
         }));
-        assert.ok(html.includes('Painel do Gestor • Central Executiva CMS'));
+        assert.ok(html.includes('O que você deseja gerenciar agora?'));
         assert.ok(html.includes('Indisponível nesta sessão'));
         assert.ok(html.includes('href="/admin/usuarios"'));
         assert.ok(!html.includes('>0</p>'));
@@ -5278,7 +5396,7 @@ describe('Subrota administrativa de Projetos', () => {
       assert.ok(!html.includes('Conteúdo protegido'));
       assert.equal(requests, 0);
       assert.equal(SECTION_CONFIG.projetos.href, '/admin/projetos');
-      assert.equal(getFolderIdForSection('projetos'), 'publicacoes');
+      assert.equal(getFolderIdForSection('projetos'), 'conteudo');
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -5318,7 +5436,7 @@ describe('Subrota administrativa de FAQ', () => {
       assert.ok(!html.includes('Dúvidas Cadastradas'));
       assert.equal(requests, 0);
       assert.equal(SECTION_CONFIG.duvidas.href, '/admin/faq');
-      assert.equal(getFolderIdForSection('duvidas'), 'publicacoes');
+      assert.equal(getFolderIdForSection('duvidas'), 'conteudo');
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -5456,7 +5574,7 @@ describe('Autorização da subrota de usuários', () => {
 
   it('direciona usuários para a subrota e mantém seu agrupamento no shell', () => {
     assert.equal(SECTION_CONFIG.usuarios.href, '/admin/usuarios');
-    assert.equal(getFolderIdForSection('usuarios'), 'usuarios');
+    assert.equal(getFolderIdForSection('usuarios'), 'configuracoes');
   });
 });
 
@@ -8004,7 +8122,7 @@ describe('Visitantes C3 — interface administrativa', () => {
     assert.equal(page.type, AdminShell); assert.equal(page.props.activeSection, 'duvidasPublico');
     assert.equal(page.props.children().type, DuvidasVisitanteModule);
     assert.equal(SHARED_SECTION_CONFIG.duvidasPublico.href, '/admin/faq/publico');
-    assert.equal(getFolderIdForSection('duvidasPublico'), 'publicacoes');
+    assert.equal(getFolderIdForSection('duvidasPublico'), 'atendimento');
     assert.match(readFileSync('src/components/admin/AdminShell.tsx', 'utf8'), /activeSection === 'duvidas' \|\| activeSection === 'duvidasPublico'\s*\? canAccessFaqs/);
     const workspace = AdminFaqSubroutePage().props.children();
     const html = renderToStaticMarkup(workspace); assert.match(html, />Categorias</); assert.doesNotMatch(html, />Visitantes</);
@@ -9357,10 +9475,9 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
       const html = renderOverviewFromState(state);
       assert.ok(html.includes('>42</p>'));
       assert.ok(html.includes('30 publicadas · 9 aguardando'));
-      assert.ok(html.includes('Registros sincronizados com a API Rails'));
+      assert.ok(!html.includes('API Rails'));
       assert.ok(html.includes('42 dúvidas'));
       assert.ok(html.includes('30 publicadas · 9 aguardando aprovação'));
-      assert.ok(html.includes('42 registros no catálogo oficial'));
       assert.ok(html.includes('href="/admin/faq"'));
       assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 0);
     } finally {
@@ -9427,8 +9544,8 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
         assert.equal(metrics.totalAvisos, 14);
 
         const html = renderOverviewFromState(state);
-        assert.ok(html.includes(`Falha ao consultar /d_duvidas · ${expectedMessage}`));
-        assert.ok(html.includes(`Falha de comunicação com a API (${expectedMessage})`));
+        assert.ok(html.includes(expectedMessage));
+        assert.ok(html.includes(`Não foi possível carregar agora (${expectedMessage})`));
         assert.ok(!html.includes('0 publicadas · 0 aguardando'));
         assert.ok(!html.includes('Nenhuma dúvida cadastrada'));
         assert.ok(!html.includes('0 dúvidas'));
@@ -9473,8 +9590,8 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
         assert.equal(metrics.apiFaqsPublishedCount, null);
 
         const html = renderOverviewFromState(state);
-        assert.ok(html.includes(`Falha ao consultar /d_duvidas · ${scenario.expectedError}`));
-        assert.ok(html.includes(`Falha de comunicação com a API (${scenario.expectedError})`));
+        assert.ok(html.includes(scenario.expectedError));
+        assert.ok(html.includes(`Não foi possível carregar agora (${scenario.expectedError})`));
         assert.ok(!html.includes('Nenhuma dúvida cadastrada'));
         assert.ok(!html.includes('0 dúvidas'));
       } finally {
@@ -11806,9 +11923,9 @@ describe('Projetos — Início do painel', () => {
     const ok = render({ total: 9, pending: 2, published: 1, error: null });
     assert.match(ok, /9 projetos/); assert.match(ok, /1 publicado · 2 aguardando/);
     for (const old of ['trilhas temáticas', 'guias de rep', 'Prática em destaque', 'Projetos e municípios aguardam']) assert.ok(!ok.includes(old), old);
-    assert.match(render({ total: null, pending: null, published: null, error: null }), /Carregando API/);
-    assert.match(render({ total: null, pending: null, published: null, error: 'Falhou' }), /Falha ao consultar \/pj_projetos · Falhou/);
-    assert.match(render(), /Entre com CPF para consultar a API/);
+    assert.match(render({ total: null, pending: null, published: null, error: null }), /Carregando\.\.\./);
+    assert.match(render({ total: null, pending: null, published: null, error: 'Falhou' }), /Indisponível[\s\S]*Falhou/);
+    assert.match(render(), /Entre com seu CPF para ver este número/);
   });
 });
 
@@ -11875,7 +11992,7 @@ describe('Projetos — página de aprovação', () => {
   it('a subrota usa o painel e está no menu e nas abas, com contador', () => {
     assert.equal(AdminProjetosAprovacaoPage().type, ProjetosAprovacaoPanel);
     assert.equal(SHARED_SECTION_CONFIG.projetosAprovacao.href, '/admin/projetos/aprovacao');
-    assert.equal(getFolderIdForSection('projetosAprovacao'), 'publicacoes');
+    assert.equal(getFolderIdForSection('projetosAprovacao'), 'atendimento');
     assert.ok(ADMIN_SUBROUTE_GROUPS.find(group => group.label === 'Seções de projetos')!.items.some(item => item.section === 'projetosAprovacao'));
     const access = { noticias: false, projetos: true, duvidas: false, avisos: false, fotos: false, galeria: false, professores: false, alunos: false, kanban: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false };
     const item = buildAdminMenu(access, { projetosAprovacao: 3 }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!;
@@ -12424,7 +12541,7 @@ describe('Professores e conquistas — integração com a API', () => {
     ] as const) {
       assert.equal(page.type, AdminShell);
       assert.equal(page.props.activeSection, section);
-      assert.equal(getFolderIdForSection(section), 'publicacoes');
+      assert.equal(getFolderIdForSection(section), 'conteudo');
       const html = renderToStaticMarkup(page.props.children());
       assert.match(html, new RegExp(label));
       assert.doesNotMatch(html, /fictíci|LGPD verificad|Termo LGPD|aria-pressed/i);
@@ -12445,13 +12562,12 @@ describe('Professores e conquistas — integração com a API', () => {
       noticias: false, projetos: false, duvidas: false, avisos: false, fotos: false, galeria: false, professores: true,
       alunos: false, kanban: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false,
     };
-    const folders = buildAdminMenu(access, { professoresRelatos: 3 });
-    assert.deepEqual(folders.map(folder => [folder.id, folder.visible]), [['publicacoes', true], ['aprovacao', false], ['dados', false], ['usuarios', false]]);
+    const folders = buildAdminMenu(access, { professores: 3 });
+    assert.deepEqual(folders.map(folder => [folder.id, folder.visible]), [['conteudo', true], ['atendimento', false], ['configuracoes', false]]);
     const items = folders.flatMap(folder => folder.items);
-    assert.deepEqual(items.filter(item => item.visible).map(item => item.section), ['professores', 'professoresDisciplinas', 'professoresRelatos']);
-    assert.equal(items.find(item => item.section === 'professoresRelatos')?.badge, 3);
-    assert.deepEqual(items.map(item => [item.section, item.href]), [...SECTION_HREFS].sort((a, b) =>
-      items.findIndex(item => item.section === a[0]) - items.findIndex(item => item.section === b[0])));
+    assert.deepEqual(items.filter(item => item.visible).map(item => item.section), ['professores']);
+    assert.equal(items.find(item => item.section === 'professores')?.badge, 3);
+    for (const item of items) assert.equal(item.href, SECTION_HREFS.get(item.section), item.section);
     for (const source of ['src/components/admin/AdminShell.tsx', 'src/app/admin/page.tsx']) {
       const code = readFileSync(source, 'utf8');
       assert.match(code, /buildAdminMenu\(/, source);
@@ -12643,8 +12759,8 @@ describe('Professores e conquistas — integração com a API', () => {
       await view.act(settle);
       assert.equal(view.html(), '<output>3</output>');
     } finally { await view.restore(); }
-    assert.match(readFileSync('src/components/admin/AdminShell.tsx', 'utf8'), /professoresRelatos: relatosPendentes \|\| undefined/);
-    assert.match(readFileSync('src/app/admin/page.tsx', 'utf8'), /professoresRelatos: relatosPendentes \|\| undefined/);
+    assert.match(readFileSync('src/components/admin/AdminShell.tsx', 'utf8'), /professores: relatosPendentes \|\| undefined/);
+    assert.match(readFileSync('src/app/admin/page.tsx', 'utf8'), /professores: relatosPendentes \|\| undefined/);
   });
 
   it('município só filtra escolas e não é enviado na conquista; 403 usa a mensagem do projeto', async () => {
