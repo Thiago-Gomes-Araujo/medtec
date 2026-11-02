@@ -70,7 +70,8 @@ import PublicDuvidasPage from '../src/app/duvidas/page';
 import FaqSection from '../src/components/FaqSection';
 import DuvidaCategoriesManager from '../src/components/admin/DuvidaCategoriesManager';
 import type { DCategoriaDuvida, DDuvida, DDuvidaInput } from '../src/lib/api/types';
-import type { DDuvidaVisitante, PjProjetoInput } from '../src/lib/api/types';
+import type { DDuvidaVisitante, PjProjetoInput, PjProjetoMembro } from '../src/lib/api/types';
+import { diffProjetoMembros, formatCpf, formatFileSize, getProjetoImageSrc, hasMembroDuplicado, isValidCpf, maskCpf, PROJETO_ANEXO_MAX_BYTES, validateProjetoAnexo } from '../src/lib/projetos-content';
 import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput } from '../src/lib/api/types';
 import ProjectsModule, { type ProjectViewMode } from '../src/components/admin/ProjectsModule';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
@@ -11240,6 +11241,58 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
         state.mock.restore();
       }
     }
+  });
+});
+
+describe('Projetos — regras do formulário', () => {
+  const vinculo = (id: number, pj_membro_id: number, funcao: string): PjProjetoMembro => ({ id, pj_membro_id, nome: 'Nome ' + pj_membro_id, cpf: '01251667708', funcao });
+  const draft = (pj_membro_id: number, funcao: string) => ({ pj_membro_id, nome: 'Nome ' + pj_membro_id, cpf: '01251667708', funcao });
+
+  it('diff envia novo, troca de função por id do vínculo e _destroy, omitindo o que não mudou', () => {
+    const originais = [vinculo(5, 1, 'Mediadora'), vinculo(6, 2, 'Aluno'), vinculo(7, 3, 'Coordenador')];
+    assert.deepEqual(diffProjetoMembros(originais, [draft(1, 'Mediadora'), draft(2, ' Aluna '), draft(4, 'Convidada')]), [
+      { id: 6, funcao: 'Aluna' }, { pj_membro_id: 4, funcao: 'Convidada' }, { id: 7, _destroy: true },
+    ]);
+  });
+  it('diff de cadastro novo só traz vínculos novos e edição sem mudança não envia nada', () => {
+    assert.deepEqual(diffProjetoMembros([], [draft(1, 'Aluna')]), [{ pj_membro_id: 1, funcao: 'Aluna' }]);
+    assert.deepEqual(diffProjetoMembros([vinculo(5, 1, 'Aluna')], [draft(1, 'Aluna')]), []);
+  });
+  it('membro que sai e volta na mesma edição mantém o vínculo, sem _destroy nem novo cadastro', () => {
+    assert.deepEqual(diffProjetoMembros([vinculo(5, 1, 'Aluna')], [draft(1, 'Monitora')]), [{ id: 5, funcao: 'Monitora' }]);
+  });
+  it('detecta membro duplicado', () => {
+    assert.equal(hasMembroDuplicado([draft(1, 'A'), draft(2, 'B')]), false);
+    assert.equal(hasMembroDuplicado([draft(1, 'A'), draft(1, 'B')]), true);
+  });
+  it('valida CPF pelos dígitos verificadores, com ou sem máscara', () => {
+    for (const valid of ['01251667708', '012.516.677-08', '529.982.247-25']) assert.equal(isValidCpf(valid), true, valid);
+    for (const invalid of ['', '123', '11111111111', '01251667709', '012.516.677-00', '0125166770800']) assert.equal(isValidCpf(invalid), false, invalid);
+  });
+  it('formata a digitação e mascara a listagem sem expor o CPF inteiro', () => {
+    assert.equal(formatCpf('01251667708'), '012.516.677-08'); assert.equal(formatCpf('0125'), '012.5'); assert.equal(formatCpf('0125166'), '012.516.6');
+    assert.equal(formatCpf('0125166770899'), '012.516.677-08');
+    assert.equal(maskCpf('01251667708'), '***.516.677-**'); assert.equal(maskCpf('012.516.677-08'), '***.516.677-**'); assert.equal(maskCpf('123'), '***');
+  });
+  it('anexo aceita PDF, Office e imagens até 10 MB e recusa o restante', () => {
+    const file = (name: string, type: string, size = 10) => { const value = new File(['x'], name, { type }); Object.defineProperty(value, 'size', { value: size }); return value; };
+    for (const [name, type] of [['a.pdf', 'application/pdf'], ['a.doc', 'application/msword'], ['a.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      ['a.xls', 'application/vnd.ms-excel'], ['a.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'], ['a.ppt', 'application/vnd.ms-powerpoint'],
+      ['a.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'], ['a.png', 'image/png'], ['a.jpg', 'image/jpeg'], ['a.webp', 'image/webp'], ['a.docx', '']]) {
+      assert.equal(validateProjetoAnexo(file(name, type)), null, name + type);
+    }
+    for (const [name, type] of [['a.txt', 'text/plain'], ['a.svg', 'image/svg+xml'], ['a.exe', ''], ['a.pdf', 'application/x-msdownload']]) {
+      assert.match(validateProjetoAnexo(file(name, type)) ?? '', /deve ser PDF/, name + type);
+    }
+    assert.equal(validateProjetoAnexo(file('a.pdf', 'application/pdf', PROJETO_ANEXO_MAX_BYTES)), null);
+    assert.match(validateProjetoAnexo(file('a.pdf', 'application/pdf', PROJETO_ANEXO_MAX_BYTES + 1)) ?? '', /até 10 MB/);
+  });
+  it('capa usa o link quando existe e o tamanho do arquivo sai legível', () => {
+    assert.equal(getProjetoImageSrc({ imagem: null, imagem_url: 'https://x.com/a.jpg' }), 'https://x.com/a.jpg');
+    assert.equal(getProjetoImageSrc({ imagem: '/a.png', imagem_url: 'https://x.com/a.jpg' }), 'https://x.com/a.jpg');
+    assert.match(getProjetoImageSrc({ imagem: '/rails/a.png', imagem_url: '' }), /\/rails\/a\.png$/);
+    assert.equal(getProjetoImageSrc({ imagem: null, imagem_url: null }), '');
+    assert.equal(formatFileSize(52344), '51 KB'); assert.equal(formatFileSize(300), '1 KB'); assert.equal(formatFileSize(2_621_440), '2,5 MB');
   });
 });
 
