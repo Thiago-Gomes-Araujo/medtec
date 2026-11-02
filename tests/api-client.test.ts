@@ -75,13 +75,14 @@ import type { DCategoriaDuvida, DDuvida, DDuvidaInput } from '../src/lib/api/typ
 import type { DDuvidaVisitante, PjProjetoInput, PjProjetoMembro } from '../src/lib/api/types';
 import { diffProjetoMembros, formatCpf, formatFileSize, getProjetoImageSrc, hasMembroDuplicado, isValidCpf, maskCpf, PROJETO_ANEXO_MAX_BYTES, validateProjetoAnexo } from '../src/lib/projetos-content';
 import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput } from '../src/lib/api/types';
-import ProjectsModule, { type ProjectViewMode } from '../src/components/admin/ProjectsModule';
+import ProjetosPanel from '../src/components/admin/ProjetosPanel';
+import ProjetoMembrosEditor from '../src/components/admin/ProjetoMembrosEditor';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
 import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
 import { useAdminTheme } from '../src/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '../src/lib/admin-navigation-filter';
-import type { BannerItem, FaqItem, NewsItem, ProjectMission } from '../src/types';
+import type { BannerItem, FaqItem, NewsItem } from '../src/types';
 
 import {
   buildQueryString,
@@ -100,7 +101,7 @@ import {
 } from '../src/lib/api/tokens';
 import { medtecApi } from '../src/lib/api/index';
 import { getLegacyFaqHref, readAdminFaqs } from '../src/lib/admin-faq';
-import { getLegacyProjectsHref, readAdminProjects } from '../src/lib/admin-projects';
+import { getLegacyProjectsHref } from '../src/lib/admin-projects';
 import { getLegacyBannersHref, readAdminBanners, readBannerNews, readBannerGallery, prepareLocalBannerPreview,
   type AdminBannersData, type BannerNewsCover, type BannerGalleryPhoto } from '../src/lib/admin-banners';
 import AdminLiveSimulator from '../src/components/AdminLiveSimulator';
@@ -5791,123 +5792,6 @@ describe('Subrota administrativa de Projetos', () => {
     assert.equal(getLegacyProjectsHref(new URLSearchParams()), null);
     assert.equal(getLegacyProjectsHref(new URLSearchParams('tab=noticias&section=projetos')), null);
   });
-
-  it('extrai somente projetos da fonte administrativa com um GET cancelável', async () => {
-    const originalFetch = globalThis.fetch;
-    const controller = new AbortController();
-    // Sem reconstruir o contrato de registro: a coleção deve ser preservada pela leitura.
-    const records = [{ id: 'project-test', title: 'Projeto recebido' }];
-    let requests = 0;
-    globalThis.fetch = async (url, options) => {
-      requests += 1;
-      assert.equal(url, '/api/data');
-      assert.equal(options?.method, 'GET');
-      assert.equal(options?.signal, controller.signal);
-      return new Response(JSON.stringify({ projects: records, faqs: [], siteInfo: {} }), { status: 200 });
-    };
-    try {
-      assert.deepEqual(await readAdminProjects(controller.signal), records);
-      assert.equal(requests, 1);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-
-  it('aceita uma lista vazia confirmada sem usar a coleção pública como fallback', async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => new Response(JSON.stringify({ projects: [] }), { status: 200 });
-    try {
-      assert.deepEqual(await readAdminProjects(), []);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-
-  it('não transforma erros HTTP ou de rede em sucesso vazio', async () => {
-    const originalFetch = globalThis.fetch;
-    try {
-      for (const status of [401, 403, 500]) {
-        globalThis.fetch = async () => new Response(null, { status });
-        await assert.rejects(readAdminProjects(), new RegExp(`HTTP ${status}`));
-      }
-      globalThis.fetch = async () => { throw new Error('Failed to fetch'); };
-      await assert.rejects(readAdminProjects(), /Failed to fetch/);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-
-  it('rejeita JSON inválido ou coleção ausente, sem fallback silencioso', async () => {
-    const originalFetch = globalThis.fetch;
-    try {
-      for (const payload of ['não é JSON', '{}', '{"items":[]}', '{"projects":null}']) {
-        globalThis.fetch = async () => new Response(payload, { status: 200 });
-        await assert.rejects(readAdminProjects(), /Resposta inválida/);
-      }
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-});
-
-describe('Módulo administrativo de Projetos', () => {
-  function renderProjects(projects: ProjectMission[] = [], viewMode: ProjectViewMode = 'lista') {
-    return renderToStaticMarkup(createElement(ProjectsModule, {
-      projects, viewMode, onViewModeChange: () => {},
-    }));
-  }
-
-  it('exibe lista vazia e bloqueio de persistência sem inserir projetos substitutos', () => {
-    const html = renderProjects();
-    assert.ok(html.includes('Projetos Cadastrados (0)'));
-    assert.ok(html.includes('Nenhum projeto encontrado com os filtros atuais'));
-    assert.ok(html.includes('criação, edição e exclusão de projetos pedagógicos'));
-    assert.ok(html.includes('desabilitadas aguardando suporte oficial do backend Rails'));
-  });
-
-  it('renderiza os projetos recebidos com identificação, escola e ações existentes', () => {
-    const project: ProjectMission = {
-      id: 'project-test', number: '09', missionCode: 'Projeto 09', title: 'Projeto recebido',
-      shortTitle: 'Título curto recebido', track: 'Ciência na Amazônia',
-      territory: 'Território de teste', typology: 'Tipologia de teste', municipality: 'Município de teste',
-      school: 'Escola de teste', mediatorName: 'Docente de teste', mediatorRole: 'Docente',
-      mediatorInitials: 'DT', studentCohort: 'Turma de teste', seal: 'Selo de teste',
-      image: '/hero.jpg', initialApplause: 0,
-      desafioLocal: { title: 'Desafio de teste', description: '' },
-      praticaMedtec: { title: 'Prática de teste', description: '' },
-      impactoGerado: { title: '', metric: '', description: '' },
-      competencias: ['Competência de teste'], quote: '',
-      replicationGuide: { materials: [], timeline: [], pedagogicalTip: '' },
-    };
-    const html = renderProjects([project]);
-    for (const text of ['Projetos Cadastrados (1)', 'Projeto recebido', 'Escola de teste', 'Município de teste', 'Docente de teste', 'Competência de teste']) {
-      assert.ok(html.includes(text));
-    }
-    assert.ok(html.includes('Editar dados da missão'));
-    assert.ok(html.includes('Excluir projeto'));
-    assert.ok(html.includes('href="/projetos"'));
-    assert.ok(!html.includes('Nenhum projeto encontrado'));
-  });
-
-  it('mantém formulário, upload e prévia sem habilitar a gravação de projetos', () => {
-    const originalFetch = globalThis.fetch;
-    let requests = 0;
-    globalThis.fetch = async () => {
-      requests += 1;
-      throw new Error('Renderizar o editor não deve iniciar uploads ou gravações.');
-    };
-    try {
-      const html = renderProjects([], 'editor');
-      assert.ok(/<button[^>]*type="submit"[^>]*disabled=""/.test(html));
-      assert.ok(html.includes('Aguardando Endpoint da API'));
-      assert.ok(html.includes('type="file"'));
-      assert.ok(html.includes('Simulação no Portal Público'));
-      assert.ok(html.includes('Integração com Backend Pendente'));
-      assert.equal(requests, 0);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
 });
 
 describe('Subrota administrativa de FAQ', () => {
@@ -11374,6 +11258,323 @@ describe('Projetos — membros no painel', () => {
       await view.click('Confirmar exclusão');
       await view.act(settle);
       assert.match(view.html(), /Não foi possível excluir/);
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Projetos — painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: 10 } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const tema = { id: 2, nome: 'Ciência', slug: 'ciencia', ativo: true };
+  const escola = { id: 3, nome: 'EEEFM Bolívar', inep: null, g_cidade_id: 4, cidade_nome: 'Porto Velho' };
+  const membro = { id: 1, nome: 'Maria Ribeiro', cpf: '01251667708' };
+  const anexo = { id: 10, nome: 'relatorio.pdf', tipo: 'application/pdf', tamanho: 52344, url: '/rails/relatorio.pdf' };
+  const projeto = {
+    id: 7, titulo: 'Hortas em Jirau', relato: 'Relato', pj_tema_id: 2, tema_nome: 'Ciência', escola_id: 3, escola_nome: escola.nome, cidade_nome: 'Porto Velho',
+    imagem: null, imagem_url: 'https://x.com/capa.jpg', anexos: [anexo], membros: [{ id: 5, pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }],
+    status: 'aguardando', status_nome: 'Aguardando', autor_nome: 'Gestora', avaliado_por_nome: null,
+  };
+  const publicado = { ...projeto, status: 'publicada', status_nome: 'Publicada' };
+  const files = (...values: File[]) => ({ target: { files: values, value: 'x' } });
+  function mount(props: Parameters<typeof ProjetosPanel>[0] = {}, write: (url: URL, options: RequestInit) => Response = () => reply(publicado, 201)) {
+    return mountCategories(async (url, options) => {
+      if (options.method && options.method !== 'GET') return write(url, options);
+      if (url.pathname.endsWith('/pj_temas')) return list([tema]);
+      if (url.pathname.endsWith('/pj_membros')) return list([membro]);
+      if (url.pathname.endsWith('/escolas')) return list([escola]);
+      if (/\/pj_projetos\/\d+$/.test(url.pathname)) return reply(projeto);
+      return list([projeto]);
+    }, false, { component: () => ProjetosPanel(props), allowedPaths: /\/(pj_temas|pj_membros|escolas|pj_projetos(\/\d+(\/(publicar|reprovar|despublicar)|\/anexos\/\d+)?)?)$/ });
+  }
+  type View = Awaited<ReturnType<typeof mount>>;
+  const pick = (view: View, name: string, event: unknown) => view.act(() => {
+    const node = view.nodes().find(item => item.type === 'input' && item.props.name === name);
+    assert.ok(node, name);
+    return Reflect.apply(node.props.onChange as (value: unknown) => unknown, undefined, [event]);
+  });
+  async function fillBase(view: View) {
+    await view.change('projeto-titulo', ' Hortas ');
+    await view.change('projeto-relato', ' Relato ');
+    await view.change('projeto-tema', '2');
+    await view.change('projeto-escola', '3');
+  }
+  const sentBy = (view: View, method: string) => view.calls.filter(call => call.options.method === method);
+
+  it('filtros do contrato chegam à API e voltam à primeira página', async () => {
+    const view = await mount({ membroId: '1' });
+    try {
+      await view.act(settle);
+      const projetos = () => view.calls.filter(call => call.url.pathname.endsWith('/pj_projetos')).at(-1)!.url.searchParams;
+      assert.equal(projetos().get('q[pj_membros_id_eq]'), '1', 'Atalho da tela de membros');
+      await view.change('projeto-busca-titulo', ' Hortas ');
+      await view.submit('Filtrar projetos');
+      await view.change('projeto-filtro-tema', '2');
+      await view.change('projeto-filtro-cidade', '4');
+      await view.act(settle);
+      await view.change('projeto-filtro-escola', '3');
+      await view.change('projeto-filtro-status', 'aguardando');
+      await view.act(settle);
+      assert.equal(projetos().get('q[titulo_cont]'), 'Hortas'); assert.equal(projetos().get('q[pj_tema_id_eq]'), '2');
+      assert.equal(projetos().get('q[escola_g_cidade_id_eq]'), '4'); assert.equal(projetos().get('q[escola_id_eq]'), '3');
+      assert.equal(projetos().get('q[n_status_noticia_slug_eq]'), 'aguardando'); assert.equal(projetos().get('page'), '1');
+    } finally { await view.restore(); }
+  });
+  it('a listagem não expõe o CPF dos membros', async () => {
+    const view = await mount();
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /Hortas em Jirau/); assert.match(view.html(), /1 membro/);
+      assert.doesNotMatch(view.html(), /01251667708|012\.516\.677-08/);
+    } finally { await view.restore(); }
+  });
+  it('sem arquivo cria em JSON e informa a situação devolvida pela API', async () => {
+    const view = await mount({ startNew: true });
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /publicam no site ao salvar/);
+      await view.submit('Criar projeto');
+      assert.match(view.html(), /Informe título, relato, tema e escola/); assert.equal(sentBy(view, 'POST').length, 0);
+      await fillBase(view);
+      await view.submit('Criar projeto');
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(sentBy(view, 'POST')[0].options.body)), { pj_projeto: { titulo: 'Hortas', pj_tema_id: 2, relato: 'Relato', escola_id: 3 } });
+      assert.match(view.html(), /Projeto salvo\. Situação: Publicada\./);
+    } finally { await view.restore(); }
+  });
+  it('capa aceita link só com HTTPS', async () => {
+    const view = await mount({ startNew: true });
+    try {
+      await view.act(settle);
+      await fillBase(view);
+      const modoLink = view.nodes().find(item => item.props.name === 'projeto-imagem-modo' && item.props.value === 'link');
+      await view.act(() => Reflect.apply(modoLink!.props.onChange as () => unknown, undefined, []));
+      await view.change('projeto-imagem-url', 'http://x.com/capa.jpg');
+      await view.submit('Criar projeto');
+      assert.match(view.html(), /link HTTPS válido/); assert.equal(sentBy(view, 'POST').length, 0);
+      await view.change('projeto-imagem-url', 'https://x.com/capa.jpg');
+      await view.submit('Criar projeto');
+      await view.act(settle);
+      assert.equal(JSON.parse(String(sentBy(view, 'POST')[0].options.body)).pj_projeto.imagem_url, 'https://x.com/capa.jpg');
+    } finally { await view.restore(); }
+  });
+  it('recusa capa e anexos fora das regras e envia os válidos em multipart', async () => {
+    const view = await mount({ startNew: true });
+    try {
+      await view.act(settle);
+      await fillBase(view);
+      const pesada = new File(['x'], 'capa.png', { type: 'image/png' }); Object.defineProperty(pesada, 'size', { value: 5 * 1024 * 1024 + 1 });
+      await pick(view, 'projeto-imagem', files(pesada));
+      assert.match(view.html(), /até 5 MB/);
+      await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.gif', { type: 'image/gif' })));
+      assert.match(view.html(), /PNG, JPG ou WEBP/);
+      const capa = new File(['x'], 'capa.webp', { type: 'image/webp' });
+      await pick(view, 'projeto-imagem', files(capa));
+      const pdf = new File(['x'], 'a.pdf', { type: 'application/pdf' }); const foto = new File(['y'], 'b.jpg', { type: 'image/jpeg' });
+      await pick(view, 'projeto-anexos', files(pdf, new File(['x'], 'c.txt', { type: 'text/plain' }), foto));
+      assert.match(view.html(), /c\.txt: deve ser PDF/);
+      await pick(view, 'projeto-anexos', files(pdf));
+      assert.equal((view.html().match(/Retirar a\.pdf/g) ?? []).length, 1, 'O mesmo arquivo não entra duas vezes');
+      await view.submit('Criar projeto');
+      await view.act(settle);
+      const form = sentBy(view, 'POST')[0].options.body as FormData;
+      assert.ok(form instanceof FormData); assert.equal((form.get('pj_projeto[imagem]') as File).name, 'capa.webp');
+      assert.deepEqual(form.getAll('pj_projeto[anexos][]').map(item => (item as File).name), ['a.pdf', 'b.jpg']);
+    } finally { await view.restore(); }
+  });
+  it('edição envia só a diferença dos membros e soma os anexos novos', async () => {
+    const view = await mount({}, () => reply(projeto));
+    try {
+      await view.act(settle);
+      await view.click('Editar Hortas em Jirau');
+      await view.act(settle);
+      assert.doesNotMatch(view.html(), /publicam no site ao salvar/);
+      const editor = () => view.nodes().find(item => item.type === ProjetoMembrosEditor)!;
+      const atuais = editor().props.value as { pj_membro_id: number; nome: string; cpf: string; funcao: string }[];
+      await view.act(() => (editor().props.onChange as (next: unknown) => void)([{ ...atuais[0], funcao: 'Coordenadora' }, { pj_membro_id: 9, nome: 'João', cpf: '52998224725', funcao: 'Aluno' }]));
+      await pick(view, 'projeto-anexos', files(new File(['x'], 'novo.pdf', { type: 'application/pdf' })));
+      await view.submit('Editar projeto');
+      await view.act(settle);
+      const form = sentBy(view, 'PATCH')[0].options.body as FormData;
+      assert.ok(sentBy(view, 'PATCH')[0].url.pathname.endsWith('/pj_projetos/7'));
+      assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][0][id]'), '5');
+      assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][0][funcao]'), 'Coordenadora');
+      assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][1][pj_membro_id]'), '9');
+      assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][1][funcao]'), 'Aluno');
+      assert.deepEqual(form.getAll('pj_projeto[anexos][]').map(item => (item as File).name), ['novo.pdf']);
+      assert.equal(form.get('pj_projeto[imagem_url]'), null, 'Sem troca de capa, o link não é reenviado');
+    } finally { await view.restore(); }
+  });
+  it('tirar membro do projeto envia _destroy e não o exclui do cadastro', async () => {
+    const view = await mount({}, () => reply(projeto));
+    try {
+      await view.act(settle);
+      await view.click('Editar Hortas em Jirau');
+      await view.act(settle);
+      await view.act(() => (view.nodes().find(item => item.type === ProjetoMembrosEditor)!.props.onChange as (next: unknown) => void)([]));
+      await view.submit('Editar projeto');
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(sentBy(view, 'PATCH')[0].options.body)).pj_projeto.pj_projeto_membros_attributes, [{ id: 5, _destroy: true }]);
+      assert.ok(!view.calls.some(call => call.url.pathname.includes('/pj_membros/') && call.options.method === 'DELETE'));
+    } finally { await view.restore(); }
+  });
+  it('função em branco e membro repetido bloqueiam o envio', async () => {
+    const view = await mount({}, () => reply(projeto));
+    try {
+      await view.act(settle);
+      await view.click('Editar Hortas em Jirau');
+      await view.act(settle);
+      const editor = () => view.nodes().find(item => item.type === ProjetoMembrosEditor)!;
+      const atuais = editor().props.value as { funcao: string }[];
+      await view.act(() => (editor().props.onChange as (next: unknown) => void)([{ ...atuais[0], funcao: ' ' }]));
+      await view.submit('Editar projeto');
+      assert.match(view.html(), /Informe a função de cada membro/);
+      await view.act(() => (editor().props.onChange as (next: unknown) => void)([{ ...atuais[0], funcao: 'A' }, { ...atuais[0], funcao: 'B' }]));
+      await view.submit('Editar projeto');
+      assert.match(view.html(), /mesmo membro foi informado mais de uma vez/);
+      assert.equal(sentBy(view, 'PATCH').length, 0);
+    } finally { await view.restore(); }
+  });
+  it('anexo atual sai pela rota própria, depois de confirmar', async () => {
+    const view = await mount({}, () => reply(null, 204));
+    try {
+      await view.act(settle);
+      await view.click('Editar Hortas em Jirau');
+      await view.act(settle);
+      assert.match(view.html(), /relatorio\.pdf/);
+      await view.click('Remover anexo relatorio.pdf');
+      assert.equal(sentBy(view, 'DELETE').length, 0, 'Nada é removido antes da confirmação');
+      await view.click('Confirmar remoção');
+      await view.act(settle);
+      assert.ok(sentBy(view, 'DELETE')[0].url.pathname.endsWith('/pj_projetos/7/anexos/10'));
+      assert.match(view.html(), /Anexo relatorio\.pdf removido/);
+      assert.equal(view.nodes().some(item => item.props['aria-label'] === 'Anexos atuais'), false);
+    } finally { await view.restore(); }
+  });
+  it('trocar o link por arquivo limpa o link antigo', async () => {
+    const view = await mount({}, () => reply(projeto));
+    try {
+      await view.act(settle);
+      await view.click('Editar Hortas em Jirau');
+      await view.act(settle);
+      const modo = view.nodes().find(item => item.props.name === 'projeto-imagem-modo' && item.props.value === 'upload');
+      await view.act(() => Reflect.apply(modo!.props.onChange as () => unknown, undefined, []));
+      await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+      await view.submit('Editar projeto');
+      await view.act(settle);
+      const form = sentBy(view, 'PATCH')[0].options.body as FormData;
+      assert.equal(form.get('pj_projeto[imagem_url]'), ''); assert.equal((form.get('pj_projeto[imagem]') as File).name, 'capa.png');
+    } finally { await view.restore(); }
+  });
+  it('moderação segue o status: aguardando publica ou reprova, publicada despublica', async () => {
+    const view = await mount({}, () => reply(publicado));
+    try {
+      await view.act(settle);
+      assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Reprovar Hortas em Jirau'));
+      assert.ok(!view.nodes().some(item => item.props['aria-label'] === 'Despublicar Hortas em Jirau'));
+      await view.click('Publicar Hortas em Jirau');
+      await view.act(settle);
+      assert.ok(sentBy(view, 'PATCH')[0].url.pathname.endsWith('/pj_projetos/7/publicar'));
+      assert.match(view.html(), /Projeto publicado/);
+    } finally { await view.restore(); }
+    const live = await mountCategories(async (url, options) => options.method === 'PATCH' ? reply(projeto) : url.pathname.endsWith('/pj_projetos') ? list([publicado]) : list([]), false, {
+      component: () => ProjetosPanel(), allowedPaths: /\/(pj_temas|pj_membros|escolas|pj_projetos(\/\d+\/despublicar)?)$/,
+    });
+    try {
+      await live.act(settle);
+      assert.ok(!live.nodes().some(item => item.props['aria-label'] === 'Publicar Hortas em Jirau'));
+      assert.equal(live.nodes().find(item => item.props['aria-label'] === 'Ver Hortas em Jirau no site')?.props.href, '/projetos/7');
+      await live.click('Despublicar Hortas em Jirau');
+      await live.act(settle);
+      assert.ok(live.calls.some(call => call.url.pathname.endsWith('/pj_projetos/7/despublicar')));
+    } finally { await live.restore(); }
+  });
+  it('erro de validação da API aparece sem fechar o formulário', async () => {
+    const view = await mount({ startNew: true }, () => reply({ success: false, message: 'Erro de validação', errors: ['Anexos a.pdf: deve ter no máximo 10 MB'] }, 422));
+    try {
+      await view.act(settle);
+      await fillBase(view);
+      await view.submit('Criar projeto');
+      await view.act(settle);
+      assert.match(view.html(), /deve ter no máximo 10 MB/);
+      assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Criar projeto'));
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Projetos — membros no formulário', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: 1 } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const maria = { id: 1, nome: 'Maria Ribeiro', cpf: '01251667708' };
+  function mount(found: unknown[], initial: { pj_membro_id: number; nome: string; cpf: string; funcao: string }[] = []) {
+    const state = { value: initial };
+    const created = { id: 8, nome: 'João Lima', cpf: '52998224725' };
+    return mountCategories(async (_url, options) => options.method === 'POST' ? reply(created, 201) : list(found), false, {
+      component: () => ProjetoMembrosEditor({ value: state.value, onChange: next => { state.value = next; } }), allowedPaths: /\/pj_membros$/,
+    }).then(view => ({ view, state }));
+  }
+  it('CPF inválido não consulta a API', async () => {
+    const { view } = await mount([]);
+    try {
+      await view.change('membro-busca-cpf', '123');
+      await view.click('Buscar CPF');
+      assert.match(view.html(), /Informe um CPF válido/); assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
+  });
+  it('CPF cadastrado reutiliza o membro, sem novo POST', async () => {
+    const { view, state } = await mount([maria]);
+    try {
+      await view.change('membro-busca-cpf', '012.516.677-08');
+      await view.click('Buscar CPF');
+      await view.act(settle);
+      assert.equal(view.calls[0].url.searchParams.get('q[cpf_eq]'), '01251667708');
+      assert.match(view.html(), /Já cadastrado/);
+      await view.change('membro-nova-funcao', ' Mediadora ');
+      await view.click('Adicionar ao projeto');
+      await view.act(settle);
+      assert.deepEqual(state.value, [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
+      assert.ok(!view.calls.some(call => call.options.method === 'POST'));
+    } finally { await view.restore(); }
+  });
+  it('CPF sem cadastro cria o membro só com números e usa o id novo', async () => {
+    const { view, state } = await mount([]);
+    try {
+      await view.change('membro-busca-cpf', '529.982.247-25');
+      await view.click('Buscar CPF');
+      await view.act(settle);
+      await view.change('membro-nova-funcao', 'Aluno');
+      await view.click('Adicionar ao projeto');
+      assert.match(view.html(), /Informe o nome do membro/);
+      await view.change('membro-novo-nome', ' João Lima ');
+      await view.click('Adicionar ao projeto');
+      await view.act(settle);
+      const post = view.calls.find(call => call.options.method === 'POST')!;
+      assert.deepEqual(JSON.parse(String(post.options.body)), { pj_membro: { nome: 'João Lima', cpf: '52998224725' } });
+      assert.equal(state.value[0].pj_membro_id, 8);
+    } finally { await view.restore(); }
+  });
+  it('membro repetido é recusado e a linha mostra o CPF mascarado', async () => {
+    const { view } = await mount([maria], [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
+    try {
+      assert.match(view.html(), /\*\*\*\.516\.677-\*\*/); assert.doesNotMatch(view.html(), /01251667708/);
+      await view.change('membro-busca-cpf', '01251667708');
+      await view.click('Buscar CPF');
+      await view.act(settle);
+      assert.match(view.html(), /já está neste projeto/);
+      assert.doesNotMatch(view.html(), /Adicionar ao projeto/);
+    } finally { await view.restore(); }
+  });
+  it('função é obrigatória', async () => {
+    const { view, state } = await mount([maria]);
+    try {
+      await view.change('membro-busca-cpf', '01251667708');
+      await view.click('Buscar CPF');
+      await view.act(settle);
+      await view.click('Adicionar ao projeto');
+      assert.match(view.html(), /Informe a função do membro/); assert.equal(state.value.length, 0);
     } finally { await view.restore(); }
   });
 });
