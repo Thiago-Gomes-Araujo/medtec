@@ -100,7 +100,6 @@ export default function AdminLoginPage() {
                 alt="Mediação Tecnológica"
                 width={256}
                 height={256}
-                unoptimized
                 priority
                 className="w-full h-full object-contain"
               />
@@ -151,7 +150,6 @@ export default function AdminLoginPage() {
                 alt="Logo Painel Gestor MEDTEC"
                 width={256}
                 height={256}
-                unoptimized
                 priority
                 className="w-full h-full object-contain drop-shadow-sm"
               />

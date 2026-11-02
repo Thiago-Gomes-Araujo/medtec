@@ -1,14 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useCallback, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import AdminShell from '@/components/admin/AdminShell';
 import FaqModule from '@/components/admin/FaqModule';
 import DuvidaCategoriesManager from '@/components/admin/DuvidaCategoriesManager';
 import DuvidasVisitanteModule from '@/components/admin/DuvidasVisitanteModule';
+import VisitanteFaqDraftLoader from '@/components/admin/VisitanteFaqDraftLoader';
+import { SECTION_CONFIG } from '@/lib/admin-navigation';
+import type { DDuvidaVisitante } from '@/lib/api';
+
+type FaqSection = 'duvidas' | 'categorias' | 'visitantes';
+type FaqDraft = { pergunta: string };
+
+function VisitanteDraftFromUrl({ setDraft, setSection }: { setDraft: (draft: FaqDraft) => void; setSection: (section: FaqSection) => void }) {
+  const params = useSearchParams();
+  const onLoaded = useCallback((item: DDuvidaVisitante) => {
+    setDraft({ pergunta: item.descricao });
+    setSection('duvidas');
+    // Sem o id na URL, recarregar a página não reabre o formulário.
+    window.history.replaceState(null, '', SECTION_CONFIG.duvidas.href);
+  }, [setDraft, setSection]);
+  return <VisitanteFaqDraftLoader visitanteId={Number(params?.get('visitante'))} onLoaded={onLoaded} />;
+}
 
 function FaqWorkspace() {
-  const [section, setSection] = useState<'duvidas' | 'categorias' | 'visitantes'>('duvidas');
+  const [section, setSection] = useState<FaqSection>('duvidas');
+  const [draft, setDraft] = useState<FaqDraft | null>(null);
   return <div className="space-y-6">
+    <Suspense fallback={null}><VisitanteDraftFromUrl setDraft={setDraft} setSection={setSection} /></Suspense>
     <nav aria-label="Seções do FAQ" className="flex flex-wrap gap-2">
       {(['duvidas', 'categorias', 'visitantes'] as const).map(key => <button key={key} type="button"
         aria-pressed={section === key} onClick={() => setSection(key)}
@@ -18,9 +38,9 @@ function FaqWorkspace() {
       </button>)}
     </nav>
     {/* O editor permanece montado para preservar o rascunho ao abrir Categorias. */}
-    <div hidden={section !== 'duvidas'}><FaqModule active={section === 'duvidas'} /></div>
+    <div hidden={section !== 'duvidas'}><FaqModule active={section === 'duvidas'} prefill={draft} /></div>
     {section === 'categorias' && <DuvidaCategoriesManager />}
-    {section === 'visitantes' && <DuvidasVisitanteModule />}
+    {section === 'visitantes' && <DuvidasVisitanteModule onTransformToFaq={item => { setDraft({ pergunta: item.descricao }); setSection('duvidas'); }} />}
   </div>;
 }
 

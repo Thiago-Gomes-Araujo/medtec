@@ -12,6 +12,7 @@ export interface AdminOverviewProps {
   latestNews?: Pick<NNoticia, 'titulo' | 'data_publicacao' | 'autor_nome'>;
   announcementTitle?: string;
   canAccessKanban: boolean;
+  duvidasPendentes?: { count: number | null; error: string | null };
   onOpenNews: () => void;
   onCreateNews: () => void;
   onOpenKanban: () => void;
@@ -19,7 +20,7 @@ export interface AdminOverviewProps {
 
 export default function AdminOverview({
   indicators, userName, latestNews, announcementTitle,
-  canAccessKanban, onOpenNews, onCreateNews, onOpenKanban,
+  canAccessKanban, duvidasPendentes, onOpenNews, onCreateNews, onOpenKanban,
 }: AdminOverviewProps) {
   const {
     loadingNews, errorNews, totalNews, apiNewsDraftCount,
@@ -464,6 +465,13 @@ export default function AdminOverview({
                     : `${totalFaqs} registro${totalFaqs === 1 ? '' : 's'} no catálogo oficial`}
                 </p>
               </div>
+
+              {duvidasPendentes && (
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  Dúvidas de visitantes sem resposta:{' '}
+                  {duvidasPendentes.error ? 'indisponível' : duvidasPendentes.count ?? 'carregando...'}
+                </p>
+              )}
             </div>
 
             <Link

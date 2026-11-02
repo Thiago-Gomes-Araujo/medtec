@@ -229,3 +229,22 @@
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.45);
 }
+
+/* Entrada do mega-menu do cabeçalho, sem carregar framer-motion em todas as rotas. */
+@keyframes header-dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+
+.header-dropdown-enter {
+  transform-origin: top left;
+  animation: header-dropdown-enter 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-dropdown-enter {
+    animation: none;
+  }
+}

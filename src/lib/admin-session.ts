@@ -15,6 +15,11 @@ export function getRailsSessionFields(user: AuthUser) {
   };
 }
 
+// Perfis do seed Rails com regras de dúvidas: Administrador (classificado como gestor) e Gestor.
+export function canAccessDuvidas(session: { isGestor?: boolean; profileType?: string }): boolean {
+  return session.isGestor === true || session.profileType === 'Gestor';
+}
+
 type LocalSessionFieldsSource = {
   isGestor?: boolean;
   user?: AuthUser['cpf'];

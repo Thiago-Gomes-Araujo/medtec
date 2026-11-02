@@ -15,7 +15,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { medtecApi, type ConquistaPublica, type ProfessorPublico } from '@/lib/api';
-import { getNameInitials } from '@/lib/community-content';
+import { COMMUNITY_COMING_SOON, getNameInitials } from '@/lib/community-content';
 
 interface CommunityMuralSectionProps {
   initialTeachers?: ProfessorPublico[];
@@ -134,10 +134,10 @@ export default function CommunityMuralSection({ initialTeachers, initialStudents
                   <div className="my-6 rounded-lg border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center bg-slate-50/50 dark:bg-[#061224]/50">
                     <Presentation className="mx-auto h-8 w-8 text-slate-400 dark:text-slate-500 mb-2" />
                     <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
-                      {teachersFailed ? 'Não foi possível carregar os professores' : 'Nenhum docente cadastrado'}
+                      {teachersFailed ? COMMUNITY_COMING_SOON.title : 'Nenhum docente cadastrado'}
                     </h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
-                      {teachersFailed ? 'Tente novamente em instantes.' : 'Os perfis pedagógicos de ministrantes e mediadores serão exibidos assim que homologados na rede.'}
+                      {teachersFailed ? COMMUNITY_COMING_SOON.professores : 'Os perfis pedagógicos de ministrantes e mediadores serão exibidos assim que homologados na rede.'}
                     </p>
                   </div>
                 ) : (
@@ -223,10 +223,10 @@ export default function CommunityMuralSection({ initialTeachers, initialStudents
                   <div className="my-6 rounded-lg border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center bg-slate-50/50 dark:bg-[#061224]/50">
                     <Award className="mx-auto h-8 w-8 text-slate-400 dark:text-slate-500 mb-2" />
                     <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
-                      {studentsFailed ? 'Não foi possível carregar as conquistas' : 'Nenhuma conquista publicada'}
+                      {studentsFailed ? COMMUNITY_COMING_SOON.title : 'Nenhuma conquista publicada'}
                     </h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
-                      {studentsFailed ? 'Tente novamente em instantes.' : 'As histórias de estudantes serão exibidas assim que publicadas.'}
+                      {studentsFailed ? COMMUNITY_COMING_SOON.conquistas : 'As histórias de estudantes serão exibidas assim que publicadas.'}
                     </p>
                   </div>
                 ) : (

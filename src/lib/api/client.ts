@@ -5,7 +5,7 @@
  */
 
 import { ApiResponse, AuthTokens, QueryParams } from './types';
-import { ApiError } from './errors';
+import { API_UNREACHABLE_MESSAGE, ApiError } from './errors';
 import {
   getStoredAccessToken,
   getStoredRefreshToken,
@@ -16,6 +16,8 @@ import {
 /**
  * Obtém a URL-base configurada da API (ex: http://localhost:3000/api/v1).
  * Lê prioritariamente NEXT_PUBLIC_API_URL do navegador/ambiente.
+ * É a única origem da URL: rotas do servidor e navegador precisam falar com o mesmo host,
+ * porque o token emitido no login só vale na API que o emitiu.
  */
 export function getApiBaseUrl(): string {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -159,8 +161,9 @@ export async function apiFetch<T>(
 
   const headers = new Headers(fetchOptions.headers || {});
 
-  // Define Content-Type application/json se não for FormData e se não foi explicitamente setado
-  if (!(fetchOptions.body instanceof FormData) && !headers.has('Content-Type')) {
+  // Define Content-Type application/json só quando há corpo, se não for FormData e se não foi explicitamente setado.
+  // Sem corpo, o header só forçaria um preflight de CORS a cada URL pública.
+  if (fetchOptions.body != null && !(fetchOptions.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -180,7 +183,7 @@ export async function apiFetch<T>(
     });
   } catch {
     throw ApiError.fromResponse(0, {
-      message: 'Falha de conexão com a API do MEDTEC. Verifique sua rede e a URL do servidor.',
+      message: API_UNREACHABLE_MESSAGE,
       errors: ['falha_de_rede'],
     });
   }

@@ -23,7 +23,8 @@ export const categoriasDuvidaService = {
         !Number.isSafeInteger(pagination.current_page) || pagination.current_page < 1 ||
         !Number.isSafeInteger(pagination.total_pages) || pagination.total_pages < 0 ||
         !Number.isSafeInteger(pagination.total_count) || pagination.total_count < 0 ||
-        !Number.isSafeInteger(pagination.per_page) || pagination.per_page < 1) {
+        // page=all devolve per_page igual ao total: 0 quando não há registros.
+        !Number.isSafeInteger(pagination.per_page) || pagination.per_page < (pagination.total_count === 0 ? 0 : 1)) {
       throw new Error('Resposta inválida da API de Categorias de Dúvidas.');
     }
     response.data.items.forEach(validateCategory);
@@ -137,7 +138,8 @@ export const duvidasVisitanteService = {
         !Number.isSafeInteger(pagination.current_page) || pagination.current_page < 1 ||
         !Number.isSafeInteger(pagination.total_pages) || pagination.total_pages < 0 ||
         !Number.isSafeInteger(pagination.total_count) || pagination.total_count < 0 ||
-        !Number.isSafeInteger(pagination.per_page) || pagination.per_page < 1) {
+        // page=all devolve per_page igual ao total: 0 quando não há registros.
+        !Number.isSafeInteger(pagination.per_page) || pagination.per_page < (pagination.total_count === 0 ? 0 : 1)) {
       throw new Error('Resposta inválida da API de Dúvidas de Visitantes.');
     }
     response.data.items.forEach(validateVisitante);

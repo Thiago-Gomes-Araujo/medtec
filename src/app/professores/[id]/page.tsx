@@ -2,12 +2,13 @@ import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { AlertCircle, ArrowLeft, BookOpen, Building2, MapPin, Quote } from 'lucide-react';
+import { ArrowLeft, BookOpen, Building2, MapPin, Quote, Users } from 'lucide-react';
+import CommunityComingSoon from '@/components/CommunityComingSoon';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import RelatoProfessorForm from '@/components/RelatoProfessorForm';
-import { ApiError, medtecApi, type ProfessorPublicoDetalhe } from '@/lib/api';
-import { getNameInitials } from '@/lib/community-content';
+import { medtecApi, type ProfessorPublicoDetalhe } from '@/lib/api';
+import { COMMUNITY_COMING_SOON, getNameInitials } from '@/lib/community-content';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -18,23 +19,23 @@ export const instant = false;
 type FetchProfessorResult =
   | { status: 'ok'; item: ProfessorPublicoDetalhe }
   | { status: 'not_found' }
-  | { status: 'error'; message: string };
+  | { status: 'unavailable' };
 
 async function fetchProfessor(id: string): Promise<FetchProfessorResult> {
   if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) return { status: 'not_found' };
   try {
     const response = await medtecApi.professoresPublicos.get(Number(id));
     return { status: 'ok', item: response.data };
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 404) return { status: 'not_found' };
-    return { status: 'error', message: 'Não foi possível carregar esta página no momento. Tente novamente em instantes.' };
+  } catch {
+    // Rota ainda não implantada e professor inexistente respondem 404 do mesmo jeito.
+    return { status: 'unavailable' };
   }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const result = await fetchProfessor(id);
-  if (result.status !== 'ok') return { title: 'Professor | MEDTEC Rondônia' };
+  if (result.status !== 'ok') return { title: 'Professor | MEDTEC Rondônia', robots: { index: false } };
   return {
     title: `${result.item.nome} | MEDTEC Rondônia - SEDUC-RO`,
     description: result.item.pratica_pedagogica,
@@ -57,11 +58,8 @@ export default async function ProfessorDetalhePage({ params }: Props) {
             <span>Voltar para o portfólio de professores</span>
           </Link>
 
-          {result.status === 'error' ? (
-            <div role="alert" className="p-6 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex items-start gap-3">
-              <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <p className="text-sm">{result.message}</p>
-            </div>
+          {result.status === 'unavailable' ? (
+            <CommunityComingSoon icon={Users} message={COMMUNITY_COMING_SOON.professores} />
           ) : (
             <>
               <article className="rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 sm:p-8 space-y-5">

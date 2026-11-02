@@ -11,6 +11,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* é fixada no JS do navegador durante o build; o .env não entra na imagem.
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN test -n "$NEXT_PUBLIC_API_URL" || (echo "Informe NEXT_PUBLIC_API_URL com --build-arg ou no .env do compose." >&2; exit 1)
 RUN npm run build
 
 FROM base AS runner
