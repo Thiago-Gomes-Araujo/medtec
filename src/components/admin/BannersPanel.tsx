@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useId, useState, type ChangeEvent, type FormEvent } from 'react';
 import { medtecApi, type BBanner } from '@/lib/api';
 import { isHttpsUrl, validateConquistaImage } from '@/lib/community-content';
+import FileButton from './FileButton';
 import { buttonClass, inputClass, panelClass, renderFeedback, useAdminAction, useApiList } from './communityAdminUi';
 
 interface BannerForm {
@@ -90,7 +91,7 @@ export default function BannersPanel() {
             <label className="flex items-center gap-2"><input type="radio" name="banner-modo" value="link" checked={form.modo === 'link'} onChange={() => setForm({ ...form, modo: 'link', imagem: null })} /> Usar link</label>
           </div>
           {form.modo === 'upload'
-            ? <input name="banner-imagem" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Arquivo do banner (PNG, JPG ou WEBP, até 5 MB)" className="block text-sm text-slate-700 dark:text-slate-200" onChange={chooseFile} />
+            ? <FileButton name="banner-imagem" accept="image/png,image/jpeg,image/webp" selected={form.imagem?.name} onChange={chooseFile}>Escolher imagem</FileButton>
             : <input name="banner-imagem-url" type="url" aria-label="Link da imagem do banner" placeholder="https://..." value={form.imagemUrl} className={inputClass} onChange={event => setForm({ ...form, imagemUrl: event.target.value })} />}
           <p className="text-xs text-slate-600 dark:text-slate-400">PNG, JPG ou WEBP, até 5 MB, ou link HTTPS.</p>
           <div className="flex flex-wrap gap-2">

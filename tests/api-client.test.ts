@@ -5,7 +5,7 @@
 
 import { describe, it, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { ModuleKind, transpileModule } from 'typescript';
 import nextConfig from '../next.config';
@@ -80,6 +80,7 @@ import { diffProjetoMembros, formatCpf, formatFileSize, getProjetoImageSrc, hasM
 import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput } from '../src/lib/api/types';
 import ProjetosPanel from '../src/components/admin/ProjetosPanel';
 import ProjetoMembrosEditor from '../src/components/admin/ProjetoMembrosEditor';
+import FileButton from '../src/components/admin/FileButton';
 import MembroCadastroModal from '../src/components/admin/MembroCadastroModal';
 import ProjetosApprovalQueue from '../src/components/admin/ProjetosApprovalQueue';
 import ProjetosAprovacaoPanel from '../src/components/admin/ProjetosAprovacaoPanel';
@@ -5076,7 +5077,7 @@ describe('Banners — painel', () => {
   type View = Awaited<ReturnType<typeof mount>>;
   const files = (value: File) => ({ target: { files: [value], value: 'x' } });
   const pick = (view: View, event: unknown) => view.act(() => {
-    const node = view.nodes().find(item => item.type === 'input' && item.props.name === 'banner-imagem');
+    const node = view.nodes().find(item => item.type === FileButton && item.props.name === 'banner-imagem');
     assert.ok(node);
     return Reflect.apply(node.props.onChange as (value: unknown) => unknown, undefined, [event]);
   });
@@ -10046,7 +10047,7 @@ for (const existing of [false, true]) it(`E5 — upload da Galeria preserva mult
   } });
   try {
     if (existing) await manager.edit(); else { await manager.newRecord(); await manager.fill(); }
-    const input = manager.nodes().find(node => node.type === 'input' && node.props.type === 'file'); assert.ok(input);
+    const input = manager.nodes().find(node => node.type === FileButton); assert.ok(input);
     await manager.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { files: [new File(['png'], 'apresentacao.png', { type: 'image/png' })] } }]));
     await manager.submit(); assert.equal(manager.calls.length, 1); assert.match(manager.alerts.at(-1)!, /sucesso/);
   } finally { await manager.restore(); }
@@ -10101,7 +10102,7 @@ async function mountE6(config: {
         await manager.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { value } }]));
       },
       async upload() {
-        const input = manager.nodes().find(node => node.type === 'input' && node.props.name === 'imagem_capa'); assert.ok(input);
+        const input = manager.nodes().find(node => node.type === FileButton && node.props.name === 'imagem_capa'); assert.ok(input);
         await manager.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { files: [new File(['nova-capa'], 'nova.png', { type: 'image/png' })] } }]));
       },
       async edit() {
@@ -11313,7 +11314,7 @@ describe('Projetos — painel', () => {
   }
   type View = Awaited<ReturnType<typeof mount>>;
   const pick = (view: View, name: string, event: unknown) => view.act(() => {
-    const node = view.nodes().find(item => item.type === 'input' && item.props.name === name);
+    const node = view.nodes().find(item => item.type === FileButton && item.props.name === name);
     assert.ok(node, name);
     return Reflect.apply(node.props.onChange as (value: unknown) => unknown, undefined, [event]);
   });
@@ -11480,19 +11481,13 @@ describe('Projetos — painel', () => {
     });
   });
   describe('botões de arquivo', () => {
-    const rotulo = (view: View, name: string) => view.nodes().find(item => item.type === 'label' && noticeNodes(item.props.children).some(child => child.props.name === name));
     function assertBotoes(view: View) {
-      const capa = rotulo(view, 'projeto-imagem'); const anexos = rotulo(view, 'projeto-anexos');
       assert.match(view.html(), /Escolher imagem/); assert.match(view.html(), /Adicionar arquivos/);
-      for (const label of [capa, anexos]) {
-        assert.ok(label); assert.match(String(label.props.className), /border/, 'O rótulo tem aparência de botão');
-      }
-      const input = (name: string) => view.nodes().find(item => item.props.name === name)!;
+      const input = (name: string) => view.nodes().find(item => item.type === FileButton && item.props.name === name)!;
       assert.equal(input('projeto-imagem').props.accept, 'image/png,image/jpeg,image/webp');
       assert.equal(input('projeto-imagem').props.multiple, undefined);
       assert.equal(input('projeto-anexos').props.multiple, true);
       assert.equal(input('projeto-anexos').props.accept, PROJETO_ANEXO_ACCEPT);
-      assert.equal(input('projeto-imagem').props.className, 'sr-only');
       assert.ok(view.nodes().some(item => item.props.name === 'projeto-imagem-url'), 'O link segue disponível');
     }
     it('aparecem no cadastro', async () => {
@@ -11902,6 +11897,30 @@ describe('Projetos — página de aprovação', () => {
       await view.act(settle);
       assert.equal(view.html(), '<output>null</output>');
     } finally { await view.restore(); }
+  });
+});
+
+describe('Botão de arquivo do painel', () => {
+  it('o rótulo parece um botão, e o input continua acessível pelo teclado', () => {
+    const html = renderToStaticMarkup(FileButton({ name: 'capa', accept: 'image/png', multiple: true, onChange() {}, children: 'Escolher imagem' }));
+    assert.match(html, /<label class="[^"]*border[^"]*focus-within:ring-2[^"]*">Escolher imagem<input/);
+    assert.match(html, /type="file"/); assert.match(html, /name="capa"/); assert.match(html, /accept="image\/png"/); assert.match(html, /multiple/);
+    assert.match(html, /class="sr-only"/); assert.doesNotMatch(html, /class="hidden"/);
+  });
+  it('mostra o arquivo escolhido só quando informado', () => {
+    assert.match(renderToStaticMarkup(FileButton({ selected: 'capa.png', onChange() {}, children: 'Escolher imagem' })), /capa\.png/);
+    assert.doesNotMatch(renderToStaticMarkup(FileButton({ onChange() {}, children: 'Escolher imagem' })), /break-all/);
+  });
+  it('todos os inputs de arquivo do painel usam o componente', () => {
+    const fontes = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+      const path = `${dir}/${entry.name}`;
+      return entry.isDirectory() ? fontes(path) : /\.tsx?$/.test(entry.name) ? [path] : [];
+    });
+    const comInput = fontes('src').filter(path => /type=["'{]+file/.test(readFileSync(path, 'utf8')));
+    assert.deepEqual(comInput, ['src/components/admin/FileButton.tsx']);
+    for (const tela of ['BannersPanel', 'ConquistasPanel', 'GalleryModule', 'NewsModule', 'ProjetosPanel']) {
+      assert.match(readFileSync(`src/components/admin/${tela}.tsx`, 'utf8'), /<FileButton\b/, tela);
+    }
   });
 });
 

@@ -4,6 +4,7 @@ import React, { useState, useImperativeHandle } from 'react';
 import { Newspaper, Plus, ArrowLeft, Save, Upload, Eye, Edit3, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import type { NewsItem } from '@/types';
 import { ApiError, medtecApi, type NCategoriaNoticia } from '@/lib/api';
+import FileButton from './FileButton';
 import AdminLiveSimulator, { type PreviewContentType, type PreviewItemData } from '@/components/AdminLiveSimulator';
 
 export interface NewsModuleHandle {
@@ -409,26 +410,23 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                       <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
                         1. Fazer upload do computador (multipart):
                       </span>
-                      <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-[#060D1A] border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#004A99] rounded-xl cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-[#004A99] transition">
+                      <FileButton
+                        name="imagem_capa"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setNewsCoverFile(file);
+                            setNewsCoverUrl('');
+                            setNewsForm(prev => ({ ...prev, coverImage: URL.createObjectURL(file) }));
+                          }
+                        }}
+                      >
                         <Upload size={16} />
                         <span className="truncate max-w-[200px]">
                           {newsCoverFile ? newsCoverFile.name : 'Escolher foto do PC'}
                         </span>
-                        <input
-                          type="file"
-                          name="imagem_capa"
-                          accept="image/png,image/jpeg,image/webp"
-                          onChange={e => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setNewsCoverFile(file);
-                              setNewsCoverUrl('');
-                              setNewsForm(prev => ({ ...prev, coverImage: URL.createObjectURL(file) }));
-                            }
-                          }}
-                          className="hidden"
-                        />
-                      </label>
+                      </FileButton>
                     </div>
 
                     <div>

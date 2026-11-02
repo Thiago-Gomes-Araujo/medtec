@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useCallback, useId, useState, type ChangeEvent, type FormEvent } from 'react';
 import { medtecApi, type CCategoriaConquista, type CConquistaAluno, type ModeracaoStatus } from '@/lib/api';
 import { getConquistaImageSrc, isHttpsUrl, validateConquistaImage } from '@/lib/community-content';
+import FileButton from './FileButton';
 import {
   buttonClass,
   inputClass,
@@ -224,7 +225,7 @@ export default function ConquistasPanel() {
               <label className="flex items-center gap-2"><input type="radio" name="conquista-imagem-modo" value="link" checked={form.imagemModo === 'link'} onChange={() => setForm({ ...form, imagemModo: 'link', imagem: null })} /> Usar link</label>
             </div>
             {form.imagemModo === 'upload'
-              ? <input name="conquista-imagem" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Arquivo da imagem (PNG, JPG ou WEBP, até 5 MB)" className="block text-sm text-slate-700 dark:text-slate-200" onChange={chooseFile} />
+              ? <FileButton name="conquista-imagem" accept="image/png,image/jpeg,image/webp" selected={form.imagem?.name} onChange={chooseFile}>Escolher imagem</FileButton>
               : <input name="conquista-imagem-url" type="url" aria-label="Link da imagem" placeholder="https://..." value={form.imagemUrl} className={inputClass} onChange={event => setForm({ ...form, imagemUrl: event.target.value })} />}
             <p className="text-xs text-slate-600 dark:text-slate-400">PNG, JPG ou WEBP, até 5 MB.</p>
             {form.imagemAtual && <Image unoptimized src={form.imagemAtual} alt="Imagem atual da conquista" width={160} height={90} className="rounded-lg object-cover" />}

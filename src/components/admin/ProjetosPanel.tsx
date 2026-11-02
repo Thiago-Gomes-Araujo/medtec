@@ -6,6 +6,7 @@ import { useCallback, useEffect, useId, useState, type ChangeEvent, type FormEve
 import { getMediaUrl, medtecApi, type ModeracaoStatus, type PjAnexo, type PjMembro, type PjProjeto, type PjProjetoMembro, type PjTema } from '@/lib/api';
 import { isHttpsUrl, validateConquistaImage } from '@/lib/community-content';
 import { diffProjetoMembros, formatFileSize, getProjetoImageSrc, hasMembroDuplicado, PROJETO_ANEXO_ACCEPT, validateProjetoAnexo, type MembroDraft } from '@/lib/projetos-content';
+import FileButton from './FileButton';
 import ProjetoMembrosEditor from './ProjetoMembrosEditor';
 import {
   buttonClass,
@@ -47,8 +48,6 @@ const EMPTY_FORM: ProjetoForm = {
   titulo: '', relato: '', temaId: '', cidadeId: '', escolaId: '', imagem: null, imagemPreview: '', imagemUrl: '',
   imagemUrlOriginal: '', imagemAtual: '', anexosAtuais: [], anexosNovos: [], membros: [], membrosOriginais: [], capaErro: null, anexosErro: null,
 };
-// O reset do Tailwind apaga o botão nativo do input de arquivo: o rótulo faz esse papel.
-const fileButtonClass = `${buttonClass} inline-block cursor-pointer focus-within:ring-2 focus-within:ring-sky-400`;
 const readTemas = (signal: AbortSignal) => medtecApi.temasProjeto.list({ page: 'all' }, signal);
 const readMembros = (signal: AbortSignal) => medtecApi.membrosProjeto.list({ page: 'all' }, signal);
 
@@ -284,10 +283,7 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
           <fieldset className="space-y-2">
             <legend className={labelClass}>Capa (opcional)</legend>
             <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-center">
-              <label className={fileButtonClass}>
-                Escolher imagem
-                <input name="projeto-imagem" type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={chooseImage} />
-              </label>
+              <FileButton name="projeto-imagem" accept="image/png,image/jpeg,image/webp" onChange={chooseImage}>Escolher imagem</FileButton>
               <input name="projeto-imagem-url" type="url" aria-label="Link da capa" placeholder="Ou cole um link https://..." value={form.imagemUrl} className={inputClass} onChange={event => setForm({ ...form, imagem: null, imagemPreview: '', imagemUrl: event.target.value, capaErro: null })} />
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400">PNG, JPG ou WEBP, até 5 MB, ou link HTTPS.</p>
@@ -305,10 +301,7 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
           <fieldset className="space-y-2">
             <legend className={labelClass}>Anexos (opcional)</legend>
             <div>
-              <label className={fileButtonClass}>
-                Adicionar arquivos
-                <input name="projeto-anexos" type="file" multiple accept={PROJETO_ANEXO_ACCEPT} className="sr-only" onChange={chooseAnexos} />
-              </label>
+              <FileButton name="projeto-anexos" multiple accept={PROJETO_ANEXO_ACCEPT} onChange={chooseAnexos}>Adicionar arquivos</FileButton>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400">PDF, Word, Excel, PowerPoint, PNG, JPG ou WEBP, até 10 MB cada.{form.id ? ' Os novos se somam aos atuais.' : ''}</p>
             {form.anexosErro && <p role="alert" className="text-xs text-red-700 dark:text-red-300">{form.anexosErro}</p>}
