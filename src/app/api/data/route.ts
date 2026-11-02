@@ -53,10 +53,6 @@ function isValidDatabaseSchema(body: unknown): body is DatabaseSchema {
     return false;
   }
 
-  if (candidate.projects !== undefined && !Array.isArray(candidate.projects)) {
-    return false;
-  }
-
   if (candidate.faqs !== undefined && !Array.isArray(candidate.faqs)) {
     return false;
   }
@@ -145,7 +141,6 @@ export async function PUT(request: Request) {
     body.announcements = [];
     body.gallery = [];
     body.news = [];
-    body.projects = [];
     body.faqs = [];
 
     // Se o usuário autenticado não for Gestor Geral, preserva configurações institucionais

@@ -34,7 +34,6 @@ export function getDatabase(): DatabaseSchema {
       schools: parsed.schools ?? [],
       teachers: parsed.teachers ?? [],
       students: parsed.students ?? [],
-      projects: parsed.projects ?? [],
       faqs: parsed.faqs ?? [],
       transparency: parsed.transparency ?? { indicadores: [], contratos: [] },
     };

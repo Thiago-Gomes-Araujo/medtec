@@ -211,53 +211,6 @@ export interface ItemEditorial {
   atualizado: string;
 }
 
-export interface ReplicationWeek {
-  week: number;
-  title: string;
-  studioAction: string;
-  fieldAction: string;
-}
-
-export interface ProjectMission {
-  id: string;
-  number: string;
-  missionCode: string;
-  title: string;
-  shortTitle: string;
-  track: 'Agroecologia & NBAZ' | 'Ciência na Amazônia' | 'Saberes Indígenas & História' | 'Tecnologia Solar & Robótica';
-  territory: string;
-  typology: string;
-  municipality: string;
-  school: string;
-  mediatorName: string;
-  mediatorRole: string;
-  mediatorInitials: string;
-  studentCohort: string;
-  seal: string;
-  image: string;
-  initialApplause: number;
-  desafioLocal: {
-    title: string;
-    description: string;
-  };
-  praticaMedtec: {
-    title: string;
-    description: string;
-  };
-  impactoGerado: {
-    title: string;
-    metric: string;
-    description: string;
-  };
-  competencias: string[];
-  quote: string;
-  replicationGuide: {
-    materials: string[];
-    timeline: ReplicationWeek[];
-    pedagogicalTip: string;
-  };
-}
-
 export type FaqCategory =
   | 'Todas as Dúvidas'
   | 'Metodologia & Aulas ao Vivo'
@@ -293,7 +246,6 @@ export interface DatabaseSchema {
   schools?: Escola[];
   teachers?: Professor[];
   students?: Aluno[];
-  projects?: ProjectMission[];
   faqs?: FaqItem[];
   transparency?: {
     indicadores: Indicador[];

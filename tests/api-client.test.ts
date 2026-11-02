@@ -5036,7 +5036,6 @@ describe('Rota independente de Banners e seleção local protegida', () => {
     news: [{ id: 'n1', title: 'Notícia recebida', coverImage: '/cover.jpg', content: 'Não necessário' }],
     gallery: [{ id: 'g1', title: 'Foto recebida', imageUrl: '/photo.jpg', description: 'Não necessário' }],
     users: [{ id: 'não necessário' }],
-    projects: [],
   };
 
   it('aguarda autorização no shell sem consultar dados ou iniciar upload', () => {

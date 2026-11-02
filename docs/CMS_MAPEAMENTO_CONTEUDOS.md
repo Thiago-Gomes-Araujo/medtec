@@ -86,7 +86,7 @@ A criação/remoção/ordenação de cards deverá adaptar a grade às quantidad
 | H10 | `Methodology`, `#como-funciona` | Cinco passos fixos: Produção nos Estúdios; Transmissão Satelital & IP; Professor Mediador; Itinerários & Agroecologia; Conclusão & Futuro | Seção do tipo passos; título, descrição, ícone e ordem. |
 | H11 | `Methodology`: “Quem faz acontecer” | Três perfis ilustrados por iniciais, nomes, funções e disciplinas escritos no componente; independentes de `/api/teachers` | Usar referências de docentes oficiais quando houver contrato; revisar origem antes de migrar. |
 | H12 | `Methodology`: cobertura, 129 unidades, 6.000+ estudantes, CTA `/mapa` | Fixos, repetem números da Home | Referenciar indicadores publicados, sem copiar seus valores em textos de cada seção. |
-| H13 | `HomeProjectsAccordionSection`, `#projetos-ecossistemas` | Título, instrução e CTA fixos; cards leem `/api/projects`, que retorna vazio; comentário menciona seis ecossistemas, sem seis registros reais | Editor de projetos existente + seção de seleção/ordenação por IDs; cabeçalho via conteúdo de página. |
+| H13 | `HomeProjectsAccordionSection`, `#projetos-ecossistemas` | Título, instrução e CTA fixos; lâminas leem `GET /publico/pj_projetos` | Integrado. Veja [PROJETOS_MAPEAMENTO.md](PROJETOS_MAPEAMENTO.md). |
 | H14 | `CommunityMuralSection`, `#comunidade-escolar` | Cabeçalhos, descrições e CTAs fixos; listas via `/api/teachers` e `/api/students`; exibe até três docentes | Recursos docentes/histórias; seleção de destaques; reaproveitar mesmos registros de `/professores` e `/alunos`. |
 | H15 | `PresentationPitchModal` → `ExecutiveDossierModal` | Quatro abas fixas: resumo, arquitetura satelital, alcance e amparo legal; números duplicados; impressão via `window.print()` | Página editorial `dossie`, seções e cards reutilizáveis; referências aos mesmos indicadores/documentos. |
 
@@ -105,7 +105,7 @@ Há **15 rotas públicas de página**, incluindo `/`, mais o detalhe dinâmico d
 | `/noticias/[id]` | Artigo, resumo, autor, data, capa; o parâmetro chamado `id` é usado como **slug** | E: `getPublicoBySlug`; 404 separado de indisponibilidade; SEO vem da notícia | Preservar contrato existente e links; não criar cadastro de artigos institucional paralelo. |
 | `/avisos` | `AvisosView`, filtros e paginação | Administração E: avisos/tipos. Leitura pública D: `/publico/a_avisos` | Homologar o contrato público complementar; cabeçalho via página editorial. |
 | `/ao-vivo` | `LiveBroadcastSection`: canais, grade, destaque de aviso e atalhos | Aviso público D; contatos e três horários/status fixos; notícias recebem `[]` | Grade editorial ordenada e canais públicos. Não há player/telemetria real a ser presumido. |
-| `/projetos` | `ProjectsInteractiveStage` + `ReplicationPassportModal` | L: `/api/projects` vazio; editor administrativo existente e bloqueado | Contrato N de projetos; detalhe, guia, capa e publicação reais. |
+| `/projetos`, `/projetos/[id]` | `ProjetosView` e página do projeto | `GET /publico/pj_projetos`, `/publico/pj_projetos/:id` e `/publico/pj_temas` | Integrado. Veja [PROJETOS_MAPEAMENTO.md](PROJETOS_MAPEAMENTO.md). |
 | `/professores` | Painel duplo ministrante/mediador fixo; `ProfessoresView` + `TeacherProfiles` | L: `/api/teachers` vazio; filtros e entrevistas no frontend | Catálogo N de perfis públicos; não confundir com contas de acesso. |
 | `/alunos` | `AlunosView` + `StudentStories`: categoria, história destacada, cards e modal | L: `/api/students` vazio | Recurso N de histórias/conquistas, evidência de autorização privada e publicação. |
 | `/mapa` | `SchoolMap`: filtros, lista, números e mapa SVG | L: `/api/schools` vazio; nós/coordenadas/legendas de telemetria são fixos | Fonte oficial N de unidades/polos; distinguir ilustração e dados reais; reutilizar cidades E. |
@@ -138,7 +138,7 @@ Há **15 rotas públicas de página**, incluindo `/`, mais o detalhe dinâmico d
 | `/admin/avisos` | `AnnouncementsModule`, avisos/tipos (E) | CRUD, tipos, cor, ativação/desativação e prévia | Preservar `ativo`; não impor status de notícias a avisos existentes. |
 | `/admin/galeria` | `GalleryModule`, fotos/categorias (E) | CRUD, imagem arquivo/URL, categorias, modal e prévia | Estender publicação/acessibilidade/metadados na entidade existente, sem nova galeria. |
 | `/admin/faq` | `FaqModule`, `DuvidaCategoriesManager`, `DuvidasVisitanteModule` (D) | Três áreas: dúvidas, categorias e visitantes; filtros, paginação, aprovação e atendimento | Homologar contratos existentes. `admin-faq.ts` é legado sem uso nesta rota; relatórios 9A/9B não representam o estado mais recente. |
-| `/admin/projetos` | `ProjectsModule`, `readAdminProjects` → `GET /api/data` (L) | Lista, editor extenso, capa, competências, roteiro e prévia | Salvar/excluir bloqueados; upload local `/api/upload` ainda existe independentemente do CRUD. Integrar Rails no mesmo módulo, sem criar outro. |
+| `/admin/projetos`, `/admin/projetos/temas`, `/admin/projetos/membros` | `ProjetosPanel`, `TemasProjetoPanel`, `MembrosProjetoPanel` | `/pj_projetos`, `/pj_temas`, `/pj_membros` | Integrado. Veja [PROJETOS_MAPEAMENTO.md](PROJETOS_MAPEAMENTO.md). |
 | `/admin/banners` | `SitePhotosManager`, `admin-banners.ts` (L + acervos E) | Leitura legada, prévia em memória, capas de notícias e fotos oficiais em leitura | Salvar, aplicar, excluir/reordenar e envio do banner bloqueados. Seleção local não publica nem faz upload; integrar recurso N. |
 | `/admin/institucional` | `SiteInfoModule` + `AdminLiveSimulator`, `GET /api/data` (L) | Campos de Hero, lei e métricas; prévia; salvar desabilitado | Evoluir a rota em editor institucional/indicadores com contratos N; reaproveitar formulário e linguagem visual, sem conservar acoplamento a `DatabaseSchema`. |
 | `/admin/redes` | `SocialChannelsModule`, `admin-channels.ts`, canais Rails (E) | Leitura, alteração de valor, posição, visibilidade e gravação em lote | Reusar; sete redes fixas do seed, sem criar/excluir nem inventar TikTok. Falta consumo público. |
@@ -148,13 +148,13 @@ Há **15 rotas públicas de página**, incluindo `/`, mais o detalhe dinâmico d
 
 ### 5.1 Fonte local não é a solução para o CMS novo
 
-`src/types/index.ts` possui `DatabaseSchema`, `SiteInfo`, `Stats`, `BannerItem`, `ProjectMission`, tipos de FAQ e outras entidades antigas. `src/lib/api/types.ts` contém os contratos Rails atuais; centralizar contratos novos nesse domínio após aceite, com adaptadores explícitos.
+`src/types/index.ts` possui `DatabaseSchema`, `SiteInfo`, `Stats`, `BannerItem`, tipos de FAQ e outras entidades antigas. `src/lib/api/types.ts` contém os contratos Rails atuais; centralizar contratos novos nesse domínio após aceite, com adaptadores explícitos.
 
-`db.json` e `initialData.json` têm `siteInfo`, quatro métricas, redes e três banners; as coleções de notícias, avisos, galeria, usuários, escolas, professores, alunos, projetos e FAQ estão vazias no snapshot auditado. `getDatabase()` mescla defaults e pode devolver o snapshot inicial em erro; sua presença não comprova dados oficiais Rails.
+`db.json` e `initialData.json` têm `siteInfo`, quatro métricas, redes e três banners; as coleções de notícias, avisos, galeria, usuários, escolas, professores, alunos e FAQ estão vazias no snapshot auditado. `getDatabase()` mescla defaults e pode devolver o snapshot inicial em erro; sua presença não comprova dados oficiais Rails.
 
 `GET /api/data` exige sessão Next.js, retorna uma estrutura ampla e pode consultar usuários via cliente servidor Rails. `PUT /api/data` ainda existe e escreve configurações locais, mas zera notícias, avisos, galeria, usuários, projetos e FAQ antes de gravar. Não usar esse caminho para persistir o novo CMS nem reativar botões bloqueados. Não foram executados esses handlers nesta auditoria.
 
-`/api/projects`, `/api/teachers`, `/api/students`, `/api/schools` e `/api/transparency` são compatibilidade vazia. `/api/faqs` também permanece, mas o FAQ público atual usa Rails diretamente. Não criar novos handlers desse tipo como substituto do backend.
+`/api/teachers`, `/api/students`, `/api/schools` e `/api/transparency` são compatibilidade vazia. `/api/faqs` também permanece, mas o FAQ público atual usa Rails diretamente. Não criar novos handlers desse tipo como substituto do backend.
 
 ### 5.2 Infraestrutura a preservar
 
