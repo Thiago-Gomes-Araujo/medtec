@@ -85,10 +85,11 @@ export default function HomeBannerCarousel() {
       </div>
 
       {total > 1 && <>
-        <button type="button" aria-label="Banner anterior" onClick={() => setActive(previous)} className={`absolute left-2 top-1/2 -translate-y-1/2 sm:left-4 ${controlClass}`}>
+        {/* 20px é metade da barra de indicadores: as setas ficam no centro da arte. */}
+        <button type="button" aria-label="Banner anterior" onClick={() => setActive(previous)} className={`absolute left-2 top-[calc(50%-20px)] -translate-y-1/2 sm:left-4 ${controlClass}`}>
           <ChevronLeft className="h-5 w-5" aria-hidden="true" />
         </button>
-        <button type="button" aria-label="Próximo banner" onClick={() => setActive(next)} className={`absolute right-2 top-1/2 -translate-y-1/2 sm:right-4 ${controlClass}`}>
+        <button type="button" aria-label="Próximo banner" onClick={() => setActive(next)} className={`absolute right-2 top-[calc(50%-20px)] -translate-y-1/2 sm:right-4 ${controlClass}`}>
           <ChevronRight className="h-5 w-5" aria-hidden="true" />
         </button>
         <div className="flex items-center justify-center gap-2 py-2">
