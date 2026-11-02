@@ -15,6 +15,7 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import TechAdvantages from '@/components/TechAdvantages';
 import Methodology from '@/components/Methodology';
+import HomeBannerCarousel from '@/components/HomeBannerCarousel';
 import HomeProjectsAccordionSection from '@/components/HomeProjectsAccordionSection';
 import CommunityMuralSection from '@/components/CommunityMuralSection';
 
@@ -32,6 +33,8 @@ export default function HomePage() {
       <SiteHeader onOpenPitchModal={() => setPitchModalOpen(true)} />
 
       <main className="flex-1">
+        <HomeBannerCarousel />
+
         {/* ================= HERO SECTION: AMAZÔNIA AEROESPACIAL / TELEMETRIA ================= */}
         <section id="inicio" className="relative overflow-hidden bg-gradient-to-r from-[#05549D] via-[#072F5E] to-[#0A3D73] dark:from-[#040D1A] dark:via-[#07162C] dark:to-[#040D1A] text-white pt-6 pb-24 lg:pt-12 lg:pb-32 scroll-mt-20">
           
