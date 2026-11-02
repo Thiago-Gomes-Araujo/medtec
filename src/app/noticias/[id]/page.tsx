@@ -77,7 +77,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
       <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">
         <SiteHeader />
 
-        <main className="flex-1 py-12">
+        <main id="conteudo-principal" className="flex-1 py-12">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
             <div>
               <Link
@@ -132,7 +132,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
         </div>
       </div>
 
-      <main className="flex-1 py-12">
+      <main id="conteudo-principal" className="flex-1 py-12">
         <article className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
           {/* Voltar para todas as notícias */}
           <div>

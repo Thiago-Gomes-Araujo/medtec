@@ -738,7 +738,7 @@ export default function AdminDashboardPage() {
         {/* ========================================================
             4. CORPO DO CONTEÚDO (MÓDULO ATIVO)
         ======================================================== */}
-        <main className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
+        <main id="conteudo-principal" className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
           
           {/* Barra de Topo do Módulo com Botão "← Voltar para o Início" */}
           {currentSection !== 'visaoGeral' && userSession.isGestor && (

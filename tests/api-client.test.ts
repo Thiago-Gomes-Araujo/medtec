@@ -13712,3 +13712,42 @@ describe('Página de erro do site', () => {
     assert.match(readFileSync('src/app/error.tsx', 'utf8'), /onClick=\{\(\) => retry\(\)\}/);
   });
 });
+
+describe('Acessibilidade do login e do layout', () => {
+  const render = () => {
+    const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'login-a11y' };
+    return renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminLoginPage)));
+  };
+
+  it('os campos têm rótulo associado', () => {
+    const html = render();
+    for (const id of ['login-cpf', 'login-senha']) {
+      assert.match(html, new RegExp('<label[^>]*for="' + id + '"'), id);
+      assert.match(html, new RegExp('<input[^>]*id="' + id + '"'), id);
+    }
+  });
+
+  it('"Manter conectado" não existe mais', () => {
+    const html = render();
+    assert.doesNotMatch(html, /Manter conectado/);
+    assert.doesNotMatch(html, /type="checkbox"/);
+  });
+
+  it('texto pequeno não usa as cores reprovadas no contraste AA', () => {
+    const source = readFileSync('src/app/admin/login/page.tsx', 'utf8');
+    const form = source.slice(source.indexOf('LADO DIREITO'));
+    assert.doesNotMatch(form, /(?<![:\w-])text-slate-400/);
+    assert.doesNotMatch(form, /placeholder:text-slate-400 dark:placeholder:text-slate-500/);
+    assert.doesNotMatch(form, /(?<!dark:)placeholder:text-slate-400/);
+  });
+
+  it('"Pular para o conteúdo" é o primeiro item do layout e todo <main> é o seu destino', () => {
+    const layout = readFileSync('src/app/layout.tsx', 'utf8');
+    assert.ok(layout.indexOf('Pular para o conteúdo') < layout.indexOf('{children}'));
+    assert.match(layout, /href="#conteudo-principal"/);
+    const pending = [...readdirSync('src', { recursive: true, encoding: 'utf8' })]
+      .filter(file => file.endsWith('.tsx'))
+      .filter(file => /<main(?![^>]*id="conteudo-principal")/.test(readFileSync('src/' + file, 'utf8')));
+    assert.deepEqual(pending, []);
+  });
+});

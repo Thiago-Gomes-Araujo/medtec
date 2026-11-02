@@ -53,7 +53,7 @@ export default async function ProfessorDetalhePage({ params }: Props) {
     <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
 
-      <main className="flex-1 py-12">
+      <main id="conteudo-principal" className="flex-1 py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
           <Link href="/professores" className="inline-flex items-center gap-2 text-xs font-semibold text-[#05549D] dark:text-[#00D8FF] hover:underline">
             <ArrowLeft size={16} />

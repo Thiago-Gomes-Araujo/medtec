@@ -699,7 +699,7 @@ export default function AdminShell({
         {/* ========================================================
             4. CORPO DO CONTEÚDO
         ======================================================== */}
-        <main className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
+        <main id="conteudo-principal" className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
           {/* Barra de Topo do Módulo com Botão "← Voltar para o Início" */}
           {activeSection !== 'visaoGeral' && userSession.isGestor && (
             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-admin-border">

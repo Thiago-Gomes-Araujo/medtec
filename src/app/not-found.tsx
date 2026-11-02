@@ -9,7 +9,7 @@ export default function NotFound() {
     <div className="min-h-screen flex flex-col bg-[#F0F4F9] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
 
-      <main className="flex-1 flex items-center justify-center pt-28 pb-16 px-4 sm:px-6">
+      <main id="conteudo-principal" className="flex-1 flex items-center justify-center pt-28 pb-16 px-4 sm:px-6">
         <div className="w-full max-w-xl text-center">
           {/* Badge institucional */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#004A99]/10 dark:bg-[#00D8FF]/10 text-[#004A99] dark:text-[#00D8FF] border border-[#004A99]/20 dark:border-[#00D8FF]/20 text-xs font-mono font-semibold tracking-wider uppercase mb-6">
