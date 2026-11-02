@@ -12823,12 +12823,13 @@ describe('Professores e conquistas — integração com a API', () => {
     await withFetch(() => json({ success: true, message: 'ok', data: {
       id: 7, nome: 'Ana', pratica_pedagogica: 'Prática', escola_nome: 'Escola', cidade_nome: 'Porto Velho',
       email: 'prof@x.com', disciplinas: [{ nome: 'Biologia', slug: 'biologia' }],
-      relatos: [{ nome: 'João', texto: 'Relato publicado', created_at: 'x', email: 'joao@x.com' }],
+      relatos: [{ nome: 'João', texto: 'Relato publicado', created_at: 'x', email: 'joao@x.com', telefone: '69999990000' }],
     } }), async () => {
       const nodes = noticeNodes(await ProfessorDetalhePage({ params: Promise.resolve({ id: '7' }) }));
       const text = nodes.flatMap(node => React.Children.toArray(node.props.children as ReactNode)).filter(child => typeof child === 'string').join(' ');
       assert.match(text, /Relato publicado/);
-      assert.doesNotMatch(text, /@x\.com/);
+      assert.match(text, /Aluno: João/);
+      assert.doesNotMatch(text, /@x\.com|69999990000/);
       assert.equal(nodes.find(node => node.type === RelatoProfessorForm)?.props.professorId, 7);
     });
   });
