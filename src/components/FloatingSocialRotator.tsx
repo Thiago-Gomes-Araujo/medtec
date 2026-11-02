@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -8,12 +8,12 @@ import {
   FacebookIcon,
   YoutubeIcon,
 } from '@/components/SocialIcons';
+import { useSiteChannels } from '@/components/SiteChannelsProvider';
 
 interface SocialItem {
   id: 'instagram' | 'facebook' | 'youtube';
   name: string;
   actionLabel: string;
-  url: string;
   bgColor: string;
   hoverColor: string;
   ariaLabel: string;
@@ -25,7 +25,6 @@ const SOCIAL_NETWORKS: SocialItem[] = [
     id: 'instagram',
     name: 'Instagram',
     actionLabel: 'Seguir no Instagram',
-    url: 'https://www.instagram.com/governoro/',
     bgColor: 'bg-[#E1306C]',
     hoverColor: 'hover:bg-[#c9255b]',
     ariaLabel: 'Seguir o perfil oficial do Governo de Rondônia no Instagram (abre em nova aba)',
@@ -35,7 +34,6 @@ const SOCIAL_NETWORKS: SocialItem[] = [
     id: 'facebook',
     name: 'Facebook',
     actionLabel: 'Página no Facebook',
-    url: 'https://www.facebook.com/governoderondonia',
     bgColor: 'bg-[#1877F2]',
     hoverColor: 'hover:bg-[#1565c0]',
     ariaLabel: 'Acessar a página oficial no Facebook do Governo de Rondônia (abre em nova aba)',
@@ -45,7 +43,6 @@ const SOCIAL_NETWORKS: SocialItem[] = [
     id: 'youtube',
     name: 'YouTube',
     actionLabel: 'Canal no YouTube',
-    url: 'https://www.youtube.com/@SeducRondonia',
     bgColor: 'bg-[#FF0000]',
     hoverColor: 'hover:bg-[#d90000]',
     ariaLabel: 'Acessar as transmissões no canal do YouTube da SEDUC Rondônia (abre em nova aba)',
@@ -57,13 +54,17 @@ export default function FloatingSocialRotator() {
   const pathname = usePathname();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const socialNetworks = SOCIAL_NETWORKS;
+  const channels = useSiteChannels();
+  const socialNetworks = useMemo(
+    () => SOCIAL_NETWORKS.filter((net) => channels[net.id]).map((net) => ({ ...net, url: channels[net.id] })),
+    [channels],
+  );
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 1. Rotação automática a cada 4 segundos (4000ms)
   // Quando o mouse estiver sobre o botão (isHovered === true), o cronômetro pausa imediatamente
   useEffect(() => {
-    if (isHovered) return;
+    if (isHovered || socialNetworks.length < 2) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % socialNetworks.length);
@@ -73,7 +74,7 @@ export default function FloatingSocialRotator() {
   }, [isHovered, socialNetworks.length]);
 
   // Não renderiza nas rotas administrativas do painel (/admin)
-  if (pathname?.startsWith('/admin')) {
+  if (pathname?.startsWith('/admin') || socialNetworks.length === 0) {
     return null;
   }
 

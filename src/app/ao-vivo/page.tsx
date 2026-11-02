@@ -5,7 +5,6 @@ import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import LiveBroadcastSection from '@/components/LiveBroadcastSection';
 import { ApiError, medtecApi, type AvisoPublico } from '@/lib/api';
-import { SocialLinks } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Vídeo-Aulas & Conteúdos | MEDTEC Rondônia - SEDUC-RO',
@@ -19,15 +18,6 @@ export const metadata: Metadata = {
 };
 
 async function PublicAoVivoContent() {
-  const socials: SocialLinks = {
-    instagram: 'https://www.instagram.com/governoro/',
-    youtube: 'https://www.youtube.com/@SeducRondonia',
-    facebook: 'https://www.facebook.com/governoderondonia',
-    whatsapp: '',
-    email: 'mediacaotecnologica@seduc.ro.gov.br',
-    phone: '(69) 3216-5300',
-    address: 'Palácio Rio Madeira, Porto Velho - RO',
-  };
   let announcements: AvisoPublico[] = [];
   let announcementsError: string | null = null;
   try {
@@ -41,7 +31,7 @@ async function PublicAoVivoContent() {
     const status = error instanceof ApiError && error.status > 0 ? ' (HTTP ' + error.status + ')' : '';
     announcementsError = message + status;
   }
-  return <LiveBroadcastSection socials={socials} announcements={announcements}
+  return <LiveBroadcastSection announcements={announcements}
     announcementsError={announcementsError} news={[]} />;
 }
 

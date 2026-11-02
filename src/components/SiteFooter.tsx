@@ -3,15 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { ExternalLink, Phone, Mail, MapPin } from 'lucide-react';
-
-const INSTITUTIONAL_CONTACT = {
-  telefone: '(69) 3216-5300',
-  email: 'mediacaotecnologica@seduc.ro.gov.br',
-  endereco: 'Palácio Rio Madeira, Porto Velho - RO',
-} as const;
+import { useSiteChannels } from '@/components/SiteChannelsProvider';
 
 export default function SiteFooter() {
-  const canais = INSTITUTIONAL_CONTACT;
+  const { phone, email, address } = useSiteChannels();
 
   return (
     <footer className="relative mt-20 border-t border-slate-200 dark:border-slate-800 bg-[#004A99] dark:bg-[#08152B] text-white transition-colors duration-200">
@@ -37,19 +32,19 @@ export default function SiteFooter() {
             <div className="space-y-1 text-xs text-sky-200/90 dark:text-slate-400 [overflow-wrap:anywhere]">
               <p className="flex items-center gap-1.5">
                 <MapPin size={13} className="shrink-0 text-sky-300" />
-                <span>{canais.endereco || 'Governo do Estado de Rondônia | SEDUC-RO - Coordenadoria de Mídias Educacionais. Palácio Rio Madeira, Porto Velho - RO.'}</span>
+                <span>{address || 'Governo do Estado de Rondônia | SEDUC-RO - Coordenadoria de Mídias Educacionais.'}</span>
               </p>
               <div className="flex flex-wrap items-center gap-4 pt-1">
-                {canais.telefone && (
+                {phone && (
                   <p className="flex items-center gap-1.5">
                     <Phone size={13} className="shrink-0 text-sky-300" />
-                    <span>{canais.telefone}</span>
+                    <span>{phone}</span>
                   </p>
                 )}
-                {canais.email && (
+                {email && (
                   <p className="flex items-center gap-1.5">
                     <Mail size={13} className="shrink-0 text-sky-300" />
-                    <span>{canais.email}</span>
+                    <span>{email}</span>
                   </p>
                 )}
               </div>
@@ -115,7 +110,7 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-sky-400/25 dark:border-white/10 pt-6 text-xs text-sky-200/80 dark:text-slate-500 sm:flex-row">
+        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-sky-400/25 dark:border-white/10 pt-6 text-xs text-sky-200/80 dark:text-slate-400 sm:flex-row">
           <p>© 2026 Governo do Estado de Rondônia - SEDUC-RO. Todos os direitos reservados.</p>
           <p>Conforme diretrizes da LGPD e do Estatuto da Criança e do Adolescente (ECA).</p>
         </div>

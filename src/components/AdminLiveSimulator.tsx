@@ -13,7 +13,6 @@ import {
   MapPin, 
   ArrowRight, 
   ArrowUpRight, 
-  Play, 
   AlertCircle, 
   AlertTriangle, 
   Info, 
@@ -24,7 +23,7 @@ import {
 } from 'lucide-react';
 import { AnnouncementType } from '@/types';
 
-export type PreviewContentType = 'noticia' | 'aviso' | 'banner' | 'galeria' | 'siteInfo';
+export type PreviewContentType = 'noticia' | 'aviso' | 'galeria' | 'siteInfo';
 
 export interface PreviewNewsData {
   title?: string;
@@ -50,12 +49,6 @@ export interface PreviewAnnouncementData {
   cor?: string;
   typeColor?: string;
   typeName?: string;
-}
-
-export interface PreviewBannerData {
-  title?: string;
-  imageUrl?: string;
-  linkUrl?: string;
 }
 
 export interface PreviewGalleryData {
@@ -91,7 +84,6 @@ export interface PreviewSiteInfoData {
 export type PreviewItemData =
   | PreviewNewsData
   | PreviewAnnouncementData
-  | PreviewBannerData
   | PreviewGalleryData
   | PreviewSiteInfoData;
 
@@ -261,9 +253,6 @@ export default function AdminLiveSimulator({
               <AnnouncementPreviewRenderer data={data as PreviewAnnouncementData} />
             )}
 
-            {type === 'banner' && (
-              <BannerPreviewRenderer data={data as PreviewBannerData} />
-            )}
 
             {type === 'galeria' && (
               <GalleryPreviewRenderer
@@ -585,74 +574,7 @@ function AnnouncementPreviewRenderer({
 }
 
 /* ========================================================
-   RENDERIZADOR 3: BANNERS DA PÁGINA INICIAL (HERO CAROUSEL)
-======================================================== */
-function BannerPreviewRenderer({
-  data,
-}: {
-  data: PreviewBannerData;
-}) {
-  const title = data.title?.trim() || 'Ensino Médio com Mediação Tecnológica em Rondônia';
-  const imageUrl = data.imageUrl?.trim() || '/hero.jpg';
-  const linkUrl = data.linkUrl?.trim();
-
-  return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#05549D] via-[#072F5E] to-[#0A3D73] text-white p-5 sm:p-6 shadow-xl border border-white/20">
-      {/* Imagem de Fundo com Blend */}
-      <img
-        src={imageUrl}
-        alt={title}
-        className="absolute inset-0 h-full w-full object-cover opacity-35 mix-blend-luminosity pointer-events-none"
-      />
-
-      <div className="relative z-10 space-y-4">
-        {/* Tags de Telemetria */}
-        <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold text-sky-200">
-          <span className="bg-white/10 px-2 py-0.5 rounded-md border border-white/20">
-            SEDUC-RO • 52 Municípios
-          </span>
-          <span>•</span>
-          <span className="inline-flex items-center gap-1 text-emerald-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Transmissão Satelital
-          </span>
-        </div>
-
-        {/* Título Principal */}
-        <h2 className="font-display text-lg sm:text-2xl font-bold leading-tight tracking-tight text-white text-balance">
-          {title}
-        </h2>
-
-        <p className="text-xs text-slate-200 leading-relaxed max-w-md line-clamp-3">
-          Aulas transmitidas ao vivo dos estúdios da SEDUC em Porto Velho para estudantes do 1º ao 3º ano em comunidades rurais, ribeirinhas e indígenas.
-        </p>
-
-        {/* Botões do Hero */}
-        <div className="pt-1 flex flex-wrap items-center gap-2.5">
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-white text-slate-950 px-3.5 py-2 text-xs font-bold shadow-sm">
-            <span>Como funciona o MEDTEC</span>
-            <ArrowRight className="h-3 w-3" />
-          </span>
-
-          <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 text-white px-3 py-2 text-xs font-semibold">
-            <Play className="h-3 w-3 text-rose-400 fill-rose-400/40" />
-            <span>Canal ao vivo</span>
-          </span>
-        </div>
-
-        {/* Link configurado */}
-        {linkUrl && (
-          <p className="text-[10px] text-sky-200/90 font-mono truncate pt-1">
-            Link de clique configurado: <strong className="text-white">{linkUrl}</strong>
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ========================================================
-   RENDERIZADOR 4: GALERIA DE FOTOS
+   RENDERIZADOR 3: GALERIA DE FOTOS
 ======================================================== */
 function GalleryPreviewRenderer({
   data,
@@ -711,7 +633,7 @@ function GalleryPreviewRenderer({
 }
 
 /* ========================================================
-   RENDERIZADOR 5: NÚMEROS E TEXTOS DO SITE (SITE INFO)
+   RENDERIZADOR 4: NÚMEROS E TEXTOS DO SITE (SITE INFO)
 ======================================================== */
 function SiteInfoPreviewRenderer({
   data,
@@ -919,9 +841,6 @@ export function AdminPreviewModal({
             <AnnouncementPreviewRenderer data={data as PreviewAnnouncementData} />
           )}
 
-          {type === 'banner' && (
-            <BannerPreviewRenderer data={data as PreviewBannerData} />
-          )}
 
           {type === 'galeria' && (
             <GalleryPreviewRenderer

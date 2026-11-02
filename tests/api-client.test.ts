@@ -3,7 +3,7 @@
  * Executado pelo test runner nativo do Node.js: npx tsx --test tests/api-client.test.ts
  */
 
-import { describe, it, beforeEach, mock } from 'node:test';
+import { describe, it, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
@@ -31,11 +31,14 @@ import { createRoot } from 'react-dom/client';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { PathnameContext, SearchParamsContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 import AdminFaqSubroutePage from '../src/app/admin/faq/page';
-import AdminProjetosSubroutePage from '../src/app/admin/projetos/page';
+import AdminProjetosLayout from '../src/app/admin/projetos/layout';
+import TemasProjetoPanel from '../src/components/admin/TemasProjetoPanel';
+import MembrosProjetoPanel from '../src/components/admin/MembrosProjetoPanel';
 import AdminBannersSubroutePage from '../src/app/admin/banners/page';
 import AdminDashboardRoute from '../src/app/admin/page';
 import DesktopSidebarContainer from '../src/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter, { type MobileDrawerFooterProps } from '../src/components/admin/MobileDrawerFooter';
+import NextImage from 'next/image';
 import NextLink from 'next/link';
 import { ExternalLink, LogOut } from 'lucide-react';
 import {
@@ -53,7 +56,7 @@ import type { OverviewStatsIndicators } from '../src/components/admin/OverviewSt
 import OverviewStats from '../src/components/admin/OverviewStats';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
-import SitePhotosManager from '../src/components/SitePhotosManager';
+import BannersPanel from '../src/components/admin/BannersPanel';
 import FaqModule from '../src/components/admin/FaqModule';
 import AnnouncementsModule, { type AnnouncementsModuleProps } from '../src/components/admin/AnnouncementsModule';
 import GalleryModule, { type GalleryModuleProps } from '../src/components/admin/GalleryModule';
@@ -63,6 +66,8 @@ import EstadosCidadesModule from '../src/components/admin/EstadosCidadesModule';
 import type { ATipoAviso, AAviso, FotoGaleria, CategoriaGaleria, Estado } from '../src/lib/api/types';
 import DuvidasVisitanteModule from '../src/components/admin/DuvidasVisitanteModule';
 import { notifyDuvidasPendentes, useDuvidasPendentes } from '../src/components/admin/useDuvidasPendentes';
+import { useProjetosResumo } from '../src/components/admin/useProjetosResumo';
+import { useBannersTotal } from '../src/components/admin/useBannersTotal';
 import FaqCentralSection from '../src/components/FaqCentralSection';
 import DuvidaVisitanteForm from '../src/components/DuvidaVisitanteForm';
 import PublicFaqPage from '../src/app/faq/page';
@@ -70,15 +75,18 @@ import PublicDuvidasPage from '../src/app/duvidas/page';
 import FaqSection from '../src/components/FaqSection';
 import DuvidaCategoriesManager from '../src/components/admin/DuvidaCategoriesManager';
 import type { DCategoriaDuvida, DDuvida, DDuvidaInput } from '../src/lib/api/types';
-import type { DDuvidaVisitante } from '../src/lib/api/types';
+import type { BannerPublico, DDuvidaVisitante, PjProjetoInput, PjProjetoMembro } from '../src/lib/api/types';
+import { diffProjetoMembros, formatCpf, formatFileSize, getProjetoImageSrc, hasMembroDuplicado, isValidCpf, maskCpf, PROJETO_ANEXO_MAX_BYTES, validateProjetoAnexo } from '../src/lib/projetos-content';
 import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput } from '../src/lib/api/types';
-import ProjectsModule, { type ProjectViewMode } from '../src/components/admin/ProjectsModule';
+import ProjetosPanel from '../src/components/admin/ProjetosPanel';
+import ProjetoMembrosEditor from '../src/components/admin/ProjetoMembrosEditor';
+import ProjetosApprovalQueue from '../src/components/admin/ProjetosApprovalQueue';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
 import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
 import { useAdminTheme } from '../src/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '../src/lib/admin-navigation-filter';
-import type { BannerItem, FaqItem, NewsItem, ProjectMission } from '../src/types';
+import type { FaqItem, NewsItem, SocialLinks } from '../src/types';
 
 import {
   buildQueryString,
@@ -97,10 +105,7 @@ import {
 } from '../src/lib/api/tokens';
 import { medtecApi } from '../src/lib/api/index';
 import { getLegacyFaqHref, readAdminFaqs } from '../src/lib/admin-faq';
-import { getLegacyProjectsHref, readAdminProjects } from '../src/lib/admin-projects';
-import { getLegacyBannersHref, readAdminBanners, readBannerNews, readBannerGallery, prepareLocalBannerPreview,
-  type AdminBannersData, type BannerNewsCover, type BannerGalleryPhoto } from '../src/lib/admin-banners';
-import AdminLiveSimulator from '../src/components/AdminLiveSimulator';
+import { getLegacyProjectsHref } from '../src/lib/admin-projects';
 import { applyOverviewSnapshot, createAdminOverviewLoader, createInitialOverviewState, getOverviewHighlights, getOverviewMetrics, startOverviewLoading } from '../src/lib/admin-overview';
 import AdminRedesSubroutePage from '../src/app/admin/redes/page';
 import SocialChannelsModule, { type SocialChannelsModuleProps } from '../src/components/admin/SocialChannelsModule';
@@ -112,6 +117,7 @@ import PublicGaleriaPage from '../src/app/galeria/page';
 import PublicAcervoPage from '../src/app/acervo/page';
 import PublicRedesPage from '../src/app/redes/page';
 import GallerySection from '../src/components/GallerySection';
+import GaleriaView from '../src/components/GaleriaView';
 import SocialSection from '../src/components/SocialSection';
 import PublicNoticiasPage from '../src/app/noticias/page';
 import PublicNoticiaDetalhePage, { generateMetadata as generateNoticiaMetadata } from '../src/app/noticias/[id]/page';
@@ -152,6 +158,14 @@ import TeacherProfiles from '../src/components/TeacherProfiles';
 import CommunityComingSoon from '../src/components/CommunityComingSoon';
 import StudentStories from '../src/components/StudentStories';
 import ProfessorDetalhePage from '../src/app/professores/[id]/page';
+import ProjetoDetalhePage, { generateMetadata as projetoMetadata } from '../src/app/projetos/[id]/page';
+import ProjetosView from '../src/components/ProjetosView';
+import HomeBannerCarousel from '../src/components/HomeBannerCarousel';
+import { readHomeBanners } from '../src/lib/home-banners';
+import { CANAIS_PADRAO, canaisFromApi, YOUTUBE_URL_OFICIAL } from '../src/lib/site-channels';
+import { readSiteChannels } from '../src/lib/site-channels-server';
+import { SiteChannelsProvider } from '../src/components/SiteChannelsProvider';
+import { canAccessBanners } from '../src/lib/admin-session';
 import type { ConquistaPublica, ProfessorPublico } from '../src/lib/api/types';
 import {
   CONQUISTA_IMAGE_MAX_BYTES,
@@ -344,7 +358,7 @@ const editorialProfileCases: {
   { label: 'gestor sem perfil', isGestor: true, profileType: undefined, expected: null },
   { label: 'Administrador Rails inativo', isGestor: true, profileType: 'Administrador', expected: null, inactive: true },
   { label: 'Editor', isGestor: false, profileType: 'Editor de Notícias', expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'Curador', isGestor: false, profileType: 'Curador de Fotos', expected: { method: 'replace', href: '/admin/banners' } },
+  { label: 'Curador', isGestor: false, profileType: 'Curador de Fotos', expected: { method: 'replace', href: '/admin/galeria' } },
   { label: 'Publicador', isGestor: false, profileType: 'Publicador de Avisos', expected: { method: 'push', href: '/admin/avisos' } },
   { label: 'Operador', isGestor: false, profileType: 'Operador de Conteúdo', expected: { method: 'replace', href: '/admin/noticias' } },
   { label: 'Gestor literal', isGestor: false, profileType: 'Gestor', expected: { method: 'replace', href: '/admin/noticias' } },
@@ -396,7 +410,7 @@ describe('Decisão editorial pura (12D-5 Lote 3)', () => {
         assert.deepEqual(getAdminEditorialDestination(false, profile, params), { method: 'replace', href });
         assert.deepEqual(getAdminEditorialDestination(false, profile, params), { method: 'replace', href });
       }
-      assert.deepEqual(getAdminEditorialDestination(false, 'Curador de Fotos', params), { method: 'replace', href: '/admin/banners' });
+      assert.deepEqual(getAdminEditorialDestination(false, 'Curador de Fotos', params), { method: 'replace', href: '/admin/galeria' });
       assert.deepEqual(getAdminEditorialDestination(false, 'Publicador de Avisos', params), { method: 'push', href: '/admin/avisos' });
       assert.equal(getAdminEditorialDestination(true, 'Administrador', params), null);
       assert.equal(params.toString(), before);
@@ -424,16 +438,6 @@ describe('Decisão editorial pura (12D-5 Lote 3)', () => {
 function AdminDashboardPage() {
   const query = typeof window === 'undefined' ? '' : window.location?.search || '';
   return createElement(SearchParamsContext.Provider, { value: new URLSearchParams(query) }, AdminDashboardRoute());
-}
-
-function bannerManagerProps(data: AdminBannersData & { news: BannerNewsCover[]; gallery: BannerGalleryPhoto[] }, saving = false): Parameters<typeof SitePhotosManager>[0] {
-  const ready = { loading: false, error: null, status: null, retry() {} };
-  return {
-    saving,
-    local: { ...ready, data: { banners: data.banners, siteInfo: data.siteInfo } },
-    news: { ...ready, data: { items: data.news, total: data.news.length } },
-    gallery: { ...ready, data: { items: data.gallery, total: data.gallery.length } },
-  };
 }
 
 describe('Contêiner compartilhado da sidebar desktop', () => {
@@ -989,7 +993,7 @@ describe('Integração dos aliases estáticos no dashboard (12D-4B)', () => {
   it('mantém o encaminhamento por perfil das sessões Rails e local separado dos aliases', async () => {
     const profiles = [
       { name: 'Editor de Notícias', method: 'replace', href: '/admin/noticias?action=new' },
-      { name: 'Curador de Fotos', method: 'replace', href: '/admin/banners' },
+      { name: 'Curador de Fotos', method: 'replace', href: '/admin/galeria' },
       { name: 'Publicador de Avisos', method: 'push', href: '/admin/avisos' },
       { name: 'Operador de Conteúdo', method: 'replace', href: '/admin/noticias?action=new' },
     ];
@@ -1670,7 +1674,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[1].resolve(railsSession('Curador de Fotos')));
       assert.equal(page.loading, false);
       assert.equal(page.session?.profileType, 'Curador de Fotos');
-      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/banners' }]);
+      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/galeria' }]);
     } finally { await page.restore(); }
   });
 
@@ -1797,7 +1801,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[0].resolve(railsSession('Curador de Fotos')));
       assert.equal(page.session?.profileType, 'Curador de Fotos');
       assert.equal(page.loading, false);
-      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/banners' }]);
+      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/galeria' }]);
     } finally { await page.restore(); }
   });
 
@@ -1833,7 +1837,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
       assert.equal(page.session?.isGestor, true);
       assert.equal(page.loading, false);
-      assert.equal(page.overviewRequests.length, 10);
+      assert.equal(page.overviewRequests.length, 14);
       assert.equal(page.localRequests.length, 0);
       assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
@@ -1861,10 +1865,10 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.session?.profileType, fields.perfil_nome, label);
         assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected ? 10 : 0, label);
+        assert.equal(page.overviewRequests.length, expected ? 14 : 0, label);
         const profile = fields.perfil_nome;
         assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
-          ? [{ method: 'replace', href: '/admin/banners' }] : profile === 'Publicador de Avisos'
+          ? [{ method: 'replace', href: '/admin/galeria' }] : profile === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
         page.assertRetained();
       } finally { await page.restore(); }
@@ -1902,9 +1906,9 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(reply.data, before, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 10 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? 14 : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
-          ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
+          ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
       } finally { await page.restore(); }
     }
@@ -1924,9 +1928,9 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(page.session, expected, `${source}: ${label}`);
         assert.deepEqual(input, data, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 10 : 9) : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 14 : 9) : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
-          ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
+          ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
         assert.equal(page.warn.mock.callCount(), source === 'Rails' ? 1 : 0);
       } finally { parse.mock.restore(); await page.restore(); }
@@ -1950,7 +1954,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
     for (const source of ['Rails', 'local']) {
       for (const [profile, method, href] of [
         ['Editor de Notícias', 'replace', '/admin/noticias?action=new'],
-        ['Curador de Fotos', 'replace', '/admin/banners'],
+        ['Curador de Fotos', 'replace', '/admin/galeria'],
         ['Publicador de Avisos', 'push', '/admin/avisos'],
         ['Operador de Conteúdo', 'replace', '/admin/noticias?action=new'],
       ]) {
@@ -2003,7 +2007,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             assert.equal(page.session?.isGestor, isGestor, label);
             assert.equal(page.session?.profileType, profileType, label);
             assert.equal(page.loading, false, label);
-            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 10 : 9) : 0, label);
+            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 14 : 9) : 0, label);
             assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, label);
             assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, label);
           } finally { await page.restore(); }
@@ -2155,7 +2159,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             });
             assert.equal(page.loading, false);
             assert.deepEqual(page.calls, [
-              { method: 'replace', href: '/admin/banners' }, { method: 'replace', href: '/admin/banners' },
+              { method: 'replace', href: '/admin/banners' }, { method: 'replace', href: '/admin/galeria' },
             ]);
             page.assertRetained();
           } finally { await page.restore(); }
@@ -2786,7 +2790,7 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     ['Rails', 'Administrador', 'usuarios', true],
     ['Rails', 'Editor de Notícias', 'noticias', true],
     ['Rails', 'Editor de Notícias', 'redes', false],
-    ['Rails', 'Curador de Fotos', 'fotos', true],
+    ['Rails', 'Curador de Fotos', 'fotos', false],
     ['Rails', 'Curador de Fotos', 'galeria', true],
     ['Rails', 'Publicador de Avisos', 'avisos', true],
     ['Rails', 'Publicador de Avisos', 'noticias', true],
@@ -3007,6 +3011,44 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     } finally { await shell.restore(); }
   });
 
+  for (const [source, profile, allowed] of [['Rails', 'Administrador', true], ['Rails', 'Gestor', true], ['Rails', 'Jornalista', false], ['Rails', 'Curador de Fotos', false], ['Rails', 'Operador de Conteúdo', false], ['Rails', 'Editor de Notícias', false]] as const) {
+    it('banners seguem os perfis do seed Rails: ' + profile, async () => {
+      let renders = 0;
+      const shell = await mountShell({ source, section: 'fotos', pathname: '/admin/banners', children: () => { renders++; return 'B2: conteúdo protegido'; } });
+      try {
+        await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
+        assert.equal(shell.view?.content, allowed);
+        assert.equal(shell.view?.restricted, !allowed);
+        assert.equal(renders > 0, allowed);
+      } finally { await shell.restore(); }
+    });
+  }
+
+  it('menu de banners acompanha a regra nos dois menus, e o Curador entra pela galeria', () => {
+    for (const file of ['src/components/admin/AdminShell.tsx', 'src/app/admin/page.tsx']) {
+      assert.match(readFileSync(file, 'utf8'), /const canAccessPhotos = canAccessBanners\(userSession\);/, file);
+    }
+    assert.equal(canAccessBanners({ isGestor: true, profileType: 'Administrador' }), true);
+    assert.equal(canAccessBanners({ isGestor: false, profileType: 'Gestor' }), true);
+    for (const profileType of ['Curador de Fotos', 'Operador de Conteúdo', 'Jornalista', undefined]) assert.equal(canAccessBanners({ isGestor: false, profileType }), false, String(profileType));
+  });
+
+  for (const [profile, allowed] of [['Administrador', true], ['Gestor', true], ['Jornalista', false], ['Operador de Conteúdo', false], ['Editor de Notícias', false]] as const) {
+    it('as três subrotas de projetos seguem os perfis com permissão: ' + profile, async () => {
+      for (const section of ['projetos', 'projetosTemas', 'projetosMembros'] as const) {
+        let renders = 0;
+        const shell = await mountShell({ section, pathname: SHARED_SECTION_CONFIG[section].href, children: () => { renders++; return 'B2: conteúdo protegido'; } });
+        try {
+          assert.equal(renders, 0, 'Nada é montado antes da sessão');
+          await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
+          assert.equal(shell.view?.content, allowed, section);
+          assert.equal(shell.view?.restricted, !allowed, section);
+          assert.equal(renders > 0, allowed, section);
+        } finally { await shell.restore(); }
+      }
+    });
+  }
+
   for (const [profile, allowed] of [['Gestor', true], ['Jornalista', false]] as const) {
     it('dúvidas de visitantes seguem os perfis do seed Rails: ' + profile, async () => {
       const shell = await mountShell({ section: 'duvidas', pathname: '/admin/faq' });
@@ -3128,6 +3170,8 @@ describe('Avisos públicos Lote B — apresentação e limites', () => {
       let reloads = 0;
       const location = { href, reload() { reloads++; } };
       Object.defineProperty(globalThis, 'window', { configurable: true, value: { location } });
+      // Chamado fora de uma renderização: o contexto dos canais precisa ser simulado.
+      const context = mock.method(React, 'useContext', () => CANAIS_PADRAO);
       try {
         const tree = name === 'avisos'
           ? inspectView([], null, 'Falha HTTP 503')
@@ -3141,6 +3185,7 @@ describe('Avisos públicos Lote B — apresentação e limites', () => {
         assert.equal(reloads, 1);
         assert.equal(location.href, href);
       } finally {
+        context.mock.restore();
         if (descriptor) Object.defineProperty(globalThis, 'window', descriptor);
         else Reflect.deleteProperty(globalThis, 'window');
       }
@@ -4264,9 +4309,21 @@ describe('Metadados compartilhados da navegação administrativa', () => {
       },
       "projetos": {
         "group": "Publicações do Site",
-        "title": "Projetos Pedagógicos e Práticas Escolares",
-        "subtitle": "Cadastre, edite e gerencie os projetos pedagógicos, práticas de campo e missões escolares dos 52 municípios.",
+        "title": "Projetos Pedagógicos",
+        "subtitle": "Cadastre os projetos das escolas com tema, relato, capa, anexos e membros, e acompanhe a aprovação.",
         "href": "/admin/projetos"
+      },
+      "projetosTemas": {
+        "group": "Publicações do Site",
+        "title": "Temas de Projeto",
+        "subtitle": "Cadastre e organize os temas usados nos projetos pedagógicos.",
+        "href": "/admin/projetos/temas"
+      },
+      "projetosMembros": {
+        "group": "Publicações do Site",
+        "title": "Membros de Projeto",
+        "subtitle": "Cadastre as pessoas que participam dos projetos. O CPF não aparece no site.",
+        "href": "/admin/projetos/membros"
       },
       "duvidas": {
         "group": "Publicações do Site",
@@ -4357,9 +4414,9 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.deepEqual(Object.keys(SHARED_SECTION_CONFIG), Object.keys(expected));
   });
 
-  it('mantém os dezesseis destinos na ordem anterior e exclui Início do mapa de redirecionamento', () => {
+  it('mantém os dezoito destinos na ordem definida e exclui Início do mapa de redirecionamento', () => {
     assert.deepEqual([...SECTION_HREFS], [
-      ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['duvidas', '/admin/faq'],
+      ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['projetosTemas', '/admin/projetos/temas'], ['projetosMembros', '/admin/projetos/membros'], ['duvidas', '/admin/faq'],
       ['usuarios', '/admin/usuarios'], ['kanban', '/admin/kanban'], ['noticias', '/admin/noticias'],
       ['avisos', '/admin/avisos'], ['galeria', '/admin/galeria'], ['estadosCidades', '/admin/estados-cidades'],
       ['professores', '/admin/professores'], ['professoresDisciplinas', '/admin/professores/disciplinas'],
@@ -4368,7 +4425,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     ]);
     assert.equal(SECTION_HREFS.has('visaoGeral'), false);
     assert.equal(SHARED_SECTION_CONFIG.visaoGeral.href, '/admin');
-    assert.equal(new Set(SECTION_HREFS.values()).size, 16);
+    assert.equal(new Set(SECTION_HREFS.values()).size, 18);
   });
 
   it('preserva exports públicos e compatibilidade dos tipos de seção e props do shell', () => {
@@ -4398,7 +4455,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
           if (item.visible) folder.props.onSelectSection!(item.section);
         }
       }
-      const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners',
+      const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners',
         '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
       assert.deepEqual(page.calls, (mobile ? [...menuOrder, ...menuOrder] : menuOrder).map(href => ({ method: 'push', href })));
     }
@@ -4408,7 +4465,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     const desktop = capture('shell', session);
     const desktopHrefs = desktop.nodes.flatMap(node => node.props.href ? [node.props.href] : []);
     assert.deepEqual(desktopHrefs.filter(href => href.startsWith('/admin')),
-      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
+      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
     assert.match(desktop.html, /<a\b[^>]*href="\/admin"/);
     assert.deepEqual(desktop.calls, []);
     const mobile = capture('shell', session, true);
@@ -4521,7 +4578,7 @@ describe('Interface componentizada da Visão Geral', () => {
     }, latestNews: undefined, announcementTitle: undefined });
     assert.equal((html.match(/>0<\/p>/g) || []).length, 5);
     for (const text of ['Nenhuma matéria cadastrada', 'Nenhuma fotografia catalogada',
-      'Nenhuma notícia publicada ainda', 'Indisponível — sem integração oficial',
+      'Nenhuma notícia publicada ainda',
       'Sem comunicados urgentes no momento', 'Nenhum comunicado urgente ativo', 'Nenhuma dúvida cadastrada']) {
       assert.ok(html.includes(text), text);
     }
@@ -4557,7 +4614,7 @@ describe('Interface componentizada da Visão Geral', () => {
 
   it('identifica cada indicador sem integração e não inventa números ou nomes para preenchê-lo', () => {
     const html = render();
-    assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 5);
+    assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 0);
     for (const text of ['52 Municípios', '4 trilhas', '4 categorias', 'Nenhum projeto cadastrado',
       'Nenhuma dúvida cadastrada', 'missões', 'banners ativos', 'Transmissão ao vivo integrada']) {
       assert.ok(!html.includes(text), text);
@@ -4719,7 +4776,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(CapturePage)));
           assert.ok(html.includes('Painel do Gestor • Central Executiva CMS'));
           assert.ok(html.includes('Carregando API...'));
-          assert.ok(html.includes('Indisponível — sem integração oficial'));
+          assert.ok(html.includes('Indisponível nesta sessão'));
           assert.ok(!html.includes('Autenticando e carregando painel de gestão...'));
           type NavigationProps = { children?: ReactNode; folder?: { items: { section: string; badge?: number; visible: boolean }[] };
             onSelectSection?: (section: string) => void; canAccessKanban?: boolean };
@@ -4741,7 +4798,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           }
           visit(page);
           assert.equal(overviewFound, true);
-          const expected = ['/admin/noticias', '/admin/projetos', '/admin/faq', '/admin/avisos', '/admin/banners',
+          const expected = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners',
             '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
           if (editorialProfile === 'Administrador') expected.push('/admin/kanban');
           assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
@@ -4985,7 +5042,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
         }));
         assert.ok(html.includes('Painel do Gestor • Central Executiva CMS'));
-        assert.ok(html.includes('Indisponível — sem integração oficial'));
+        assert.ok(html.includes('Indisponível nesta sessão'));
         assert.ok(html.includes('href="/admin/usuarios"'));
         assert.ok(!html.includes('>0</p>'));
       }
@@ -4993,732 +5050,162 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
   });
 });
 
-describe('Rota independente de Banners e seleção local protegida', () => {
-  const source = {
-    banners: [{ id: 'b1', imageUrl: '/banner.jpg', title: 'Banner recebido', linkUrl: '/noticias' }],
-    siteInfo: { heroImage: '/hero.jpg', studioImage: '/studio.jpg', title: 'Não necessário' },
-    news: [{ id: 'n1', title: 'Notícia recebida', coverImage: '/cover.jpg', content: 'Não necessário' }],
-    gallery: [{ id: 'g1', title: 'Foto recebida', imageUrl: '/photo.jpg', description: 'Não necessário' }],
-    users: [{ id: 'não necessário' }],
-    projects: [],
-  };
+describe('Banners — painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: items.length } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const FILE_URL = 'http://172.16.107.63:3001/rails/active_storage/blobs/redirect/x/banner.png';
+  const arquivo = { id: 1, imagem: FILE_URL, imagem_url: null };
+  const link = { id: 2, imagem: null, imagem_url: 'https://exemplo.com/banner.jpg' };
+  function mount(items: unknown[] = [arquivo, link], write: (options: RequestInit) => Response = () => reply(arquivo, 201)) {
+    return mountCategories(async (_url, options) => options.method && options.method !== 'GET' ? write(options) : list(items), false, {
+      component: () => BannersPanel(), allowedPaths: /\/b_banners(\/\d+)?$/,
+    });
+  }
+  type View = Awaited<ReturnType<typeof mount>>;
+  const files = (value: File) => ({ target: { files: [value], value: 'x' } });
+  const pick = (view: View, event: unknown) => view.act(() => {
+    const node = view.nodes().find(item => item.type === 'input' && item.props.name === 'banner-imagem');
+    assert.ok(node);
+    return Reflect.apply(node.props.onChange as (value: unknown) => unknown, undefined, [event]);
+  });
+  const useLink = (view: View) => view.act(() => {
+    const node = view.nodes().find(item => item.props.name === 'banner-modo' && item.props.value === 'link');
+    return Reflect.apply(node!.props.onChange as () => unknown, undefined, []);
+  });
+  const writes = (view: View, method: string) => view.calls.filter(call => call.options.method === method);
 
-  it('aguarda autorização no shell sem consultar dados ou iniciar upload', () => {
+  it('o shell aguarda a sessão, sem consultar banners', () => {
     const originalFetch = globalThis.fetch;
     let requests = 0;
-    globalThis.fetch = async () => { requests += 1; throw new Error('Acesso ainda não autorizado.'); };
+    globalThis.fetch = async () => { requests += 1; throw new Error('Não deve consultar antes da autorização.'); };
     try {
       const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'banners-test' };
-      const html = renderToStaticMarkup(createElement(
-        AppRouterContext.Provider, { value: router },
-        createElement(PathnameContext.Provider, { value: '/admin/banners' }, createElement(AdminBannersSubroutePage)),
-      ));
+      const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router },
+        createElement(PathnameContext.Provider, { value: '/admin/banners' }, createElement(AdminBannersSubroutePage))));
       assert.ok(html.includes('Autenticando e carregando painel de gestão...'));
-      assert.ok(!html.includes('Carrossel de banners'));
       assert.equal(requests, 0);
       assert.equal(SECTION_CONFIG.fotos.href, '/admin/banners');
-      assert.equal(getFolderIdForSection('fotos'), 'publicacoes');
-      assert.equal(SECTION_CONFIG.galeria.href, '/admin/galeria');
+      assert.equal(AdminBannersSubroutePage().props.activeSection, 'fotos', 'Mantém a regra de acesso da seção');
     } finally { globalThis.fetch = originalFetch; }
   });
-
-  it('encaminha fotos e variantes banners sem capturar as dez subrotas anteriores', () => {
-    for (const key of ['tab', 'section']) {
-      for (const id of ['fotos', 'banners']) {
-        assert.equal(getLegacyBannersHref(new URLSearchParams({ [key]: id })), '/admin/banners');
-      }
-    }
-    for (const id of ['noticias', 'kanban', 'usuarios', 'duvidas', 'projetos', 'avisos', 'galeria', 'redes', 'siteInfo', 'estadosCidades']) {
-      assert.equal(getLegacyBannersHref(new URLSearchParams({ tab: id })), null);
-    }
-    assert.equal(getLegacyBannersHref(new URLSearchParams()), null);
-    assert.equal(getLegacyBannersHref(new URLSearchParams('tab=galeria&section=fotos')), null);
-  });
-
-  it('faz somente GET cancelável da fonte legada e retém apenas os campos necessários', async () => {
-    const originalFetch = globalThis.fetch;
-    const controller = new AbortController();
-    let requests = 0;
-    globalThis.fetch = async (url, options) => {
-      requests += 1;
-      assert.equal(url, '/api/data');
-      assert.equal(options?.method, 'GET');
-      assert.equal(options?.cache, 'no-store');
-      assert.equal(options?.signal, controller.signal);
-      return new Response(JSON.stringify(source));
-    };
+  it('lista em grade, na ordem recebida, sem juntar a URL com a base da API', async () => {
+    const view = await mount();
     try {
-      const result = await readAdminBanners(controller.signal);
-      assert.deepEqual(result, {
-        banners: source.banners,
-        siteInfo: { heroImage: '/hero.jpg', studioImage: '/studio.jpg' },
-      });
-      assert.equal(requests, 1);
-    } finally { globalThis.fetch = originalFetch; }
+      await view.act(settle);
+      assert.equal(view.calls[0].url.searchParams.get('page'), 'all');
+      const images = view.nodes().filter(node => node.type === NextImage);
+      assert.deepEqual(images.map(node => node.props.src), [FILE_URL, 'https://exemplo.com/banner.jpg']);
+      assert.deepEqual(images.map(node => node.props.alt), ['Banner 1', 'Banner 2']);
+      assert.ok(images.every(node => node.props.unoptimized === true), 'Link pode ser de qualquer domínio');
+    } finally { await view.restore(); }
   });
-
-  it('preserva uma coleção vazia confirmada sem gerar banner substituto', async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => new Response(JSON.stringify({ ...source, banners: [], news: [], gallery: [] }));
+  it('não oferece recursos fora da API: link de clique, ordem, título ou ocultar', async () => {
+    const view = await mount();
     try {
-      assert.deepEqual((await readAdminBanners()).banners, []);
-    } finally { globalThis.fetch = originalFetch; }
+      await view.act(settle);
+      for (const text of ['Link ao clicar', 'Salvar link', 'Subir banner', 'Descer banner', 'Foto do estúdio', 'Capas das notícias', 'Ocultar']) assert.ok(!view.html().includes(text), text);
+    } finally { await view.restore(); }
   });
-
-  it('expõe falhas HTTP, rede, cancelamento, JSON e dados inválidos sem fallback', async () => {
-    const originalFetch = globalThis.fetch;
-    try {
-      globalThis.fetch = async () => new Response('', { status: 403 });
-      await assert.rejects(readAdminBanners(), /HTTP 403/);
-      globalThis.fetch = async () => { throw new Error('Rede indisponível'); };
-      await assert.rejects(readAdminBanners(), /Rede indisponível/);
-      globalThis.fetch = async () => { throw new DOMException('Cancelado', 'AbortError'); };
-      await assert.rejects(readAdminBanners(), { name: 'AbortError' });
-      for (const payload of ['inválido', '{}', JSON.stringify({ ...source, banners: null }),
-        JSON.stringify({ ...source, banners: [{ id: 'inválido' }] }),
-        JSON.stringify({ ...source, siteInfo: {} }), JSON.stringify({ ...source, siteInfo: { heroImage: 1, studioImage: '/studio.jpg' } }),
-        JSON.stringify({ ...source, siteInfo: { heroImage: '/hero.jpg' } })]) {
-        globalThis.fetch = async () => new Response(payload);
-        await assert.rejects(readAdminBanners(), /Resposta inválida/);
-      }
-    } finally { globalThis.fetch = originalFetch; }
-  });
-
-  it('a seleção usada por Banners prepara prévia local sem disparar upload ou gravação', async () => {
-    const originalFetch = globalThis.fetch;
-    const originalReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
-    const file = new File(['imagem sintética apenas para teste'], 'banner.png', { type: 'image/png' });
-    let requests = 0;
-    let reads = 0;
-    class LocalReader {
-      result = 'data:image/png;base64,aW1hZ2Vt';
-      onload: (() => void) | null = null;
-      readAsDataURL(blob: Blob) {
-        assert.equal(blob, file);
-        reads += 1;
-        queueMicrotask(() => this.onload?.());
-      }
-    }
-    Object.defineProperty(globalThis, 'FileReader', { configurable: true, value: LocalReader });
-    globalThis.fetch = async () => { requests += 1; throw new Error('Upload ou gravação proibidos.'); };
-    try {
-      const preview = await prepareLocalBannerPreview(file);
-      assert.equal(preview?.imageUrl, 'data:image/png;base64,aW1hZ2Vt');
-      assert.equal(preview?.title, 'banner.png');
-      assert.equal(reads, 1);
-      assert.equal(requests, 0);
-      const html = renderToStaticMarkup(createElement(AdminLiveSimulator, { type: 'banner', data: preview! }));
-      assert.ok(html.includes('data:image/png;base64,aW1hZ2Vt'));
-      assert.ok(html.includes('banner.png'));
-      assert.equal(requests, 0);
-    } finally {
-      globalThis.fetch = originalFetch;
-      if (originalReader) Object.defineProperty(globalThis, 'FileReader', originalReader);
-      else Reflect.deleteProperty(globalThis, 'FileReader');
-    }
-  });
-
-  it('trata cancelamento e arquivos inválidos antes de iniciar a leitura local', async () => {
-    assert.equal(await prepareLocalBannerPreview(undefined), null);
-    await assert.rejects(prepareLocalBannerPreview(new File(['texto'], 'banner.svg', { type: 'image/svg+xml' })), /JPEG, PNG, WEBP ou AVIF/);
-    await assert.rejects(prepareLocalBannerPreview(new File([], 'vazio.png', { type: 'image/png' })), /até 5 MB/);
-    await assert.rejects(prepareLocalBannerPreview(new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'grande.png', { type: 'image/png' })), /até 5 MB/);
-  });
-
-  it('expõe falha de leitura da imagem sem retornar sucesso de upload', async () => {
-    const originalReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
-    class FailedReader {
-      onerror: (() => void) | null = null;
-      readAsDataURL() { queueMicrotask(() => this.onerror?.()); }
-    }
-    Object.defineProperty(globalThis, 'FileReader', { configurable: true, value: FailedReader });
-    try {
-      await assert.rejects(prepareLocalBannerPreview(new File(['imagem'], 'banner.png', { type: 'image/png' })), /Não foi possível ler a imagem/);
-    } finally {
-      if (originalReader) Object.defineProperty(globalThis, 'FileReader', originalReader);
-      else Reflect.deleteProperty(globalThis, 'FileReader');
-    }
-  });
-});
-
-describe('Banners no gerenciador de fotos existente', () => {
-  function renderBanners(banners: BannerItem[] = [], saving = false) {
-    return renderToStaticMarkup(createElement(SitePhotosManager, bannerManagerProps({
-      banners,
-      siteInfo: { heroImage: '/hero-recebido.jpg', studioImage: '/estudio-recebido.jpg' },
-      news: [{ id: 1, title: 'Capa recebida', coverImage: '/capa-recebida.jpg', status: 'aguardando', statusName: 'Aguardando aprovação', publicationDate: null }],
-      gallery: [{ id: 1, title: 'Foto recebida', imageUrl: '/foto-recebida.jpg', category: null }],
-    }, saving)));
-  }
-
-  it('renderiza somente a coleção recebida, preservando links e controles do carrossel', () => {
-    const html = renderBanners([
-      { id: 'banner-teste', title: 'Banner recebido', imageUrl: '/banner-recebido.jpg', linkUrl: '/destino-recebido' },
-      { id: 'outro-banner', title: 'Outro banner', imageUrl: '/outro-banner.jpg' },
-    ]);
-    for (const text of ['Banner recebido', 'Outro banner', '/destino-recebido', 'Salvar link', 'Subir banner', 'Descer banner', 'Remover banner', 'Ver prévia no site']) {
-      assert.ok(html.includes(text), text);
-    }
-    assert.ok(html.includes('Capa recebida'));
-    assert.ok(html.includes('Foto recebida'));
-    assert.ok(html.includes('/estudio-recebido.jpg'));
-    assert.ok(html.includes('Simulador do Site Oficial'));
-    assert.equal((html.match(/aria-label="Remover banner"/g) || []).length, 2);
-    assert.ok(!html.includes('role="dialog"'));
-  });
-
-  it('mantém a lista vazia e usa a imagem de referência apenas no simulador', () => {
-    const html = renderBanners();
-    assert.ok(html.includes('Carrossel de banners'));
-    assert.ok(html.includes('/hero-recebido.jpg'));
-    assert.ok(!html.includes('aria-label="Remover banner"'));
-    assert.ok(!html.includes('name="destino"'));
-    assert.ok(html.includes('Ou cole o link da imagem'));
-    assert.ok(html.includes('Selecionar banner para prévia local'));
-  });
-
-  it('mostra o bloqueio e preserva seletores sem iniciar requisições ao renderizar', () => {
-    const originalFetch = globalThis.fetch;
-    let requests = 0;
-    globalThis.fetch = async () => {
-      requests += 1;
-      throw new Error('Renderizar Banners não deve iniciar leitura, upload ou gravação.');
-    };
-    try {
-      const html = renderBanners([{ id: 'banner-teste', imageUrl: '/banner-recebido.jpg' }], true);
-      assert.ok(html.includes('aguarda a disponibilização do endpoint oficial no backend Rails'));
-      assert.ok(html.includes('a gravação deste módulo está bloqueada'));
-      assert.ok(!html.includes('O envio vale na hora'));
-      assert.ok(/<button[^>]*type="submit"[^>]*disabled=""[^>]*>Salvar link<\/button>/.test(html));
-      assert.ok(html.includes('type="file"'));
-      assert.ok(html.includes('accept="image/*"'));
-      assert.equal(requests, 0);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-});
-
-describe('Banners sem uploads ou gravações sem persistência', () => {
-  const source = bannerManagerProps({
-    banners: [
-      { id: 'banner-1', title: 'Primeiro banner', imageUrl: '/banners/primeiro.svg', linkUrl: '#primeiro' },
-      { id: 'banner-2', title: 'Segundo banner', imageUrl: '/uploads/existente.png', linkUrl: '/segundo' },
-    ],
-    siteInfo: { heroImage: '/hero-existente.jpg', studioImage: '/estudio-existente.jpg' },
-    news: [{ id: 1, title: 'Notícia existente', coverImage: '/capa-existente.jpg', status: 'aguardando', statusName: 'Aguardando aprovação', publicationDate: null }],
-    gallery: [{ id: 1, title: 'Foto existente', imageUrl: '/foto-existente.jpg', category: null }],
-  });
-  type ControlProps = {
-    children?: ReactNode; type?: string; name?: string; disabled?: boolean; 'aria-label'?: string;
-    onClick?: () => void;
-    onChange?: (event: { target: { files?: File[]; value: string } }) => void;
-    onSubmit?: (event: { preventDefault(): void }) => void;
-  };
-  async function withManager(run: (manager: {
-    render(): string;
-    controls(): React.ReactElement<ControlProps>[];
-    requests: string[];
-    data: typeof source;
-  }) => Promise<void> | void) {
-    const originalFetch = globalThis.fetch;
-    const originalState = React.useState;
-    const states: unknown[] = [];
-    const data = { ...source, local: { ...source.local, data: structuredClone(source.local.data) },
-      news: { ...source.news, data: structuredClone(source.news.data) }, gallery: { ...source.gallery, data: structuredClone(source.gallery.data) } };
-    const requests: string[] = [];
-    let capturing = false;
-    let cursor = 0;
-    let tree: ReactNode;
-    globalThis.fetch = async (input, options) => {
-      requests.push(`${options?.method || 'GET'} ${String(input)}`);
-      throw new Error('O gerenciador consultivo não deve enviar requisições.');
-    };
-    // Conserva o estado do gerenciador entre renderizações; os componentes visuais usam seus hooks reais.
-    const stateMock = mock.method(React, 'useState', (initial: unknown) => {
-      if (!capturing) return originalState(initial);
-      const index = cursor++;
-      if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial;
-      const state: [unknown, React.Dispatch<React.SetStateAction<unknown>>] = [states[index], (next) => {
-        states[index] = typeof next === 'function' ? next(states[index]) : next;
-      }];
-      return state;
+  it('lista vazia é estado vazio, e falha de leitura permite tentar de novo', async () => {
+    const empty = await mount([]);
+    try { await empty.act(settle); assert.match(empty.html(), /Nenhum banner cadastrado/); assert.doesNotMatch(empty.html(), /role="alert"/); } finally { await empty.restore(); }
+    let fail = true;
+    const view = await mountCategories(async () => fail ? reply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403) : list([arquivo]), false, {
+      component: () => BannersPanel(), allowedPaths: /\/b_banners$/,
     });
-    function Capture() {
-      cursor = 0;
-      capturing = true;
-      try { tree = SitePhotosManager(data); }
-      finally { capturing = false; }
-      return tree;
-    }
-    function controls() {
-      const result: React.ReactElement<ControlProps>[] = [];
-      function visit(node: ReactNode) {
-        if (Array.isArray(node)) { node.forEach(visit); return; }
-        if (!isValidElement<ControlProps>(node)) return;
-        if (typeof node.type === 'function' && ['BannerCarousel', 'PhotoSlot', 'FileButton'].includes(node.type.name)) {
-          // Expande os três componentes internos sem hooks para acionar seus controles reais.
-          visit((node.type as (props: ControlProps) => ReactNode)(node.props));
-          return;
-        }
-        if (typeof node.type === 'string') result.push(node);
-        visit(node.props.children);
-      }
-      visit(tree);
-      return result;
-    }
     try {
-      const render = () => renderToStaticMarkup(createElement(Capture));
-      render();
-      await run({ render, controls, requests, data });
-      assert.deepEqual(data, source, 'As coleções, identificadores, ordem e URLs recebidos não podem mudar.');
-      assert.deepEqual(requests, [], 'Não pode haver POST /api/upload, PUT /api/data ou escrita Rails.');
-    } finally {
-      stateMock.mock.restore();
-      globalThis.fetch = originalFetch;
-    }
-  }
-
-  for (const [area, label] of [['estúdio', 'Enviar do computador'], ['notícia', 'Trocar capa'], ['galeria', 'Trocar foto']]) {
-    it(`bloqueia a seleção e o envio da imagem de ${area}, inclusive sem saving ativo`, async () => {
-      await withManager(async ({ controls, requests, render }) => {
-        const input = controls().find((node) => node.type === 'input' && node.props['aria-label'] === label);
-        assert.ok(input, label);
-        assert.equal(input.props.disabled, true);
-        const target = { files: [new File(['imagem'], 'nova.png', { type: 'image/png' })], value: 'nova.png' };
-        input.props.onChange?.({ target });
-        await new Promise<void>((resolve) => setImmediate(resolve));
-        assert.equal(input.props.onChange, undefined);
-        assert.deepEqual(requests, []);
-        const html = render();
-        for (const path of ['/estudio-existente.jpg', '/capa-existente.jpg', '/foto-existente.jpg']) assert.ok(html.includes(path));
-        assert.ok(html.includes('Edição indisponível'));
-      });
-    });
-  }
-
-  it('mantém ações de gravação desabilitadas e neutraliza submissões sem alterar os registros', async () => {
-    await withManager(({ controls, render }) => {
-      const before = render();
-      const buttons = controls().filter((node) => node.type === 'button' && node.props['aria-label'] !== 'Ver prévia no site');
-      assert.equal(buttons.length, 10);
-      for (const button of buttons) {
-        assert.equal(button.props.disabled, true);
-        button.props.onClick?.();
-        assert.equal(button.props.onClick, undefined);
-      }
-      let prevented = 0;
-      const forms = controls().filter((node) => node.type === 'form');
-      assert.equal(forms.length, 4);
-      for (const form of forms) form.props.onSubmit?.({ preventDefault() { prevented += 1; } });
-      assert.equal(prevented, forms.length);
-      for (const input of controls().filter((node) => node.type === 'input' && node.props.type !== 'file')) {
-        assert.equal(input.props.disabled, true);
-        input.props.onChange?.({ target: { value: 'https://example.test/nao-salvar' } });
-        assert.equal(input.props.onChange, undefined);
-      }
-      assert.equal(render(), before);
-    });
+      await view.act(settle);
+      assert.match(view.html(), /não possui permissão/); assert.doesNotMatch(view.html(), /Nenhum banner cadastrado/);
+      fail = false;
+      await view.click('Tentar novamente');
+      await view.act(settle);
+      assert.ok(view.nodes().some(node => node.type === NextImage));
+    } finally { await view.restore(); }
   });
-
-  it('mantém prévia e modal dos banners existentes sem enviar arquivos ou alterar URLs', async () => {
-    await withManager(({ controls, render }) => {
-      const preview = controls().find((node) => node.type === 'button' && node.props['aria-label'] === 'Ver prévia no site');
-      assert.ok(preview?.props.onClick);
-      assert.ok(!preview.props.disabled);
-      preview.props.onClick();
-      const html = render();
-      assert.ok(html.includes('role="dialog"'));
-      assert.ok(html.includes('/banners/primeiro.svg'));
-      assert.ok(html.includes('Primeiro banner'));
-      assert.ok(html.includes('#primeiro'));
-      assert.ok(html.includes('Desktop'));
-      assert.ok(html.includes('Celular'));
-    });
-  });
-
-  it('aciona a seleção local, exibe a imagem no simulador e no modal e mantém as validações', async () => {
-    const originalReader = Object.getOwnPropertyDescriptor(globalThis, 'FileReader');
-    let reads = 0;
-    class LocalReader {
-      result = 'data:image/png;base64,cHJldmlh';
-      onload: (() => void) | null = null;
-      readAsDataURL() { reads += 1; queueMicrotask(() => this.onload?.()); }
-    }
-    Object.defineProperty(globalThis, 'FileReader', { configurable: true, value: LocalReader });
+  it('cadastra por arquivo em multipart e recusa arquivo fora das regras', async () => {
+    const view = await mount();
     try {
-      await withManager(async ({ controls, render }) => {
-        const input = controls().find((node) => node.type === 'input' && node.props['aria-label'] === 'Selecionar banner para prévia local');
-        assert.ok(input?.props.onChange);
-        assert.equal(input.props.disabled, false);
-        const target = { files: [new File(['imagem'], 'previa.png', { type: 'image/png' })], value: 'previa.png' };
-        input.props.onChange({ target });
-        assert.equal(target.value, '');
-        await new Promise<void>((resolve) => setImmediate(resolve));
-        const html = render();
-        assert.ok(html.includes('role="dialog"'));
-        assert.ok((html.match(/data:image\/png;base64,cHJldmlh/g) || []).length >= 2);
-        assert.ok(html.includes('previa.png'));
-        assert.ok(html.includes('A imagem local não foi salva nem publicada.'));
-        assert.equal(reads, 1);
-        for (const file of [new File(['svg'], 'vetor.svg', { type: 'image/svg+xml' }),
-          new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'grande.png', { type: 'image/png' })]) {
-          input.props.onChange({ target: { files: [file], value: file.name } });
-          await new Promise<void>((resolve) => setImmediate(resolve));
-          assert.ok(render().includes('role="alert"'));
-        }
-        assert.equal(reads, 1, 'Arquivos inválidos não devem ser lidos.');
-        assert.ok(render().includes('data:image/png;base64,cHJldmlh'));
-      });
-    } finally {
-      if (originalReader) Object.defineProperty(globalThis, 'FileReader', originalReader);
-      else Reflect.deleteProperty(globalThis, 'FileReader');
-    }
+      await view.act(settle);
+      await view.click('Novo banner');
+      assert.doesNotMatch(view.html(), /substitui a anterior/);
+      await view.submit('Cadastrar banner');
+      assert.match(view.html(), /Selecione a imagem do banner/); assert.equal(writes(view, 'POST').length, 0);
+      await pick(view, files(new File(['x'], 'a.gif', { type: 'image/gif' })));
+      assert.match(view.html(), /PNG, JPG ou WEBP\.<\/p>/);
+      const grande = new File(['x'], 'a.png', { type: 'image/png' }); Object.defineProperty(grande, 'size', { value: 5 * 1024 * 1024 + 1 });
+      await pick(view, files(grande));
+      assert.match(view.html(), /até 5 MB\.<\/p>/);
+      await view.submit('Cadastrar banner');
+      assert.equal(writes(view, 'POST').length, 0, 'Arquivo recusado não fica selecionado');
+      await pick(view, files(new File(['x'], 'arte.webp', { type: 'image/webp' })));
+      await view.submit('Cadastrar banner');
+      await view.act(settle);
+      const form = writes(view, 'POST')[0].options.body as FormData;
+      assert.ok(form instanceof FormData); assert.equal((form.get('b_banner[imagem]') as File).name, 'arte.webp');
+      assert.match(view.html(), /Banner cadastrado/);
+    } finally { await view.restore(); }
   });
-});
-
-describe('Acervos oficiais independentes no gerenciador de Banners', () => {
-  const local = { banners: [{ id: 'banner-original', title: 'Banner original', imageUrl: '/banner-original.svg', linkUrl: '#original' }],
-    siteInfo: { heroImage: '/hero-original.jpg', studioImage: '/studio-original.jpg' },
-    news: [{ title: 'Notícia local proibida' }], gallery: [{ title: 'Foto local proibida' }] };
-  const news = [
-    { id: 1, titulo: 'Notícia oficial aguardando', imagem_capa: '/rails/active_storage/capa.png', status: 'aguardando', status_nome: 'Aguardando aprovação', data_publicacao: '2099-01-01' },
-    { id: 2, titulo: 'Notícia oficial sem capa', imagem_capa: null, status: 'publicada', status_nome: 'Publicada', data_publicacao: '2099-01-02' },
-  ];
-  const photos = [
-    { id: 1, titulo: 'Foto oficial', imagem: '/rails/active_storage/foto.png', imagem_url: 'https://example.test/nao-priorizar.png',
-      categoria_galeria: { id: 7, nome: 'Categoria recebida', ativo: false } },
-    { id: 2, titulo: 'Foto externa', imagem: null, imagem_url: 'https://example.test/foto.png' },
-    { id: 3, titulo: 'Foto sem imagem', imagem: null, imagem_url: null },
-  ];
-  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
-  const envelope = (items: unknown[], total = items.length) => ({ success: true, data: {
-    items, pagination: { total_count: total, current_page: 1, total_pages: 1, per_page: items.length },
-  } });
-  function serve(input: string) {
-    if (input === '/api/data') return json(local);
-    const endpoint = new URL(input).pathname.split('/').pop();
-    if (endpoint === 'n_noticias') return json(envelope(news));
-    if (endpoint === 'fotos_galeria') return json(envelope(photos));
-    throw new Error('Endpoint inesperado: ' + input);
-  }
-  const tick = () => new Promise<void>((resolve) => setImmediate(resolve));
-
-  it('retém apenas os campos locais necessários e ignora acervos locais ausentes ou inválidos', async () => {
-    const original = globalThis.fetch;
+  it('cadastra por link só com HTTPS', async () => {
+    const view = await mount();
     try {
-      for (const extras of [{}, { news: null, gallery: 'inválida' }, { news: [{ id: 99 }], gallery: [{}] }]) {
-        globalThis.fetch = async () => json({ banners: local.banners, siteInfo: local.siteInfo, ...extras });
-        assert.deepEqual(await readAdminBanners(), { banners: local.banners, siteInfo: local.siteInfo });
+      await view.act(settle);
+      await view.click('Novo banner');
+      await useLink(view);
+      for (const value of ['', 'http://x.com/a.jpg', 'javascript:alert(1)', 'nao-e-link']) {
+        await view.change('banner-imagem-url', value);
+        await view.submit('Cadastrar banner');
+        assert.match(view.html(), /link HTTPS válido/, value);
       }
-    } finally { globalThis.fetch = original; }
+      assert.equal(writes(view, 'POST').length, 0);
+      await view.change('banner-imagem-url', ' https://x.com/a.jpg ');
+      await view.submit('Cadastrar banner');
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(writes(view, 'POST')[0].options.body)), { b_banner: { imagem_url: 'https://x.com/a.jpg' } });
+    } finally { await view.restore(); }
   });
-
-  it('consulta somente os dois serviços autenticados com page=all, IDs oficiais e URLs conforme o contrato', async () => {
-    const original = globalThis.fetch;
-    const requests: string[] = [];
-    setStoredTokens({ access_token: 'token-acervos', refresh_token: 'refresh-acervos' });
-    globalThis.fetch = async (input, options) => {
-      assert.equal(options?.method, 'GET');
-      assert.equal(new Headers(options.headers).get('Authorization'), 'Bearer token-acervos');
-      const url = new URL(String(input));
-      assert.equal(url.searchParams.get('page'), 'all');
-      requests.push(url.pathname.split('/').pop()!);
-      return serve(String(input));
-    };
+  it('trocar a imagem avisa da substituição e usa PATCH', async () => {
+    const view = await mount([arquivo, link], () => reply(arquivo));
     try {
-      const [covers, gallery] = await Promise.all([readBannerNews(), readBannerGallery()]);
-      assert.deepEqual(requests.sort(), ['fotos_galeria', 'n_noticias']);
-      assert.equal(covers.total, 2);
-      assert.deepEqual(covers.items[0], { id: 1, title: news[0].titulo, coverImage: getMediaUrl(news[0].imagem_capa),
-        status: 'aguardando', statusName: 'Aguardando aprovação', publicationDate: '2099-01-01' });
-      assert.equal(covers.items[1].coverImage, null);
-      assert.equal(gallery.total, 3);
-      assert.equal(gallery.items[0].id, 1);
-      assert.equal(gallery.items[0].imageUrl, getMediaUrl(photos[0].imagem));
-      assert.deepEqual(gallery.items[0].category, { id: 7, name: 'Categoria recebida', active: false });
-      assert.equal(gallery.items[1].imageUrl, 'https://example.test/foto.png');
-      assert.equal(gallery.items[2].imageUrl, null);
-      assert.equal(gallery.items[2].category, null);
-    } finally { clearStoredTokens(); globalThis.fetch = original; }
+      await view.act(settle);
+      await view.click('Trocar imagem do banner 2');
+      assert.match(view.html(), /A nova imagem substitui a anterior/);
+      assert.ok(view.nodes().some(node => node.type === NextImage && node.props.alt === 'Imagem atual do banner 2' && node.props.src === 'https://exemplo.com/banner.jpg'));
+      await pick(view, files(new File(['x'], 'nova.png', { type: 'image/png' })));
+      await view.submit('Trocar imagem do banner 2');
+      await view.act(settle);
+      const patch = writes(view, 'PATCH')[0];
+      assert.ok(patch.url.pathname.endsWith('/b_banners/2'));
+      assert.equal(((patch.options.body as FormData).get('b_banner[imagem]') as File).name, 'nova.png');
+      assert.match(view.html(), /Imagem do banner trocada/);
+    } finally { await view.restore(); }
   });
-
-  it('aceita zero oficial e rejeita paginação incompleta, envelopes inválidos e identificadores ambíguos', async () => {
-    const original = globalThis.fetch;
+  it('excluir pede confirmação e usa DELETE', async () => {
+    const view = await mount([arquivo], () => reply(null, 204));
     try {
-      globalThis.fetch = async () => json(envelope([]));
-      assert.deepEqual(await readBannerNews(), { items: [], total: 0 });
-      assert.deepEqual(await readBannerGallery(), { items: [], total: 0 });
-      for (const reader of [readBannerNews, readBannerGallery]) {
-        for (const body of [null, {}, { success: false, data: { items: [] } }, envelope([], 1), envelope([], -1),
-          envelope([{ id: '1' }]), envelope([{ id: 1 }, { id: 1 }]), envelope([null]), envelope([{ id: 1, titulo: 9 }]),
-          { success: true, data: { items: [], pagination: { total_count: '0' } } }]) {
-          globalThis.fetch = async () => json(body);
-          await assert.rejects(reader(), /inválid|incomplet|duplicad/);
-        }
-      }
-      globalThis.fetch = async () => json(envelope(news, 3));
-      await assert.rejects(readBannerNews(), /incompleta/);
-    } finally { globalThis.fetch = original; }
+      await view.act(settle);
+      await view.click('Excluir banner 1');
+      assert.equal(writes(view, 'DELETE').length, 0, 'Nada é apagado antes de confirmar');
+      await view.click('Cancelar exclusão');
+      await view.click('Excluir banner 1');
+      await view.click('Confirmar exclusão');
+      await view.act(settle);
+      assert.ok(writes(view, 'DELETE')[0].url.pathname.endsWith('/b_banners/1'));
+      assert.match(view.html(), /Banner excluído/);
+    } finally { await view.restore(); }
   });
-
-  it('preserva falhas 401 e 403 sem fallback local ou tentativa de endpoints públicos', async () => {
-    const original = globalThis.fetch;
+  it('mostra o 422 da API sem fechar o formulário', async () => {
+    const view = await mount([arquivo], () => reply({ success: false, message: 'Erro de validação', errors: ['Imagem deve ser PNG, JPG ou WEBP'] }, 422));
     try {
-      for (const status of [401, 403, 503]) {
-        const requests: string[] = [];
-        globalThis.fetch = async (input, options) => {
-          requests.push(String(input)); assert.equal(options?.method, 'GET');
-          return json({ success: false, message: 'Consulta recusada', errors: [status === 403 ? 'sem_permissao' : 'nao_autenticado'] }, status);
-        };
-        for (const reader of [readBannerNews, readBannerGallery]) {
-          await assert.rejects(reader(), (error) => error instanceof ApiError && error.status === status);
-        }
-        assert.equal(requests.length, 2);
-        assert.ok(!requests.some((url) => url.includes('/api/data') || url.includes('/publico/')));
-      }
-    } finally { globalThis.fetch = original; }
-  });
-
-  it('reutiliza o refresh existente sem executar operações de escrita nas entidades', async () => {
-    const original = globalThis.fetch;
-    const requests: string[] = [];
-    setStoredTokens({ access_token: 'expirado', refresh_token: 'refresh-valido' });
-    globalThis.fetch = async (input, options) => {
-      const url = String(input); requests.push(`${options?.method} ${url}`);
-      if (url.includes('/auth/refresh_token')) {
-        assert.equal(options?.method, 'POST');
-        return json({ success: true, data: { access_token: 'renovado', refresh_token: 'refresh-novo' } });
-      }
-      assert.equal(options?.method, 'GET');
-      return new Headers(options.headers).get('Authorization') === 'Bearer expirado'
-        ? json({ success: false, errors: ['token_expirado'] }, 401) : serve(url);
-    };
-    try {
-      assert.equal((await readBannerNews()).total, 2);
-      assert.equal(requests.length, 3);
-      assert.equal(requests.filter((request) => request.startsWith('POST')).length, 1);
-      assert.ok(requests.find((request) => request.startsWith('POST'))?.includes('/auth/refresh_token'));
-    } finally { clearStoredTokens(); globalThis.fetch = original; }
-  });
-
-  type ManagerProps = Parameters<typeof SitePhotosManager>[0];
-  async function withPage(fetcher: typeof fetch, run: (page: {
-    render(): string; props(): ManagerProps; unmount(): void; updates(): number;
-  }) => Promise<void>) {
-    const originalFetch = globalThis.fetch;
-    const originalState = React.useState;
-    const originalEffect = React.useEffect;
-    const states: unknown[] = [];
-    type Effect = { callback: React.EffectCallback; dependencies?: React.DependencyList; cleanup?: () => void };
-    let effects: Effect[] = [];
-    let nextEffects: Effect[] = [];
-    let capturing = false;
-    let cursor = 0;
-    let updates = 0;
-    let disposed = false;
-    let managerProps: ManagerProps;
-    const shell: React.ReactElement<{ children: () => React.ReactElement }> = AdminBannersSubroutePage();
-    const Content = shell.props.children().type as () => ReactNode;
-    globalThis.fetch = fetcher;
-    const stateMock = mock.method(React, 'useState', (initial: unknown) => {
-      if (!capturing) return originalState(initial);
-      const index = cursor++;
-      if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial;
-      const state: [unknown, React.Dispatch<React.SetStateAction<unknown>>] = [states[index], (next) => {
-        updates += 1; states[index] = typeof next === 'function' ? next(states[index]) : next;
-      }];
-      return state;
-    });
-    const effectMock = mock.method(React, 'useEffect', (callback: React.EffectCallback, dependencies?: React.DependencyList) => {
-      if (capturing) nextEffects.push({ callback, dependencies });
-      else originalEffect(callback, dependencies);
-    });
-    function Capture() {
-      cursor = 0; capturing = true;
-      let tree: ReactNode;
-      try { tree = Content(); } finally { capturing = false; }
-      function visit(node: ReactNode) {
-        if (Array.isArray(node)) { node.forEach(visit); return; }
-        if (!isValidElement<{ children?: ReactNode }>(node)) return;
-        if (node.type === SitePhotosManager) managerProps = node.props as ManagerProps;
-        visit(node.props.children);
-      }
-      visit(tree);
-      return tree;
-    }
-    function render() {
-      assert.equal(disposed, false);
-      nextEffects = [];
-      const html = renderToStaticMarkup(createElement(Capture));
-      effects = nextEffects.map((effect, index) => {
-        const previous = effects[index];
-        if (previous && effect.dependencies?.every((value, i) => Object.is(value, previous.dependencies?.[i]))) return previous;
-        previous?.cleanup?.();
-        const cleanup = effect.callback();
-        return { ...effect, cleanup: typeof cleanup === 'function' ? cleanup : undefined };
-      });
-      return html;
-    }
-    function unmount() { if (!disposed) { disposed = true; effects.forEach((effect) => effect.cleanup?.()); } }
-    try { render(); await run({ render, props: () => managerProps, unmount, updates: () => updates }); }
-    finally { unmount(); effectMock.mock.restore(); stateMock.mock.restore(); globalThis.fetch = originalFetch; }
-  }
-
-  it('carrega banners e fotos mesmo com Notícias pendentes e repete somente o acervo recusado', async () => {
-    const counts = { local: 0, news: 0, gallery: 0 };
-    let finishNews!: (response: Response) => void;
-    await withPage(async (input, options) => {
-      assert.equal(options?.method, 'GET');
-      const url = String(input);
-      if (url === '/api/data') counts.local += 1;
-      else if (url.includes('/n_noticias')) { counts.news += 1; if (counts.news === 1) return new Promise((resolve) => { finishNews = resolve; }); }
-      else counts.gallery += 1;
-      return serve(url);
-    }, async (page) => {
-      await tick();
-      let html = page.render();
-      assert.ok(html.includes('Banner original'));
-      assert.ok(html.includes('Foto oficial'));
-      assert.ok(html.includes('Carregando Notícias'));
-      assert.ok(!html.includes('Notícia local proibida'));
-      finishNews(json({ success: false, errors: ['sem_permissao'] }, 403));
-      await tick(); html = page.render();
-      assert.ok(html.includes('Sem permissão para consultar Notícias'));
-      assert.ok(html.includes('Foto oficial'));
-      page.props().news.retry();
-      assert.ok(page.render().includes('Carregando Notícias'));
-      await tick(); html = page.render();
-      assert.ok(html.includes('Notícia oficial aguardando'));
-      assert.ok(html.includes('data-resource-id="noticia:1"'));
-      assert.ok(html.includes('data-resource-id="galeria:1"'));
-      assert.ok(html.includes('Aguardando aprovação'));
-      assert.ok(html.includes('2099-01-01'));
-      assert.ok(html.includes('Categoria recebida'));
-      assert.ok(html.includes('— inativa'));
-      assert.ok(html.includes('Capa não informada.'));
-      assert.ok(html.includes('Imagem não informada.'));
-      assert.deepEqual(counts, { local: 1, news: 2, gallery: 1 });
-    });
-  });
-
-  for (const resource of ['local', 'news', 'gallery'] as const) {
-    it(`isola erro e recarga de ${resource}, preserva cache sem exibi-lo como atual e recupera somente esse recurso`, async () => {
-      let failure = false;
-      const counts = { local: 0, news: 0, gallery: 0 };
-      await withPage(async (input, options) => {
-        assert.equal(options?.method, 'GET');
-        const key = String(input) === '/api/data' ? 'local' : String(input).includes('/n_noticias') ? 'news' : 'gallery';
-        counts[key] += 1;
-        return failure && key === resource ? json({ success: false, errors: ['falha'] }, 503) : serve(String(input));
-      }, async (page) => {
-        await tick(); page.render();
-        const previous = page.props()[resource].data;
-        failure = true; page.props()[resource].retry();
-        const pending = page.render();
-        assert.equal(page.props()[resource].data, previous);
-        const text = { local: 'Banner original', news: 'Notícia oficial aguardando', gallery: 'Foto oficial' };
-        assert.ok(!pending.includes(text[resource]));
-        await tick(); const failed = page.render();
-        assert.equal(page.props()[resource].data, previous);
-        assert.equal(page.props()[resource].status, 503);
-        assert.ok(!failed.includes(text[resource]));
-        for (const key of ['local', 'news', 'gallery'] as const) if (key !== resource) assert.ok(failed.includes(text[key]));
-        failure = false; page.props()[resource].retry(); page.render();
-        await tick(); assert.ok(page.render().includes(text[resource]));
-        for (const key of ['local', 'news', 'gallery'] as const) assert.equal(counts[key], key === resource ? 3 : 1);
-      });
-    });
-  }
-
-  it('mostra vazio confirmado por acervo e mantém a sessão recusada distinta de vazio', async () => {
-    await withPage(async (input) => String(input) === '/api/data' ? json(local) : json(envelope([])), async (page) => {
-      await tick(); const html = page.render();
-      assert.ok(html.includes('Nenhuma notícia encontrada no acervo oficial.'));
-      assert.ok(html.includes('Nenhuma foto encontrada no acervo oficial.'));
-      assert.ok(html.includes('Banner original'));
-    });
-    await withPage(async (input) => String(input).includes('/n_noticias')
-      ? json({ success: false, errors: ['nao_autenticado'] }, 401) : serve(String(input)), async (page) => {
-      await tick(); const html = page.render();
-      assert.ok(html.includes('Sessão inválida ou expirada ao consultar Notícias'));
-      assert.ok(html.includes('Entrar novamente'));
-      assert.ok(!html.includes('Nenhuma notícia encontrada'));
-      assert.ok(html.includes('Banner original'));
-      assert.ok(html.includes('Foto oficial'));
-    });
-  });
-
-  it('descarta respostas e falhas dos três recursos após desmontagem e aborta a leitura local', async () => {
-    const pending: { resolve(response: Response): void; reject(error: Error): void }[] = [];
-    let signal: AbortSignal | undefined;
-    await withPage(async (input, options) => {
-      if (String(input) === '/api/data') signal = options?.signal || undefined;
-      return new Promise<Response>((resolve, reject) => { pending.push({ resolve, reject }); });
-    }, async (page) => {
-      await tick(); assert.equal(pending.length, 3);
-      page.unmount(); assert.equal(signal?.aborted, true);
-      const updates = page.updates();
-      pending[0].resolve(json(local));
-      pending[1].resolve(json(envelope(news)));
-      pending[2].reject(new Error('Falha tardia'));
-      await tick(); assert.equal(page.updates(), updates);
-    });
-  });
-
-  it('identifica imagens quebradas por recurso sem esconder a foto de mesmo ID ou inventar substitutos', async () => {
-    const originalFetch = globalThis.fetch;
-    const originalState = React.useState;
-    let requests = 0;
-    globalThis.fetch = async (input, options) => { requests += 1; assert.equal(options?.method, 'GET'); return serve(String(input)); };
-    let stateMock: ReturnType<typeof mock.method> | undefined;
-    try {
-      const [covers, gallery] = await Promise.all([readBannerNews(), readBannerGallery()]);
-      const props = bannerManagerProps({ banners: local.banners, siteInfo: local.siteInfo, news: covers.items, gallery: gallery.items });
-      let capturing = false;
-      let cursor = 0;
-      let tree: ReactNode;
-      const states: unknown[] = [];
-      stateMock = mock.method(React, 'useState', (initial: unknown) => {
-        if (!capturing) return originalState(initial);
-        const index = cursor++;
-        if (!(index in states)) states[index] = typeof initial === 'function' ? initial() : initial;
-        const state: [unknown, React.Dispatch<React.SetStateAction<unknown>>] = [states[index], (next) => {
-          states[index] = typeof next === 'function' ? next(states[index]) : next;
-        }];
-        return state;
-      });
-      function Capture() {
-        capturing = true; cursor = 0;
-        try { tree = SitePhotosManager(props); } finally { capturing = false; }
-        return tree;
-      }
-      function image(resource: string) {
-        let found: React.ReactElement<{ onError(): void }> | undefined;
-        function visit(node: ReactNode, parent = '') {
-          if (Array.isArray(node)) { node.forEach((child) => visit(child, parent)); return; }
-          if (!isValidElement<{ children?: ReactNode; 'data-resource-id'?: string; onError(): void }>(node)) return;
-          const key = node.props['data-resource-id'] || parent;
-          if (node.type === 'img' && key === resource) found = node;
-          visit(node.props.children, key);
-        }
-        visit(tree);
-        assert.ok(found, resource);
-        return found;
-      }
-      const render = () => renderToStaticMarkup(createElement(Capture));
-      render(); image('noticia:1').props.onError();
-      let html = render();
-      assert.ok(html.includes('Capa indisponível.'));
-      assert.ok(html.includes(getMediaUrl(photos[0].imagem)));
-      image('galeria:1').props.onError(); html = render();
-      assert.ok(html.includes('Imagem indisponível.'));
-      assert.ok(html.includes('Notícia oficial aguardando'));
-      assert.ok(html.includes('Foto oficial'));
-      assert.ok(html.includes('/banner-original.svg'));
-      assert.ok(!html.includes('src="/hero.jpg"'));
-      assert.equal(requests, 2);
-    } finally { stateMock?.mock.restore(); globalThis.fetch = originalFetch; }
+      await view.act(settle);
+      await view.click('Novo banner');
+      await pick(view, files(new File(['x'], 'arte.png', { type: 'image/png' })));
+      await view.submit('Cadastrar banner');
+      await view.act(settle);
+      assert.match(view.html(), /Imagem deve ser PNG, JPG ou WEBP/);
+      assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Cadastrar banner'));
+    } finally { await view.restore(); }
   });
 });
 
@@ -5737,10 +5224,10 @@ describe('Subrota administrativa de Projetos', () => {
       const html = renderToStaticMarkup(createElement(
         AppRouterContext.Provider,
         { value: router },
-        createElement(PathnameContext.Provider, { value: '/admin/projetos' }, createElement(AdminProjetosSubroutePage)),
+        createElement(PathnameContext.Provider, { value: '/admin/projetos' }, createElement(AdminProjetosLayout, null, 'Conteúdo protegido')),
       ));
       assert.ok(html.includes('Autenticando e carregando painel de gestão...'));
-      assert.ok(!html.includes('Projetos Cadastrados'));
+      assert.ok(!html.includes('Conteúdo protegido'));
       assert.equal(requests, 0);
       assert.equal(SECTION_CONFIG.projetos.href, '/admin/projetos');
       assert.equal(getFolderIdForSection('projetos'), 'publicacoes');
@@ -5759,123 +5246,6 @@ describe('Subrota administrativa de Projetos', () => {
     }
     assert.equal(getLegacyProjectsHref(new URLSearchParams()), null);
     assert.equal(getLegacyProjectsHref(new URLSearchParams('tab=noticias&section=projetos')), null);
-  });
-
-  it('extrai somente projetos da fonte administrativa com um GET cancelável', async () => {
-    const originalFetch = globalThis.fetch;
-    const controller = new AbortController();
-    // Sem reconstruir o contrato de registro: a coleção deve ser preservada pela leitura.
-    const records = [{ id: 'project-test', title: 'Projeto recebido' }];
-    let requests = 0;
-    globalThis.fetch = async (url, options) => {
-      requests += 1;
-      assert.equal(url, '/api/data');
-      assert.equal(options?.method, 'GET');
-      assert.equal(options?.signal, controller.signal);
-      return new Response(JSON.stringify({ projects: records, faqs: [], siteInfo: {} }), { status: 200 });
-    };
-    try {
-      assert.deepEqual(await readAdminProjects(controller.signal), records);
-      assert.equal(requests, 1);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-
-  it('aceita uma lista vazia confirmada sem usar a coleção pública como fallback', async () => {
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => new Response(JSON.stringify({ projects: [] }), { status: 200 });
-    try {
-      assert.deepEqual(await readAdminProjects(), []);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-
-  it('não transforma erros HTTP ou de rede em sucesso vazio', async () => {
-    const originalFetch = globalThis.fetch;
-    try {
-      for (const status of [401, 403, 500]) {
-        globalThis.fetch = async () => new Response(null, { status });
-        await assert.rejects(readAdminProjects(), new RegExp(`HTTP ${status}`));
-      }
-      globalThis.fetch = async () => { throw new Error('Failed to fetch'); };
-      await assert.rejects(readAdminProjects(), /Failed to fetch/);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-
-  it('rejeita JSON inválido ou coleção ausente, sem fallback silencioso', async () => {
-    const originalFetch = globalThis.fetch;
-    try {
-      for (const payload of ['não é JSON', '{}', '{"items":[]}', '{"projects":null}']) {
-        globalThis.fetch = async () => new Response(payload, { status: 200 });
-        await assert.rejects(readAdminProjects(), /Resposta inválida/);
-      }
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
-  });
-});
-
-describe('Módulo administrativo de Projetos', () => {
-  function renderProjects(projects: ProjectMission[] = [], viewMode: ProjectViewMode = 'lista') {
-    return renderToStaticMarkup(createElement(ProjectsModule, {
-      projects, viewMode, onViewModeChange: () => {},
-    }));
-  }
-
-  it('exibe lista vazia e bloqueio de persistência sem inserir projetos substitutos', () => {
-    const html = renderProjects();
-    assert.ok(html.includes('Projetos Cadastrados (0)'));
-    assert.ok(html.includes('Nenhum projeto encontrado com os filtros atuais'));
-    assert.ok(html.includes('criação, edição e exclusão de projetos pedagógicos'));
-    assert.ok(html.includes('desabilitadas aguardando suporte oficial do backend Rails'));
-  });
-
-  it('renderiza os projetos recebidos com identificação, escola e ações existentes', () => {
-    const project: ProjectMission = {
-      id: 'project-test', number: '09', missionCode: 'Projeto 09', title: 'Projeto recebido',
-      shortTitle: 'Título curto recebido', track: 'Ciência na Amazônia',
-      territory: 'Território de teste', typology: 'Tipologia de teste', municipality: 'Município de teste',
-      school: 'Escola de teste', mediatorName: 'Docente de teste', mediatorRole: 'Docente',
-      mediatorInitials: 'DT', studentCohort: 'Turma de teste', seal: 'Selo de teste',
-      image: '/hero.jpg', initialApplause: 0,
-      desafioLocal: { title: 'Desafio de teste', description: '' },
-      praticaMedtec: { title: 'Prática de teste', description: '' },
-      impactoGerado: { title: '', metric: '', description: '' },
-      competencias: ['Competência de teste'], quote: '',
-      replicationGuide: { materials: [], timeline: [], pedagogicalTip: '' },
-    };
-    const html = renderProjects([project]);
-    for (const text of ['Projetos Cadastrados (1)', 'Projeto recebido', 'Escola de teste', 'Município de teste', 'Docente de teste', 'Competência de teste']) {
-      assert.ok(html.includes(text));
-    }
-    assert.ok(html.includes('Editar dados da missão'));
-    assert.ok(html.includes('Excluir projeto'));
-    assert.ok(html.includes('href="/projetos"'));
-    assert.ok(!html.includes('Nenhum projeto encontrado'));
-  });
-
-  it('mantém formulário, upload e prévia sem habilitar a gravação de projetos', () => {
-    const originalFetch = globalThis.fetch;
-    let requests = 0;
-    globalThis.fetch = async () => {
-      requests += 1;
-      throw new Error('Renderizar o editor não deve iniciar uploads ou gravações.');
-    };
-    try {
-      const html = renderProjects([], 'editor');
-      assert.ok(/<button[^>]*type="submit"[^>]*disabled=""/.test(html));
-      assert.ok(html.includes('Aguardando Endpoint da API'));
-      assert.ok(html.includes('type="file"'));
-      assert.ok(html.includes('Simulação no Portal Público'));
-      assert.ok(html.includes('Integração com Backend Pendente'));
-      assert.equal(requests, 0);
-    } finally {
-      globalThis.fetch = originalFetch;
-    }
   });
 });
 
@@ -6341,6 +5711,62 @@ describe('5. Cliente HTTP apiFetch (Respostas, 204 e Renovação de Token)', () 
     for (const source of ['src/app/api/auth/route.ts', 'src/lib/rails-backend.ts']) {
       assert.doesNotMatch(readFileSync(source, 'utf8'), /172\.16\.|process\.env\.BACKEND_API_URL/, source);
     }
+  });
+
+  describe('login com a API de autenticação fora do ar', () => {
+    const tentarLogin = (username = '12345678900', password = 'x') => authRoutePost(new Request('http://localhost:3000/api/auth', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }),
+    }));
+    const API_INDISPONIVEL = 'Serviço de autenticação indisponível. Tente novamente em instantes.';
+
+    afterEach(() => {
+      globalThis.fetch = originalFetch;
+    });
+
+    it('timeout da API não é apresentado como senha incorreta', async () => {
+      globalThis.fetch = async () => { throw new DOMException('The operation was aborted due to timeout', 'TimeoutError'); };
+      const response = await tentarLogin();
+      assert.equal(response.status, 503);
+      assert.equal((await response.json()).error, API_INDISPONIVEL);
+    });
+
+    it('erro 5xx no login da API também é indisponibilidade', async () => {
+      globalThis.fetch = async () => new Response('', { status: 502 });
+      const response = await tentarLogin();
+      assert.equal(response.status, 503);
+      assert.equal((await response.json()).error, API_INDISPONIVEL);
+    });
+
+    it('falha em /auth/me depois de um login aceito não acusa senha incorreta', async () => {
+      globalThis.fetch = async (input) => String(input).endsWith('/auth/login')
+        ? new Response(JSON.stringify({ success: true, data: { access_token: 'a', refresh_token: 'r' } }), { status: 200 })
+        : new Response('', { status: 500 });
+      const response = await tentarLogin();
+      assert.equal(response.status, 503);
+      assert.equal((await response.json()).error, API_INDISPONIVEL);
+    });
+
+    it('credencial recusada pela API continua sendo 401 de senha incorreta', async () => {
+      globalThis.fetch = async () => new Response(JSON.stringify({ success: false }), { status: 401 });
+      const response = await tentarLogin();
+      assert.equal(response.status, 401);
+      assert.equal((await response.json()).error, 'Usuário/CPF ou senha incorretos');
+    });
+
+    it('o acesso local do gestor segue funcionando sem a API', async () => {
+      const saved = { user: process.env.ADMIN_USER, password: process.env.ADMIN_PASSWORD };
+      process.env.ADMIN_USER = 'gestor-teste';
+      process.env.ADMIN_PASSWORD = 'senha-teste';
+      globalThis.fetch = async () => { throw new TypeError('fetch failed'); };
+      try {
+        const response = await tentarLogin('gestor-teste', 'senha-teste');
+        assert.equal(response.status, 200);
+        assert.match(response.headers.get('set-cookie') ?? '', /medtec_admin_session=/);
+      } finally {
+        if (saved.user === undefined) delete process.env.ADMIN_USER; else process.env.ADMIN_USER = saved.user;
+        if (saved.password === undefined) delete process.env.ADMIN_PASSWORD; else process.env.ADMIN_PASSWORD = saved.password;
+      }
+    });
   });
 
   it('rotas do servidor exigem credenciais do ambiente, sem valores padrão versionados', async () => {
@@ -7748,7 +7174,7 @@ describe('Categorias de Dúvidas C1 — serviço autenticado', () => {
 
 // Executa hooks, efeitos e eventos reais com o reconciliador existente. O DOM
 // visual é capturado como árvore React, seguindo os testes de sessão do projeto.
-async function mountCategories(fetcher: (url: URL, options: RequestInit) => Promise<Response>, strict = false, config?: { component: () => ReactNode; allowedPaths: RegExp; anonymous?: boolean }) {
+async function mountCategories(fetcher: (url: URL, options: RequestInit) => Promise<Response>, strict = false, config?: { component: () => ReactNode; allowedPaths: RegExp; anonymous?: boolean; windowExtras?: Record<string, unknown> }) {
   let tree: ReactNode = null;
   const calls: { url: URL; options: RequestInit }[] = [];
   const visibilityListeners = new Set<() => void>();
@@ -7757,7 +7183,7 @@ async function mountCategories(fetcher: (url: URL, options: RequestInit) => Prom
     removeEventListener(type: string, listener: () => void) { if (type === 'visibilitychange') visibilityListeners.delete(listener); },
     activeElement: null, body: null,
     defaultView: null as unknown, documentElement: { classList: { contains() { return false; } } } };
-  const browser = { document: doc, HTMLIFrameElement: class {} };
+  const browser = { document: doc, HTMLIFrameElement: class {}, ...config?.windowExtras };
   doc.defaultView = browser;
   const globals = { window: browser, document: doc, IS_REACT_ACT_ENVIRONMENT: true };
   const descriptors = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
@@ -9393,75 +8819,174 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
       assert.equal(getStoredAccessToken(), 'admin-session-token');
       assert.equal(getStoredRefreshToken(), 'admin-session-refresh');
       assert.doesNotMatch(html, /999999999/);
-      assert.match(html, /instagram\.com\/governoro|facebook\.com\/governoderondonia|youtube\.com\/@SeducRondonia/);
+      assert.match(html, /instagram\.com\/governoro|facebook\.com\/governoderondonia/);
+      assert.doesNotMatch(html, /youtube\.com/);
     } finally {
       fetchMock.mock.restore();
       clearStoredTokens();
     }
   });
 
-  for (const [name, page] of [['galeria', PublicGaleriaPage], ['acervo', PublicAcervoPage]] as const) {
-    it('/' + name + ' não chama /fotos_galeria sem autenticação nem envia Bearer da sessão admin', async () => {
-      setStoredTokens({ access_token: 'admin-session-token', refresh_token: 'admin-session-refresh' });
-      let calls = 0;
-      const fetchMock = mock.method(globalThis, 'fetch', async () => {
-        calls++;
-        throw new Error('Não deve chamar endpoints protegidos em /' + name);
+  describe('Galeria pública', () => {
+    const headers = { 'content-type': 'application/json' };
+    const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+    const page = (items: unknown[]) => reply({ success: true, message: 'ok', data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: items.length } } });
+    const settle = () => new Promise(resolve => setImmediate(resolve));
+    const arquivo = { id: 1, titulo: 'Aula inaugural', descricao: 'Transmissão para polos rurais.', imagem: '/rails/active_storage/foto.jpg', categoria_nome: 'Salas de Aula', categoria_slug: 'salas-de-aula' };
+    const link = { id: 2, titulo: 'Estúdio central', descricao: null, imagem: 'https://exemplo.com/estudio.jpg', categoria_nome: 'Estúdios', categoria_slug: 'estudios', created_by: '1', autor: 'x' };
+    const mount = (fetcher: () => Promise<Response>) => mountCategories(fetcher, false, {
+      component: () => GaleriaView(), allowedPaths: /\/publico\/fotos_galeria$/, anonymous: true,
+    });
+    const section = (view: Awaited<ReturnType<typeof mount>>) => view.nodes().find(node => node.type === GallerySection)!;
+
+    for (const [name, pageComponent] of [['galeria', PublicGaleriaPage], ['acervo', PublicAcervoPage]] as const) {
+      it('/' + name + ' usa a galeria integrada, sem dados fixos', async () => {
+        const nodes = noticeNodes(await pageComponent());
+        assert.ok(nodes.some(node => node.type === GaleriaView));
+        assert.ok(!nodes.some(node => node.type === GallerySection));
       });
+    }
+    it('service usa a rota pública sem token e entrega só os campos do contrato', async () => {
+      setStoredTokens({ access_token: 'admin-session-token', refresh_token: 'admin-session-refresh' });
+      const calls: { url: URL; options: RequestInit }[] = [];
+      const spy = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options: RequestInit = {}) => { calls.push({ url: new URL(String(input)), options }); return page([link]); });
       try {
-        const tree = await page();
-        assert.equal(calls, 0);
+        const response = await medtecApi.galeriaPublica.list({ categoria: 'estudios', page: 'all' });
+        assert.ok(calls[0].url.pathname.endsWith('/publico/fotos_galeria'));
+        assert.equal(calls[0].url.searchParams.get('categoria'), 'estudios'); assert.equal(calls[0].url.searchParams.get('page'), 'all');
+        assert.equal(new Headers(calls[0].options.headers).has('Authorization'), false); assert.equal(calls[0].options.credentials, 'omit');
+        assert.deepEqual(response.data.items, [{ id: 2, titulo: 'Estúdio central', descricao: null, imagem: 'https://exemplo.com/estudio.jpg', categoria_nome: 'Estúdios', categoria_slug: 'estudios' }]);
         assert.equal(getStoredAccessToken(), 'admin-session-token');
-        assert.equal(getStoredRefreshToken(), 'admin-session-refresh');
-        const section = noticeNodes(tree).find(node => node.type === GallerySection);
-        assert.ok(section);
-        assert.deepEqual(section.props.gallery, []);
-        assert.equal(section.props.unavailable, true);
-        const html = renderToStaticMarkup(section);
-        assert.match(html, /role="alert"/);
-        assert.match(html, /Acervo fotográfico indisponível no momento/);
-        assert.doesNotMatch(html, /Nenhum registro fotográfico encontrado para a categoria selecionada/);
-      } finally {
-        fetchMock.mock.restore();
-        clearStoredTokens();
+      } finally { spy.mock.restore(); clearStoredTokens(); }
+    });
+    it('resposta fora do contrato é recusada, e lista vazia de page=all é aceita', async () => {
+      const invalid = mock.method(globalThis, 'fetch', async () => page([{ id: 'x', titulo: 1 }]));
+      try { await assert.rejects(medtecApi.galeriaPublica.list(), /Galeria/); } finally { invalid.mock.restore(); }
+      const empty = mock.method(globalThis, 'fetch', async () => page([]));
+      try { assert.deepEqual((await medtecApi.galeriaPublica.list({ page: 'all' })).data.items, []); } finally { empty.mock.restore(); }
+    });
+    it('a tela lê a API e passa as fotos para a seção', async () => {
+      const view = await mount(async () => page([arquivo, link]));
+      try {
+        await view.act(settle);
+        assert.equal(view.calls[0].url.searchParams.get('page'), 'all');
+        assert.deepEqual((section(view).props.fotos as { id: number }[]).map(item => item.id), [1, 2]);
+        assert.equal(section(view).props.loading, false); assert.equal(section(view).props.unavailable, false);
+      } finally { await view.restore(); }
+    });
+    it('falha da API vira "em breve", sem erro técnico', async () => {
+      for (const fetcher of [async () => reply({ success: false, errors: ['x'] }, 500), async () => { throw new TypeError('fetch failed'); }, async () => reply({ success: true, data: null })]) {
+        const view = await mount(fetcher);
+        let props: Parameters<typeof GallerySection>[0];
+        try {
+          await view.act(settle);
+          props = section(view).props as Parameters<typeof GallerySection>[0];
+          assert.equal(props.unavailable, true);
+        } finally { await view.restore(); }
+        // O motion só renderiza em HTML fora da janela simulada do harness.
+        const html = renderToStaticMarkup(createElement(GallerySection, props));
+        assert.match(html, /O acervo fotográfico estará disponível em breve/);
+        assert.doesNotMatch(html, /role="alert"|fetch failed|Nenhum registro/);
       }
     });
-  }
+    it('seção distingue carregando, vazio e com fotos, e completa só o caminho do arquivo', () => {
+      const loading = renderToStaticMarkup(createElement(GallerySection, { loading: true }));
+      assert.match(loading, /Carregando acervo/); assert.doesNotMatch(loading, /Nenhum registro|em breve/);
+      assert.match(renderToStaticMarkup(createElement(GallerySection, { fotos: [] })), /Nenhum registro fotográfico publicado/);
+      const html = renderToStaticMarkup(createElement(GallerySection, { fotos: [arquivo, link] }));
+      assert.match(html, /Aula inaugural/); assert.match(html, /Estúdio central/);
+      assert.match(html, /src="[^"]+\/rails\/active_storage\/foto\.jpg"/); assert.ok(html.includes('src="https://exemplo.com/estudio.jpg"'));
+      assert.match(html, /aria-label="Ampliar foto: Aula inaugural"/); assert.match(html, /tabindex="0"/);
+    });
+    it('filtros vêm das fotos, e foto sem imagem não aparece', () => {
+      const html = renderToStaticMarkup(createElement(GallerySection, { fotos: [arquivo, { ...link, id: 3, titulo: 'Sem arquivo', imagem: null }] }));
+      assert.doesNotMatch(html, /Sem arquivo/);
+      assert.match(html, />Salas de Aula</); assert.doesNotMatch(html, />Comunidades<|>Eventos<|>Estúdios</);
+      assert.match(html, /\(1\)/);
+    });
+    it('não inventa localização, infraestrutura, origem nem data', () => {
+      const html = renderToStaticMarkup(createElement(GallerySection, { fotos: [arquivo] }));
+      for (const text of ['Rondônia, Brasil', 'Transmissão via satélite', 'Coordenadoria de Mídias', 'Infraestrutura', 'Localidade', 'Data do registro', 'undefined', 'null']) assert.ok(!html.includes(text), text);
+      assert.ok(!readFileSync('src/components/GallerySection.tsx', 'utf8').includes('CATALOG_INFO'));
+    });
+  });
 
-  it('GallerySection apresenta estados distintos para carregamento, lista vazia legítima, indisponibilidade e erro de rede', () => {
-    const loadingHtml = renderToStaticMarkup(createElement(GallerySection, { gallery: [], loading: true }));
-    assert.match(loadingHtml, /role="status"/);
-    assert.match(loadingHtml, /Carregando acervo fotográfico/);
-    assert.doesNotMatch(loadingHtml, /indisponível|Nenhum registro/);
+  describe('Canais de contato do site', () => {
+    const headers = { 'content-type': 'application/json' };
+    const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+    const YT = 'https://www.youtube.com/@CanalDaApi';
+    const api = [
+      { rede: 'youtube', valor: YT }, { rede: 'instagram', valor: 'https://www.instagram.com/api/' },
+      { rede: 'whatsapp', valor: 'https://wa.me/556900000000' }, { rede: 'telefone', valor: '(69) 0000-0000' },
+      { rede: 'email', valor: 'api@seduc.ro.gov.br' }, { rede: 'endereco', valor: 'Endereço da API' },
+    ];
+    const value = canaisFromApi(api);
+    const provided = (element: React.ComponentType, channels: SocialLinks = value) => renderToStaticMarkup(
+      createElement(PathnameContext.Provider, { value: '/' }, createElement(SiteChannelsProvider as React.ComponentType<{ value: SocialLinks; children?: ReactNode }>, { value: channels }, createElement(element))));
 
-    const unavailableHtml = renderToStaticMarkup(createElement(GallerySection, { gallery: [], unavailable: true }));
-    assert.match(unavailableHtml, /role="alert"/);
-    assert.match(unavailableHtml, /Acervo fotográfico indisponível no momento/);
-    assert.doesNotMatch(unavailableHtml, /Nenhum registro fotográfico publicado/);
-
-    const networkErrorHtml = renderToStaticMarkup(createElement(GallerySection, {
-      gallery: [],
-      error: 'Não foi possível conectar ao servidor no momento. Verifique sua conexão e tente novamente.',
-    }));
-    assert.match(networkErrorHtml, /role="alert"/);
-    assert.match(networkErrorHtml, /Verifique sua conexão e tente novamente/);
-
-    const emptyHtml = renderToStaticMarkup(createElement(GallerySection, { gallery: [] }));
-    assert.match(emptyHtml, /Nenhum registro fotográfico publicado até o momento/);
-    assert.doesNotMatch(emptyHtml, /role="alert"|categoria selecionada/);
-
-    const withPhotoHtml = renderToStaticMarkup(createElement(GallerySection, {
-      gallery: [{
-        id: '10',
-        title: 'Aula inaugural conectada',
-        description: 'Transmissão para polos rurais.',
-        imageUrl: 'https://medtec.invalid/foto.jpg',
-        category: 'Salas de Aula',
-        date: '31/10/2026',
-      }],
-    }));
-    assert.match(withPhotoHtml, /Aula inaugural conectada/);
-    assert.match(withPhotoHtml, /Salas de Aula/);
+    it('a API prevalece, e o que ela não devolve foi desativado', () => {
+      assert.deepEqual(value, { instagram: 'https://www.instagram.com/api/', youtube: YT, facebook: '', whatsapp: 'https://wa.me/556900000000', email: 'api@seduc.ro.gov.br', phone: '(69) 0000-0000', address: 'Endereço da API' });
+    });
+    it('lista vazia usa os valores de reserva, e valor que não é link não vira link', () => {
+      assert.deepEqual(canaisFromApi([]), CANAIS_PADRAO);
+      const links = canaisFromApi([{ rede: 'youtube', valor: 'javascript:alert(1)' }, { rede: 'instagram', valor: '@medtec' }, { rede: 'whatsapp', valor: '+55 69 0000-0000' }]);
+      assert.equal(links.youtube, ''); assert.equal(links.instagram, ''); assert.equal(links.whatsapp, '');
+    });
+    it('o link do YouTube fica em um único ponto do código', () => {
+      assert.equal(CANAIS_PADRAO.youtube, YOUTUBE_URL_OFICIAL);
+      for (const file of ['src/app/ao-vivo/page.tsx', 'src/app/redes/page.tsx', 'src/components/SocialSection.tsx', 'src/components/LiveBroadcastSection.tsx', 'src/components/FloatingSocialRotator.tsx', 'src/data/db.json', 'src/data/initialData.json']) {
+        assert.doesNotMatch(readFileSync(file, 'utf8'), /youtube\.com\/@/, file);
+      }
+    });
+    it('service usa a rota pública sem token e recusa resposta fora do contrato', async () => {
+      setStoredTokens({ access_token: 'admin-session-token', refresh_token: 'admin-session-refresh' });
+      const calls: { url: URL; options: RequestInit }[] = [];
+      const ok = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options: RequestInit = {}) => { calls.push({ url: new URL(String(input)), options }); return reply({ success: true, data: [{ rede: 'email', valor: 'a@b.c', extra: 1 }] }); });
+      try {
+        assert.deepEqual((await medtecApi.canaisPublicos.list()).data, [{ rede: 'email', valor: 'a@b.c' }]);
+        assert.ok(calls[0].url.pathname.endsWith('/publico/canais_contato'));
+        assert.equal(new Headers(calls[0].options.headers).has('Authorization'), false); assert.equal(calls[0].options.credentials, 'omit');
+      } finally { ok.mock.restore(); clearStoredTokens(); }
+      const bad = mock.method(globalThis, 'fetch', async () => reply({ success: true, data: [{ rede: 1 }] }));
+      try { await assert.rejects(medtecApi.canaisPublicos.list(), /Canais de Contato/); } finally { bad.mock.restore(); }
+    });
+    it('falha ou API travada usa os valores de reserva, com tempo limite e cache curto', async () => {
+      const warn = mock.method(console, 'warn', () => {});
+      const timeout = mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
+      try {
+        for (const fetcher of [async () => reply({ success: false, errors: ['x'] }, 500), async () => { throw new TypeError('fetch failed'); }]) {
+          const spy = mock.method(globalThis, 'fetch', fetcher);
+          try { assert.deepEqual(await readSiteChannels(), { canais: CANAIS_PADRAO, failed: true }); } finally { spy.mock.restore(); }
+        }
+        const ok = mock.method(globalThis, 'fetch', async () => reply({ success: true, data: api }));
+        try { assert.deepEqual(await readSiteChannels(), { canais: value, failed: false }); } finally { ok.mock.restore(); }
+        assert.equal(timeout.mock.calls[0].arguments[0], 2500);
+      } finally { timeout.mock.restore(); warn.mock.restore(); }
+      const cached = readFileSync('src/lib/site-channels-server.ts', 'utf8');
+      assert.match(cached, /getSiteChannels\(\)[^{]*\{\s*'use cache';/);
+      assert.match(cached, /cacheLife\(\{ stale: 300, revalidate: failed \? 30 : 300 \}\)/);
+      assert.match(readFileSync('src/app/layout.tsx', 'utf8'), /<SiteChannelsProvider value=\{await getSiteChannels\(\)\}>/);
+    });
+    it('rodapé, redes e botões flutuantes mostram os valores da API', () => {
+      const footer = provided(SiteFooter);
+      for (const text of ['(69) 0000-0000', 'api@seduc.ro.gov.br', 'Endereço da API']) assert.ok(footer.includes(text), text);
+      assert.ok(!footer.includes('mediacaotecnologica'));
+      const social = provided(SocialSection);
+      assert.ok(social.includes(YT)); assert.ok(social.includes('https://wa.me/556900000000')); assert.match(social, /Canal no YouTube/);
+      assert.doesNotMatch(social, /Página no Facebook|facebook\.com/, 'Canal desativado não aparece');
+      assert.ok(provided(LiveBroadcastSection as React.ComponentType).includes(YT));
+      const floating = provided(FloatingSocialRotator);
+      assert.ok(floating.includes('instagram.com/api') || floating.includes(YT));
+    });
+    it('sem link de YouTube, nenhum botão de YouTube aparece', () => {
+      const semYoutube = { ...value, youtube: '' };
+      assert.doesNotMatch(provided(SocialSection, semYoutube), /Canal no YouTube|youtube\.com/);
+      assert.doesNotMatch(provided(LiveBroadcastSection as React.ComponentType, semYoutube), /Assistir no YouTube|youtube\.com/);
+      assert.doesNotMatch(provided(FloatingSocialRotator, semYoutube), /youtube\.com/);
+    });
+    it('sem nenhuma rede, os botões flutuantes somem', () => {
+      assert.equal(provided(FloatingSocialRotator, { ...value, youtube: '', instagram: '', facebook: '' }), '');
+    });
   });
 
   it('/redes não chama /canais_contato, preserva sessão admin e apresenta canais institucionais sem WhatsApp fictício', async () => {
@@ -9479,7 +9004,7 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
       const section = noticeNodes(tree).find(node => node.type === SocialSection);
       assert.ok(section);
       const html = renderToStaticMarkup(section);
-      assert.match(html, /youtube\.com\/@SeducRondonia/);
+      assert.doesNotMatch(html, /youtube\.com|Canal no YouTube/, 'Sem link oficial, o botão não aparece');
       assert.match(html, /instagram\.com\/governoro/);
       assert.match(html, /facebook\.com\/governoderondonia/);
       assert.match(html, /\(69\) 3216-5300/);
@@ -9507,7 +9032,7 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
     const customWhatsappHtml = renderToStaticMarkup(createElement(SocialSection, {
       socials: {
         instagram: 'https://www.instagram.com/governoro/',
-        youtube: 'https://www.youtube.com/@SeducRondonia',
+        youtube: 'https://www.youtube.com/@CanalDeTeste',
         facebook: 'https://www.facebook.com/governoderondonia',
         whatsapp: 'https://wa.me/556932165300',
         email: 'mediacaotecnologica@seduc.ro.gov.br',
@@ -9747,7 +9272,7 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
       assert.ok(html.includes('30 publicadas · 9 aguardando aprovação'));
       assert.ok(html.includes('42 registros no catálogo oficial'));
       assert.ok(html.includes('href="/admin/faq"'));
-      assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 5);
+      assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 0);
     } finally {
       fetchMock.mock.restore();
       clearStoredTokens();
@@ -10846,22 +10371,24 @@ describe('E10.2 — foco e teclado dos diálogos', () => {
 });
 
 describe('E10.2 — controles semânticos dos cards', () => {
-  it('projetos têm botão nativo de expansão e link separado', () => {
-    let selected = '';
-    const project = { id: 'p1', title: 'Projeto real no teste', shortTitle: 'Projeto', image: '', quote: '', school: '' };
-    const states = mock.method(React, 'useState', ((value: unknown) => [Array.isArray(value) ? [project] : value === true ? false : typeof value === 'string' ? selected : value,
-      (id: string) => { selected = id; }]) as typeof React.useState);
-    const effects = mock.method(React, 'useEffect', () => {});
+  it('projetos têm botão nativo de expansão e link separado', async () => {
+    const project = { id: 1, titulo: 'Projeto real no teste', relato: 'Relato', tema_nome: 'Tema', tema_slug: 't', escola_nome: 'Escola', cidade_nome: 'Cidade', imagem: null, imagem_url: null, created_at: 'x' };
+    const second = { ...project, id: 2, titulo: 'Segundo projeto' };
+    const view = await mountCategories(async () => new Response(JSON.stringify({ success: true, data: { items: [project, second], pagination: { current_page: 1, total_pages: 1, total_count: 2, per_page: 6 } } }), { status: 200, headers: { 'content-type': 'application/json' } }), false, {
+      component: () => HomeProjectsAccordionSection(), allowedPaths: /\/publico\/pj_projetos$/, anonymous: true,
+    });
+    const expand = (title: string) => view.nodes().find(node => node.type === 'button' && node.props['aria-label'] === 'Expandir projeto ' + title);
     try {
-      const nodes = noticeNodes(HomeProjectsAccordionSection());
-      const button = nodes.find(node => node.type === 'button' && String(node.props['aria-label']).startsWith('Expandir projeto'));
+      await view.act(() => new Promise(resolve => setImmediate(resolve)));
+      assert.equal(view.calls[0].url.searchParams.get('per_page'), '6');
+      assert.equal(expand('Projeto real no teste')?.props['aria-expanded'], true, 'A primeira lâmina abre expandida');
+      const button = expand('Segundo projeto');
       assert.ok(button); assert.equal(button.props.type, 'button'); assert.equal(button.props['aria-expanded'], false);
       assert.equal(noticeNodes(button.props.children as ReactNode).some(node => node.type === NextLink || node.type === 'a'), false);
-      Reflect.apply(button.props.onClick as () => unknown, undefined, []); assert.equal(selected, 'p1');
-      const expanded = noticeNodes(HomeProjectsAccordionSection());
-      assert.ok(expanded.some(node => node.type === NextLink && node.props.href === '/projetos'));
-      assert.equal(expanded.find(node => node.type === 'button')?.props['aria-expanded'], true);
-    } finally { states.mock.restore(); effects.mock.restore(); }
+      await view.click('Expandir projeto Segundo projeto');
+      assert.equal(expand('Segundo projeto')?.props['aria-expanded'], true);
+      assert.ok(view.nodes().some(node => node.type === NextLink && node.props.href === '/projetos/2'));
+    } finally { await view.restore(); }
   });
   it('mural abre perfis por botões nativos nomeados', async () => {
     const teacher: ProfessorPublico = { id: 1, nome: 'Professora do teste', pratica_pedagogica: 'Resumo', escola_nome: 'Escola', cidade_nome: 'Teste', disciplinas: [{ nome: 'Ciências', slug: 'ciencias' }] };
@@ -11240,6 +10767,1022 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
         state.mock.restore();
       }
     }
+  });
+});
+
+describe('Banners — service', () => {
+  const headers = { 'content-type': 'application/json' };
+  const json = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const FILE_URL = 'http://172.16.107.63:3001/rails/active_storage/blobs/redirect/x/banner.png';
+  const banner = { id: 1, imagem: FILE_URL, imagem_url: null };
+  async function capture<T>(reply: Response, run: () => Promise<T>) {
+    const calls: { url: URL; options: RequestInit }[] = [];
+    const spy = mock.method(globalThis, 'fetch', async (target: RequestInfo | URL, options: RequestInit = {}) => { calls.push({ url: new URL(String(target)), options }); return reply; });
+    setStoredTokens({ access_token: 'banner-user', refresh_token: 'banner-refresh' });
+    try { return { result: await run(), calls }; } finally { spy.mock.restore(); clearStoredTokens(); }
+  }
+
+  it('lista com page=all, vê e exclui nas rotas do contrato, com Bearer', async () => {
+    const list = await capture(json({ success: true, data: { items: [banner], pagination: { current_page: 1, total_pages: 1, total_count: 1, per_page: 1 } } }), () => medtecApi.banners.list({ page: 'all' }));
+    assert.ok(list.calls[0].url.pathname.endsWith('/b_banners')); assert.equal(list.calls[0].url.searchParams.get('page'), 'all');
+    assert.equal(new Headers(list.calls[0].options.headers).get('Authorization'), 'Bearer banner-user');
+    const get = await capture(json(banner), () => medtecApi.banners.get(1));
+    assert.ok(get.calls[0].url.pathname.endsWith('/b_banners/1'));
+    const removed = await capture(json(null, 204), () => medtecApi.banners.delete(1));
+    assert.equal(removed.calls[0].options.method, 'DELETE'); assert.ok(removed.calls[0].url.pathname.endsWith('/b_banners/1')); assert.equal(removed.result, undefined);
+  });
+  it('lista vazia com page=all não vira resposta inválida', async () => {
+    const { result } = await capture(json({ success: true, data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: 0, per_page: 0 } } }), () => medtecApi.banners.list({ page: 'all' }));
+    assert.deepEqual(result.data.items, []);
+  });
+  it('link vai em JSON e arquivo em multipart, tanto ao criar quanto ao trocar', async () => {
+    const link = await capture(json(banner, 201), () => medtecApi.banners.create({ imagem_url: 'https://x.com/b.jpg' }));
+    assert.equal(link.calls[0].options.method, 'POST');
+    assert.deepEqual(JSON.parse(String(link.calls[0].options.body)), { b_banner: { imagem_url: 'https://x.com/b.jpg' } });
+    assert.equal(new Headers(link.calls[0].options.headers).get('Content-Type'), 'application/json');
+    const arquivo = new File(['x'], 'banner.png', { type: 'image/png' });
+    const upload = await capture(json(banner), () => medtecApi.banners.update(1, { imagem: arquivo }));
+    assert.equal(upload.calls[0].options.method, 'PATCH'); assert.ok(upload.calls[0].url.pathname.endsWith('/b_banners/1'));
+    const form = upload.calls[0].options.body as FormData;
+    assert.ok(form instanceof FormData); assert.equal((form.get('b_banner[imagem]') as File).name, 'banner.png');
+    assert.deepEqual([...form.keys()], ['b_banner[imagem]']);
+    assert.equal(new Headers(upload.calls[0].options.headers).has('Content-Type'), false, 'O navegador define o boundary');
+  });
+  it('não junta a URL da imagem com a base da API', async () => {
+    const cms = await capture(json(banner), () => medtecApi.banners.get(1));
+    assert.equal(cms.result.imagem, FILE_URL);
+    const publico = await capture(json({ success: true, message: 'Banners encontrados', data: [{ id: 1, imagem: FILE_URL }, { id: 2, imagem: 'https://x.com/b.jpg', extra: 'x' }] }), () => medtecApi.bannersPublicos.list());
+    assert.deepEqual(publico.result.data, [{ id: 1, imagem: FILE_URL }, { id: 2, imagem: 'https://x.com/b.jpg' }], 'Mantém a ordem e só os campos do contrato');
+  });
+  it('rota pública não envia token nem cookie', async () => {
+    const { calls } = await capture(json({ success: true, data: [] }), () => medtecApi.bannersPublicos.list());
+    assert.ok(calls[0].url.pathname.endsWith('/publico/b_banners'));
+    assert.equal(new Headers(calls[0].options.headers).has('Authorization'), false); assert.equal(calls[0].options.credentials, 'omit');
+  });
+  it('resposta pública fora do contrato é recusada', async () => {
+    for (const body of [{ success: true, data: null }, { success: false, data: [] }, { success: true, data: [{ id: 1 }] }, { success: true, data: [{ id: 'x', imagem: 'a' }] }, { success: true, data: [{ id: 1, imagem: '' }] }]) {
+      await assert.rejects(capture(json(body), () => medtecApi.bannersPublicos.list()), /API pública de Banners/);
+    }
+  });
+});
+
+describe('Banners — Início do painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  function TotalProbe(enabled: boolean) {
+    return createElement('output', null, JSON.stringify(useBannersTotal(enabled)));
+  }
+  const render = (bannersTotal?: { count: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, {
+    indicators: {} as OverviewStatsIndicators, canAccessKanban: true, bannersTotal, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+  }));
+
+  it('conta sem trazer os banners, não consulta se desativado, e falha não vira zero', async () => {
+    const view = await mountCategories(async () => reply({ success: true, data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: 3, per_page: 1 } } }), false, {
+      component: () => TotalProbe(true), allowedPaths: /\/b_banners$/,
+    });
+    try {
+      await view.act(settle);
+      assert.equal(view.calls[0].url.searchParams.get('per_page'), '1'); assert.match(view.html(), /&quot;count&quot;:3/);
+    } finally { await view.restore(); }
+    const off = await mountCategories(async () => reply({}), false, { component: () => TotalProbe(false), allowedPaths: /$^/ });
+    try { assert.equal(off.calls.length, 0); } finally { await off.restore(); }
+    const failing = await mountCategories(async () => reply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403), false, { component: () => TotalProbe(true), allowedPaths: /\/b_banners$/ });
+    try { await failing.act(settle); assert.match(failing.html(), /&quot;count&quot;:null/); } finally { await failing.restore(); }
+  });
+  it('Início mostra o total da API e sai do texto antigo', () => {
+    assert.match(render({ count: 3, error: null }), /3 banners/);
+    assert.match(render({ count: 1, error: null }), /1 banner</);
+    assert.match(render({ count: null, error: null }), /Carregando\.\.\./);
+    for (const props of [undefined, { count: null, error: 'x' }]) assert.ok(!render(props).includes('sem integração oficial'));
+    for (const old of ['fotos de estúdio', 'Carrossel &amp; Transmissão']) assert.ok(!render({ count: 3, error: null }).includes(old), old);
+  });
+});
+
+describe('Banners — carrossel da home', () => {
+  const headers = { 'content-type': 'application/json' };
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const FILE_URL = 'http://172.16.107.63:3001/rails/active_storage/blobs/redirect/x/banner.png';
+  const tres = [{ id: 7, imagem: FILE_URL }, { id: 3, imagem: 'https://exemplo.com/b.jpg' }, { id: 9, imagem: 'https://outro.org/c.webp' }];
+  const reply = (data: unknown) => async () => json({ success: true, message: 'Banners encontrados', data });
+  const mount = (banners: BannerPublico[], windowExtras?: Record<string, unknown>) => mountCategories(async () => { throw new Error('O carrossel não consulta a API no navegador'); }, false, {
+    component: () => HomeBannerCarousel({ banners }), allowedPaths: /$^/, windowExtras,
+  });
+  type View = Awaited<ReturnType<typeof mount>>;
+  const images = (view: View) => view.nodes().filter(node => node.type === NextImage);
+  const slide = (view: View, label: string) => view.nodes().find(node => node.props['aria-roledescription'] === 'slide' && node.props['aria-label'] === label)!;
+  const activeLabel = (view: View) => view.nodes().find(node => node.props['aria-roledescription'] === 'slide' && node.props['aria-hidden'] === false)?.props['aria-label'];
+  const region = (view: View) => view.nodes().find(node => node.props['aria-roledescription'] === 'carrossel')!;
+  const fire = (view: View, name: string, event: unknown = {}) => view.act(() => Reflect.apply(region(view).props[name] as (value: unknown) => unknown, undefined, [event]));
+  const reduced = (matches: boolean) => ({ matchMedia: () => ({ matches, addEventListener() {}, removeEventListener() {} }) });
+
+  it('leitura no servidor: lista da API, e qualquer falha vira lista vazia sem erro', async () => {
+    const warn = mock.method(console, 'warn', () => {});
+    const read = async (fetcher: () => Promise<Response>) => {
+      const spy = mock.method(globalThis, 'fetch', fetcher);
+      try { return await readHomeBanners(); } finally { spy.mock.restore(); }
+    };
+    try {
+      assert.deepEqual(await read(reply(tres)), { banners: tres, failed: false });
+      assert.deepEqual(await read(reply([])), { banners: [], failed: false });
+      for (const fetcher of [async () => json({ success: false, errors: ['x'] }, 500), async () => { throw new TypeError('fetch failed'); }, reply([{ id: 1 }])]) {
+        assert.deepEqual(await read(fetcher), { banners: [], failed: true });
+      }
+    } finally { warn.mock.restore(); }
+  });
+  it('a leitura tem tempo limite: API travada não segura a home', async () => {
+    const warn = mock.method(console, 'warn', () => {});
+    const timeout = mock.method(AbortSignal, 'timeout', () => { const controller = new AbortController(); controller.abort(); return controller.signal; });
+    const spy = mock.method(globalThis, 'fetch', (_input: RequestInfo | URL, options: RequestInit = {}) => new Promise<Response>((_resolve, reject) => {
+      if (options.signal?.aborted) reject(new DOMException('Tempo esgotado', 'TimeoutError'));
+    }));
+    try {
+      assert.deepEqual(await readHomeBanners(), { banners: [], failed: true });
+      assert.equal(timeout.mock.calls[0].arguments[0], 2500);
+    } finally { spy.mock.restore(); timeout.mock.restore(); warn.mock.restore(); }
+  });
+  it('o servidor usa cache curto, e a home passa a lista pronta para o carrossel antes do topo', () => {
+    const cached = readFileSync('src/lib/home-banners.ts', 'utf8');
+    assert.match(cached, /getHomeBanners\(\)[^{]*\{\s*'use cache';/);
+    assert.match(cached, /cacheLife\(\{ stale: 300, revalidate: failed \? 30 : 300 \}\)/);
+    const page = readFileSync('src/app/page.tsx', 'utf8');
+    assert.doesNotMatch(page, /use client/); assert.match(page, /await getHomeBanners\(\)/);
+    const source = readFileSync('src/components/HomePageClient.tsx', 'utf8');
+    assert.ok(source.indexOf('<HomeBannerCarousel banners={banners} />') > 0 && source.indexOf('<HomeBannerCarousel banners={banners} />') < source.indexOf('id="inicio"'));
+  });
+  it('lista vazia não reserva espaço nem mostra nada', async () => {
+    const view = await mount([]);
+    try { assert.equal(view.html(), ''); assert.equal(view.calls.length, 0); } finally { await view.restore(); }
+  });
+  it('vem pronto no HTML do servidor, sem consultar a API no navegador', async () => {
+    const html = renderToStaticMarkup(createElement(HomeBannerCarousel, { banners: tres }));
+    assert.match(html, /aria-roledescription="carrossel"/); assert.match(html, /alt="Banner 1 de 3"/);
+    assert.match(html, /fetchPriority="high"/);
+    const view = await mount(tres);
+    try { await view.act(settle); assert.equal(view.calls.length, 0); } finally { await view.restore(); }
+  });
+  it('um banner não tem controles nem troca automática', async () => {
+    const view = await mount([tres[0]]);
+    try {
+      await view.act(settle);
+      assert.equal(images(view).length, 1); assert.equal(images(view)[0].props.alt, 'Banner 1 de 1');
+      assert.equal(view.nodes().filter(node => node.type === 'button').length, 0);
+    } finally { await view.restore(); }
+  });
+  it('um slide por item, na ordem recebida, sem juntar URL e sem otimização', async () => {
+    const view = await mount(tres);
+    try {
+      await view.act(settle);
+      assert.deepEqual(view.nodes().filter(node => node.props['aria-roledescription'] === 'slide').map(node => node.props['aria-label']), ['Banner 1 de 3', 'Banner 2 de 3', 'Banner 3 de 3']);
+      assert.deepEqual(images(view).map(node => node.props.src), tres.map(item => item.imagem));
+      assert.deepEqual(images(view).map(node => node.props.alt), ['Banner 1 de 3', 'Banner 2 de 3', 'Banner 3 de 3']);
+      assert.ok(images(view).every(node => node.props.unoptimized === true), 'imagem_url pode ser de qualquer domínio');
+    } finally { await view.restore(); }
+  });
+  it('a primeira imagem é prioritária e as demais são lazy; distantes nem são montadas', async () => {
+    const cinco = [1, 2, 3, 4, 5].map(id => ({ id, imagem: 'https://x.com/' + id + '.jpg' }));
+    const view = await mount(cinco);
+    try {
+      await view.act(settle);
+      const mounted = images(view);
+      assert.deepEqual(mounted.map(node => node.props.src), ['https://x.com/1.jpg', 'https://x.com/2.jpg', 'https://x.com/5.jpg']);
+      assert.equal(mounted[0].props.fetchPriority, 'high'); assert.equal(mounted[0].props.loading, 'eager');
+      assert.ok(mounted.slice(1).every(node => node.props.loading === 'lazy' && node.props.fetchPriority === undefined));
+    } finally { await view.restore(); }
+  });
+  it('botões, indicadores e setas do teclado trocam o slide, circulando', async () => {
+    const view = await mount(tres);
+    try {
+      await view.act(settle);
+      assert.equal(activeLabel(view), 'Banner 1 de 3');
+      await view.click('Próximo banner'); assert.equal(activeLabel(view), 'Banner 2 de 3');
+      await view.click('Banner anterior'); await view.click('Banner anterior'); assert.equal(activeLabel(view), 'Banner 3 de 3');
+      await view.click('Ir para o banner 2 de 3'); assert.equal(activeLabel(view), 'Banner 2 de 3');
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ir para o banner 2 de 3')?.props['aria-current'], 'true');
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ir para o banner 1 de 3')?.props['aria-current'], undefined);
+      const preventDefault = mock.fn();
+      await fire(view, 'onKeyDown', { key: 'ArrowRight', preventDefault }); assert.equal(activeLabel(view), 'Banner 3 de 3');
+      await fire(view, 'onKeyDown', { key: 'ArrowRight', preventDefault }); assert.equal(activeLabel(view), 'Banner 1 de 3');
+      await fire(view, 'onKeyDown', { key: 'ArrowLeft', preventDefault }); assert.equal(activeLabel(view), 'Banner 3 de 3');
+      assert.equal(preventDefault.mock.callCount(), 3);
+      await fire(view, 'onKeyDown', { key: 'Tab', preventDefault }); assert.equal(preventDefault.mock.callCount(), 3, 'Outras teclas seguem normais');
+      assert.equal(slide(view, 'Banner 1 de 3').props['aria-hidden'], true);
+    } finally { await view.restore(); }
+  });
+  it('troca sozinho e pausa com o mouse, o foco e o botão', async () => {
+    mock.timers.enable({ apis: ['setInterval'] });
+    const view = await mount(tres);
+    const tick = () => view.act(() => mock.timers.tick(6000));
+    try {
+      await view.act(settle);
+      await tick(); assert.equal(activeLabel(view), 'Banner 2 de 3');
+      await fire(view, 'onMouseEnter'); await tick(); assert.equal(activeLabel(view), 'Banner 2 de 3', 'Mouse pausa');
+      await fire(view, 'onMouseLeave'); await tick(); assert.equal(activeLabel(view), 'Banner 3 de 3');
+      await fire(view, 'onFocus'); await tick(); assert.equal(activeLabel(view), 'Banner 3 de 3', 'Foco pausa');
+      await fire(view, 'onBlur', { currentTarget: { contains: () => true }, relatedTarget: {} }); await tick(); assert.equal(activeLabel(view), 'Banner 3 de 3', 'Foco dentro do carrossel continua pausado');
+      await fire(view, 'onBlur', { currentTarget: { contains: () => false }, relatedTarget: null }); await tick(); assert.equal(activeLabel(view), 'Banner 1 de 3');
+      await view.click('Pausar troca automática'); await tick(); assert.equal(activeLabel(view), 'Banner 1 de 3', 'Botão pausa');
+      await view.click('Retomar troca automática'); await tick(); assert.equal(activeLabel(view), 'Banner 2 de 3');
+    } finally { mock.timers.reset(); await view.restore(); }
+  });
+  it('prefers-reduced-motion desliga a troca automática, sem tirar os controles', async () => {
+    mock.timers.enable({ apis: ['setInterval'] });
+    const view = await mount(tres, reduced(true));
+    try {
+      await view.act(settle);
+      await view.act(() => mock.timers.tick(30000));
+      assert.equal(activeLabel(view), 'Banner 1 de 3');
+      assert.ok(!view.nodes().some(node => String(node.props['aria-label']).includes('troca automática')));
+      await view.click('Próximo banner'); assert.equal(activeLabel(view), 'Banner 2 de 3');
+    } finally { mock.timers.reset(); await view.restore(); }
+  });
+});
+
+describe('Projetos — site público', () => {
+  const headers = { 'content-type': 'application/json' };
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => json({ success: true, message: 'ok', data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: Math.max(items.length, 0) } } });
+  const settle = () => new Promise(resolve => setTimeout(resolve, 5));
+  const CPF = '01251667708';
+  const projeto = { id: 1, titulo: 'Hortas em Jirau', relato: 'Alunos montaram hortas.', tema_nome: 'Agroecologia', tema_slug: 'agroecologia', escola_nome: 'EEEF Rondon', cidade_nome: 'Rolim de Moura', imagem: null, imagem_url: 'https://x.com/c.jpg', created_at: 'x' };
+  const outro = { ...projeto, id: 2, titulo: 'Robótica solar', cidade_nome: 'Porto Velho', imagem_url: null };
+  // A API pública não traz CPF nem autor; os campos abaixo garantem que um vazamento também pararia no front.
+  const detalhe = { ...projeto, cpf: CPF, autor_nome: 'Autora', created_by: '1',
+    membros: [{ id: 5, pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: CPF, funcao: 'Professora mediadora' }],
+    anexos: [{ id: 10, nome: 'relatorio.pdf', tipo: 'application/pdf', tamanho: 52344, url: '/rails/relatorio.pdf' }] };
+  async function withFetch<T>(reply: (url: URL) => Response, run: () => Promise<T>) {
+    const spy = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) => reply(new URL(String(input))));
+    try { return await run(); } finally { spy.mock.restore(); }
+  }
+  const page = (id: string) => ProjetoDetalhePage({ params: Promise.resolve({ id }) });
+  const mountView = (reply: (url: URL) => Response) => mountCategories(async url => reply(url), false, {
+    component: () => ProjetosView(), allowedPaths: /\/publico\/(pj_projetos|pj_temas)$/, anonymous: true,
+  });
+  const temasReply = (url: URL) => url.pathname.endsWith('/pj_temas') ? json({ success: true, data: [{ nome: 'Agroecologia', slug: 'agroecologia' }] }) : null;
+
+  it('lista por page=all, filtra tema e busca na API e município pela própria lista', async () => {
+    const view = await mountView(url => temasReply(url) ?? list([projeto, outro]));
+    const lastList = () => view.calls.filter(call => call.url.pathname.endsWith('/pj_projetos')).at(-1)!.url.searchParams;
+    try {
+      await view.act(settle);
+      assert.equal(lastList().get('page'), 'all');
+      assert.match(view.html(), /Hortas em Jirau/); assert.match(view.html(), /Robótica solar/);
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ver o projeto Hortas em Jirau')?.props.href, '/projetos/1');
+      await view.change('projetos-cidade', 'Porto Velho');
+      assert.doesNotMatch(view.html(), /Hortas em Jirau/); assert.match(view.html(), /Robótica solar/);
+      await view.change('projetos-tema', 'agroecologia');
+      await view.act(settle);
+      assert.equal(lastList().get('tema'), 'agroecologia');
+      await view.change('projetos-busca', ' horta ');
+      await view.act(() => new Promise(resolve => setTimeout(resolve, 320)));
+      await view.act(settle);
+      assert.equal(lastList().get('busca'), 'horta');
+    } finally { await view.restore(); }
+  });
+  it('lista vazia é estado vazio, e falha da API vira "em breve", sem erro técnico', async () => {
+    const empty = await mountView(url => temasReply(url) ?? list([]));
+    try {
+      await empty.act(settle);
+      assert.match(empty.html(), /Nenhum projeto encontrado/);
+    } finally { await empty.restore(); }
+    for (const fail of [() => json({ success: false, message: 'Erro', errors: ['erro_interno'] }, 500), () => { throw new TypeError('fetch failed'); }]) {
+      const view = await mountView(url => temasReply(url) ?? fail());
+      try {
+        await view.act(settle);
+        assert.equal(view.nodes().find(node => node.type === CommunityComingSoon)?.props.message, 'Os projetos pedagógicos das escolas estarão disponíveis em breve.');
+        assert.doesNotMatch(view.html(), /role="alert"|erro_interno|fetch failed/);
+      } finally { await view.restore(); }
+    }
+  });
+  it('falha só nos temas mantém a lista, sem o filtro', async () => {
+    const warn = mock.method(console, 'warn', () => {});
+    const view = await mountView(url => url.pathname.endsWith('/pj_temas') ? json({}, 500) : list([projeto]));
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /Hortas em Jirau/); assert.ok(!view.nodes().some(node => node.type === CommunityComingSoon));
+    } finally { await view.restore(); warn.mock.restore(); }
+  });
+  it('home mostra "em breve" se a API falhar', async () => {
+    const view = await mountCategories(async () => json({ success: false, errors: ['x'] }, 500), false, {
+      component: () => HomeProjectsAccordionSection(), allowedPaths: /\/publico\/pj_projetos$/, anonymous: true,
+    });
+    try {
+      await view.act(settle);
+      assert.ok(view.nodes().some(node => node.type === CommunityComingSoon));
+      assert.doesNotMatch(view.html(), /role="alert"/);
+    } finally { await view.restore(); }
+  });
+  it('página do projeto mostra membros com nome e função e anexos, sem CPF', async () => {
+    await withFetch(() => json({ success: true, message: 'Projeto encontrado', data: detalhe }), async () => {
+      const nodes = noticeNodes(await page('1'));
+      const main = nodes.find(node => node.type === 'main')!;
+      const html = renderToStaticMarkup(main);
+      for (const text of ['Hortas em Jirau', 'Maria Ribeiro', 'Professora mediadora', 'EEEF Rondon', 'Rolim de Moura', 'relatorio.pdf', '51 KB']) assert.ok(html.includes(text), text);
+      const anexo = nodes.find(node => node.props['aria-label'] === 'Baixar relatorio.pdf')!;
+      assert.match(String(anexo.props.href), /\/rails\/relatorio\.pdf$/); assert.equal(anexo.props.download, 'relatorio.pdf');
+      for (const secret of [CPF, '012.516.677', 'Autora']) assert.ok(!html.includes(secret), secret);
+      assert.ok(!JSON.stringify(nodes.map(node => node.props.item ?? null)).includes(CPF));
+    });
+  });
+  it('seções sem membros ou anexos não aparecem', async () => {
+    await withFetch(() => json({ success: true, data: { ...projeto, membros: [], anexos: [] } }), async () => {
+      const html = renderToStaticMarkup(noticeNodes(await page('1')).find(node => node.type === 'main')!);
+      assert.ok(!html.includes('Quem participou')); assert.ok(!html.includes('Anexos'));
+    });
+  });
+  it('id inválido e projeto não publicado dão 404; outras falhas viram "em breve" sem indexar', async () => {
+    let calls = 0;
+    await withFetch(() => { calls++; return json({ success: false, message: 'Registro não encontrado', errors: ['x'] }, 404); }, async () => {
+      await assert.rejects(page('abc'), /NEXT_HTTP_ERROR_FALLBACK;404/);
+      assert.equal(calls, 0, 'Id inválido não consulta a API');
+      await assert.rejects(page('999'), /NEXT_HTTP_ERROR_FALLBACK;404/);
+    });
+    for (const reply of [() => json({ success: false, message: 'Erro', errors: ['erro_interno'] }, 500), () => { throw new TypeError('fetch failed'); }]) {
+      await withFetch(reply, async () => {
+        const nodes = noticeNodes(await page('1'));
+        assert.equal(nodes.find(node => node.type === CommunityComingSoon)?.props.message, 'Os projetos pedagógicos das escolas estarão disponíveis em breve.');
+        assert.deepEqual((await projetoMetadata({ params: Promise.resolve({ id: '1' }) })).robots, { index: false });
+      });
+    }
+  });
+  it('metadados do projeto vêm da API', async () => {
+    await withFetch(() => json({ success: true, data: detalhe }), async () => {
+      const metadata = await projetoMetadata({ params: Promise.resolve({ id: '1' }) });
+      assert.match(String(metadata.title), /Hortas em Jirau/); assert.equal(metadata.description, 'Alunos montaram hortas.'); assert.equal(metadata.robots, undefined);
+    });
+  });
+});
+
+describe('Projetos — temas no painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const tema = { id: 2, nome: 'Ciência na Amazônia', slug: 'ciencia-na-amazonia', ativo: true };
+  const reply = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const list = () => reply({ success: true, data: { items: [tema], pagination: { current_page: 1, total_pages: 1, total_count: 1, per_page: 10 } } });
+  const panel = TemasProjetoPanel();
+  const mount = (write: (options: RequestInit) => Response) => mountCategories(async (_url, options) => options.method && options.method !== 'GET' ? write(options) : list(), false, {
+    component: () => Reflect.apply(panel.type as () => ReactNode, undefined, [panel.props]), allowedPaths: /\/pj_temas(\/\d+)?$/,
+  });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+
+  it('usa o gerenciador comum, no masculino, e cria com o corpo do contrato', async () => {
+    const view = await mount(() => reply(tema, 201));
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /Ciência na Amazônia/); assert.match(view.html(), /Ativo/); assert.doesNotMatch(view.html(), /Ativa/);
+      await view.click('Novo tema');
+      await view.change('taxonomy-nome', 'Tecnologia Solar');
+      await view.submit('Criar tema');
+      await view.act(settle);
+      const post = view.calls.find(call => call.options.method === 'POST')!;
+      assert.deepEqual(JSON.parse(String(post.options.body)), { pj_tema: { nome: 'Tecnologia Solar', ativo: true } });
+    } finally { await view.restore(); }
+  });
+  it('tema com projetos mostra a recusa da API e pode ser desativado', async () => {
+    const view = await mount(options => options.method === 'DELETE'
+      ? reply({ success: false, message: 'Não foi possível excluir', errors: ['Não foi possível excluir'] }, 422) : reply({ ...tema, ativo: false }));
+    try {
+      await view.act(settle);
+      await view.click('Excluir ' + tema.nome);
+      await view.click('Confirmar exclusão');
+      await view.act(settle);
+      assert.match(view.html(), /Não foi possível excluir/);
+      await view.click('Desativar ' + tema.nome);
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(view.calls.find(call => call.options.method === 'PATCH')!.options.body)), { pj_tema: { ativo: false } });
+      assert.match(view.html(), /desativado\./);
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Projetos — membros no painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const membro = { id: 1, nome: 'Maria Ribeiro', cpf: '01251667708' };
+  const reply = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const list = (items = [membro]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: 10 } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const mount = (write: (options: RequestInit) => Response = () => reply(membro, 201)) => mountCategories(async (_url, options) => options.method && options.method !== 'GET' ? write(options) : list(), false, {
+    component: () => MembrosProjetoPanel(), allowedPaths: /\/pj_membros(\/\d+)?$/,
+  });
+
+  it('a listagem mascara o CPF e liga o membro ao filtro de projetos', async () => {
+    const view = await mount();
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /Maria Ribeiro/); assert.match(view.html(), /\*\*\*\.516\.677-\*\*/);
+      assert.doesNotMatch(view.html(), /01251667708|012\.516\.677-08/);
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ver projetos de Maria Ribeiro')?.props.href, '/admin/projetos?membro=1');
+    } finally { await view.restore(); }
+  });
+  it('filtros usam q[nome_cont] e q[cpf_eq] só com números e recusam CPF inválido', async () => {
+    const view = await mount();
+    try {
+      await view.act(settle);
+      await view.change('membro-busca-cpf', '123');
+      await view.submit('Filtrar membros');
+      assert.match(view.html(), /Informe um CPF válido para buscar/);
+      await view.change('membro-busca-nome', ' Maria ');
+      await view.change('membro-busca-cpf', '012.516.677-08');
+      await view.submit('Filtrar membros');
+      await view.act(settle);
+      const { searchParams } = view.calls.at(-1)!.url;
+      assert.equal(searchParams.get('q[nome_cont]'), 'Maria'); assert.equal(searchParams.get('q[cpf_eq]'), '01251667708');
+    } finally { await view.restore(); }
+  });
+  it('cadastro valida o CPF antes de enviar e envia só números', async () => {
+    const view = await mount();
+    const writes = () => view.calls.filter(call => call.options.method === 'POST');
+    try {
+      await view.act(settle);
+      await view.click('Novo membro');
+      await view.change('membro-nome', 'Maria Ribeiro');
+      await view.change('membro-cpf', '11111111111');
+      await view.submit('Criar membro');
+      assert.match(view.html(), /Informe um CPF válido\./); assert.equal(writes().length, 0);
+      await view.change('membro-cpf', '01251667708');
+      await view.submit('Criar membro');
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(writes()[0].options.body)), { pj_membro: { nome: 'Maria Ribeiro', cpf: '01251667708' } });
+      assert.match(view.html(), /Membro salvo com sucesso/);
+    } finally { await view.restore(); }
+  });
+  it('membro em projeto mostra a recusa da API ao excluir', async () => {
+    const view = await mount(() => reply({ success: false, message: 'Não foi possível excluir', errors: ['Não foi possível excluir'] }, 422));
+    try {
+      await view.act(settle);
+      await view.click('Excluir Maria Ribeiro');
+      await view.click('Confirmar exclusão');
+      await view.act(settle);
+      assert.match(view.html(), /Não foi possível excluir/);
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Projetos — painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: 10 } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const tema = { id: 2, nome: 'Ciência', slug: 'ciencia', ativo: true };
+  const escola = { id: 3, nome: 'EEEFM Bolívar', inep: null, g_cidade_id: 4, cidade_nome: 'Porto Velho' };
+  const membro = { id: 1, nome: 'Maria Ribeiro', cpf: '01251667708' };
+  const anexo = { id: 10, nome: 'relatorio.pdf', tipo: 'application/pdf', tamanho: 52344, url: '/rails/relatorio.pdf' };
+  const projeto = {
+    id: 7, titulo: 'Hortas em Jirau', relato: 'Relato', pj_tema_id: 2, tema_nome: 'Ciência', escola_id: 3, escola_nome: escola.nome, cidade_nome: 'Porto Velho',
+    imagem: null, imagem_url: 'https://x.com/capa.jpg', anexos: [anexo], membros: [{ id: 5, pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }],
+    status: 'aguardando', status_nome: 'Aguardando', autor_nome: 'Gestora', avaliado_por_nome: null,
+  };
+  const publicado = { ...projeto, status: 'publicada', status_nome: 'Publicada' };
+  const files = (...values: File[]) => ({ target: { files: values, value: 'x' } });
+  function mount(props: Parameters<typeof ProjetosPanel>[0] = {}, write: (url: URL, options: RequestInit) => Response = () => reply(publicado, 201)) {
+    return mountCategories(async (url, options) => {
+      if (options.method && options.method !== 'GET') return write(url, options);
+      if (url.pathname.endsWith('/pj_temas')) return list([tema]);
+      if (url.pathname.endsWith('/pj_membros')) return list([membro]);
+      if (url.pathname.endsWith('/escolas')) return list([escola]);
+      if (/\/pj_projetos\/\d+$/.test(url.pathname)) return reply(projeto);
+      return list([projeto]);
+    }, false, { component: () => ProjetosPanel(props), allowedPaths: /\/(pj_temas|pj_membros|escolas|pj_projetos(\/\d+(\/(publicar|reprovar|despublicar)|\/anexos\/\d+)?)?)$/ });
+  }
+  type View = Awaited<ReturnType<typeof mount>>;
+  const pick = (view: View, name: string, event: unknown) => view.act(() => {
+    const node = view.nodes().find(item => item.type === 'input' && item.props.name === name);
+    assert.ok(node, name);
+    return Reflect.apply(node.props.onChange as (value: unknown) => unknown, undefined, [event]);
+  });
+  async function fillBase(view: View) {
+    await view.change('projeto-titulo', ' Hortas ');
+    await view.change('projeto-relato', ' Relato ');
+    await view.change('projeto-tema', '2');
+    await view.change('projeto-escola', '3');
+  }
+  const sentBy = (view: View, method: string) => view.calls.filter(call => call.options.method === method);
+
+  it('filtros do contrato chegam à API e voltam à primeira página', async () => {
+    const view = await mount({ membroId: '1' });
+    try {
+      await view.act(settle);
+      const projetos = () => view.calls.filter(call => call.url.pathname.endsWith('/pj_projetos')).at(-1)!.url.searchParams;
+      assert.equal(projetos().get('q[pj_membros_id_eq]'), '1', 'Atalho da tela de membros');
+      await view.change('projeto-busca-titulo', ' Hortas ');
+      await view.submit('Filtrar projetos');
+      await view.change('projeto-filtro-tema', '2');
+      await view.change('projeto-filtro-cidade', '4');
+      await view.act(settle);
+      await view.change('projeto-filtro-escola', '3');
+      await view.change('projeto-filtro-status', 'aguardando');
+      await view.act(settle);
+      assert.equal(projetos().get('q[titulo_cont]'), 'Hortas'); assert.equal(projetos().get('q[pj_tema_id_eq]'), '2');
+      assert.equal(projetos().get('q[escola_g_cidade_id_eq]'), '4'); assert.equal(projetos().get('q[escola_id_eq]'), '3');
+      assert.equal(projetos().get('q[n_status_noticia_slug_eq]'), 'aguardando'); assert.equal(projetos().get('page'), '1');
+    } finally { await view.restore(); }
+  });
+  it('a listagem não expõe o CPF dos membros', async () => {
+    const view = await mount();
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /Hortas em Jirau/); assert.match(view.html(), /1 membro/);
+      assert.doesNotMatch(view.html(), /01251667708|012\.516\.677-08/);
+    } finally { await view.restore(); }
+  });
+  it('sem arquivo cria em JSON e informa a situação devolvida pela API', async () => {
+    const view = await mount({ startNew: true });
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /publicam no site ao salvar/);
+      await view.submit('Criar projeto');
+      assert.match(view.html(), /Informe título, relato, tema e escola/); assert.equal(sentBy(view, 'POST').length, 0);
+      await fillBase(view);
+      await view.submit('Criar projeto');
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(sentBy(view, 'POST')[0].options.body)), { pj_projeto: { titulo: 'Hortas', pj_tema_id: 2, relato: 'Relato', escola_id: 3 } });
+      assert.match(view.html(), /Projeto salvo\. Situação: Publicada\./);
+    } finally { await view.restore(); }
+  });
+  it('capa aceita link só com HTTPS', async () => {
+    const view = await mount({ startNew: true });
+    try {
+      await view.act(settle);
+      await fillBase(view);
+      const modoLink = view.nodes().find(item => item.props.name === 'projeto-imagem-modo' && item.props.value === 'link');
+      await view.act(() => Reflect.apply(modoLink!.props.onChange as () => unknown, undefined, []));
+      await view.change('projeto-imagem-url', 'http://x.com/capa.jpg');
+      await view.submit('Criar projeto');
+      assert.match(view.html(), /link HTTPS válido/); assert.equal(sentBy(view, 'POST').length, 0);
+      await view.change('projeto-imagem-url', 'https://x.com/capa.jpg');
+      await view.submit('Criar projeto');
+      await view.act(settle);
+      assert.equal(JSON.parse(String(sentBy(view, 'POST')[0].options.body)).pj_projeto.imagem_url, 'https://x.com/capa.jpg');
+    } finally { await view.restore(); }
+  });
+  it('recusa capa e anexos fora das regras e envia os válidos em multipart', async () => {
+    const view = await mount({ startNew: true });
+    try {
+      await view.act(settle);
+      await fillBase(view);
+      const pesada = new File(['x'], 'capa.png', { type: 'image/png' }); Object.defineProperty(pesada, 'size', { value: 5 * 1024 * 1024 + 1 });
+      await pick(view, 'projeto-imagem', files(pesada));
+      assert.match(view.html(), /até 5 MB/);
+      await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.gif', { type: 'image/gif' })));
+      assert.match(view.html(), /PNG, JPG ou WEBP/);
+      const capa = new File(['x'], 'capa.webp', { type: 'image/webp' });
+      await pick(view, 'projeto-imagem', files(capa));
+      const pdf = new File(['x'], 'a.pdf', { type: 'application/pdf' }); const foto = new File(['y'], 'b.jpg', { type: 'image/jpeg' });
+      await pick(view, 'projeto-anexos', files(pdf, new File(['x'], 'c.txt', { type: 'text/plain' }), foto));
+      assert.match(view.html(), /c\.txt: deve ser PDF/);
+      await pick(view, 'projeto-anexos', files(pdf));
+      assert.equal((view.html().match(/Retirar a\.pdf/g) ?? []).length, 1, 'O mesmo arquivo não entra duas vezes');
+      await view.submit('Criar projeto');
+      await view.act(settle);
+      const form = sentBy(view, 'POST')[0].options.body as FormData;
+      assert.ok(form instanceof FormData); assert.equal((form.get('pj_projeto[imagem]') as File).name, 'capa.webp');
+      assert.deepEqual(form.getAll('pj_projeto[anexos][]').map(item => (item as File).name), ['a.pdf', 'b.jpg']);
+    } finally { await view.restore(); }
+  });
+  it('edição envia só a diferença dos membros e soma os anexos novos', async () => {
+    const view = await mount({}, () => reply(projeto));
+    try {
+      await view.act(settle);
+      await view.click('Editar Hortas em Jirau');
+      await view.act(settle);
+      assert.doesNotMatch(view.html(), /publicam no site ao salvar/);
+      const editor = () => view.nodes().find(item => item.type === ProjetoMembrosEditor)!;
+      const atuais = editor().props.value as { pj_membro_id: number; nome: string; cpf: string; funcao: string }[];
+      await view.act(() => (editor().props.onChange as (next: unknown) => void)([{ ...atuais[0], funcao: 'Coordenadora' }, { pj_membro_id: 9, nome: 'João', cpf: '52998224725', funcao: 'Aluno' }]));
+      await pick(view, 'projeto-anexos', files(new File(['x'], 'novo.pdf', { type: 'application/pdf' })));
+      await view.submit('Editar projeto');
+      await view.act(settle);
+      const form = sentBy(view, 'PATCH')[0].options.body as FormData;
+      assert.ok(sentBy(view, 'PATCH')[0].url.pathname.endsWith('/pj_projetos/7'));
+      assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][0][id]'), '5');
+      assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][0][funcao]'), 'Coordenadora');
+      assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][1][pj_membro_id]'), '9');
+      assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][1][funcao]'), 'Aluno');
+      assert.deepEqual(form.getAll('pj_projeto[anexos][]').map(item => (item as File).name), ['novo.pdf']);
+      assert.equal(form.get('pj_projeto[imagem_url]'), null, 'Sem troca de capa, o link não é reenviado');
+    } finally { await view.restore(); }
+  });
+  it('tirar membro do projeto envia _destroy e não o exclui do cadastro', async () => {
+    const view = await mount({}, () => reply(projeto));
+    try {
+      await view.act(settle);
+      await view.click('Editar Hortas em Jirau');
+      await view.act(settle);
+      await view.act(() => (view.nodes().find(item => item.type === ProjetoMembrosEditor)!.props.onChange as (next: unknown) => void)([]));
+      await view.submit('Editar projeto');
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(sentBy(view, 'PATCH')[0].options.body)).pj_projeto.pj_projeto_membros_attributes, [{ id: 5, _destroy: true }]);
+      assert.ok(!view.calls.some(call => call.url.pathname.includes('/pj_membros/') && call.options.method === 'DELETE'));
+    } finally { await view.restore(); }
+  });
+  it('função em branco e membro repetido bloqueiam o envio', async () => {
+    const view = await mount({}, () => reply(projeto));
+    try {
+      await view.act(settle);
+      await view.click('Editar Hortas em Jirau');
+      await view.act(settle);
+      const editor = () => view.nodes().find(item => item.type === ProjetoMembrosEditor)!;
+      const atuais = editor().props.value as { funcao: string }[];
+      await view.act(() => (editor().props.onChange as (next: unknown) => void)([{ ...atuais[0], funcao: ' ' }]));
+      await view.submit('Editar projeto');
+      assert.match(view.html(), /Informe a função de cada membro/);
+      await view.act(() => (editor().props.onChange as (next: unknown) => void)([{ ...atuais[0], funcao: 'A' }, { ...atuais[0], funcao: 'B' }]));
+      await view.submit('Editar projeto');
+      assert.match(view.html(), /mesmo membro foi informado mais de uma vez/);
+      assert.equal(sentBy(view, 'PATCH').length, 0);
+    } finally { await view.restore(); }
+  });
+  it('anexo atual sai pela rota própria, depois de confirmar', async () => {
+    const view = await mount({}, () => reply(null, 204));
+    try {
+      await view.act(settle);
+      await view.click('Editar Hortas em Jirau');
+      await view.act(settle);
+      assert.match(view.html(), /relatorio\.pdf/);
+      await view.click('Remover anexo relatorio.pdf');
+      assert.equal(sentBy(view, 'DELETE').length, 0, 'Nada é removido antes da confirmação');
+      await view.click('Confirmar remoção');
+      await view.act(settle);
+      assert.ok(sentBy(view, 'DELETE')[0].url.pathname.endsWith('/pj_projetos/7/anexos/10'));
+      assert.match(view.html(), /Anexo relatorio\.pdf removido/);
+      assert.equal(view.nodes().some(item => item.props['aria-label'] === 'Anexos atuais'), false);
+    } finally { await view.restore(); }
+  });
+  it('trocar o link por arquivo limpa o link antigo', async () => {
+    const view = await mount({}, () => reply(projeto));
+    try {
+      await view.act(settle);
+      await view.click('Editar Hortas em Jirau');
+      await view.act(settle);
+      const modo = view.nodes().find(item => item.props.name === 'projeto-imagem-modo' && item.props.value === 'upload');
+      await view.act(() => Reflect.apply(modo!.props.onChange as () => unknown, undefined, []));
+      await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+      await view.submit('Editar projeto');
+      await view.act(settle);
+      const form = sentBy(view, 'PATCH')[0].options.body as FormData;
+      assert.equal(form.get('pj_projeto[imagem_url]'), ''); assert.equal((form.get('pj_projeto[imagem]') as File).name, 'capa.png');
+    } finally { await view.restore(); }
+  });
+  it('moderação segue o status: aguardando publica ou reprova, publicada despublica', async () => {
+    const view = await mount({}, () => reply(publicado));
+    try {
+      await view.act(settle);
+      assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Reprovar Hortas em Jirau'));
+      assert.ok(!view.nodes().some(item => item.props['aria-label'] === 'Despublicar Hortas em Jirau'));
+      await view.click('Publicar Hortas em Jirau');
+      await view.act(settle);
+      assert.ok(sentBy(view, 'PATCH')[0].url.pathname.endsWith('/pj_projetos/7/publicar'));
+      assert.match(view.html(), /Projeto publicado/);
+    } finally { await view.restore(); }
+    const live = await mountCategories(async (url, options) => options.method === 'PATCH' ? reply(projeto) : url.pathname.endsWith('/pj_projetos') ? list([publicado]) : list([]), false, {
+      component: () => ProjetosPanel(), allowedPaths: /\/(pj_temas|pj_membros|escolas|pj_projetos(\/\d+\/despublicar)?)$/,
+    });
+    try {
+      await live.act(settle);
+      assert.ok(!live.nodes().some(item => item.props['aria-label'] === 'Publicar Hortas em Jirau'));
+      assert.equal(live.nodes().find(item => item.props['aria-label'] === 'Ver Hortas em Jirau no site')?.props.href, '/projetos/7');
+      await live.click('Despublicar Hortas em Jirau');
+      await live.act(settle);
+      assert.ok(live.calls.some(call => call.url.pathname.endsWith('/pj_projetos/7/despublicar')));
+    } finally { await live.restore(); }
+  });
+  it('erro de validação da API aparece sem fechar o formulário', async () => {
+    const view = await mount({ startNew: true }, () => reply({ success: false, message: 'Erro de validação', errors: ['Anexos a.pdf: deve ter no máximo 10 MB'] }, 422));
+    try {
+      await view.act(settle);
+      await fillBase(view);
+      await view.submit('Criar projeto');
+      await view.act(settle);
+      assert.match(view.html(), /deve ter no máximo 10 MB/);
+      assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Criar projeto'));
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Projetos — Início do painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  function ResumoProbe(enabled: boolean) {
+    return createElement('output', null, JSON.stringify(useProjetosResumo(enabled)));
+  }
+  const render = (projetosResumo?: { total: number | null; pending: number | null; published: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, {
+    indicators: {} as OverviewStatsIndicators, canAccessKanban: true, projetosResumo, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+  }));
+
+  it('resumo conta total, aguardando e publicados sem trazer os projetos', async () => {
+    const totals: Record<string, number> = { '': 9, aguardando: 2, publicada: 6 };
+    const view = await mountCategories(async url => {
+      const status = url.searchParams.get('q[n_status_noticia_slug_eq]') ?? '';
+      return reply({ success: true, data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: totals[status], per_page: 1 } } });
+    }, false, { component: () => ResumoProbe(true), allowedPaths: /\/pj_projetos$/ });
+    try {
+      await view.act(settle);
+      assert.equal(view.calls.length, 3);
+      assert.ok(view.calls.every(call => call.url.searchParams.get('per_page') === '1'));
+      assert.match(view.html(), /&quot;total&quot;:9,&quot;pending&quot;:2,&quot;published&quot;:6/);
+    } finally { await view.restore(); }
+  });
+  it('resumo desativado não consulta, e a falha vira erro, não zero', async () => {
+    const off = await mountCategories(async () => reply({}), false, { component: () => ResumoProbe(false), allowedPaths: /$^/ });
+    try { assert.equal(off.calls.length, 0); } finally { await off.restore(); }
+    const failing = await mountCategories(async () => reply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403), false, { component: () => ResumoProbe(true), allowedPaths: /\/pj_projetos$/ });
+    try {
+      await failing.act(settle);
+      assert.match(failing.html(), /&quot;total&quot;:null/); assert.match(failing.html(), /não possui permissão/);
+    } finally { await failing.restore(); }
+  });
+  it('Início mostra os totais da API, o carregamento e a indisponibilidade, sem o texto antigo', () => {
+    const ok = render({ total: 9, pending: 2, published: 1, error: null });
+    assert.match(ok, /9 projetos/); assert.match(ok, /1 publicado · 2 aguardando/);
+    for (const old of ['trilhas temáticas', 'guias de rep', 'Prática em destaque', 'Projetos e municípios aguardam']) assert.ok(!ok.includes(old), old);
+    assert.match(render({ total: null, pending: null, published: null, error: null }), /Carregando API/);
+    assert.match(render({ total: null, pending: null, published: null, error: 'Falhou' }), /Falha ao consultar \/pj_projetos · Falhou/);
+    assert.match(render(), /Entre com CPF para consultar a API/);
+  });
+});
+
+describe('Projetos — Fila de Aprovação', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: items.length } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const projeto = { id: 7, titulo: 'Hortas em Jirau', relato: 'Relato', tema_nome: 'Ciência', escola_nome: 'Escola', cidade_nome: 'Cidade', status: 'aguardando', status_nome: 'Aguardando', membros: [{ id: 5, pj_membro_id: 1, nome: 'Maria', cpf: '01251667708', funcao: 'Mediadora' }] };
+
+  it('lista só os aguardando, modera e esvazia sem falso erro', async () => {
+    let items: unknown[] = [projeto];
+    const view = await mountCategories(async (_url, options) => {
+      if (options.method === 'PATCH') { items = []; return reply({ ...projeto, status: 'publicada' }); }
+      return list(items);
+    }, false, { component: () => ProjetosApprovalQueue(), allowedPaths: /\/pj_projetos(\/\d+\/(publicar|reprovar))?$/ });
+    try {
+      await view.act(settle);
+      assert.equal(view.calls[0].url.searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(view.calls[0].url.searchParams.get('page'), 'all');
+      assert.match(view.html(), /Hortas em Jirau/); assert.doesNotMatch(view.html(), /01251667708/);
+      await view.click('Publicar Hortas em Jirau');
+      await view.act(settle);
+      assert.ok(view.calls.some(call => call.url.pathname.endsWith('/pj_projetos/7/publicar')));
+      assert.match(view.html(), /Projeto publicado/);
+      assert.match(view.html(), /Nenhum projeto aguardando/, 'page=all sem registros devolve per_page 0');
+      assert.doesNotMatch(view.html(), /role="alert"/);
+    } finally { await view.restore(); }
+  });
+  it('reprovar usa a rota própria, e a falha de leitura permite tentar de novo', async () => {
+    let fail = true;
+    const view = await mountCategories(async (_url, options) => {
+      if (options.method === 'PATCH') return reply({ ...projeto, status: 'reprovada' });
+      return fail ? reply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403) : list([projeto]);
+    }, false, { component: () => ProjetosApprovalQueue(), allowedPaths: /\/pj_projetos(\/\d+\/reprovar)?$/ });
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /role="alert"/); assert.doesNotMatch(view.html(), /Nenhum projeto aguardando/);
+      fail = false;
+      await view.click('Recarregar projetos');
+      await view.act(settle);
+      await view.click('Reprovar Hortas em Jirau');
+      await view.act(settle);
+      assert.ok(view.calls.some(call => call.url.pathname.endsWith('/pj_projetos/7/reprovar')));
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Projetos — membros no formulário', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: 1 } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const maria = { id: 1, nome: 'Maria Ribeiro', cpf: '01251667708' };
+  function mount(found: unknown[], initial: { pj_membro_id: number; nome: string; cpf: string; funcao: string }[] = []) {
+    const state = { value: initial };
+    const created = { id: 8, nome: 'João Lima', cpf: '52998224725' };
+    return mountCategories(async (_url, options) => options.method === 'POST' ? reply(created, 201) : list(found), false, {
+      component: () => ProjetoMembrosEditor({ value: state.value, onChange: next => { state.value = next; } }), allowedPaths: /\/pj_membros$/,
+    }).then(view => ({ view, state }));
+  }
+  it('CPF inválido não consulta a API', async () => {
+    const { view } = await mount([]);
+    try {
+      await view.change('membro-busca-cpf', '123');
+      await view.click('Buscar CPF');
+      assert.match(view.html(), /Informe um CPF válido/); assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
+  });
+  it('CPF cadastrado reutiliza o membro, sem novo POST', async () => {
+    const { view, state } = await mount([maria]);
+    try {
+      await view.change('membro-busca-cpf', '012.516.677-08');
+      await view.click('Buscar CPF');
+      await view.act(settle);
+      assert.equal(view.calls[0].url.searchParams.get('q[cpf_eq]'), '01251667708');
+      assert.match(view.html(), /Já cadastrado/);
+      await view.change('membro-nova-funcao', ' Mediadora ');
+      await view.click('Adicionar ao projeto');
+      await view.act(settle);
+      assert.deepEqual(state.value, [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
+      assert.ok(!view.calls.some(call => call.options.method === 'POST'));
+    } finally { await view.restore(); }
+  });
+  it('CPF sem cadastro cria o membro só com números e usa o id novo', async () => {
+    const { view, state } = await mount([]);
+    try {
+      await view.change('membro-busca-cpf', '529.982.247-25');
+      await view.click('Buscar CPF');
+      await view.act(settle);
+      await view.change('membro-nova-funcao', 'Aluno');
+      await view.click('Adicionar ao projeto');
+      assert.match(view.html(), /Informe o nome do membro/);
+      await view.change('membro-novo-nome', ' João Lima ');
+      await view.click('Adicionar ao projeto');
+      await view.act(settle);
+      const post = view.calls.find(call => call.options.method === 'POST')!;
+      assert.deepEqual(JSON.parse(String(post.options.body)), { pj_membro: { nome: 'João Lima', cpf: '52998224725' } });
+      assert.equal(state.value[0].pj_membro_id, 8);
+    } finally { await view.restore(); }
+  });
+  it('membro repetido é recusado e a linha mostra o CPF mascarado', async () => {
+    const { view } = await mount([maria], [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
+    try {
+      assert.match(view.html(), /\*\*\*\.516\.677-\*\*/); assert.doesNotMatch(view.html(), /01251667708/);
+      await view.change('membro-busca-cpf', '01251667708');
+      await view.click('Buscar CPF');
+      await view.act(settle);
+      assert.match(view.html(), /já está neste projeto/);
+      assert.doesNotMatch(view.html(), /Adicionar ao projeto/);
+    } finally { await view.restore(); }
+  });
+  it('função é obrigatória', async () => {
+    const { view, state } = await mount([maria]);
+    try {
+      await view.change('membro-busca-cpf', '01251667708');
+      await view.click('Buscar CPF');
+      await view.act(settle);
+      await view.click('Adicionar ao projeto');
+      assert.match(view.html(), /Informe a função do membro/); assert.equal(state.value.length, 0);
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Projetos — regras do formulário', () => {
+  const vinculo = (id: number, pj_membro_id: number, funcao: string): PjProjetoMembro => ({ id, pj_membro_id, nome: 'Nome ' + pj_membro_id, cpf: '01251667708', funcao });
+  const draft = (pj_membro_id: number, funcao: string) => ({ pj_membro_id, nome: 'Nome ' + pj_membro_id, cpf: '01251667708', funcao });
+
+  it('diff envia novo, troca de função por id do vínculo e _destroy, omitindo o que não mudou', () => {
+    const originais = [vinculo(5, 1, 'Mediadora'), vinculo(6, 2, 'Aluno'), vinculo(7, 3, 'Coordenador')];
+    assert.deepEqual(diffProjetoMembros(originais, [draft(1, 'Mediadora'), draft(2, ' Aluna '), draft(4, 'Convidada')]), [
+      { id: 6, funcao: 'Aluna' }, { pj_membro_id: 4, funcao: 'Convidada' }, { id: 7, _destroy: true },
+    ]);
+  });
+  it('diff de cadastro novo só traz vínculos novos e edição sem mudança não envia nada', () => {
+    assert.deepEqual(diffProjetoMembros([], [draft(1, 'Aluna')]), [{ pj_membro_id: 1, funcao: 'Aluna' }]);
+    assert.deepEqual(diffProjetoMembros([vinculo(5, 1, 'Aluna')], [draft(1, 'Aluna')]), []);
+  });
+  it('membro que sai e volta na mesma edição mantém o vínculo, sem _destroy nem novo cadastro', () => {
+    assert.deepEqual(diffProjetoMembros([vinculo(5, 1, 'Aluna')], [draft(1, 'Monitora')]), [{ id: 5, funcao: 'Monitora' }]);
+  });
+  it('detecta membro duplicado', () => {
+    assert.equal(hasMembroDuplicado([draft(1, 'A'), draft(2, 'B')]), false);
+    assert.equal(hasMembroDuplicado([draft(1, 'A'), draft(1, 'B')]), true);
+  });
+  it('valida CPF pelos dígitos verificadores, com ou sem máscara', () => {
+    for (const valid of ['01251667708', '012.516.677-08', '529.982.247-25']) assert.equal(isValidCpf(valid), true, valid);
+    for (const invalid of ['', '123', '11111111111', '01251667709', '012.516.677-00', '0125166770800']) assert.equal(isValidCpf(invalid), false, invalid);
+  });
+  it('formata a digitação e mascara a listagem sem expor o CPF inteiro', () => {
+    assert.equal(formatCpf('01251667708'), '012.516.677-08'); assert.equal(formatCpf('0125'), '012.5'); assert.equal(formatCpf('0125166'), '012.516.6');
+    assert.equal(formatCpf('0125166770899'), '012.516.677-08');
+    assert.equal(maskCpf('01251667708'), '***.516.677-**'); assert.equal(maskCpf('012.516.677-08'), '***.516.677-**'); assert.equal(maskCpf('123'), '***');
+  });
+  it('anexo aceita PDF, Office e imagens até 10 MB e recusa o restante', () => {
+    const file = (name: string, type: string, size = 10) => { const value = new File(['x'], name, { type }); Object.defineProperty(value, 'size', { value: size }); return value; };
+    for (const [name, type] of [['a.pdf', 'application/pdf'], ['a.doc', 'application/msword'], ['a.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      ['a.xls', 'application/vnd.ms-excel'], ['a.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'], ['a.ppt', 'application/vnd.ms-powerpoint'],
+      ['a.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'], ['a.png', 'image/png'], ['a.jpg', 'image/jpeg'], ['a.webp', 'image/webp'], ['a.docx', '']]) {
+      assert.equal(validateProjetoAnexo(file(name, type)), null, name + type);
+    }
+    for (const [name, type] of [['a.txt', 'text/plain'], ['a.svg', 'image/svg+xml'], ['a.exe', ''], ['a.pdf', 'application/x-msdownload']]) {
+      assert.match(validateProjetoAnexo(file(name, type)) ?? '', /deve ser PDF/, name + type);
+    }
+    assert.equal(validateProjetoAnexo(file('a.pdf', 'application/pdf', PROJETO_ANEXO_MAX_BYTES)), null);
+    assert.match(validateProjetoAnexo(file('a.pdf', 'application/pdf', PROJETO_ANEXO_MAX_BYTES + 1)) ?? '', /até 10 MB/);
+  });
+  it('capa usa o link quando existe e o tamanho do arquivo sai legível', () => {
+    assert.equal(getProjetoImageSrc({ imagem: null, imagem_url: 'https://x.com/a.jpg' }), 'https://x.com/a.jpg');
+    assert.equal(getProjetoImageSrc({ imagem: '/a.png', imagem_url: 'https://x.com/a.jpg' }), 'https://x.com/a.jpg');
+    assert.match(getProjetoImageSrc({ imagem: '/rails/a.png', imagem_url: '' }), /\/rails\/a\.png$/);
+    assert.equal(getProjetoImageSrc({ imagem: null, imagem_url: null }), '');
+    assert.equal(formatFileSize(52344), '51 KB'); assert.equal(formatFileSize(300), '1 KB'); assert.equal(formatFileSize(2_621_440), '2,5 MB');
+  });
+});
+
+describe('Projetos — service', () => {
+  const headers = { 'content-type': 'application/json' };
+  const json = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => json({ success: true, message: 'ok', data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: 10 } } });
+  const projeto = { id: 1, titulo: 'Hortas', relato: 'Relato', pj_tema_id: 2, tema_nome: 'Tema', escola_id: 3, escola_nome: 'Escola', cidade_nome: 'Cidade', imagem: null, imagem_url: null, anexos: [], membros: [], status: 'aguardando', status_nome: 'Aguardando' };
+  const input = { titulo: 'Hortas', relato: 'Relato', pj_tema_id: 2, escola_id: 3 };
+  async function capture<T>(reply: Response, run: () => Promise<T>) {
+    const calls: { url: URL; options: RequestInit }[] = [];
+    const spy = mock.method(globalThis, 'fetch', async (target: RequestInfo | URL, options: RequestInit = {}) => { calls.push({ url: new URL(String(target)), options }); return reply; });
+    setStoredTokens({ access_token: 'projeto-user', refresh_token: 'projeto-refresh' });
+    try { return { result: await run(), calls }; } finally { spy.mock.restore(); clearStoredTokens(); }
+  }
+
+  for (const [label, service, path, root] of [
+    ['temas', medtecApi.temasProjeto, '/pj_temas', 'pj_tema'],
+    ['membros', medtecApi.membrosProjeto, '/pj_membros', 'pj_membro'],
+  ] as const) {
+    it(label + ': CRUD com método, rota, Bearer e corpo do contrato', async () => {
+      const data = { nome: 'Nome', cpf: '01251667708', slug: 's', ativo: true };
+      const crud = service as unknown as { list(p: unknown): Promise<unknown>; get(id: number): Promise<unknown>; create(d: unknown): Promise<unknown>; update(id: number, d: unknown): Promise<unknown>; delete(id: number): Promise<unknown> };
+      const steps: [string, string, Response, () => Promise<unknown>][] = [
+        ['GET', path, list([]), () => crud.list({ page: 1 })],
+        ['GET', path + '/9', json({ id: 9 }), () => crud.get(9)],
+        ['POST', path, json({ id: 9 }, 201), () => crud.create(data)],
+        ['PATCH', path + '/9', json({ id: 9 }), () => crud.update(9, data)],
+        ['DELETE', path + '/9', json(null, 204), () => crud.delete(9)],
+      ];
+      for (const [method, route, reply, run] of steps) {
+        const { calls } = await capture(reply, run);
+        assert.equal(calls[0].options.method, method); assert.ok(calls[0].url.pathname.endsWith(route), route);
+        assert.equal(new Headers(calls[0].options.headers).get('Authorization'), 'Bearer projeto-user');
+        if (method === 'POST' || method === 'PATCH') assert.deepEqual(JSON.parse(String(calls[0].options.body)), { [root]: data });
+      }
+    });
+  }
+  it('busca de membro por CPF usa q[cpf_eq]', async () => {
+    const { calls } = await capture(list([]), () => medtecApi.membrosProjeto.list({ 'q[cpf_eq]': '01251667708' }));
+    assert.equal(calls[0].url.searchParams.get('q[cpf_eq]'), '01251667708');
+  });
+  it('sem arquivo envia JSON só com os campos do contrato', async () => {
+    const attrs = [{ pj_membro_id: 1, funcao: 'Aluna' }, { id: 5, funcao: 'Coordenadora' }, { id: 6, _destroy: true as const }];
+    const { calls } = await capture(json(projeto, 201), () => medtecApi.projetos.create({ ...input, imagem_url: 'https://x.com/c.jpg', pj_projeto_membros_attributes: attrs, status: 'publicada', autor_id: 9 } as PjProjetoInput));
+    assert.deepEqual(JSON.parse(String(calls[0].options.body)), { pj_projeto: { ...input, imagem_url: 'https://x.com/c.jpg', pj_projeto_membros_attributes: attrs } });
+    assert.equal(new Headers(calls[0].options.headers).get('Content-Type'), 'application/json');
+    const { calls: empty } = await capture(json(projeto), () => medtecApi.projetos.update(1, input));
+    assert.deepEqual(JSON.parse(String(empty[0].options.body)), { pj_projeto: input }, 'Sem mudança de membros, a chave não é enviada');
+  });
+  it('com arquivos envia multipart com capa, vários anexos e vínculos indexados', async () => {
+    const imagem = new File(['c'], 'capa.png', { type: 'image/png' });
+    const anexos = [new File(['a'], 'a.pdf', { type: 'application/pdf' }), new File(['b'], 'b.jpg', { type: 'image/jpeg' })];
+    const { calls } = await capture(json(projeto), () => medtecApi.projetos.update(1, { ...input, imagem, imagem_url: '', anexos,
+      pj_projeto_membros_attributes: [{ pj_membro_id: 1, funcao: 'Aluna' }, { id: 5, _destroy: true }] }));
+    const form = calls[0].options.body as FormData;
+    assert.ok(form instanceof FormData); assert.equal(calls[0].options.method, 'PATCH');
+    assert.equal(new Headers(calls[0].options.headers).has('Content-Type'), false, 'O navegador define o boundary');
+    assert.equal(form.get('pj_projeto[titulo]'), 'Hortas'); assert.equal(form.get('pj_projeto[escola_id]'), '3'); assert.equal(form.get('pj_projeto[imagem_url]'), '');
+    assert.equal((form.get('pj_projeto[imagem]') as File).name, 'capa.png');
+    assert.deepEqual(form.getAll('pj_projeto[anexos][]').map(file => (file as File).name), ['a.pdf', 'b.jpg']);
+    assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][0][pj_membro_id]'), '1');
+    assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][0][funcao]'), 'Aluna');
+    assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][1][id]'), '5');
+    assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][1][_destroy]'), 'true');
+  });
+  it('moderação e remoção de anexo usam as rotas próprias, sem corpo', async () => {
+    for (const action of ['publicar', 'reprovar', 'despublicar'] as const) {
+      const { calls } = await capture(json(projeto), () => medtecApi.projetos[action](1));
+      assert.equal(calls[0].options.method, 'PATCH'); assert.ok(calls[0].url.pathname.endsWith('/pj_projetos/1/' + action)); assert.equal(calls[0].options.body, undefined);
+    }
+    const { calls } = await capture(json(null, 204), () => medtecApi.projetos.removerAnexo(1, 10));
+    assert.equal(calls[0].options.method, 'DELETE'); assert.ok(calls[0].url.pathname.endsWith('/pj_projetos/1/anexos/10'));
+  });
+  it('filtros do painel chegam à API', async () => {
+    const { calls } = await capture(list([projeto]), () => medtecApi.projetos.list({ 'q[titulo_cont]': 'x', 'q[pj_tema_id_eq]': 1, 'q[escola_id_eq]': 2, 'q[escola_g_cidade_id_eq]': 3, 'q[pj_membros_id_eq]': 4, 'q[n_status_noticia_slug_eq]': 'aguardando' }));
+    for (const key of ['titulo_cont', 'pj_tema_id_eq', 'escola_id_eq', 'escola_g_cidade_id_eq', 'pj_membros_id_eq', 'n_status_noticia_slug_eq']) assert.ok(calls[0].url.searchParams.has('q[' + key + ']'), key);
+  });
+  it('rotas públicas não enviam token e nunca devolvem CPF, autor ou auditoria', async () => {
+    const vazado = { ...projeto, tema_slug: 't', created_at: 'x', cpf: '01251667708', autor_nome: 'Autora', avaliado_por_nome: 'Avaliadora', created_by: '1' };
+    const lista = await capture(list([vazado]), () => medtecApi.projetosPublicos.list({ tema: 't', cidade: 1, busca: 'h', page: 2, per_page: 5 }));
+    assert.equal(lista.calls[0].url.pathname.endsWith('/publico/pj_projetos'), true);
+    assert.equal(new Headers(lista.calls[0].options.headers).has('Authorization'), false); assert.equal(lista.calls[0].options.credentials, 'omit');
+    assert.deepEqual([...lista.calls[0].url.searchParams.keys()].sort(), ['busca', 'cidade', 'page', 'per_page', 'tema']);
+    const detalhe = await capture(json({ success: true, message: 'Projeto encontrado', data: { ...vazado,
+      membros: [{ id: 5, pj_membro_id: 1, nome: 'Maria', cpf: '01251667708', funcao: 'Mediadora' }],
+      anexos: [{ id: 10, nome: 'a.pdf', tipo: 'application/pdf', tamanho: 1, url: '/a.pdf', extra: 'x' }] } }), () => medtecApi.projetosPublicos.get(1));
+    assert.equal(new Headers(detalhe.calls[0].options.headers).has('Authorization'), false);
+    assert.deepEqual(detalhe.result.data.membros, [{ nome: 'Maria', funcao: 'Mediadora' }]);
+    assert.deepEqual(detalhe.result.data.anexos, [{ id: 10, nome: 'a.pdf', tipo: 'application/pdf', tamanho: 1, url: '/a.pdf' }]);
+    for (const value of [JSON.stringify(lista.result), JSON.stringify(detalhe.result)]) {
+      for (const secret of ['01251667708', 'cpf', 'Autora', 'Avaliadora', 'created_by']) assert.ok(!value.includes(secret), secret);
+    }
+  });
+  it('resposta pública fora do contrato é recusada', async () => {
+    const invalidTema = mock.method(globalThis, 'fetch', async () => json({ success: true, data: [{ nome: 1 }] }));
+    try { await assert.rejects(medtecApi.projetosPublicos.listTemas(), /Temas de Projeto/); } finally { invalidTema.mock.restore(); }
+    const invalidDetalhe = mock.method(globalThis, 'fetch', async () => json({ success: true, data: { id: 1, titulo: 'x' } }));
+    try { await assert.rejects(medtecApi.projetosPublicos.get(1), /API pública de Projetos/); } finally { invalidDetalhe.mock.restore(); }
+  });
+});
+
+describe('Envelope paginado comum', () => {
+  it('per_page 0 só é aceito em lista sem registros, como page=all devolve', async () => {
+    const reply = (total_count: number, items: unknown[]) => mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+      success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count, per_page: 0 } },
+    }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    const empty = reply(0, []);
+    try { assert.deepEqual((await medtecApi.escolas.list({ page: 'all' })).data.items, []); } finally { empty.mock.restore(); }
+    const filled = reply(1, [{ id: 1 }]);
+    try { await assert.rejects(medtecApi.escolas.list({ page: 'all' }), /Resposta inválida/); } finally { filled.mock.restore(); }
   });
 });
 

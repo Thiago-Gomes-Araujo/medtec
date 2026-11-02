@@ -27,7 +27,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { medtecApi, clearStoredTokens, type AuthUser } from '@/lib/api';
-import { canAccessDuvidas, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
+import { canAccessBanners, canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
 import { buildAdminMenu, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
@@ -35,7 +35,7 @@ import { buildAdminMenu, SECTION_CONFIG, type AdminSection } from '@/lib/admin-n
 export { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
 export function getFolderIdForSection(sec: AdminSection): string | null {
-  if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
+  if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'projetosTemas', 'projetosMembros', 'duvidas', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
   if (['kanban'].includes(sec)) return 'aprovacao';
   if (['siteInfo', 'redes', 'estadosCidades'].includes(sec)) return 'dados';
   if (['usuarios'].includes(sec)) return 'usuarios';
@@ -215,10 +215,7 @@ export default function AdminShell({
     userSession.isGestor ||
     userSession.profileType === 'Editor de Notícias' ||
     userSession.profileType === 'Operador de Conteúdo';
-  const canAccessPhotos =
-    userSession.isGestor ||
-    userSession.profileType === 'Curador de Fotos' ||
-    userSession.profileType === 'Operador de Conteúdo';
+  const canAccessPhotos = canAccessBanners(userSession);
   const canAccessAnnouncements =
     userSession.isGestor ||
     userSession.profileType === 'Publicador de Avisos' ||
@@ -227,7 +224,7 @@ export default function AdminShell({
     userSession.isGestor ||
     userSession.profileType === 'Curador de Fotos' ||
     userSession.profileType === 'Operador de Conteúdo';
-  const canAccessProjects = userSession.isGestor;
+  const canAccessProjects = canAccessProjetos(userSession);
   const canAccessFaqs = canAccessDuvidas(userSession);
   // A sessão local não tem token: a consulta só devolveria 401.
   const duvidasPendentes = useDuvidasPendentes(canAccessFaqs && !!userSession.apiUser);
@@ -290,7 +287,7 @@ export default function AdminShell({
       ? canAccessPhotos
       : activeSection === 'galeria'
       ? canAccessGallery
-      : activeSection === 'projetos'
+      : activeSection === 'projetos' || activeSection === 'projetosTemas' || activeSection === 'projetosMembros'
       ? canAccessProjects
       : activeSection === 'duvidas'
       ? canAccessFaqs

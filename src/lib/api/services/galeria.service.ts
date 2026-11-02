@@ -11,8 +11,11 @@ import {
   CategoriaGaleriaInput,
   FotoGaleria,
   FotoGaleriaJsonInput,
+  FotoGaleriaPublica,
+  PublicoGaleriaParams,
   QueryParams,
 } from '../types';
+import { ensurePaginated } from './escolas.service';
 
 export const categoriasGaleriaService = {
   /**
@@ -116,5 +119,30 @@ export const fotosGaleriaService = {
    */
   async delete(id: number): Promise<void> {
     return apiFetch<void>(`/fotos_galeria/${id}`, { method: 'DELETE' });
+  },
+};
+
+// Projeção explícita: só os campos do contrato chegam ao site, sem Bearer nem cookie.
+function toFotoPublica(value: FotoGaleriaPublica): FotoGaleriaPublica {
+  if (!value || !Number.isSafeInteger(value.id) || value.id < 1 || typeof value.titulo !== 'string') {
+    throw new Error('Resposta inválida da API pública de Galeria.');
+  }
+  return {
+    id: value.id,
+    titulo: value.titulo,
+    descricao: value.descricao ?? null,
+    imagem: value.imagem ?? null,
+    categoria_nome: value.categoria_nome ?? null,
+    categoria_slug: value.categoria_slug ?? null,
+  };
+}
+
+export const galeriaPublicaService = {
+  async list(params?: PublicoGaleriaParams, signal?: AbortSignal): Promise<ApiResponse<PaginatedData<FotoGaleriaPublica>>> {
+    const response = ensurePaginated(await apiFetch<ApiResponse<PaginatedData<FotoGaleriaPublica>>>('/publico/fotos_galeria', {
+      method: 'GET', skipAuth: true, credentials: 'omit', cache: 'no-store', signal,
+      params: { categoria: params?.categoria, page: params?.page, per_page: params?.per_page },
+    }), 'Galeria');
+    return { ...response, data: { ...response.data, items: response.data.items.map(toFotoPublica) } };
   },
 };

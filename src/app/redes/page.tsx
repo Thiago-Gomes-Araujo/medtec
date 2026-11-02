@@ -4,7 +4,6 @@ import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import PageHeader from '@/components/PageHeader';
 import SocialSection from '@/components/SocialSection';
-import { SocialLinks } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Canais Oficiais e Redes | MEDTEC Rondônia - SEDUC-RO',
@@ -18,16 +17,6 @@ export const metadata: Metadata = {
 };
 
 export default async function RedesPage() {
-  const defaultSocials: SocialLinks = {
-    instagram: 'https://www.instagram.com/governoro/',
-    youtube: 'https://www.youtube.com/@SeducRondonia',
-    facebook: 'https://www.facebook.com/governoderondonia',
-    whatsapp: '',
-    email: 'mediacaotecnologica@seduc.ro.gov.br',
-    phone: '(69) 3216-5300',
-    address: 'Palácio Rio Madeira, Porto Velho - RO',
-  };
-
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC] dark:bg-[#0B1528] text-slate-800 dark:text-slate-100 overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
@@ -40,7 +29,7 @@ export default async function RedesPage() {
         />
 
         <div className="mx-auto max-w-7xl px-4 pt-4">
-          <SocialSection socials={defaultSocials} />
+          <SocialSection />
         </div>
       </main>
 

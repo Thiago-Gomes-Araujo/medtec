@@ -31,7 +31,9 @@ import AdminOverview from '@/components/admin/AdminOverview';
 import { getLegacyProjectsHref } from '@/lib/admin-projects';
 import { getAdminStaticAlias } from '@/lib/admin-aliases';
 import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
-import { canAccessDuvidas, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
+import { useBannersTotal } from '@/components/admin/useBannersTotal';
+import { useProjetosResumo } from '@/components/admin/useProjetosResumo';
+import { canAccessBanners, canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminEditorialDestination } from '@/lib/admin-auth-navigation';
 import { buildAdminMenu, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
 import {
@@ -126,7 +128,7 @@ export default function AdminDashboardPage() {
   });
 
   const getFolderIdForSection = useCallback((sec: AdminSection): string | null => {
-    if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'duvidas', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
+    if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'projetosTemas', 'projetosMembros', 'duvidas', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
     if (['kanban'].includes(sec)) return 'aprovacao';
     if (['siteInfo', 'redes'].includes(sec)) return 'dados';
     if (['usuarios'].includes(sec)) return 'usuarios';
@@ -287,14 +289,16 @@ export default function AdminDashboardPage() {
 
   // Permissões por Atribuição de Perfil
   const canAccessNews = userSession.isGestor || userSession.profileType === 'Editor de Notícias' || userSession.profileType === 'Operador de Conteúdo';
-  const canAccessPhotos = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
+  const canAccessPhotos = canAccessBanners(userSession);
   const canAccessAnnouncements = userSession.isGestor || userSession.profileType === 'Publicador de Avisos' || userSession.profileType === 'Operador de Conteúdo';
   const canAccessGallery = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
-  const canAccessProjects = userSession.isGestor;
+  const canAccessProjects = canAccessProjetos(userSession);
   const canAccessFaqs = canAccessDuvidas(userSession);
   // A sessão local não tem token, e o Gestor sai desta página: o AdminShell conta para ele.
-  const canReadDuvidasPendentes = userSession.isGestor && medtecApi.auth.isAuthenticated();
-  const duvidasPendentes = useDuvidasPendentes(canReadDuvidasPendentes);
+  const canReadApiCounters = userSession.isGestor && medtecApi.auth.isAuthenticated();
+  const duvidasPendentes = useDuvidasPendentes(canReadApiCounters);
+  const projetosResumo = useProjetosResumo(canReadApiCounters);
+  const bannersTotal = useBannersTotal(canReadApiCounters);
   const canAccessProfessores =
     userSession.isGestor ||
     userSession.profileType === 'Editor de Notícias' ||
@@ -747,7 +751,9 @@ export default function AdminDashboardPage() {
               latestNews={latestNews}
               announcementTitle={announcementTitle}
               canAccessKanban={canAccessKanban}
-              duvidasPendentes={canReadDuvidasPendentes ? duvidasPendentes : undefined}
+              duvidasPendentes={canReadApiCounters ? duvidasPendentes : undefined}
+              projetosResumo={canReadApiCounters ? projetosResumo : undefined}
+              bannersTotal={canReadApiCounters ? bannersTotal : undefined}
               onOpenNews={() => router.push('/admin/noticias')}
               onCreateNews={() => router.push('/admin/noticias?action=new')}
               onOpenKanban={() => router.push('/admin/kanban')}

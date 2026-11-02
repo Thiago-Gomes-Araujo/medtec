@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Plus, ExternalLink, Newspaper, Lightbulb, Megaphone, Presentation, Images,
   CheckCircle2, SlidersHorizontal, BarChart3, Share2, UserCog, HelpCircle, ChevronRight, ArrowRight } from 'lucide-react';
 import OverviewStats, { type OverviewStatsIndicators } from '@/components/admin/OverviewStats';
+import type { ProjetosResumo } from '@/components/admin/useProjetosResumo';
 import type { NNoticia } from '@/lib/api';
 
 export interface AdminOverviewProps {
@@ -13,6 +14,8 @@ export interface AdminOverviewProps {
   announcementTitle?: string;
   canAccessKanban: boolean;
   duvidasPendentes?: { count: number | null; error: string | null };
+  projetosResumo?: ProjetosResumo;
+  bannersTotal?: { count: number | null; error: string | null };
   onOpenNews: () => void;
   onCreateNews: () => void;
   onOpenKanban: () => void;
@@ -20,7 +23,7 @@ export interface AdminOverviewProps {
 
 export default function AdminOverview({
   indicators, userName, latestNews, announcementTitle,
-  canAccessKanban, duvidasPendentes, onOpenNews, onCreateNews, onOpenKanban,
+  canAccessKanban, duvidasPendentes, projetosResumo, bannersTotal, onOpenNews, onCreateNews, onOpenKanban,
 }: AdminOverviewProps) {
   const {
     loadingNews, errorNews, totalNews, apiNewsDraftCount,
@@ -29,6 +32,9 @@ export default function AdminOverview({
     loadingFaqs, errorFaqs, totalFaqs, apiFaqsPendingCount, apiFaqsPublishedCount,
     usersCountLabel,
   } = indicators;
+  const projetosSemDados = !projetosResumo || !!projetosResumo.error;
+  const bannersLabel = !bannersTotal || bannersTotal.error ? 'Indisponível'
+    : bannersTotal.count === null ? 'Carregando...' : `${bannersTotal.count} banner${bannersTotal.count === 1 ? '' : 's'}`;
 
   return (
     <div className="space-y-6">
@@ -78,7 +84,7 @@ export default function AdminOverview({
         </div>
       </div>
 
-      <OverviewStats indicators={indicators} onOpenNews={onOpenNews} />
+      <OverviewStats indicators={indicators} projetosResumo={projetosResumo} onOpenNews={onOpenNews} />
 
       {/* 3. Grade Principal de Módulos do Sistema (6 Launcher Cards com linguagem 100% didática) */}
       <div className="space-y-3">
@@ -138,7 +144,7 @@ export default function AdminOverview({
             </button>
           </div>
 
-          {/* Módulo: Projetos Pedagógicos e Práticas Escolares */}
+          {/* Módulo: Projetos Pedagógicos */}
           <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-amber-500/40 transition flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -151,20 +157,21 @@ export default function AdminOverview({
                   </h4>
                 </div>
                 <span className="max-w-36 shrink-0 text-right text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold border border-amber-200/80 dark:border-amber-800/80">
-                  Indisponível — sem integração oficial
+                  {projetosSemDados ? 'Indisponível' : projetosResumo?.total === null ? 'Carregando...' : `${projetosResumo?.total} projeto${projetosResumo?.total === 1 ? '' : 's'}`}
                 </span>
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Cadastre e edite práticas escolares de campo, trilhas temáticas curriculares, docentes mediadores e guias de replicação pedagógica.
+                Cadastre projetos com tema, relato, capa, anexos e membros, e acompanhe a aprovação.
               </p>
 
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800/80 space-y-1">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Prática em destaque:
+                  Situação dos projetos:
                 </span>
                 <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
-                  Indisponível — sem integração oficial
+                  {projetosSemDados ? 'Indisponível nesta sessão' : projetosResumo?.total === null ? 'Carregando...'
+                    : `${projetosResumo?.published} publicado${projetosResumo?.published === 1 ? '' : 's'} · ${projetosResumo?.pending} aguardando`}
                 </p>
               </div>
             </div>
@@ -244,20 +251,20 @@ export default function AdminOverview({
                   </h4>
                 </div>
                 <span className="max-w-36 shrink-0 text-right text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  Indisponível — sem integração oficial
+                  {bannersLabel}
                 </span>
               </div>
 
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Troque as imagens grandes que passam no carrossel de entrada da Página Inicial do portal, fotos de estúdio e transmissão ao vivo.
+                Cadastre, troque e exclua as imagens do carrossel no topo da Página Inicial do portal.
               </p>
 
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800/80 space-y-1">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Carrossel & Transmissão:
+                  Carrossel no site:
                 </span>
                 <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                  Indisponível — sem integração oficial
+                  {bannersLabel}
                 </p>
               </div>
             </div>

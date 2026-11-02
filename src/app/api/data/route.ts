@@ -45,15 +45,7 @@ function isValidDatabaseSchema(body: unknown): body is DatabaseSchema {
     return false;
   }
 
-  if (!Array.isArray(candidate.banners)) {
-    return false;
-  }
-
   if (candidate.users !== undefined && !Array.isArray(candidate.users)) {
-    return false;
-  }
-
-  if (candidate.projects !== undefined && !Array.isArray(candidate.projects)) {
     return false;
   }
 
@@ -145,7 +137,6 @@ export async function PUT(request: Request) {
     body.announcements = [];
     body.gallery = [];
     body.news = [];
-    body.projects = [];
     body.faqs = [];
 
     // Se o usuário autenticado não for Gestor Geral, preserva configurações institucionais
@@ -154,7 +145,6 @@ export async function PUT(request: Request) {
       body.siteInfo = current.siteInfo;
       body.stats = current.stats;
       body.socials = current.socials;
-      body.banners = current.banners;
     }
 
     const success = saveDatabase(body);

@@ -1,42 +1,38 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { ProjectMission } from '@/types';
-import { MapPin, ArrowUpRight, ArrowRight, Sparkles } from 'lucide-react';
+import { MapPin, ArrowUpRight, ArrowRight, Lightbulb, Sparkles } from 'lucide-react';
+import CommunityComingSoon from '@/components/CommunityComingSoon';
+import { medtecApi, type ProjetoPublico } from '@/lib/api';
+import { COMMUNITY_COMING_SOON } from '@/lib/community-content';
+import { getProjetoImageSrc } from '@/lib/projetos-content';
 
 export default function HomeProjectsAccordionSection() {
-  const [projects, setProjects] = useState<ProjectMission[]>([]);
-  const [hoveredId, setHoveredId] = useState<string>('');
+  const [projects, setProjects] = useState<ProjetoPublico[]>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
+    const controller = new AbortController();
     async function loadProjects() {
       setLoading(true);
       try {
-        const res = await fetch('/api/projects');
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted) {
-            const list: ProjectMission[] = data.items || [];
-            setProjects(list);
-            if (list.length > 0) {
-              setHoveredId(list[list.length - 1]?.id || list[0]?.id || '');
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Falha ao carregar projetos da API:', err);
+        const response = await medtecApi.projetosPublicos.list({ page: 1, per_page: 6 }, controller.signal);
+        if (!controller.signal.aborted) setProjects(response.data.items);
+      } catch {
+        if (!controller.signal.aborted) setUnavailable(true);
       } finally {
-        if (isMounted) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
-    loadProjects();
-    return () => {
-      isMounted = false;
-    };
+    void loadProjects();
+    return () => controller.abort();
   }, []);
+
+  const activeId = selectedId ?? projects[0]?.id;
 
   return (
     <section id="projetos-ecossistemas" className="relative scroll-mt-20 py-20 sm:py-28 bg-[#F0F4F8] dark:bg-[#040B16] transition-colors duration-200 border-t border-slate-200/80 dark:border-white/5">
@@ -55,7 +51,7 @@ export default function HomeProjectsAccordionSection() {
 
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <p className="text-xs text-slate-500 dark:text-slate-400 text-pretty">
-              Passe o mouse ou toque nas lâminas para expandir o panorama de cada território.
+              Passe o mouse ou toque nas lâminas para expandir cada projeto.
             </p>
             <Link
               href="/projetos"
@@ -77,45 +73,49 @@ export default function HomeProjectsAccordionSection() {
               />
             ))}
           </div>
+        ) : unavailable ? (
+          <CommunityComingSoon icon={Lightbulb} message={COMMUNITY_COMING_SOON.projetos} />
         ) : projects.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 dark:border-[#1A365D] p-12 text-center">
             <Sparkles className="mx-auto h-10 w-10 text-slate-400 dark:text-slate-500 mb-3" />
             <h4 className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
-              Nenhum projeto pedagógico cadastrado
+              Nenhum projeto pedagógico publicado
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Os projetos pedagógicos serão exibidos aqui assim que registrados na API oficial.
+              Os projetos aparecem aqui assim que forem publicados.
             </p>
           </div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-2.5 min-h-[400px] lg:h-[390px] w-full">
             {projects.map((proj) => {
-              const isHovered = hoveredId === proj.id;
+              const isHovered = activeId === proj.id;
 
               return (
                 <div
                   key={proj.id}
-                  onMouseEnter={() => setHoveredId(proj.id)}
-                  className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ease-out flex flex-col justify-between p-4 sm:p-5 touch-manipulation select-none ${
+                  onMouseEnter={() => setSelectedId(proj.id)}
+                  className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ease-out flex flex-col justify-between p-4 sm:p-5 touch-manipulation select-none bg-slate-900 ${
                     isHovered
                       ? 'lg:flex-[3.5] min-h-[320px] lg:min-h-0 ring-2 ring-[#004A99] dark:ring-[#00D8FF] shadow-xl'
-                      : 'lg:flex-[0.8] min-h-[80px] lg:min-h-0 bg-slate-900/90 hover:brightness-110 active:scale-[0.99]'
+                      : 'lg:flex-[0.8] min-h-[80px] lg:min-h-0 hover:brightness-110 active:scale-[0.99]'
                   }`}
                 >
-                <button type="button" aria-label={`Expandir projeto ${proj.title}`} aria-expanded={isHovered}
-                  onClick={() => setHoveredId(proj.id)}
+                <button type="button" aria-label={`Expandir projeto ${proj.titulo}`} aria-expanded={isHovered}
+                  onClick={() => setSelectedId(proj.id)}
                   className="absolute inset-0 z-10 w-full rounded-xl cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-sky-300" />
-                {/* Imagem de Fundo em Alta Resolução */}
-                <img
-                  src={proj.image}
-                  alt={proj.title}
-                  loading="lazy"
-                  decoding="async"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                  className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 pointer-events-none ${
-                    isHovered ? 'opacity-100 filter-none' : 'opacity-80 brightness-75'
-                  }`}
-                />
+                {/* Capa do projeto; sem capa, a lâmina fica só com o fundo escuro */}
+                {getProjetoImageSrc(proj) && (
+                  <Image
+                    unoptimized
+                    fill
+                    src={getProjetoImageSrc(proj)}
+                    alt=""
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                    className={`object-cover transition-opacity duration-300 pointer-events-none ${
+                      isHovered ? 'opacity-100 filter-none' : 'opacity-80 brightness-75'
+                    }`}
+                  />
+                )}
 
                 {/* Gradiente de Contraste Fixo para Garantir Texto 100% Branco */}
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/60 to-slate-950/20 pointer-events-none" />
@@ -127,7 +127,7 @@ export default function HomeProjectsAccordionSection() {
                     {/* Topo da Lâmina */}
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-white border border-white/20">
-                        {proj.typology}
+                        {proj.tema_nome}
                       </span>
                     </div>
 
@@ -136,26 +136,26 @@ export default function HomeProjectsAccordionSection() {
                       <div className="space-y-1">
                         <span className="text-[11px] text-slate-300 flex items-center gap-1 font-medium">
                           <MapPin className="h-3 w-3 text-sky-400" />
-                          {proj.territory}
+                          {proj.cidade_nome}
                         </span>
                         <h3 className="font-display text-base sm:text-lg font-bold text-white leading-snug text-balance">
-                          {proj.title}
+                          {proj.titulo}
                         </h3>
                       </div>
 
-                      {/* Orientação Pedagógica */}
+                      {/* Relato do projeto */}
                       <p className="text-xs text-slate-200 leading-relaxed bg-black/50 backdrop-blur-md p-3 rounded-lg border border-white/10 line-clamp-2">
-                        {proj.quote}
+                        {proj.relato}
                       </p>
 
                       {/* Ações e Identificação */}
                       <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <span className="text-[11px] text-slate-300 truncate">
-                          {proj.school} • {proj.mediatorName}
+                          {proj.escola_nome}
                         </span>
 
                         <Link
-                          href="/projetos"
+                          href={`/projetos/${proj.id}`}
                           className="relative z-30 pointer-events-auto inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-white text-slate-950 hover:bg-[#00D8FF] transition-all duration-150 ease-out text-xs font-bold cursor-pointer shadow-sm shrink-0 whitespace-nowrap touch-manipulation select-none active:scale-[0.97]"
                         >
                           <span>Ver detalhes</span>
@@ -169,18 +169,13 @@ export default function HomeProjectsAccordionSection() {
                   /* Conteúdo da Lâmina Recolhida */
                   <div className="relative z-20 pointer-events-none flex lg:flex-col justify-between items-center h-full w-full">
                     
-                    {/* Número Compacto Vertical */}
-                    <span className="text-xl lg:text-2xl font-black text-white/50 tabular-nums">
-                      {proj.number}
-                    </span>
-
                     {/* Título Vertical Compacto (Desktop) / Linha Horizontal (Mobile) */}
                     <div className="lg:[writing-mode:vertical-lr] lg:rotate-180 flex items-center gap-2">
                       <span className="text-[10px] tracking-wider text-sky-300 font-bold uppercase">
-                        {proj.municipality}
+                        {proj.cidade_nome}
                       </span>
                       <span className="text-xs font-semibold text-white truncate max-w-[140px] lg:max-w-[180px]">
-                        {proj.shortTitle}
+                        {proj.titulo}
                       </span>
                     </div>
 

@@ -20,13 +20,15 @@ import { usuariosService } from './services/usuarios.service';
 import { perfisService } from './services/perfis.service';
 import { estadosService, cidadesService } from './services/geografia.service';
 import { avisosService, tiposAvisoService } from './services/avisos.service';
-import { categoriasGaleriaService, fotosGaleriaService } from './services/galeria.service';
-import { canaisService } from './services/canais.service';
+import { categoriasGaleriaService, fotosGaleriaService, galeriaPublicaService } from './services/galeria.service';
+import { canaisService, canaisPublicosService } from './services/canais.service';
 import { noticiasService } from './services/noticias.service';
 import { categoriasDuvidaService, duvidasService, duvidasVisitanteService, duvidasPublicasService } from './services/duvidas.service';
 import { escolasService } from './services/escolas.service';
 import { disciplinasProfessorService, professoresService, relatosService, professoresPublicosService } from './services/professores.service';
 import { categoriasConquistaService, conquistasService, conquistasPublicasService } from './services/conquistas.service';
+import { temasProjetoService, membrosProjetoService, projetosService, projetosPublicosService } from './services/projetos.service';
+import { bannersService, bannersPublicosService } from './services/banners.service';
 
 export const medtecApi = {
   // Autenticação e Sessão (/auth)
@@ -60,9 +62,11 @@ export const medtecApi = {
   // Galeria de Fotos e Categorias (/fotos_galeria e /categorias_galeria)
   categoriasGaleria: categoriasGaleriaService,
   fotosGaleria: fotosGaleriaService,
+  galeriaPublica: galeriaPublicaService,
 
   // Canais de Contato (/canais_contato)
   canaisContato: canaisService,
+  canaisPublicos: canaisPublicosService,
 
   // Notícias e Fila Editorial (Contrato Previsto)
   noticias: noticiasService,
@@ -86,6 +90,16 @@ export const medtecApi = {
   categoriasConquista: categoriasConquistaService,
   conquistas: conquistasService,
   conquistasPublicas: conquistasPublicasService,
+
+  // Projetos pedagógicos (/pj_projetos, /pj_temas e /pj_membros)
+  temasProjeto: temasProjetoService,
+  membrosProjeto: membrosProjetoService,
+  projetos: projetosService,
+  projetosPublicos: projetosPublicosService,
+
+  // Banners do carrossel da home (/b_banners)
+  banners: bannersService,
+  bannersPublicos: bannersPublicosService,
 };
 
 // Exportações de infraestrutura e utilitários

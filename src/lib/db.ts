@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { BannerItem, DatabaseSchema } from '@/types';
+import { DatabaseSchema } from '@/types';
 import initialData from '@/data/initialData.json';
 
 const DATA_DIR = path.join(process.cwd(), 'src', 'data');
@@ -29,12 +29,10 @@ export function getDatabase(): DatabaseSchema {
       announcements: parsed.announcements ?? [],
       news: parsed.news ?? [],
       gallery: parsed.gallery ?? [],
-      banners: normalizeBanners(parsed, defaults),
       users: parsed.users ?? [],
       schools: parsed.schools ?? [],
       teachers: parsed.teachers ?? [],
       students: parsed.students ?? [],
-      projects: parsed.projects ?? [],
       faqs: parsed.faqs ?? [],
       transparency: parsed.transparency ?? { indicadores: [], contratos: [] },
     };
@@ -42,21 +40,6 @@ export function getDatabase(): DatabaseSchema {
     console.error('Error reading database file:', error);
     return initialData as DatabaseSchema;
   }
-}
-
-function normalizeBanners(parsed: Partial<DatabaseSchema>, defaults: DatabaseSchema): BannerItem[] {
-  const saved = parsed.banners?.filter((item) => item.imageUrl?.trim());
-  if (saved && saved.length > 0) {
-    return saved.map((item) => ({
-      id: item.id,
-      imageUrl: item.imageUrl.trim(),
-      title: item.title || '',
-      linkUrl: item.linkUrl || '',
-    }));
-  }
-
-  const image = parsed.siteInfo?.heroImage || defaults.siteInfo.heroImage || '/hero.jpg';
-  return [{ id: 'banner-inicial', title: 'Banner inicial', imageUrl: image, linkUrl: '#noticias' }];
 }
 
 export function saveDatabase(data: DatabaseSchema): boolean {

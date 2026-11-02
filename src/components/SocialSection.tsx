@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { SocialLinks } from '@/types';
 import { 
@@ -11,6 +13,7 @@ import {
   FacebookIcon, 
   WhatsAppIcon 
 } from '@/components/SocialIcons';
+import { useSiteChannels } from '@/components/SiteChannelsProvider';
 
 interface SocialSectionProps {
   socials?: SocialLinks;
@@ -20,23 +23,15 @@ interface SocialSectionProps {
   error?: string | null;
 }
 
-const DEFAULT_SOCIALS: SocialLinks = {
-  instagram: 'https://www.instagram.com/governoro/',
-  youtube: 'https://www.youtube.com/@SeducRondonia',
-  facebook: 'https://www.facebook.com/governoderondonia',
-  whatsapp: '',
-  email: 'mediacaotecnologica@seduc.ro.gov.br',
-  phone: '(69) 3216-5300',
-  address: 'Palácio Rio Madeira, Porto Velho - RO',
-};
-
 export default function SocialSection({
-  socials = DEFAULT_SOCIALS,
+  socials: propSocials,
   showHeader = false,
   loading = false,
   unavailable = false,
   error = null,
 }: SocialSectionProps) {
+  const channels = useSiteChannels();
+  const socials = propSocials ?? channels;
   const whatsappUrl = socials.whatsapp?.trim() || '';
 
   return (
@@ -86,6 +81,7 @@ export default function SocialSection({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
               {/* Card YouTube */}
+              {socials.youtube && (
               <div className="bg-white dark:bg-[#0C1E38] hover:bg-slate-50 dark:hover:bg-[#0E2444] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group">
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -106,7 +102,7 @@ export default function SocialSection({
                 </div>
 
                 <a
-                  href={socials.youtube || 'https://www.youtube.com/@SeducRondonia'}
+                  href={socials.youtube}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-2 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all duration-150 ease-out shadow-xs active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-red-500"
@@ -115,8 +111,10 @@ export default function SocialSection({
                   <ExternalLink size={13} />
                 </a>
               </div>
+              )}
 
               {/* Card Instagram */}
+              {socials.instagram && (
               <div className="bg-white dark:bg-[#0C1E38] hover:bg-slate-50 dark:hover:bg-[#0E2444] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group">
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -137,7 +135,7 @@ export default function SocialSection({
                 </div>
 
                 <a
-                  href={socials.instagram || 'https://www.instagram.com/governoro/'}
+                  href={socials.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-2 px-3 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all duration-150 ease-out shadow-xs active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sky-500"
@@ -146,8 +144,10 @@ export default function SocialSection({
                   <ExternalLink size={13} />
                 </a>
               </div>
+              )}
 
               {/* Card Facebook */}
+              {socials.facebook && (
               <div className="bg-white dark:bg-[#0C1E38] hover:bg-slate-50 dark:hover:bg-[#0E2444] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group">
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -168,7 +168,7 @@ export default function SocialSection({
                 </div>
 
                 <a
-                  href={socials.facebook || 'https://www.facebook.com/governoderondonia'}
+                  href={socials.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-all duration-150 ease-out shadow-xs active:scale-[0.97] touch-manipulation select-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
@@ -177,8 +177,10 @@ export default function SocialSection({
                   <ExternalLink size={13} />
                 </a>
               </div>
+              )}
 
               {/* Card WhatsApp */}
+              {(whatsappUrl || socials.phone) && (
               <div className="bg-white dark:bg-[#0C1E38] hover:bg-slate-50 dark:hover:bg-[#0E2444] rounded-xl p-4 sm:p-5 border border-slate-200/90 dark:border-[#1A365D] shadow-xs hover:shadow-md transition-all duration-200 ease-out flex flex-col justify-between group">
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -210,10 +212,11 @@ export default function SocialSection({
                   </a>
                 ) : (
                   <p className="w-full py-2 px-3 rounded-lg bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs text-center">
-                    Telefone SEDUC: {socials.phone || '(69) 3216-5300'}
+                    Telefone SEDUC: {socials.phone}
                   </p>
                 )}
               </div>
+              )}
 
             </div>
           </>

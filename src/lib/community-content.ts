@@ -5,6 +5,8 @@ export const COMMUNITY_COMING_SOON = {
   title: 'Em breve',
   professores: 'O quadro de professores e mediadores estará disponível em breve.',
   conquistas: 'As histórias dos estudantes estarão disponíveis em breve.',
+  projetos: 'Os projetos pedagógicos das escolas estarão disponíveis em breve.',
+  galeria: 'O acervo fotográfico estará disponível em breve.',
 };
 
 export const CONQUISTA_IMAGE_MAX_BYTES = 5 * 1024 * 1024;

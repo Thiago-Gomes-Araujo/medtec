@@ -20,6 +20,12 @@ export function canAccessDuvidas(session: { isGestor?: boolean; profileType?: st
   return session.isGestor === true || session.profileType === 'Gestor';
 }
 
+// O contrato de projetos dá as permissões aos mesmos perfis.
+export const canAccessProjetos = canAccessDuvidas;
+
+// O seed Rails dá as regras de banners a Gestor; Administrador recebe todas.
+export const canAccessBanners = canAccessDuvidas;
+
 type LocalSessionFieldsSource = {
   isGestor?: boolean;
   user?: AuthUser['cpf'];

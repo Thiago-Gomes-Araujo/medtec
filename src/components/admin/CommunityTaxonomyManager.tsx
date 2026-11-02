@@ -24,15 +24,17 @@ export interface TaxonomyService {
   delete(id: number): Promise<void>;
 }
 
-// CRUD comum a disciplinas e categorias de conquista: mesmos campos e regras.
-export default function CommunityTaxonomyManager({ heading, singular, plural, deleteHint, service }: {
+// CRUD comum a disciplinas, categorias de conquista e temas de projeto: mesmos campos e regras.
+export default function CommunityTaxonomyManager({ heading, singular, plural, deleteHint, service, masculine = false }: {
   heading: string;
   singular: string;
   plural: string;
   deleteHint: string;
   service: TaxonomyService;
+  masculine?: boolean;
 }) {
   const id = useId();
+  const a = masculine ? 'o' : 'a';
   const [page, setPage] = useState(1);
   const [form, setForm] = useState<{ id?: number; nome: string; slug: string; ativo: boolean } | null>(null);
   const [deleting, setDeleting] = useState<TaxonomyItem | null>(null);
@@ -44,7 +46,7 @@ export default function CommunityTaxonomyManager({ heading, singular, plural, de
   async function save(event: FormEvent) {
     event.preventDefault();
     if (!form) return;
-    if (!form.nome.trim()) { action.setError(`Informe o nome da ${singular}.`); return; }
+    if (!form.nome.trim()) { action.setError(`Informe o nome d${a} ${singular}.`); return; }
     const data = { nome: form.nome.trim(), slug: form.slug.trim() || undefined, ativo: form.ativo };
     const saved = await action.run(async () => {
       if (form.id) await service.update(form.id, data);
@@ -57,7 +59,7 @@ export default function CommunityTaxonomyManager({ heading, singular, plural, de
   async function toggle(item: TaxonomyItem) {
     const saved = await action.run(async () => {
       await service.update(item.id, { ativo: !item.ativo });
-      return item.ativo ? `${item.nome} desativada.` : `${item.nome} ativada.`;
+      return item.ativo ? `${item.nome} desativad${a}.` : `${item.nome} ativad${a}.`;
     });
     if (saved) reload();
   }
@@ -66,7 +68,7 @@ export default function CommunityTaxonomyManager({ heading, singular, plural, de
     if (!deleting) return;
     const removed = await action.run(async () => {
       await service.delete(deleting.id);
-      return `${deleting.nome} excluída.`;
+      return `${deleting.nome} excluíd${a}.`;
     });
     setDeleting(null);
     if (removed) {
@@ -84,7 +86,7 @@ export default function CommunityTaxonomyManager({ heading, singular, plural, de
         </div>
         <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
           setForm({ nome: '', slug: '', ativo: true }); action.setError(null); action.setSuccess(null);
-        }}>{`Nova ${singular}`}</button>
+        }}>{`Nov${a} ${singular}`}</button>
       </header>
 
       {loading && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Carregando {plural}...</p>}
@@ -108,7 +110,7 @@ export default function CommunityTaxonomyManager({ heading, singular, plural, de
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-            <input name="taxonomy-ativo" type="checkbox" checked={form.ativo} onChange={event => setForm({ ...form, ativo: event.target.checked })} /> Ativa (inativa some do site)
+            <input name="taxonomy-ativo" type="checkbox" checked={form.ativo} onChange={event => setForm({ ...form, ativo: event.target.checked })} /> Ativ{a} (inativ{a} some do site)
           </label>
           <div className="flex flex-wrap gap-2">
             <button type="submit" className={buttonClass}>{action.busy ? 'Salvando...' : 'Salvar'}</button>
@@ -130,7 +132,7 @@ export default function CommunityTaxonomyManager({ heading, singular, plural, de
         {items.map(item => <li key={item.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 space-y-1">
             <h3 className="break-words text-sm font-semibold text-slate-900 dark:text-white">{item.nome}</h3>
-            <p className="break-all text-xs text-slate-600 dark:text-slate-400">{item.slug} · {item.ativo ? 'Ativa' : 'Inativa'}</p>
+            <p className="break-all text-xs text-slate-600 dark:text-slate-400">{item.slug} · {item.ativo ? `Ativ${a}` : `Inativ${a}`}</p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             <button type="button" disabled={blocked} aria-label={`Editar ${item.nome}`} className={buttonClass} onClick={() => setForm({ id: item.id, nome: item.nome, slug: item.slug, ativo: item.ativo })}>Editar</button>
