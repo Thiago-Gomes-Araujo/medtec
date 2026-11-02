@@ -222,6 +222,8 @@ interface AdminMenuItem {
   tooltip: string;
   /** Frase simples do que a tela faz, mostrada no Início. */
   summary: string;
+  /** Texto do botão do cartão no Início, com o destino. */
+  action: string;
   icon: LucideIcon;
 }
 
@@ -239,14 +241,14 @@ const ADMIN_MENU: AdminMenuFolder[] = [
     label: 'Conteúdo do site',
     icon: FolderKanban,
     items: [
-      { section: 'noticias', access: 'noticias', label: 'Notícias', tooltip: 'Criar e editar notícias e matérias', summary: 'Escreva e publique as notícias do site.', icon: Newspaper },
-      { section: 'avisos', access: 'avisos', label: 'Avisos', tooltip: 'Publicar avisos e comunicados', summary: 'Publique comunicados e avisos urgentes.', icon: Megaphone },
-      { section: 'fotos', access: 'fotos', label: 'Banners', tooltip: 'Trocar as imagens do topo da página inicial', summary: 'Troque as imagens do topo da página inicial.', icon: Presentation },
-      { section: 'galeria', access: 'galeria', label: 'Galeria de fotos', tooltip: 'Adicionar fotos das escolas', summary: 'Adicione fotos das escolas e dos eventos.', icon: Images },
-      { section: 'projetos', access: 'projetos', label: 'Projetos', tooltip: 'Projetos das escolas, temas e membros', summary: 'Cadastre os projetos das escolas.', icon: Lightbulb },
-      { section: 'professores', access: 'professores', label: 'Professores', tooltip: 'Professores e mediadores, disciplinas e relatos dos alunos', summary: 'Cadastre professores e modere os relatos dos alunos.', icon: GraduationCap },
-      { section: 'alunos', access: 'alunos', label: 'Alunos que Inspiram', tooltip: 'Conquistas dos alunos e categorias', summary: 'Mostre as conquistas dos alunos.', icon: Award },
-      { section: 'duvidas', access: 'duvidas', label: 'Perguntas frequentes', tooltip: 'Perguntas e respostas do site (FAQ) e categorias', summary: 'Mantenha as respostas da Central de Dúvidas.', icon: HelpCircle },
+      { section: 'noticias', access: 'noticias', label: 'Notícias', tooltip: 'Criar e editar notícias e matérias', summary: 'Escreva e publique as notícias do site.', action: 'Abrir Notícias', icon: Newspaper },
+      { section: 'avisos', access: 'avisos', label: 'Avisos', tooltip: 'Publicar avisos e comunicados', summary: 'Publique comunicados e avisos urgentes.', action: 'Abrir Avisos', icon: Megaphone },
+      { section: 'fotos', access: 'fotos', label: 'Banners', tooltip: 'Trocar as imagens do topo da página inicial', summary: 'Troque as imagens do topo da página inicial.', action: 'Abrir Banners', icon: Presentation },
+      { section: 'galeria', access: 'galeria', label: 'Galeria de fotos', tooltip: 'Adicionar fotos das escolas', summary: 'Adicione fotos das escolas e dos eventos.', action: 'Abrir Galeria', icon: Images },
+      { section: 'projetos', access: 'projetos', label: 'Projetos', tooltip: 'Projetos das escolas, temas e membros', summary: 'Cadastre os projetos das escolas.', action: 'Abrir Projetos', icon: Lightbulb },
+      { section: 'professores', access: 'professores', label: 'Professores', tooltip: 'Professores e mediadores, disciplinas e relatos dos alunos', summary: 'Cadastre professores e modere os relatos dos alunos.', action: 'Abrir Professores', icon: GraduationCap },
+      { section: 'alunos', access: 'alunos', label: 'Alunos que Inspiram', tooltip: 'Conquistas dos alunos e categorias', summary: 'Mostre as conquistas dos alunos.', action: 'Abrir Alunos', icon: Award },
+      { section: 'duvidas', access: 'duvidas', label: 'Perguntas frequentes', tooltip: 'Perguntas e respostas do site (FAQ) e categorias', summary: 'Mantenha as respostas da Central de Dúvidas.', action: 'Abrir Perguntas', icon: HelpCircle },
     ],
   },
   {
@@ -254,10 +256,10 @@ const ADMIN_MENU: AdminMenuFolder[] = [
     label: 'Atendimento',
     icon: Headphones,
     items: [
-      { section: 'duvidasPublico', access: 'duvidas', label: 'Dúvidas do público', tooltip: 'Ver e registrar o atendimento das dúvidas enviadas pelo site', summary: 'Veja as dúvidas enviadas pelo site e registre o atendimento.', icon: MessagesSquare },
-      { section: 'kanban', access: 'kanban', label: 'Aprovações', tooltip: 'Notícias, projetos, conquistas e relatos aguardando aprovação', summary: 'Publique ou recuse o que está aguardando.', icon: ClipboardCheck },
+      { section: 'duvidasPublico', access: 'duvidas', label: 'Dúvidas do público', tooltip: 'Ver e registrar o atendimento das dúvidas enviadas pelo site', summary: 'Veja as dúvidas enviadas pelo site e registre o atendimento.', action: 'Responder dúvidas', icon: MessagesSquare },
+      { section: 'kanban', access: 'kanban', label: 'Aprovações', tooltip: 'Notícias, projetos, conquistas e relatos aguardando aprovação', summary: 'Publique ou recuse o que está aguardando.', action: 'Ver aprovações', icon: ClipboardCheck },
       // Quem aprova projetos, mas não tem a Fila, chega direto à aprovação de projetos.
-      { section: 'projetosAprovacao', access: 'projetos', hiddenWithAccess: 'kanban', label: 'Aprovações', tooltip: 'Projetos aguardando aprovação', summary: 'Publique ou recuse os projetos que estão aguardando.', icon: ClipboardCheck },
+      { section: 'projetosAprovacao', access: 'projetos', hiddenWithAccess: 'kanban', label: 'Aprovações', tooltip: 'Projetos aguardando aprovação', summary: 'Publique ou recuse os projetos que estão aguardando.', action: 'Ver aprovações', icon: ClipboardCheck },
     ],
   },
   {
@@ -265,10 +267,10 @@ const ADMIN_MENU: AdminMenuFolder[] = [
     label: 'Configurações',
     icon: Settings,
     items: [
-      { section: 'siteInfo', access: 'siteInfo', label: 'Números do site', tooltip: 'Quantidade de alunos, escolas e textos institucionais', summary: 'Atualize os totais de alunos e escolas.', icon: BarChart3 },
-      { section: 'redes', access: 'redes', label: 'Redes sociais', tooltip: 'Links de YouTube, Instagram, WhatsApp e contatos', summary: 'Atualize os links das redes sociais e os contatos.', icon: Share2 },
-      { section: 'estadosCidades', access: 'estadosCidades', label: 'Estados e municípios', tooltip: 'Cadastrar estados (UF) e municípios', summary: 'Cadastre os estados e os municípios atendidos.', icon: MapPin },
-      { section: 'usuarios', access: 'usuarios', label: 'Usuários e acessos', tooltip: 'Cadastrar a equipe por CPF, senhas e permissões', summary: 'Cadastre a equipe e defina os acessos.', icon: UserCog },
+      { section: 'siteInfo', access: 'siteInfo', label: 'Números do site', tooltip: 'Quantidade de alunos, escolas e textos institucionais', summary: 'Atualize os totais de alunos e escolas.', action: 'Abrir Números', icon: BarChart3 },
+      { section: 'redes', access: 'redes', label: 'Redes sociais', tooltip: 'Links de YouTube, Instagram, WhatsApp e contatos', summary: 'Atualize os links das redes sociais e os contatos.', action: 'Abrir Redes sociais', icon: Share2 },
+      { section: 'estadosCidades', access: 'estadosCidades', label: 'Estados e municípios', tooltip: 'Cadastrar estados (UF) e municípios', summary: 'Cadastre os estados e os municípios atendidos.', action: 'Abrir Estados', icon: MapPin },
+      { section: 'usuarios', access: 'usuarios', label: 'Usuários e acessos', tooltip: 'Cadastrar a equipe por CPF, senhas e permissões', summary: 'Cadastre a equipe e defina os acessos.', action: 'Abrir Usuários', icon: UserCog },
     ],
   },
 ];

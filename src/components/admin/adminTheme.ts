@@ -3,6 +3,12 @@ export const adminFocusClass = 'focus-visible:outline-none focus-visible:ring-2 
 
 export const adminPrimaryButtonClass = `inline-flex items-center justify-center gap-1.5 rounded-lg bg-admin-accent px-3.5 py-2 text-xs font-semibold text-admin-accent-fg transition hover:bg-admin-accent-hover disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer ${adminFocusClass}`;
 export const adminSecondaryButtonClass = `inline-flex items-center justify-center gap-1.5 rounded-lg border border-admin-border bg-admin-surface px-3.5 py-2 text-xs font-semibold text-admin-text transition hover:bg-admin-surface-muted disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer ${adminFocusClass}`;
+// Botão tonal: abaixo do botão principal, e escurece no hover e no foco.
+const adminTonalClass = 'inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-admin-accent-soft px-3 py-2 text-xs font-semibold text-admin-accent transition';
+export const adminTonalLinkClass = `${adminTonalClass} hover:bg-admin-accent-soft-active focus-visible:bg-admin-accent-soft-active cursor-pointer ${adminFocusClass}`;
+// Só visual, dentro do cartão que já é o link: reage ao estado do cartão.
+export const adminTonalCardActionClass = `${adminTonalClass} group-hover:bg-admin-accent-soft-active group-focus-visible:bg-admin-accent-soft-active`;
+
 export const adminCardClass = 'rounded-xl border border-admin-border bg-admin-surface shadow-admin-card';
 
 // Cartão inteiro como link: o azul institucional marca o hover, e o anel, o foco por teclado.

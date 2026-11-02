@@ -21,6 +21,7 @@
   --color-admin-accent-hover: var(--admin-accent-hover);
   --color-admin-accent-fg: var(--admin-accent-fg);
   --color-admin-accent-soft: var(--admin-accent-soft);
+  --color-admin-accent-soft-active: var(--admin-accent-soft-active);
   --color-admin-success: var(--admin-success);
   --color-admin-success-soft: var(--admin-success-soft);
   --color-admin-warning: var(--admin-warning);
@@ -46,6 +47,7 @@
     --admin-accent-hover: #003875;
     --admin-accent-fg: #FFFFFF;
     --admin-accent-soft: #E0F2FE;
+    --admin-accent-soft-active: #BAE6FD;
     --admin-success: #047857;
     --admin-success-soft: #ECFDF5;
     --admin-warning: #92400E;
@@ -107,6 +109,7 @@
     --admin-accent-hover: #7DD3FC;
     --admin-accent-fg: #0B1528;
     --admin-accent-soft: #172844;
+    --admin-accent-soft-active: #1E3A5F;
     --admin-success: #6EE7B7;
     --admin-success-soft: #064E3B;
     --admin-warning: #FDE68A;

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, CheckCircle2, ExternalLink, Plus } from 'lucide-react';
 import OverviewStats, { type OverviewStatsIndicators } from '@/components/admin/OverviewStats';
 import type { ProjetosResumo } from '@/components/admin/useProjetosResumo';
-import { adminCardClass, adminCardLinkClass, adminCountBadgeClass, adminPrimaryButtonClass, adminSecondaryButtonClass } from '@/components/admin/adminTheme';
+import { adminCardClass, adminCardLinkClass, adminCountBadgeClass, adminPrimaryButtonClass, adminSecondaryButtonClass, adminTonalCardActionClass, adminTonalLinkClass } from '@/components/admin/adminTheme';
 import { SECTION_CONFIG, type AdminSection, type buildAdminMenu } from '@/lib/admin-navigation';
 
 export interface PendenciaEstado {
@@ -37,6 +37,12 @@ interface Contador {
   pendentes: number;
 }
 
+// O nome do link começa pelo texto do botão; o nome da tela só entra se o botão não o citar.
+function cardLinkName(action: string, label: string, contador?: Contador | null): string {
+  const nomeNoBotao = action.toLowerCase().includes(label.toLowerCase());
+  return [action, nomeNoBotao ? null : label, contador?.text].filter(Boolean).join(', ');
+}
+
 const plural = (value: number, singular: string, varios: string) => `${value} ${value === 1 ? singular : varios}`;
 
 function AttentionRow({ value, title, detail, href, action }: { value: number; title: string; detail: string; href: string; action: string }) {
@@ -47,7 +53,10 @@ function AttentionRow({ value, title, detail, href, action }: { value: number; t
         <span className="font-semibold">{title}</span>{' '}
         <span className="text-xs text-admin-muted">{detail}</span>
       </p>
-      <Link href={href} aria-label={`${action}: ${title}`} className={`${adminSecondaryButtonClass} shrink-0`}>{action}</Link>
+      <Link href={href} aria-label={`${action}: ${title}`} className={adminTonalLinkClass}>
+        <span>{action}</span>
+        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+      </Link>
     </li>
   );
 }
@@ -178,17 +187,17 @@ export default function AdminOverview({
                 const contador = contadores[item.section];
                 return (
                   <Link key={item.section} href={item.href} className={adminCardLinkClass}
-                    aria-label={`Abrir ${item.label}${contador ? `: ${contador.text}` : ''}`} aria-describedby={`inicio-card-${item.section}`}>
+                    aria-label={cardLinkName(item.action, item.label, contador)} aria-describedby={`inicio-card-${item.section}`}>
                     <span className="grid h-10 w-10 place-items-center rounded-lg bg-admin-accent-soft text-admin-accent">
                       <Icon className="h-5 w-5" aria-hidden="true" />
                     </span>
                     <h5 className="mt-3 text-base font-semibold text-admin-text">{item.label}</h5>
                     <p id={`inicio-card-${item.section}`} className="mt-1 mb-4 line-clamp-2 text-sm leading-snug text-admin-muted">{item.summary}</p>
-                    <div className="mt-auto flex items-center justify-between gap-3 border-t border-admin-border pt-3">
+                    <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-admin-border pt-3">
                       {contador && <span className={adminCountBadgeClass(contador.pendentes > 0)}>{contador.text}</span>}
-                      <span className="ml-auto inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-admin-accent group-hover:underline">
-                        <span>Abrir</span>
-                        <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                      <span className={`ml-auto ${adminTonalCardActionClass}`}>
+                        <span>{item.action}</span>
+                        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
                       </span>
                     </div>
                   </Link>

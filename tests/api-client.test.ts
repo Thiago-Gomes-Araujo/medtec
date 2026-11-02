@@ -42,7 +42,7 @@ import MobileDrawerFooter, { type MobileDrawerFooterProps } from '../src/compone
 import NextImage from 'next/image';
 import NextLink from 'next/link';
 import { ExternalLink, LogOut } from 'lucide-react';
-import { adminCardClass, adminCountBadgeClass, adminPrimaryButtonClass, adminSecondaryButtonClass, sidebarBadgeClass, sidebarFolderClass, sidebarIconButtonClass, sidebarIconClass, sidebarItemClass, sidebarPortalLinkClass } from '../src/components/admin/adminTheme';
+import { adminCardClass, adminCountBadgeClass, adminPrimaryButtonClass, adminSecondaryButtonClass, adminTonalCardActionClass, adminTonalLinkClass, sidebarBadgeClass, sidebarFolderClass, sidebarIconButtonClass, sidebarIconClass, sidebarItemClass, sidebarPortalLinkClass } from '../src/components/admin/adminTheme';
 import {
   ADMIN_STATIC_TAB_ALIASES,
   ADMIN_STATIC_ROUTE_ALIASES,
@@ -4046,7 +4046,7 @@ describe('Menu do painel por tarefa e cores centralizadas', () => {
       const pairs: [string, string, number][] = [
         ['text', 'bg', 4.5], ['text', 'surface', 4.5], ['text', 'surface-muted', 4.5],
         ['muted', 'bg', 4.5], ['muted', 'surface', 4.5], ['muted', 'surface-muted', 4.5],
-        ['accent', 'surface', 4.5], ['accent', 'surface-muted', 4.5], ['accent', 'bg', 4.5], ['accent-fg', 'accent', 4.5], ['accent-fg', 'accent-hover', 4.5], ['accent', 'accent-soft', 4.5], ['warning-strong', 'surface', 3],
+        ['accent', 'surface', 4.5], ['accent', 'surface-muted', 4.5], ['accent', 'bg', 4.5], ['accent-fg', 'accent', 4.5], ['accent-fg', 'accent-hover', 4.5], ['accent', 'accent-soft', 4.5], ['accent', 'accent-soft-active', 4.5], ['warning-strong', 'surface', 3],
         ['success', 'success-soft', 4.5], ['success', 'surface', 4.5],
         ['warning', 'warning-soft', 4.5], ['warning', 'surface', 4.5],
         ['danger', 'danger-soft', 4.5], ['danger', 'surface', 4.5],
@@ -4758,7 +4758,9 @@ describe('Interface componentizada da Visão Geral', () => {
     for (const [value, title, action, href] of [['10', 'Aprovações', 'Revisar', '/admin/kanban'], ['4', 'Dúvidas do público', 'Responder', '/admin/faq/publico'], ['3', 'Relatos', 'Moderar', '/admin/professores/relatos']]) {
       assert.ok(atencao.includes(`>${value}</span>`), title);
       assert.ok(atencao.includes(`>${title}</span>`), title);
-      assert.match(atencao, new RegExp(`<a\\b(?=[^>]*href="${href}")(?=[^>]*aria-label="${action}: ${title}")[^>]*>${action}</a>`), action);
+      const link = atencao.match(new RegExp(`<a\\b(?=[^>]*href="${href}")(?=[^>]*aria-label="${action}: ${title}")[^>]*><span>${action}</span>`))?.[0];
+      assert.ok(link, action);
+      assert.ok(link.includes(adminTonalLinkClass), 'Mesmo botão tonal dos cartões');
     }
     const parcial = secao(render({ pendencias: pend(0, 2, 0) }), 'inicio-atencao');
     assert.ok(parcial.includes('Dúvidas do público'));
@@ -4824,29 +4826,45 @@ describe('Interface componentizada da Visão Geral', () => {
     const positions = menu.map(folder => gerenciar.indexOf(`>${folder.label}</h4>`));
     assert.ok(positions.every(position => position >= 0)); assert.deepEqual(positions, [...positions].sort((x, y) => x - y));
     const items = menu.flatMap(folder => folder.items.filter(item => item.visible));
-    assert.equal((gerenciar.match(/>Abrir<\/span>/g) || []).length, items.length);
+    for (const item of items) assert.ok(gerenciar.includes(`<span>${item.action}</span>`), item.action);
     assert.equal((gerenciar.match(/bg-admin-accent-soft text-admin-accent/g) || []).length, items.length);
     for (const item of items) {
       assert.ok(gerenciar.includes(`>${item.label}</h5>`), item.label);
       assert.ok(item.summary.length > 0 && gerenciar.includes(item.summary), item.label);
-      assert.match(gerenciar, new RegExp(`<a\\b(?=[^>]*href="${item.href}")(?=[^>]*aria-label="Abrir ${item.label}[:"])`), item.label);
+      assert.match(gerenciar, new RegExp(`<a\\b(?=[^>]*href="${item.href}")(?=[^>]*aria-label="${item.action}[,"])`), item.label);
     }
     assert.ok(gerenciar.includes('auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3'), '1, 2 e 3 colunas');
     assert.doesNotMatch(gerenciar, /min-h-/, 'A altura acompanha o conteúdo');
     assert.equal((gerenciar.match(/h-10 w-10/g) || []).length, items.length, 'Ícone de 40px');
     assert.equal((gerenciar.match(/line-clamp-2/g) || []).length, items.length);
-    assert.equal((gerenciar.match(/mt-auto flex items-center justify-between gap-3 border-t border-admin-border/g) || []).length, items.length, 'Rodapé com divisória');
+    assert.equal((gerenciar.match(/mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-admin-border/g) || []).length, items.length, 'Rodapé com divisória');
     assert.equal((gerenciar.match(/<a\b/g) || []).length, items.length, 'Um único link por cartão');
     assert.equal((gerenciar.match(/<button\b/g) || []).length, 0);
   });
   it('o cartão inteiro é o link: nome com o contador, descrição ligada, hover azul e foco visível', () => {
     const gerenciar = secao(render(), 'inicio-gerenciar');
-    const link = gerenciar.match(/<a\b[^>]*aria-label="Abrir Notícias: 50 aguardando"[^>]*>/)?.[0];
+    const link = gerenciar.match(/<a\b[^>]*aria-label="Abrir Notícias, 50 aguardando"[^>]*>/)?.[0];
     assert.ok(link);
     assert.ok(link.includes('href="/admin/noticias"')); assert.ok(link.includes('aria-describedby="inicio-card-noticias"'));
     assert.ok(gerenciar.includes('id="inicio-card-noticias"'));
     for (const name of ['hover:border-admin-accent', 'hover:shadow-admin-card-hover', 'focus-visible:ring-2', 'focus-visible:ring-admin-accent', 'shadow-admin-card']) assert.ok(link.includes(name), name);
-    assert.match(gerenciar, /aria-label="Abrir Banners"/, 'Sem contador, o nome fica só com a tela');
+    assert.match(gerenciar, /aria-label="Abrir Banners"/, 'Sem contador, o nome fica só com o botão');
+    assert.match(gerenciar, /aria-label="Abrir Galeria, Galeria de fotos, 12 categorias"/, 'O botão não cita o nome inteiro da tela');
+    assert.match(gerenciar, /aria-label="Responder dúvidas, Dúvidas do público, 4 sem resposta"/);
+    assert.match(gerenciar, /aria-label="Ver aprovações, 10 pendentes"/);
+  });
+  it('o botão dos cartões é tonal, só visual, com o destino no texto, e fica abaixo de "Nova notícia"', () => {
+    const textos = fullOverviewMenu().flatMap(folder => folder.items.filter(item => item.visible).map(item => item.action));
+    assert.deepEqual(textos, ['Abrir Notícias', 'Abrir Avisos', 'Abrir Banners', 'Abrir Galeria', 'Abrir Projetos', 'Abrir Professores', 'Abrir Alunos', 'Abrir Perguntas', 'Responder dúvidas', 'Ver aprovações', 'Abrir Números', 'Abrir Redes sociais', 'Abrir Estados', 'Abrir Usuários']);
+    assert.equal(fullOverviewMenu({ kanban: false }).flatMap(folder => folder.items).find(item => item.visible && item.section === 'projetosAprovacao')?.action, 'Ver aprovações');
+    const gerenciar = secao(render(), 'inicio-gerenciar');
+    assert.equal((gerenciar.match(/<a\b/g) || []).length, textos.length, 'Sem link aninhado');
+    assert.equal((gerenciar.match(/<button\b/g) || []).length, 0);
+    assert.ok(gerenciar.includes(`<span class="ml-auto ${adminTonalCardActionClass}"><span>Abrir Notícias</span>`));
+    for (const name of ['bg-admin-accent-soft ', 'text-admin-accent', 'rounded-lg', 'group-hover:bg-admin-accent-soft-active', 'group-focus-visible:bg-admin-accent-soft-active']) assert.ok(adminTonalCardActionClass.includes(name), name);
+    for (const name of ['hover:bg-admin-accent-soft-active', 'focus-visible:bg-admin-accent-soft-active', 'focus-visible:ring-2']) assert.ok(adminTonalLinkClass.includes(name), name);
+    assert.doesNotMatch(adminTonalCardActionClass + adminTonalLinkClass, /\bbg-admin-accent(?![-\w])|text-admin-accent-fg/, 'Nunca preenchido como o principal');
+    assert.ok(adminPrimaryButtonClass.includes('bg-admin-accent '));
   });
   it('a etiqueta é âmbar só com pendência; zero e detalhes ficam neutros, e sem dado não há etiqueta', () => {
     const etiqueta = (html: string, text: string) => html.match(new RegExp(`<span class="([^"]*)">${text}</span>`))?.[1];
@@ -4858,7 +4876,7 @@ describe('Interface componentizada da Visão Geral', () => {
     const zerado = secao(render({ indicators: { ...props().indicators, apiNewsDraftCount: 0 }, pendencias: pend(0, 0, 0) }), 'inicio-gerenciar');
     for (const text of ['0 aguardando', '0 relatos aguardando', '0 sem resposta', '0 pendentes']) assert.equal(etiqueta(zerado, text), adminCountBadgeClass(false), text);
     const banners = comPendencia.slice(comPendencia.indexOf('aria-label="Abrir Banners"'));
-    assert.match(banners, /border-t border-admin-border pt-3"><span class="ml-auto/, 'Sem contador, "Abrir" fica à direita, sem etiqueta vazia');
+    assert.match(banners, /border-t border-admin-border pt-3"><span class="ml-auto/, 'Sem contador, o botão fica à direita, sem etiqueta vazia');
     assert.ok(adminCountBadgeClass(true).includes('rounded-full')); assert.ok(adminCountBadgeClass(false).includes('rounded-full'));
   });
   it('todos os blocos usam cartão com borda e sombra, sobre o fundo cinza-claro da página', () => {
