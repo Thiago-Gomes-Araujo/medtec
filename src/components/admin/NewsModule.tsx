@@ -22,7 +22,6 @@ interface NewsModuleProps {
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
-  initialNew?: boolean;
   initialEditingNews?: NewsItem;
   onEditNavigation?: (id: string) => void;
   newsViewMode: 'lista' | 'editor';
@@ -34,7 +33,7 @@ interface NewsModuleProps {
 
 export default function NewsModule({ ref, effectiveNews, apiNewsCategories, loadingNews, errorNews,
   userSession, canPublish, canUnpublish = canPublish, canCreate = false, canEdit = false,
-  canDelete = false, initialNew = false, initialEditingNews, onEditNavigation, newsViewMode, setNewsViewMode, onRefresh: loadApiData,
+  canDelete = false, initialEditingNews, onEditNavigation, newsViewMode, setNewsViewMode, onRefresh: loadApiData,
   onTogglePublished: handleTogglePublished, onPreview: setPreviewModal }: NewsModuleProps) {
   const [newsFolder, setNewsFolder] = useState('Todas');
   const [saving, setSaving] = useState(false);
@@ -50,11 +49,8 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
     coverImage: '',
     excerpt: '',
     content: '',
-    featured: false,
-    urgent: false,
     folder: 'Geral',
     published: false,
-    publishedAt: initialNew ? new Date().toLocaleDateString('en-CA') : '',
   });
 
   // Funções de Gestão de Notícias (/n_noticias)
@@ -90,9 +86,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
         if (newsForm.excerpt?.trim()) {
           formData.append('n_noticia[resumo]', newsForm.excerpt.trim());
         }
-        if (newsForm.publishedAt?.trim()) {
-          formData.append('n_noticia[data_publicacao]', newsForm.publishedAt.trim());
-        }
         formData.append('n_noticia[imagem_capa]', newsCoverFile);
 
         if (editingNews && Number(editingNews.id)) {
@@ -107,7 +100,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
             conteudo: newsForm.content.trim(),
             n_categoria_noticia_id: catId,
             resumo: newsForm.excerpt?.trim() || undefined,
-            data_publicacao: newsForm.publishedAt?.trim() || undefined,
             // Omitir preserva o anexo; reenviar sua URL pode apagá-lo no Rails.
             imagem_capa_url: newsCoverUrl.trim() && newsCoverUrl.trim() !== editingNews?.coverImage?.trim()
               ? newsCoverUrl.trim() : undefined,
@@ -135,11 +127,8 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
         coverImage: '',
         excerpt: '',
         content: '',
-        featured: false,
-        urgent: false,
         folder: 'Geral',
         published: false,
-        publishedAt: '',
       });
       setNewsFolder('Todas');
       setNewsViewMode('lista');
@@ -201,11 +190,8 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
       coverImage: '',
       excerpt: '',
       content: '',
-      featured: false,
-      urgent: false,
       folder: 'Geral',
       published: false,
-      publishedAt: new Date().toISOString().slice(0, 10),
     });
     if (apiNewsCategories.length > 0) {
       setSelectedNewsCategoriaId(apiNewsCategories[0].id);
@@ -224,7 +210,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
 
   return (
         <div className="space-y-6">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Pasta, destaque e urgência estão indisponíveis: não possuem persistência no contrato oficial da API.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Pasta está indisponível: não possui persistência no contrato oficial da API.</p>
           {loadingNews && (
             <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-3" role="status">
               <Loader2 className="h-6 w-6 animate-spin text-[#004A99] dark:text-sky-400" />
@@ -324,11 +310,8 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                     coverImage: '',
                     excerpt: '',
                     content: '',
-                    featured: false,
-                    urgent: false,
                     folder: 'Geral',
                     published: true,
-                    publishedAt: '',
                   });
                   setNewsViewMode('lista');
                 }}
@@ -559,65 +542,20 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Autor da Publicação
-                      </label>
-                      <input
-                        type="text"
-                        disabled
-                        readOnly
-                        value={userSession.name || 'Usuário Autenticado'}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm cursor-not-allowed"
-                      />
-                      <span className="text-[10px] text-slate-400 mt-0.5 block">
-                        Definido automaticamente pela API a partir da conta logada.
-                      </span>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Data de Publicação
-                      </label>
-                      <input
-                        type="date"
-                        value={newsForm.publishedAt}
-                        onChange={e => setNewsForm({ ...newsForm, publishedAt: e.target.value })}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 pt-1">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="featured"
-                        disabled
-                        title="Sem persistência no contrato Rails"
-                        checked={!!newsForm.featured}
-                        onChange={e => setNewsForm({ ...newsForm, featured: e.target.checked })}
-                        className="rounded text-[#004A99] focus:ring-[#004A99] h-4 w-4"
-                      />
-                      <label htmlFor="featured" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-                        Destacar na página inicial
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="urgent"
-                        disabled
-                        title="Sem persistência no contrato Rails"
-                        checked={!!newsForm.urgent}
-                        onChange={e => setNewsForm({ ...newsForm, urgent: e.target.checked })}
-                        className="rounded text-rose-600 focus:ring-rose-500 h-4 w-4"
-                      />
-                      <label htmlFor="urgent" className="text-xs font-semibold text-rose-700 dark:text-rose-400 cursor-pointer">
-                        Marcar como urgência
-                      </label>
-                    </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Autor da Publicação
+                    </label>
+                    <input
+                      type="text"
+                      disabled
+                      readOnly
+                      value={userSession.name || 'Usuário Autenticado'}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm cursor-not-allowed"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      Definido automaticamente pela API a partir da conta logada.
+                    </span>
                   </div>
 
                   <div className="pt-2">
@@ -645,8 +583,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                   author: newsForm.author || '',
                   category: newsForm.category || 'Pedagógico',
                   publishedAt: newsForm.publishedAt || new Date().toLocaleDateString('pt-BR'),
-                  featured: !!newsForm.featured,
-                  urgent: !!newsForm.urgent,
                   published: newsForm.published !== false,
                 }}
                 hasUnsavedChanges={
@@ -668,8 +604,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                     author: newsForm.author || '',
                     category: newsForm.category || 'Pedagógico',
                     publishedAt: newsForm.publishedAt || new Date().toLocaleDateString('pt-BR'),
-                    featured: !!newsForm.featured,
-                    urgent: !!newsForm.urgent,
                     published: newsForm.published !== false,
                   },
                 })}

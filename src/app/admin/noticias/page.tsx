@@ -129,7 +129,6 @@ function NewsContent({ session }: { session: AdminSession }) {
         key={`${newsViewMode}:${editId || ''}:${loadingNews ? 'loading' : 'ready'}`}
         initialEditingNews={effectiveNews.find((item) => item.id === editId)}
         onEditNavigation={(id) => router.push(`/admin/noticias?edit=${encodeURIComponent(id)}`, { scroll: false })}
-        initialNew={isNew}
         effectiveNews={effectiveNews}
         apiNewsCategories={apiNewsCategories}
         loadingNews={loadingNews}

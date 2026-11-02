@@ -10063,7 +10063,7 @@ async function mountE6(config: {
     const [mode, setMode] = React.useState<'lista' | 'editor'>(config.list ? 'lista' : 'editor');
     return NewsModule({
       effectiveNews: [news], apiNewsCategories: [{ id: 37, nome: 'Pedagógico', slug: 'pedagogico', ativo: true }],
-      initialEditingNews: config.create || config.list ? undefined : news, initialNew: config.create,
+      initialEditingNews: config.create || config.list ? undefined : news,
       loadingNews: false, errorNews: null, userSession: { name: 'Autora oficial' },
       canCreate: true, canEdit: config.canEdit ?? true, canDelete: true, canPublish: false,
       newsViewMode: mode, setNewsViewMode: setMode, onRefresh: refresh,
@@ -10125,7 +10125,7 @@ describe('E6 — preservação da capa e motivo de reprovação de Notícias', (
         const call = manager.calls[0]; assert.ok(call.url.pathname.endsWith('/n_noticias/91')); assert.equal(call.options.method, 'PATCH');
         assert.deepEqual(assertE6Preserved(call.options.body), {
           titulo: 'Título corrigido', conteudo: 'Conteúdo corrigido.', n_categoria_noticia_id: 37,
-          resumo: 'Resumo oficial', data_publicacao: '2026-10-31',
+          resumo: 'Resumo oficial',
         });
         assert.equal(manager.refreshes(), 1);
       } finally { await manager.restore(); }
@@ -10140,9 +10140,27 @@ describe('E6 — preservação da capa e motivo de reprovação de Notícias', (
       await manager.submit();
       assert.deepEqual(JSON.parse(String(manager.calls[0].options.body)), { n_noticia: {
         titulo: e6News.title, conteudo: e6News.content, n_categoria_noticia_id: 37, resumo: e6News.excerpt,
-        data_publicacao: e6News.publishedAt, imagem_capa_url: 'https://example.test/nova-capa.jpg',
+        imagem_capa_url: 'https://example.test/nova-capa.jpg',
       } });
       assert.equal(manager.refreshes(), 1);
+    } finally { await manager.restore(); }
+  });
+
+  it('formulário não oferece destaque, urgência nem data, e mantém Pasta e Fluxo Editorial', async () => {
+    const manager = await mountE6({ create: true });
+    try {
+      const nodes = manager.nodes();
+      assert.equal(nodes.some(node => node.props.id === 'featured' || node.props.id === 'urgent'), false);
+      assert.equal(nodes.some(node => node.type === 'input' && node.props.type === 'date'), false);
+      assert.ok(nodes.some(node => node.type === 'input' && node.props.list === 'pastas-noticias'));
+      assert.ok(nodes.some(node => node.type === 'label' && node.props.children === 'Fluxo Editorial do Backend'));
+      await manager.text('Ex: Polo ribeirinho recebe novos computadores do MEDTEC...', 'Título novo');
+      await manager.text('Escreva aqui os parágrafos completos da notícia...', 'Conteúdo novo.');
+      await manager.submit();
+      const call = manager.calls[0]; assert.equal(call.options.method, 'POST');
+      assert.deepEqual(JSON.parse(String(call.options.body)), { n_noticia: {
+        titulo: 'Título novo', conteudo: 'Conteúdo novo.', n_categoria_noticia_id: 37,
+      } });
     } finally { await manager.restore(); }
   });
 
@@ -10174,7 +10192,7 @@ describe('E6 — preservação da capa e motivo de reprovação de Notícias', (
       const call = manager.calls[0]; assert.equal(call.options.method, 'PATCH'); assert.ok(call.options.body instanceof FormData);
       assert.equal(new Headers(call.options.headers).get('Content-Type'), null);
       const form = call.options.body;
-      assert.deepEqual([...form.keys()], ['n_noticia[titulo]', 'n_noticia[n_categoria_noticia_id]', 'n_noticia[conteudo]', 'n_noticia[resumo]', 'n_noticia[data_publicacao]', 'n_noticia[imagem_capa]']);
+      assert.deepEqual([...form.keys()], ['n_noticia[titulo]', 'n_noticia[n_categoria_noticia_id]', 'n_noticia[conteudo]', 'n_noticia[resumo]', 'n_noticia[imagem_capa]']);
       assert.equal(form.get('n_noticia[n_categoria_noticia_id]'), '37');
       const image = form.get('n_noticia[imagem_capa]'); assert.ok(image instanceof File); assert.equal(image.name, 'nova.png');
       assert.equal(form.has('n_noticia[imagem_capa_url]'), false);
