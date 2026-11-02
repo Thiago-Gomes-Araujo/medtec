@@ -77,6 +77,7 @@ import { diffProjetoMembros, formatCpf, formatFileSize, getProjetoImageSrc, hasM
 import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput } from '../src/lib/api/types';
 import ProjetosPanel from '../src/components/admin/ProjetosPanel';
 import ProjetoMembrosEditor from '../src/components/admin/ProjetoMembrosEditor';
+import ProjetosApprovalQueue from '../src/components/admin/ProjetosApprovalQueue';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
 import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
@@ -11499,6 +11500,51 @@ describe('Projetos — painel', () => {
       await view.act(settle);
       assert.match(view.html(), /deve ter no máximo 10 MB/);
       assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Criar projeto'));
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Projetos — Fila de Aprovação', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: items.length } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const projeto = { id: 7, titulo: 'Hortas em Jirau', relato: 'Relato', tema_nome: 'Ciência', escola_nome: 'Escola', cidade_nome: 'Cidade', status: 'aguardando', status_nome: 'Aguardando', membros: [{ id: 5, pj_membro_id: 1, nome: 'Maria', cpf: '01251667708', funcao: 'Mediadora' }] };
+
+  it('lista só os aguardando, modera e esvazia sem falso erro', async () => {
+    let items: unknown[] = [projeto];
+    const view = await mountCategories(async (_url, options) => {
+      if (options.method === 'PATCH') { items = []; return reply({ ...projeto, status: 'publicada' }); }
+      return list(items);
+    }, false, { component: () => ProjetosApprovalQueue(), allowedPaths: /\/pj_projetos(\/\d+\/(publicar|reprovar))?$/ });
+    try {
+      await view.act(settle);
+      assert.equal(view.calls[0].url.searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(view.calls[0].url.searchParams.get('page'), 'all');
+      assert.match(view.html(), /Hortas em Jirau/); assert.doesNotMatch(view.html(), /01251667708/);
+      await view.click('Publicar Hortas em Jirau');
+      await view.act(settle);
+      assert.ok(view.calls.some(call => call.url.pathname.endsWith('/pj_projetos/7/publicar')));
+      assert.match(view.html(), /Projeto publicado/);
+      assert.match(view.html(), /Nenhum projeto aguardando/, 'page=all sem registros devolve per_page 0');
+      assert.doesNotMatch(view.html(), /role="alert"/);
+    } finally { await view.restore(); }
+  });
+  it('reprovar usa a rota própria, e a falha de leitura permite tentar de novo', async () => {
+    let fail = true;
+    const view = await mountCategories(async (_url, options) => {
+      if (options.method === 'PATCH') return reply({ ...projeto, status: 'reprovada' });
+      return fail ? reply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403) : list([projeto]);
+    }, false, { component: () => ProjetosApprovalQueue(), allowedPaths: /\/pj_projetos(\/\d+\/reprovar)?$/ });
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /role="alert"/); assert.doesNotMatch(view.html(), /Nenhum projeto aguardando/);
+      fail = false;
+      await view.click('Recarregar projetos');
+      await view.act(settle);
+      await view.click('Reprovar Hortas em Jirau');
+      await view.act(settle);
+      assert.ok(view.calls.some(call => call.url.pathname.endsWith('/pj_projetos/7/reprovar')));
     } finally { await view.restore(); }
   });
 });
