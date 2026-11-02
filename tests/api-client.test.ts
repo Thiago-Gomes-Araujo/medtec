@@ -76,7 +76,7 @@ import FaqSection from '../src/components/FaqSection';
 import DuvidaCategoriesManager from '../src/components/admin/DuvidaCategoriesManager';
 import type { DCategoriaDuvida, DDuvida, DDuvidaInput } from '../src/lib/api/types';
 import type { BannerPublico, DDuvidaVisitante, PjProjetoInput, PjProjetoMembro } from '../src/lib/api/types';
-import { diffProjetoMembros, formatCpf, formatFileSize, getProjetoImageSrc, hasMembroDuplicado, isValidCpf, maskCpf, PROJETO_ANEXO_MAX_BYTES, validateProjetoAnexo } from '../src/lib/projetos-content';
+import { diffProjetoMembros, formatCpf, formatFileSize, getProjetoImageSrc, hasMembroDuplicado, isValidCpf, maskCpf, PROJETO_ANEXO_ACCEPT, PROJETO_ANEXO_MAX_BYTES, validateProjetoAnexo } from '../src/lib/projetos-content';
 import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput } from '../src/lib/api/types';
 import ProjetosPanel from '../src/components/admin/ProjetosPanel';
 import ProjetoMembrosEditor from '../src/components/admin/ProjetoMembrosEditor';
@@ -11371,8 +11371,6 @@ describe('Projetos — painel', () => {
     try {
       await view.act(settle);
       await fillBase(view);
-      const modoLink = view.nodes().find(item => item.props.name === 'projeto-imagem-modo' && item.props.value === 'link');
-      await view.act(() => Reflect.apply(modoLink!.props.onChange as () => unknown, undefined, []));
       await view.change('projeto-imagem-url', 'http://x.com/capa.jpg');
       await view.submit('Criar projeto');
       assert.match(view.html(), /link HTTPS válido/); assert.equal(sentBy(view, 'POST').length, 0);
@@ -11384,7 +11382,6 @@ describe('Projetos — painel', () => {
   });
   describe('prévia da capa', () => {
     const alt = (view: View, text: string) => view.nodes().find(item => item.props.alt === text);
-    const escolherModo = (view: View, modo: string) => view.act(() => Reflect.apply(view.nodes().find(item => item.props.name === 'projeto-imagem-modo' && item.props.value === modo)!.props.onChange as () => unknown, undefined, []));
     function urlsDeObjeto() {
       const created = mock.method(URL, 'createObjectURL', () => 'blob:previa');
       const revoked = mock.method(URL, 'revokeObjectURL', () => {});
@@ -11427,7 +11424,6 @@ describe('Projetos — painel', () => {
       const view = await mount({ startNew: true });
       try {
         await view.act(settle);
-        await escolherModo(view, 'link');
         await view.change('projeto-imagem-url', 'http://x.com/capa.jpg');
         assert.equal(alt(view, 'Prévia da nova capa'), undefined);
         assert.match(view.html(), /A prévia só aparece com um link HTTPS válido/);
@@ -11456,16 +11452,109 @@ describe('Projetos — painel', () => {
         assert.equal(JSON.parse(String(sentBy(view, 'PATCH')[0].options.body)).pj_projeto.imagem_url, undefined, 'A capa atual é preservada');
       } finally { await view.restore(); }
     });
-    it('passar para link descarta o arquivo escolhido', async () => {
+    it('colar um link descarta o arquivo escolhido, e escolher arquivo limpa o link', async () => {
       const urls = urlsDeObjeto();
       const view = await mount({ startNew: true });
       try {
         await view.act(settle);
         await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
-        await escolherModo(view, 'link');
-        assert.equal(alt(view, 'Prévia da nova capa'), undefined);
+        await view.change('projeto-imagem-url', 'https://x.com/nova.jpg');
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'https://x.com/nova.jpg');
         assert.equal(urls.revoked.mock.callCount(), 1);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'outra.png', { type: 'image/png' })));
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'blob:previa');
+        assert.equal(view.nodes().find(item => item.props.name === 'projeto-imagem-url')?.props.value, '');
+        assert.match(view.html(), /outra\.png \(1 KB\)/);
       } finally { await view.restore(); urls.restore(); }
+    });
+    it('arquivo recusado mantém a escolha anterior', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.gif', { type: 'image/gif' })));
+        assert.match(view.html(), /A imagem deve ser PNG, JPG ou WEBP/);
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'blob:previa');
+      } finally { await view.restore(); urls.restore(); }
+    });
+  });
+  describe('botões de arquivo', () => {
+    const rotulo = (view: View, name: string) => view.nodes().find(item => item.type === 'label' && noticeNodes(item.props.children).some(child => child.props.name === name));
+    function assertBotoes(view: View) {
+      const capa = rotulo(view, 'projeto-imagem'); const anexos = rotulo(view, 'projeto-anexos');
+      assert.match(view.html(), /Escolher imagem/); assert.match(view.html(), /Adicionar arquivos/);
+      for (const label of [capa, anexos]) {
+        assert.ok(label); assert.match(String(label.props.className), /border/, 'O rótulo tem aparência de botão');
+      }
+      const input = (name: string) => view.nodes().find(item => item.props.name === name)!;
+      assert.equal(input('projeto-imagem').props.accept, 'image/png,image/jpeg,image/webp');
+      assert.equal(input('projeto-imagem').props.multiple, undefined);
+      assert.equal(input('projeto-anexos').props.multiple, true);
+      assert.equal(input('projeto-anexos').props.accept, PROJETO_ANEXO_ACCEPT);
+      assert.equal(input('projeto-imagem').props.className, 'sr-only');
+      assert.ok(view.nodes().some(item => item.props.name === 'projeto-imagem-url'), 'O link segue disponível');
+    }
+    it('aparecem no cadastro', async () => {
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        assertBotoes(view);
+      } finally { await view.restore(); }
+    });
+    it('aparecem na edição, mesmo quando a capa atual é um link', async () => {
+      const view = await mount({}, () => reply(projeto));
+      try {
+        await view.act(settle);
+        await view.click('Editar Hortas em Jirau');
+        await view.act(settle);
+        assertBotoes(view);
+        assert.equal(view.nodes().find(item => item.props.name === 'projeto-imagem-url')?.props.value, 'https://x.com/capa.jpg');
+      } finally { await view.restore(); }
+    });
+    it('erros de tipo e tamanho aparecem junto do campo, sem bloquear os válidos', async () => {
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        const alertas = () => view.nodes().filter(item => item.props.role === 'alert' && item.type === 'p').map(item => item.props.children);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.gif', { type: 'image/gif' })));
+        assert.deepEqual(alertas(), ['A imagem deve ser PNG, JPG ou WEBP.']);
+        const pesado = new File(['x'], 'grande.pdf', { type: 'application/pdf' }); Object.defineProperty(pesado, 'size', { value: PROJETO_ANEXO_MAX_BYTES + 1 });
+        await pick(view, 'projeto-anexos', files(pesado, new File(['x'], 'ok.pdf', { type: 'application/pdf' })));
+        assert.ok(alertas().includes('grande.pdf: deve ter até 10 MB.'));
+        assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Retirar ok.pdf'));
+        assert.equal(view.nodes().some(item => item.props['aria-label'] === 'Retirar grande.pdf'), false);
+      } finally { await view.restore(); }
+    });
+    it('lista nome e tamanho, retira antes de salvar e envia pj_projeto[anexos][] e pj_projeto[imagem]', async () => {
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        await fillBase(view);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+        await pick(view, 'projeto-anexos', files(new File(['x'], 'fica.pdf', { type: 'application/pdf' }), new File(['y'], 'sai.docx', { type: '' })));
+        assert.match(view.html(), /fica\.pdf \(1 KB\)/); assert.match(view.html(), /sai\.docx \(1 KB\)/);
+        await view.click('Retirar sai.docx');
+        await view.submit('Criar projeto');
+        await view.act(settle);
+        const form = sentBy(view, 'POST')[0].options.body as FormData;
+        assert.ok(form instanceof FormData);
+        assert.equal((form.get('pj_projeto[imagem]') as File).name, 'capa.png');
+        assert.deepEqual(form.getAll('pj_projeto[anexos][]').map(item => (item as File).name), ['fica.pdf']);
+      } finally { await view.restore(); }
+    });
+    it('na edição, os anexos salvos têm link para baixar e os novos se somam', async () => {
+      const view = await mount({}, () => reply(projeto));
+      try {
+        await view.act(settle);
+        await view.click('Editar Hortas em Jirau');
+        await view.act(settle);
+        const baixar = view.nodes().find(item => item.type === 'a' && String(item.props.href).endsWith('/rails/relatorio.pdf'));
+        assert.ok(baixar);
+        assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Remover anexo relatorio.pdf'));
+        await pick(view, 'projeto-anexos', files(new File(['x'], 'novo.pdf', { type: 'application/pdf' })));
+        assert.match(view.html(), /relatorio\.pdf/); assert.match(view.html(), /novo\.pdf/);
+      } finally { await view.restore(); }
     });
   });
   it('recusa capa e anexos fora das regras e envia os válidos em multipart', async () => {
@@ -11567,8 +11656,6 @@ describe('Projetos — painel', () => {
       await view.act(settle);
       await view.click('Editar Hortas em Jirau');
       await view.act(settle);
-      const modo = view.nodes().find(item => item.props.name === 'projeto-imagem-modo' && item.props.value === 'upload');
-      await view.act(() => Reflect.apply(modo!.props.onChange as () => unknown, undefined, []));
       await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
       await view.submit('Editar projeto');
       await view.act(settle);
