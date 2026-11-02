@@ -24,6 +24,10 @@ interface ProfessorForm {
   disciplinaIds: number[];
 }
 
+type CampoProfessor = 'nome' | 'escola' | 'disciplinas' | 'pratica';
+const sectionClass = 'space-y-3 rounded-xl border border-slate-200 p-4 dark:border-slate-800';
+const legendClass = 'px-1 text-sm font-bold text-slate-900 dark:text-white';
+
 const EMPTY_FORM: ProfessorForm = { nome: '', cidadeId: '', escolaId: '', pratica: '', ativo: true, disciplinaIds: [] };
 const readDisciplinas = (signal: AbortSignal) => medtecApi.disciplinasProfessor.list({ page: 'all' }, signal);
 
@@ -34,6 +38,7 @@ export default function ProfessoresPanel() {
   const [filters, setFilters] = useState({ busca: '', disciplinaId: '', cidadeId: '', somenteAtivos: false });
   const [form, setForm] = useState<ProfessorForm | null>(null);
   const [deleting, setDeleting] = useState<PProfessor | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<CampoProfessor, string>>>({});
 
   const read = useCallback((signal: AbortSignal) => medtecApi.professores.list({
     page, per_page: 10,
@@ -56,6 +61,7 @@ export default function ProfessoresPanel() {
   async function edit(item: PProfessor) {
     await action.run(async () => {
       const value = await medtecApi.professores.get(item.id);
+      setFieldErrors({});
       setForm({
         id: value.id, nome: value.nome, cidadeId: '', escolaId: String(value.escola_id),
         pratica: value.pratica_pedagogica, ativo: value.ativo, disciplinaIds: value.p_disciplina_ids,
@@ -66,8 +72,14 @@ export default function ProfessoresPanel() {
   async function save(event: FormEvent) {
     event.preventDefault();
     if (!form) return;
-    if (!form.nome.trim() || !form.pratica.trim() || !form.escolaId) { action.setError('Informe nome, escola e prática pedagógica.'); return; }
-    if (form.disciplinaIds.length === 0) { action.setError('Selecione ao menos uma disciplina.'); return; }
+    const problems: Partial<Record<CampoProfessor, string>> = {
+      ...(!form.nome.trim() && { nome: 'Informe o nome do professor.' }),
+      ...(!form.escolaId && { escola: 'Selecione a escola.' }),
+      ...(form.disciplinaIds.length === 0 && { disciplinas: 'Selecione ao menos uma disciplina.' }),
+      ...(!form.pratica.trim() && { pratica: 'Descreva a prática pedagógica.' }),
+    };
+    setFieldErrors(problems);
+    if (Object.keys(problems).length > 0) return;
     const data = {
       nome: form.nome.trim(), escola_id: Number(form.escolaId), pratica_pedagogica: form.pratica.trim(),
       ativo: form.ativo, p_disciplina_ids: form.disciplinaIds,
@@ -96,6 +108,15 @@ export default function ProfessoresPanel() {
   // Disciplina inativa já vinculada continua marcável para não sumir da edição.
   const disciplinaOptions = disciplinas.items.filter(item => item.ativo || form?.disciplinaIds.includes(item.id));
 
+  function change(next: Partial<ProfessorForm>, campo: CampoProfessor) {
+    setForm(current => current && { ...current, ...next });
+    setFieldErrors(current => ({ ...current, [campo]: undefined }));
+  }
+  const invalid = (campo: CampoProfessor) => fieldErrors[campo]
+    ? { 'aria-invalid': true, 'aria-describedby': `${id}-${campo}-erro` } : {};
+  const fieldError = (campo: CampoProfessor) => fieldErrors[campo]
+    && <p id={`${id}-${campo}-erro`} role="alert" className="text-xs text-red-700 dark:text-red-300">{fieldErrors[campo]}</p>;
+
   return (
     <section aria-labelledby={`${id}-heading`} className={panelClass}>
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -104,7 +125,7 @@ export default function ProfessoresPanel() {
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Gerenciamento editorial do corpo docente: professores ministrantes no estúdio SEDUC e mediadores presenciais nas salas de aula de Rondônia. O município exibido no site vem da escola. Cada ação exige permissão do seu perfil.</p>
         </div>
         <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
-          setForm(EMPTY_FORM); action.setError(null); action.setSuccess(null);
+          setForm(EMPTY_FORM); setFieldErrors({}); action.setError(null); action.setSuccess(null);
         }}>Novo professor</button>
       </header>
 
@@ -131,49 +152,65 @@ export default function ProfessoresPanel() {
       </div>}
       {renderFeedback(action.error, action.success)}
 
-      {form && <form onSubmit={save} aria-label={form.id ? 'Editar professor' : 'Criar professor'} className="space-y-4 border-y border-slate-200 dark:border-slate-800 py-4">
+      {form && <form onSubmit={save} noValidate aria-label={form.id ? 'Editar professor' : 'Criar professor'} className="space-y-4 border-y border-slate-200 dark:border-slate-800 py-4">
         <fieldset disabled={action.busy} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor={`${id}-nome`} className={labelClass}>Nome (obrigatório)</label>
-            <input id={`${id}-nome`} name="professor-nome" required value={form.nome} className={inputClass} onChange={event => setForm({ ...form, nome: event.target.value })} />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <fieldset className={sectionClass}>
+            <legend className={legendClass}>Dados</legend>
             <div className="space-y-1.5">
-              <label htmlFor={`${id}-cidade`} className={labelClass}>Município (só filtra as escolas)</label>
-              <select id={`${id}-cidade`} name="professor-cidade" value={form.cidadeId} className={inputClass} onChange={event => setForm({ ...form, cidadeId: event.target.value, escolaId: '' })}>
-                <option value="">Todos os municípios</option>
-                {escolas.cidades.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
-              </select>
+              <label htmlFor={`${id}-nome`} className={labelClass}>Nome (obrigatório)</label>
+              <input id={`${id}-nome`} name="professor-nome" required value={form.nome} className={inputClass} {...invalid('nome')} onChange={event => change({ nome: event.target.value }, 'nome')} />
+              {fieldError('nome')}
             </div>
-            <div className="space-y-1.5">
-              <label htmlFor={`${id}-escola`} className={labelClass}>Escola (obrigatório)</label>
-              <select id={`${id}-escola`} name="professor-escola" required value={form.escolaId} disabled={escolas.loading} className={inputClass} onChange={event => setForm({ ...form, escolaId: event.target.value })}>
-                <option value="">{escolas.loading ? 'Carregando escolas...' : 'Selecione a escola'}</option>
-                {escolas.escolas.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
-              </select>
-              {escolas.error && <p role="alert" className="text-xs text-red-700 dark:text-red-300">{escolas.error}</p>}
+            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
+              <input name="professor-ativo" type="checkbox" checked={form.ativo} onChange={event => setForm({ ...form, ativo: event.target.checked })} /> Ativo (inativo some do site)
+            </label>
+          </fieldset>
+
+          <fieldset className={sectionClass}>
+            <legend className={legendClass}>Escola</legend>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label htmlFor={`${id}-cidade`} className={labelClass}>Município (só filtra as escolas)</label>
+                <select id={`${id}-cidade`} name="professor-cidade" value={form.cidadeId} className={inputClass} onChange={event => setForm({ ...form, cidadeId: event.target.value, escolaId: '' })}>
+                  <option value="">Todos os municípios</option>
+                  {escolas.cidades.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor={`${id}-escola`} className={labelClass}>Escola (obrigatório)</label>
+                <select id={`${id}-escola`} name="professor-escola" required value={form.escolaId} disabled={escolas.loading} className={inputClass} {...invalid('escola')} onChange={event => change({ escolaId: event.target.value }, 'escola')}>
+                  <option value="">{escolas.loading ? 'Carregando escolas...' : 'Selecione a escola'}</option>
+                  {escolas.escolas.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}
+                </select>
+                {fieldError('escola')}
+                {escolas.error && <p role="alert" className="text-xs text-red-700 dark:text-red-300">{escolas.error}</p>}
+              </div>
             </div>
-          </div>
-          <div className="space-y-1.5">
-            <label htmlFor={`${id}-pratica`} className={labelClass}>Prática pedagógica (obrigatório)</label>
-            <textarea id={`${id}-pratica`} name="professor-pratica" required rows={3} value={form.pratica} className={inputClass} onChange={event => setForm({ ...form, pratica: event.target.value })} />
-          </div>
-          <fieldset className="space-y-2">
-            <legend className={labelClass}>Disciplinas (ao menos uma)</legend>
+          </fieldset>
+
+          <fieldset className={sectionClass}>
+            <legend className={legendClass}>Disciplinas (ao menos uma)</legend>
             {disciplinas.error && <p role="alert" className="text-xs text-red-700 dark:text-red-300">{disciplinas.error}</p>}
-            <div className="flex flex-wrap gap-3">
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {disciplinaOptions.map(item => <label key={item.id} className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-                <input name={`professor-disciplina-${item.id}`} type="checkbox" checked={form.disciplinaIds.includes(item.id)} onChange={event => setForm({
-                  ...form,
+                <input name={`professor-disciplina-${item.id}`} type="checkbox" checked={form.disciplinaIds.includes(item.id)} onChange={event => change({
                   disciplinaIds: event.target.checked ? [...form.disciplinaIds, item.id] : form.disciplinaIds.filter(value => value !== item.id),
-                })} /> {item.nome}
+                }, 'disciplinas')} /> {item.nome}
               </label>)}
               {!disciplinas.loading && disciplinaOptions.length === 0 && <p className="text-xs text-slate-600 dark:text-slate-400">Cadastre uma disciplina ativa em Disciplinas.</p>}
             </div>
+            {fieldError('disciplinas')}
           </fieldset>
-          <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
-            <input name="professor-ativo" type="checkbox" checked={form.ativo} onChange={event => setForm({ ...form, ativo: event.target.checked })} /> Ativo (inativo some do site)
-          </label>
+
+          <fieldset className={sectionClass}>
+            <legend className={legendClass}>Prática pedagógica</legend>
+            <div className="space-y-1.5">
+              <label htmlFor={`${id}-pratica`} className={labelClass}>Descrição mostrada no card do site (obrigatório)</label>
+              <textarea id={`${id}-pratica`} name="professor-pratica" required rows={4} value={form.pratica} className={inputClass} {...invalid('pratica')} onChange={event => change({ pratica: event.target.value }, 'pratica')} />
+              {fieldError('pratica')}
+            </div>
+          </fieldset>
+
           <div className="flex flex-wrap gap-2">
             <button type="submit" className={buttonClass}>{action.busy ? 'Salvando...' : 'Salvar professor'}</button>
             <button type="button" className={buttonClass} onClick={() => setForm(null)}>Cancelar</button>
