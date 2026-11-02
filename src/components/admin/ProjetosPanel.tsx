@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useId, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useCallback, useEffect, useId, useState, type ChangeEvent, type FormEvent } from 'react';
 import { getMediaUrl, medtecApi, type ModeracaoStatus, type PjAnexo, type PjMembro, type PjProjeto, type PjProjetoMembro, type PjTema } from '@/lib/api';
 import { isHttpsUrl, validateConquistaImage } from '@/lib/community-content';
 import { diffProjetoMembros, formatFileSize, getProjetoImageSrc, hasMembroDuplicado, PROJETO_ANEXO_ACCEPT, validateProjetoAnexo, type MembroDraft } from '@/lib/projetos-content';
+import FileButton from './FileButton';
 import ProjetoMembrosEditor from './ProjetoMembrosEditor';
 import {
   buttonClass,
@@ -21,6 +22,7 @@ import {
   useEscolaOptions,
   type ModeracaoAction,
 } from './communityAdminUi';
+import { notifyProjetosPendentes } from './useProjetosPendentes';
 
 interface ProjetoForm {
   id?: number;
@@ -29,8 +31,8 @@ interface ProjetoForm {
   temaId: string;
   cidadeId: string;
   escolaId: string;
-  imagemModo: 'upload' | 'link';
   imagem: File | null;
+  imagemPreview: string;
   imagemUrl: string;
   imagemUrlOriginal: string;
   imagemAtual: string;
@@ -38,11 +40,13 @@ interface ProjetoForm {
   anexosNovos: File[];
   membros: MembroDraft[];
   membrosOriginais: PjProjetoMembro[];
+  capaErro: string | null;
+  anexosErro: string | null;
 }
 
 const EMPTY_FORM: ProjetoForm = {
-  titulo: '', relato: '', temaId: '', cidadeId: '', escolaId: '', imagemModo: 'upload', imagem: null, imagemUrl: '',
-  imagemUrlOriginal: '', imagemAtual: '', anexosAtuais: [], anexosNovos: [], membros: [], membrosOriginais: [],
+  titulo: '', relato: '', temaId: '', cidadeId: '', escolaId: '', imagem: null, imagemPreview: '', imagemUrl: '',
+  imagemUrlOriginal: '', imagemAtual: '', anexosAtuais: [], anexosNovos: [], membros: [], membrosOriginais: [], capaErro: null, anexosErro: null,
 };
 const readTemas = (signal: AbortSignal) => medtecApi.temasProjeto.list({ page: 'all' }, signal);
 const readMembros = (signal: AbortSignal) => medtecApi.membrosProjeto.list({ page: 'all' }, signal);
@@ -72,6 +76,10 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
   const escolasForm = useEscolaOptions(form?.cidadeId ?? '');
   const action = useAdminAction();
   const blocked = action.busy || form !== null || deleting !== null;
+  const imagemPreview = form?.imagemPreview;
+
+  // A prévia do arquivo escolhido é local: a URL é liberada ao trocar a escolha ou fechar o formulário.
+  useEffect(() => () => { if (imagemPreview) URL.revokeObjectURL(imagemPreview); }, [imagemPreview]);
 
   function updateFilters(next: Partial<typeof filters>) {
     setFilters(current => ({ ...current, ...next }));
@@ -83,20 +91,28 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
       const value = await medtecApi.projetos.get(item.id);
       setForm({
         ...EMPTY_FORM, id: value.id, titulo: value.titulo, relato: value.relato, temaId: String(value.pj_tema_id), escolaId: String(value.escola_id),
-        imagemModo: value.imagem_url ? 'link' : 'upload', imagemUrl: value.imagem_url ?? '', imagemUrlOriginal: value.imagem_url ?? '', imagemAtual: getProjetoImageSrc(value),
+        imagemUrl: value.imagem_url ?? '', imagemUrlOriginal: value.imagem_url ?? '', imagemAtual: getProjetoImageSrc(value),
         anexosAtuais: value.anexos, membrosOriginais: value.membros,
         membros: value.membros.map(({ pj_membro_id, nome, cpf, funcao }) => ({ pj_membro_id, nome, cpf, funcao })),
       });
     });
   }
 
+  // Arquivo e link são alternativos: escolher um descarta o outro.
   function chooseImage(event: ChangeEvent<HTMLInputElement>) {
     if (!form) return;
-    const file = event.target.files?.[0] ?? null;
-    const problem = file ? validateConquistaImage(file) : null;
-    action.setError(problem);
-    if (problem) event.target.value = '';
-    setForm({ ...form, imagem: problem ? null : file });
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const problem = validateConquistaImage(file);
+    if (problem) { setForm({ ...form, capaErro: problem }); return; }
+    setForm({ ...form, imagem: file, imagemPreview: URL.createObjectURL(file), imagemUrl: '', capaErro: null });
+  }
+
+  // Desfaz só a escolha ainda não salva: a capa atual continua no projeto.
+  function removeCapaEscolhida() {
+    if (!form) return;
+    setForm({ ...form, imagem: null, imagemPreview: '', imagemUrl: form.imagemUrlOriginal, capaErro: null });
   }
 
   function chooseAnexos(event: ChangeEvent<HTMLInputElement>) {
@@ -104,8 +120,7 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
     const files = Array.from(event.target.files ?? []);
     const problems = files.map(validateProjetoAnexo).filter(Boolean);
     const known = (file: File) => form.anexosNovos.some(item => item.name === file.name && item.size === file.size);
-    action.setError(problems.length > 0 ? problems.join(' ') : null);
-    setForm({ ...form, anexosNovos: [...form.anexosNovos, ...files.filter(file => !validateProjetoAnexo(file) && !known(file))] });
+    setForm({ ...form, anexosErro: problems.length > 0 ? problems.join(' ') : null, anexosNovos: [...form.anexosNovos, ...files.filter(file => !validateProjetoAnexo(file) && !known(file))] });
     event.target.value = '';
   }
 
@@ -116,15 +131,15 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
       action.setError('Informe título, relato, tema e escola.');
       return;
     }
-    const imagemUrl = form.imagemModo === 'link' ? form.imagemUrl.trim() : '';
+    const imagemUrl = form.imagemUrl.trim();
     if (imagemUrl && !isHttpsUrl(imagemUrl)) { action.setError('Informe um link HTTPS válido para a capa.'); return; }
     if (form.membros.some(item => !item.funcao.trim())) { action.setError('Informe a função de cada membro.'); return; }
     if (hasMembroDuplicado(form.membros)) { action.setError('O mesmo membro foi informado mais de uma vez.'); return; }
     // O link só vai quando muda; escolher um arquivo limpa o link antigo.
-    const trocaLink = imagemUrl !== form.imagemUrlOriginal && (form.imagemModo === 'link' || form.imagem);
+    const trocaLink = imagemUrl !== form.imagemUrlOriginal;
     const data = {
       titulo: form.titulo.trim(), relato: form.relato.trim(), pj_tema_id: Number(form.temaId), escola_id: Number(form.escolaId),
-      imagem: form.imagemModo === 'upload' && form.imagem ? form.imagem : undefined,
+      imagem: form.imagem ?? undefined,
       imagem_url: trocaLink ? imagemUrl : undefined,
       anexos: form.anexosNovos,
       pj_projeto_membros_attributes: diffProjetoMembros(form.membrosOriginais, form.membros),
@@ -133,7 +148,7 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
       const value = form.id ? await medtecApi.projetos.update(form.id, data) : await medtecApi.projetos.create(data);
       return `Projeto salvo. Situação: ${value.status_nome}.`;
     });
-    if (saved) { setForm(null); reload(); }
+    if (saved) { setForm(null); reload(); notifyProjetosPendentes(); }
   }
 
   async function removeAnexo() {
@@ -153,7 +168,7 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
       await medtecApi.projetos[operation](item.id);
       return operation === 'publicar' ? 'Projeto publicado.' : operation === 'reprovar' ? 'Projeto reprovado.' : 'Projeto retirado do site.';
     });
-    if (done) reload();
+    if (done) { reload(); notifyProjetosPendentes(); }
   }
 
   async function remove() {
@@ -164,12 +179,16 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
     });
     setDeleting(null);
     if (removed) {
+      notifyProjetosPendentes();
       if (items.length === 1 && page > 1) setPage(page - 1);
       else reload();
     }
   }
 
   const temaOptions = temas.items.filter(item => item.ativo || String(item.id) === form?.temaId);
+  const linkEscolhido = form?.imagemUrl.trim() ?? '';
+  const linkMudou = !!form && !form.imagem && linkEscolhido !== form.imagemUrlOriginal;
+  const novaCapa = form?.imagemPreview || (linkMudou && isHttpsUrl(linkEscolhido) ? linkEscolhido : '');
 
   return (
     <section aria-labelledby={`${id}-heading`} className={panelClass}>
@@ -263,21 +282,29 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
 
           <fieldset className="space-y-2">
             <legend className={labelClass}>Capa (opcional)</legend>
-            <div className="flex flex-wrap gap-4 text-sm text-slate-700 dark:text-slate-200">
-              <label className="flex items-center gap-2"><input type="radio" name="projeto-imagem-modo" value="upload" checked={form.imagemModo === 'upload'} onChange={() => setForm({ ...form, imagemModo: 'upload' })} /> Enviar arquivo</label>
-              <label className="flex items-center gap-2"><input type="radio" name="projeto-imagem-modo" value="link" checked={form.imagemModo === 'link'} onChange={() => setForm({ ...form, imagemModo: 'link', imagem: null })} /> Usar link</label>
+            <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-center">
+              <FileButton name="projeto-imagem" accept="image/png,image/jpeg,image/webp" onChange={chooseImage}>Escolher imagem</FileButton>
+              <input name="projeto-imagem-url" type="url" aria-label="Link da capa" placeholder="Ou cole um link https://..." value={form.imagemUrl} className={inputClass} onChange={event => setForm({ ...form, imagem: null, imagemPreview: '', imagemUrl: event.target.value, capaErro: null })} />
             </div>
-            {form.imagemModo === 'upload'
-              ? <input name="projeto-imagem" type="file" accept="image/png,image/jpeg,image/webp" aria-label="Arquivo da capa (PNG, JPG ou WEBP, até 5 MB)" className="block text-sm text-slate-700 dark:text-slate-200" onChange={chooseImage} />
-              : <input name="projeto-imagem-url" type="url" aria-label="Link da capa" placeholder="https://..." value={form.imagemUrl} className={inputClass} onChange={event => setForm({ ...form, imagemUrl: event.target.value })} />}
             <p className="text-xs text-slate-600 dark:text-slate-400">PNG, JPG ou WEBP, até 5 MB, ou link HTTPS.</p>
-            {form.imagemAtual && <Image unoptimized src={form.imagemAtual} alt="Capa atual do projeto" width={160} height={90} className="rounded-lg object-cover" />}
+            {form.capaErro && <p role="alert" className="text-xs text-red-700 dark:text-red-300">{form.capaErro}</p>}
+            {linkEscolhido && !isHttpsUrl(linkEscolhido) && <p className="text-xs text-red-700 dark:text-red-300">A prévia só aparece com um link HTTPS válido.</p>}
+            {novaCapa
+              ? <figure className="space-y-1">
+                <Image unoptimized src={novaCapa} alt="Prévia da nova capa" width={160} height={90} className="rounded-lg object-cover" />
+                <figcaption className="break-all text-xs text-slate-600 dark:text-slate-400">{form.imagem ? `${form.imagem.name} (${formatFileSize(form.imagem.size)}). ` : ''}Prévia: a capa só muda ao salvar o projeto.</figcaption>
+              </figure>
+              : form.imagemAtual && <Image unoptimized src={form.imagemAtual} alt="Capa atual do projeto" width={160} height={90} className="rounded-lg object-cover" />}
+            {(form.imagem || linkMudou) && <button type="button" className={buttonClass} onClick={removeCapaEscolhida}>Remover escolha</button>}
           </fieldset>
 
           <fieldset className="space-y-2">
             <legend className={labelClass}>Anexos (opcional)</legend>
-            <input name="projeto-anexos" type="file" multiple accept={PROJETO_ANEXO_ACCEPT} aria-label="Arquivos anexos (PDF, Word, Excel, PowerPoint ou imagens, até 10 MB cada)" className="block text-sm text-slate-700 dark:text-slate-200" onChange={chooseAnexos} />
+            <div>
+              <FileButton name="projeto-anexos" multiple accept={PROJETO_ANEXO_ACCEPT} onChange={chooseAnexos}>Adicionar arquivos</FileButton>
+            </div>
             <p className="text-xs text-slate-600 dark:text-slate-400">PDF, Word, Excel, PowerPoint, PNG, JPG ou WEBP, até 10 MB cada.{form.id ? ' Os novos se somam aos atuais.' : ''}</p>
+            {form.anexosErro && <p role="alert" className="text-xs text-red-700 dark:text-red-300">{form.anexosErro}</p>}
             {form.anexosAtuais.length > 0 && <ul aria-label="Anexos atuais" className="divide-y divide-slate-200 dark:divide-slate-800">
               {form.anexosAtuais.map(item => <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                 <a href={getMediaUrl(item.url)} target="_blank" rel="noopener noreferrer" className="min-w-0 break-all text-slate-900 underline dark:text-white">{item.nome} ({formatFileSize(item.tamanho)})</a>

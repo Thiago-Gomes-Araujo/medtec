@@ -4,6 +4,7 @@ import React, { useState, useImperativeHandle } from 'react';
 import { Newspaper, Plus, ArrowLeft, Save, Upload, Eye, Edit3, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import type { NewsItem } from '@/types';
 import { ApiError, medtecApi, type NCategoriaNoticia } from '@/lib/api';
+import FileButton from './FileButton';
 import AdminLiveSimulator, { type PreviewContentType, type PreviewItemData } from '@/components/AdminLiveSimulator';
 
 export interface NewsModuleHandle {
@@ -22,7 +23,6 @@ interface NewsModuleProps {
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
-  initialNew?: boolean;
   initialEditingNews?: NewsItem;
   onEditNavigation?: (id: string) => void;
   newsViewMode: 'lista' | 'editor';
@@ -34,7 +34,7 @@ interface NewsModuleProps {
 
 export default function NewsModule({ ref, effectiveNews, apiNewsCategories, loadingNews, errorNews,
   userSession, canPublish, canUnpublish = canPublish, canCreate = false, canEdit = false,
-  canDelete = false, initialNew = false, initialEditingNews, onEditNavigation, newsViewMode, setNewsViewMode, onRefresh: loadApiData,
+  canDelete = false, initialEditingNews, onEditNavigation, newsViewMode, setNewsViewMode, onRefresh: loadApiData,
   onTogglePublished: handleTogglePublished, onPreview: setPreviewModal }: NewsModuleProps) {
   const [newsFolder, setNewsFolder] = useState('Todas');
   const [saving, setSaving] = useState(false);
@@ -50,11 +50,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
     coverImage: '',
     excerpt: '',
     content: '',
-    featured: false,
-    urgent: false,
-    folder: 'Geral',
     published: false,
-    publishedAt: initialNew ? new Date().toLocaleDateString('en-CA') : '',
   });
 
   // Funções de Gestão de Notícias (/n_noticias)
@@ -90,9 +86,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
         if (newsForm.excerpt?.trim()) {
           formData.append('n_noticia[resumo]', newsForm.excerpt.trim());
         }
-        if (newsForm.publishedAt?.trim()) {
-          formData.append('n_noticia[data_publicacao]', newsForm.publishedAt.trim());
-        }
         formData.append('n_noticia[imagem_capa]', newsCoverFile);
 
         if (editingNews && Number(editingNews.id)) {
@@ -107,7 +100,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
             conteudo: newsForm.content.trim(),
             n_categoria_noticia_id: catId,
             resumo: newsForm.excerpt?.trim() || undefined,
-            data_publicacao: newsForm.publishedAt?.trim() || undefined,
             // Omitir preserva o anexo; reenviar sua URL pode apagá-lo no Rails.
             imagem_capa_url: newsCoverUrl.trim() && newsCoverUrl.trim() !== editingNews?.coverImage?.trim()
               ? newsCoverUrl.trim() : undefined,
@@ -135,11 +127,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
         coverImage: '',
         excerpt: '',
         content: '',
-        featured: false,
-        urgent: false,
-        folder: 'Geral',
         published: false,
-        publishedAt: '',
       });
       setNewsFolder('Todas');
       setNewsViewMode('lista');
@@ -201,11 +189,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
       coverImage: '',
       excerpt: '',
       content: '',
-      featured: false,
-      urgent: false,
-      folder: 'Geral',
       published: false,
-      publishedAt: new Date().toISOString().slice(0, 10),
     });
     if (apiNewsCategories.length > 0) {
       setSelectedNewsCategoriaId(apiNewsCategories[0].id);
@@ -218,13 +202,18 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
   );
   const publishedCount = effectiveNews.filter(n => n.published).length;
   const draftCount = effectiveNews.filter(n => !n.published && !n.rejected).length;
+  // Salvar nunca publica: a API deixa a notícia aguardando até alguém acionar "Publicar".
+  const saveOutcome = editingNews?.published
+    ? 'A notícia continua publicada e as alterações vão para o site.'
+    : canPublish
+      ? 'A notícia fica aguardando aprovação. Para colocá-la no site, use o botão "Publicar" na lista.'
+      : 'A notícia vai para aprovação antes de aparecer no site.';
 
   // Keep dashboard shortcuts and drafts working while switching sections.
   useImperativeHandle(ref, () => ({ newNews: handleNewNews }));
 
   return (
         <div className="space-y-6">
-          <p className="text-xs text-slate-500 dark:text-slate-400">Pasta, destaque e urgência estão indisponíveis: não possuem persistência no contrato oficial da API.</p>
           {loadingNews && (
             <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-3" role="status">
               <Loader2 className="h-6 w-6 animate-spin text-[#004A99] dark:text-sky-400" />
@@ -324,11 +313,7 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                     coverImage: '',
                     excerpt: '',
                     content: '',
-                    featured: false,
-                    urgent: false,
-                    folder: 'Geral',
                     published: true,
-                    publishedAt: '',
                   });
                   setNewsViewMode('lista');
                 }}
@@ -401,36 +386,12 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Pasta no Painel
-                      </label>
-                      <input
-                        type="text"
-                        list="pastas-noticias"
-                        disabled
-                        title="Sem persistência no contrato Rails; agrupamento da lista usa a categoria."
-                        value={newsForm.folder || ''}
-                        onChange={(e) => setNewsForm({ ...newsForm, folder: e.target.value })}
-                        placeholder="Ex: Institucional, Eventos, Interior"
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
-                      />
-                      <datalist id="pastas-noticias">
-                        {newsFolders.map((folder) => (
-                          <option key={folder} value={folder} />
-                        ))}
-                      </datalist>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Fluxo Editorial do Backend
-                      </label>
-                      <div className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 text-xs font-medium text-slate-600 dark:text-slate-400">
-                        {editingNews
-                          ? 'Ao salvar edições, a situação é reavaliada pelo backend.'
-                          : 'Novas notícias entram em "Aguardando aprovação" até publicação.'}
-                      </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      O que acontece ao salvar
+                    </label>
+                    <div className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 text-xs font-medium text-slate-600 dark:text-slate-400">
+                      {saveOutcome}
                     </div>
                   </div>
                 </div>
@@ -449,26 +410,23 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                       <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
                         1. Fazer upload do computador (multipart):
                       </span>
-                      <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-[#060D1A] border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#004A99] rounded-xl cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-[#004A99] transition">
+                      <FileButton
+                        name="imagem_capa"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setNewsCoverFile(file);
+                            setNewsCoverUrl('');
+                            setNewsForm(prev => ({ ...prev, coverImage: URL.createObjectURL(file) }));
+                          }
+                        }}
+                      >
                         <Upload size={16} />
                         <span className="truncate max-w-[200px]">
                           {newsCoverFile ? newsCoverFile.name : 'Escolher foto do PC'}
                         </span>
-                        <input
-                          type="file"
-                          name="imagem_capa"
-                          accept="image/png,image/jpeg,image/webp"
-                          onChange={e => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              setNewsCoverFile(file);
-                              setNewsCoverUrl('');
-                              setNewsForm(prev => ({ ...prev, coverImage: URL.createObjectURL(file) }));
-                            }
-                          }}
-                          className="hidden"
-                        />
-                      </label>
+                      </FileButton>
                     </div>
 
                     <div>
@@ -559,65 +517,20 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Autor da Publicação
-                      </label>
-                      <input
-                        type="text"
-                        disabled
-                        readOnly
-                        value={userSession.name || 'Usuário Autenticado'}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm cursor-not-allowed"
-                      />
-                      <span className="text-[10px] text-slate-400 mt-0.5 block">
-                        Definido automaticamente pela API a partir da conta logada.
-                      </span>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Data de Publicação
-                      </label>
-                      <input
-                        type="date"
-                        value={newsForm.publishedAt}
-                        onChange={e => setNewsForm({ ...newsForm, publishedAt: e.target.value })}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[#060D1A] text-slate-900 dark:text-slate-100 text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-4 pt-1">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="featured"
-                        disabled
-                        title="Sem persistência no contrato Rails"
-                        checked={!!newsForm.featured}
-                        onChange={e => setNewsForm({ ...newsForm, featured: e.target.checked })}
-                        className="rounded text-[#004A99] focus:ring-[#004A99] h-4 w-4"
-                      />
-                      <label htmlFor="featured" className="text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer">
-                        Destacar na página inicial
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="urgent"
-                        disabled
-                        title="Sem persistência no contrato Rails"
-                        checked={!!newsForm.urgent}
-                        onChange={e => setNewsForm({ ...newsForm, urgent: e.target.checked })}
-                        className="rounded text-rose-600 focus:ring-rose-500 h-4 w-4"
-                      />
-                      <label htmlFor="urgent" className="text-xs font-semibold text-rose-700 dark:text-rose-400 cursor-pointer">
-                        Marcar como urgência
-                      </label>
-                    </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Autor da Publicação
+                    </label>
+                    <input
+                      type="text"
+                      disabled
+                      readOnly
+                      value={userSession.name || 'Usuário Autenticado'}
+                      className="w-full px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm cursor-not-allowed"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">
+                      Definido automaticamente pela API a partir da conta logada.
+                    </span>
                   </div>
 
                   <div className="pt-2">
@@ -645,8 +558,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                   author: newsForm.author || '',
                   category: newsForm.category || 'Pedagógico',
                   publishedAt: newsForm.publishedAt || new Date().toLocaleDateString('pt-BR'),
-                  featured: !!newsForm.featured,
-                  urgent: !!newsForm.urgent,
                   published: newsForm.published !== false,
                 }}
                 hasUnsavedChanges={
@@ -668,8 +579,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                     author: newsForm.author || '',
                     category: newsForm.category || 'Pedagógico',
                     publishedAt: newsForm.publishedAt || new Date().toLocaleDateString('pt-BR'),
-                    featured: !!newsForm.featured,
-                    urgent: !!newsForm.urgent,
                     published: newsForm.published !== false,
                   },
                 })}
@@ -781,16 +690,6 @@ export default function NewsModule({ ref, effectiveNews, apiNewsCategories, load
                                     <span className="text-[11px] text-slate-400 font-medium">
                                       {item.publishedAt}
                                     </span>
-                                    {item.featured && (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300">
-                                        Destaque
-                                      </span>
-                                    )}
-                                    {item.urgent && (
-                                      <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300">
-                                        Urgente
-                                      </span>
-                                    )}
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
                                       item.rejected
                                         ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300'

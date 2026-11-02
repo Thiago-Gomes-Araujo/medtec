@@ -9,6 +9,7 @@ import type { AdminSection } from '@/lib/admin-navigation';
 const SECTION_BY_PATH: Record<string, AdminSection> = {
   '/admin/projetos/temas': 'projetosTemas',
   '/admin/projetos/membros': 'projetosMembros',
+  '/admin/projetos/aprovacao': 'projetosAprovacao',
 };
 
 // O shell e as abas persistem entre as subrotas; a guarda do shell só libera a página depois da sessão.

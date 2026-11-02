@@ -20,6 +20,7 @@ import {
   CategoriaGaleria,
   getMediaUrl,
 } from '@/lib/api';
+import FileButton from './FileButton';
 import AdminLiveSimulator, { PreviewGalleryData } from '@/components/AdminLiveSimulator';
 
 export interface GalleryModuleProps {
@@ -604,22 +605,19 @@ export default function GalleryModule({
                     <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">
                       Opção A: Upload de arquivo do computador (`File`)
                     </span>
-                    <label className="flex flex-col items-center justify-center gap-1.5 px-4 py-3 bg-white dark:bg-[#060D1A] border border-dashed border-slate-300 dark:border-slate-700 hover:border-[#004A99] rounded-xl cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-[#004A99] transition">
-                      <Upload size={18} />
-                      <span>{galleryFile ? `Arquivo: ${galleryFile.name}` : 'Selecionar Imagem do Computador'}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={e => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setGalleryFile(file);
-                            setGalleryForm(prev => ({ ...prev, imageUrl: URL.createObjectURL(file) }));
-                          }
-                        }}
-                        className="hidden"
-                      />
-                    </label>
+                    <FileButton
+                      accept="image/*"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setGalleryFile(file);
+                          setGalleryForm(prev => ({ ...prev, imageUrl: URL.createObjectURL(file) }));
+                        }
+                      }}
+                    >
+                      <Upload size={16} />
+                      <span className="break-all">{galleryFile ? `Arquivo: ${galleryFile.name}` : 'Selecionar Imagem do Computador'}</span>
+                    </FileButton>
                     {galleryFile && (
                       <div className="mt-1 flex items-center justify-between text-[11px] text-emerald-600 dark:text-emerald-400">
                         <span>Pronto para upload em multipart/form-data</span>

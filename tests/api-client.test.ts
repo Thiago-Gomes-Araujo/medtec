@@ -5,7 +5,7 @@
 
 import { describe, it, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import { ModuleKind, transpileModule } from 'typescript';
 import nextConfig from '../next.config';
@@ -31,6 +31,7 @@ import { createRoot } from 'react-dom/client';
 import { AppRouterContext } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { PathnameContext, SearchParamsContext } from 'next/dist/shared/lib/hooks-client-context.shared-runtime';
 import AdminFaqSubroutePage from '../src/app/admin/faq/page';
+import AdminFaqPublicoPage from '../src/app/admin/faq/publico/page';
 import AdminProjetosLayout from '../src/app/admin/projetos/layout';
 import TemasProjetoPanel from '../src/components/admin/TemasProjetoPanel';
 import MembrosProjetoPanel from '../src/components/admin/MembrosProjetoPanel';
@@ -41,6 +42,7 @@ import MobileDrawerFooter, { type MobileDrawerFooterProps } from '../src/compone
 import NextImage from 'next/image';
 import NextLink from 'next/link';
 import { ExternalLink, LogOut } from 'lucide-react';
+import { adminCardClass, adminCountBadgeClass, adminPrimaryButtonClass, adminSecondaryButtonClass, adminTonalCardActionClass, adminTonalLinkClass, sidebarBadgeClass, sidebarFolderClass, sidebarIconButtonClass, sidebarIconClass, sidebarItemClass, sidebarPortalLinkClass } from '../src/components/admin/adminTheme';
 import {
   ADMIN_STATIC_TAB_ALIASES,
   ADMIN_STATIC_ROUTE_ALIASES,
@@ -53,7 +55,6 @@ import SidebarNavItem, { type SidebarNavItemProps } from '../src/components/admi
 import SidebarFolderAccordion, { type SidebarFolderAccordionProps, type NavFolderDef } from '../src/components/admin/SidebarFolderAccordion';
 import AdminOverview, { type AdminOverviewProps } from '../src/components/admin/AdminOverview';
 import type { OverviewStatsIndicators } from '../src/components/admin/OverviewStats';
-import OverviewStats from '../src/components/admin/OverviewStats';
 import EditorialKanban from '../src/components/EditorialKanban';
 import UserManager from '../src/components/UserManager';
 import BannersPanel from '../src/components/admin/BannersPanel';
@@ -76,14 +77,21 @@ import FaqSection from '../src/components/FaqSection';
 import DuvidaCategoriesManager from '../src/components/admin/DuvidaCategoriesManager';
 import type { DCategoriaDuvida, DDuvida, DDuvidaInput } from '../src/lib/api/types';
 import type { BannerPublico, DDuvidaVisitante, PjProjetoInput, PjProjetoMembro } from '../src/lib/api/types';
-import { diffProjetoMembros, formatCpf, formatFileSize, getProjetoImageSrc, hasMembroDuplicado, isValidCpf, maskCpf, PROJETO_ANEXO_MAX_BYTES, validateProjetoAnexo } from '../src/lib/projetos-content';
+import { diffProjetoMembros, formatCpf, formatFileSize, getProjetoImageSrc, hasMembroDuplicado, isValidCpf, maskCpf, PROJETO_ANEXO_ACCEPT, PROJETO_ANEXO_MAX_BYTES, validateProjetoAnexo } from '../src/lib/projetos-content';
 import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput } from '../src/lib/api/types';
 import ProjetosPanel from '../src/components/admin/ProjetosPanel';
 import ProjetoMembrosEditor from '../src/components/admin/ProjetoMembrosEditor';
+import FileButton from '../src/components/admin/FileButton';
+import MembroCadastroModal from '../src/components/admin/MembroCadastroModal';
 import ProjetosApprovalQueue from '../src/components/admin/ProjetosApprovalQueue';
+import ProjetosAprovacaoPanel from '../src/components/admin/ProjetosAprovacaoPanel';
+import AdminProjetosAprovacaoPage from '../src/app/admin/projetos/aprovacao/page';
+import { useProjetosPendentes, notifyProjetosPendentes } from '../src/components/admin/useProjetosPendentes';
+import { useRelatosPendentes, notifyRelatosPendentes } from '../src/components/admin/useRelatosPendentes';
+import { useAprovacoesPendentes, notifyAprovacoesPendentes } from '../src/components/admin/useAprovacoesPendentes';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
-import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
+import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, getActiveMenuSection, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
 import { useAdminTheme } from '../src/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '../src/lib/admin-navigation-filter';
 import type { FaqItem, NewsItem, SocialLinks } from '../src/types';
@@ -160,9 +168,9 @@ import StudentStories from '../src/components/StudentStories';
 import ProfessorDetalhePage from '../src/app/professores/[id]/page';
 import ProjetoDetalhePage, { generateMetadata as projetoMetadata } from '../src/app/projetos/[id]/page';
 import ProjetosView from '../src/components/ProjetosView';
-import HomeBannerCarousel from '../src/components/HomeBannerCarousel';
+import HomeHeroBackground from '../src/components/HomeHeroBackground';
 import { readHomeBanners } from '../src/lib/home-banners';
-import { CANAIS_PADRAO, canaisFromApi, YOUTUBE_URL_OFICIAL } from '../src/lib/site-channels';
+import { CANAIS_PADRAO, canaisFromApi, whatsappHref, YOUTUBE_URL_OFICIAL } from '../src/lib/site-channels';
 import { readSiteChannels } from '../src/lib/site-channels-server';
 import { SiteChannelsProvider } from '../src/components/SiteChannelsProvider';
 import { canAccessBanners } from '../src/lib/admin-session';
@@ -173,6 +181,7 @@ import {
   getNameInitials,
   isHttpsUrl,
   validateConquistaImage,
+  formatTelefone,
 } from '../src/lib/community-content';
 
 // Inclui dados fora do contrato Rails para caracterizar as comparações em
@@ -441,7 +450,7 @@ function AdminDashboardPage() {
 }
 
 describe('Contêiner compartilhado da sidebar desktop', () => {
-  const baseClasses = 'hidden lg:flex flex-col shrink-0 h-full bg-[#07152B] text-slate-200 border-r border-slate-800 select-none z-30 transition-all duration-300 ease-in-out';
+  const baseClasses = 'hidden lg:flex flex-col shrink-0 h-full bg-admin-surface text-admin-text border-r border-admin-border select-none z-30 transition-all duration-300 ease-in-out';
   type ContainerElementProps = { children?: ReactNode; className?: string; isCollapsed?: boolean; title?: string; onClick?: () => void };
   function elements(node: ReactNode): React.ReactElement<ContainerElementProps>[] {
     if (Array.isArray(node)) return node.flatMap(elements);
@@ -512,8 +521,8 @@ describe('Contêiner compartilhado da sidebar desktop', () => {
         assert.equal((html.match(/<aside\b/g) || []).length, 1);
         assert.ok(html.includes('<aside class="' + baseClasses + (isCollapsed ? ' w-20' : ' w-64') + '">'));
         const content = elements(containers[0].props.children);
-        assert.ok(content.some(node => node.props.className === 'flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-3 scrollbar-thin'));
-        assert.ok(content.some(node => node.props.className === 'shrink-0 border-t border-slate-800/80 p-3 space-y-2 bg-[#051021]'));
+        assert.ok(content.some(node => node.props.className === 'flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-4 scrollbar-thin'));
+        assert.ok(content.some(node => node.props.className === 'shrink-0 border-t border-admin-border p-3 space-y-2'));
         assert.ok(nodes.some(node => typeof node.props.className === 'string' && node.props.className.includes('fixed inset-0') && node.props.className.includes('lg:hidden')));
         const toggle = content.find(node => node.props.title === (isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'));
         assert.ok(toggle?.props.onClick);
@@ -534,26 +543,24 @@ describe('Rodapé compartilhado da gaveta mobile', () => {
   const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'mobile-footer-test' };
   const withRouter = (node: ReactNode) => createElement(AppRouterContext.Provider, { value: router },
     createElement(PathnameContext.Provider, { value: '/admin' }, node));
-  // Marcação idêntica à que existia inline nos dois consumidores antes da extração.
-  function originalFooter(userName: string | undefined, roleLabel: string, onLogout: () => void) {
-    return createElement('div', { className: 'shrink-0 border-t border-slate-800 p-3 space-y-2 bg-[#051021]' },
-      createElement(NextLink, { href: '/', target: '_blank', rel: 'noopener noreferrer',
-        className: 'flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white text-xs' },
-        createElement(ExternalLink, { className: 'h-3.5 w-3.5 text-sky-400' }),
-        createElement('span', null, 'Ver Portal Público')),
-      createElement('div', { className: 'pt-2 border-t border-slate-800 flex items-center justify-between' },
+  function expectedFooter(userName: string | undefined, roleLabel: string, onLogout: () => void) {
+    return createElement('div', { className: 'shrink-0 border-t border-admin-border p-3 space-y-2' },
+      createElement(NextLink, { href: '/', target: '_blank', rel: 'noopener noreferrer', className: sidebarPortalLinkClass },
+        createElement(ExternalLink, { className: 'h-3.5 w-3.5 shrink-0' }),
+        createElement('span', null, 'Ver o site')),
+      createElement('div', { className: 'pt-2 border-t border-admin-border flex items-center justify-between gap-2' },
         createElement('div', { className: 'min-w-0' },
-          createElement('p', { className: 'text-xs font-semibold text-white truncate' }, userName),
-          createElement('p', { className: 'text-[10px] text-slate-400' }, roleLabel)),
-        createElement('button', { type: 'button', onClick: onLogout, className: 'text-rose-400 p-1.5 cursor-pointer' },
+          createElement('p', { className: 'text-xs font-semibold text-admin-text truncate' }, userName),
+          createElement('p', { className: 'text-[11px] text-admin-muted' }, roleLabel)),
+        createElement('button', { type: 'button', onClick: onLogout, 'aria-label': 'Sair do painel', title: 'Sair do painel', className: sidebarIconButtonClass },
           createElement(LogOut, { className: 'h-4 w-4' }))));
   }
 
-  it('renderiza a mesma marcação, classes e textos do rodapé mobile original', () => {
+  it('renderiza o rodapé mobile com link do site, usuário e saída acessível', () => {
     const onLogout = () => {};
     for (const [userName, roleLabel] of [['Ana Gestora', 'Gestor Geral'], ['12345678900', 'Operador'], [undefined, 'Curador de Fotos']] as const) {
       const actual = renderToStaticMarkup(withRouter(createElement(MobileDrawerFooter, { userName, roleLabel, onLogout })));
-      const expected = renderToStaticMarkup(withRouter(originalFooter(userName, roleLabel, onLogout)));
+      const expected = renderToStaticMarkup(withRouter(expectedFooter(userName, roleLabel, onLogout)));
       assert.equal(actual, expected);
     }
   });
@@ -599,11 +606,10 @@ describe('Rodapé compartilhado da gaveta mobile', () => {
         assert.equal(nodes.filter(node => node.type === MobileDrawerFooter).length, 1);
         assert.equal(footers[0].props.userName, expected.userName);
         assert.equal(footers[0].props.roleLabel, expected.roleLabel);
-        const desktopLogout = nodes.find(node => node.props.title === (kind === 'page' ? 'Encerrar Sessão' : 'Sair do Sistema'));
+        const desktopLogout = nodes.find(node => node.props.title === 'Sair do painel');
         assert.ok(desktopLogout?.props.onClick);
         assert.strictEqual(footers[0].props.onLogout, desktopLogout.props.onClick);
-        assert.equal((html.match(/shrink-0 border-t border-slate-800 p-3 space-y-2 bg-\[#051021\]/g) || []).length, 1);
-        assert.equal((html.match(/shrink-0 border-t border-slate-800\/80 p-3 space-y-2 bg-\[#051021\]/g) || []).length, 1);
+        assert.equal((html.match(/shrink-0 border-t border-admin-border p-3 space-y-2/g) || []).length, 2, 'Rodapés do desktop e da gaveta');
         assert.equal(nodes.filter(node => node.type === DesktopSidebarContainer).length, 1);
       } finally { stateMock.mock.restore(); }
     }
@@ -1837,7 +1843,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
       assert.equal(page.session?.isGestor, true);
       assert.equal(page.loading, false);
-      assert.equal(page.overviewRequests.length, 14);
+      assert.equal(page.overviewRequests.length, 19);
       assert.equal(page.localRequests.length, 0);
       assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
@@ -1865,7 +1871,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.session?.profileType, fields.perfil_nome, label);
         assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected ? 14 : 0, label);
+        assert.equal(page.overviewRequests.length, expected ? (fields.perfil_nome === 'Administrador' ? 19 : 15) : 0, label);
         const profile = fields.perfil_nome;
         assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/galeria' }] : profile === 'Publicador de Avisos'
@@ -1906,7 +1912,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(reply.data, before, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? 14 : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? (expected.profileType === 'Administrador' ? 19 : 15) : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -1928,7 +1934,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(page.session, expected, `${source}: ${label}`);
         assert.deepEqual(input, data, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 14 : 9) : 0, label);
+        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? (expected.profileType === 'Administrador' ? 19 : 15) : 9) : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
           ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
@@ -2007,7 +2013,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             assert.equal(page.session?.isGestor, isGestor, label);
             assert.equal(page.session?.profileType, profileType, label);
             assert.equal(page.loading, false, label);
-            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? 14 : 9) : 0, label);
+            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? (profileType === 'Administrador' ? 19 : 15) : 9) : 0, label);
             assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, label);
             assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, label);
           } finally { await page.restore(); }
@@ -3034,8 +3040,8 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
   });
 
   for (const [profile, allowed] of [['Administrador', true], ['Gestor', true], ['Jornalista', false], ['Operador de Conteúdo', false], ['Editor de Notícias', false]] as const) {
-    it('as três subrotas de projetos seguem os perfis com permissão: ' + profile, async () => {
-      for (const section of ['projetos', 'projetosTemas', 'projetosMembros'] as const) {
+    it('as subrotas de projetos seguem os perfis com permissão: ' + profile, async () => {
+      for (const section of ['projetos', 'projetosTemas', 'projetosMembros', 'projetosAprovacao'] as const) {
         let renders = 0;
         const shell = await mountShell({ section, pathname: SHARED_SECTION_CONFIG[section].href, children: () => { renders++; return 'B2: conteúdo protegido'; } });
         try {
@@ -3478,13 +3484,13 @@ describe('Componentes extraídos da navegação administrativa', () => {
   const renderItem = (props: SidebarNavItemProps) => renderToStaticMarkup(createElement(SidebarNavItem, props));
   const renderFolder = (props: SidebarFolderAccordionProps) => renderToStaticMarkup(createElement(SidebarFolderAccordion, props));
 
-  it('renderiza item inativo com label, tooltip, ícone e classes originais', () => {
+  it('renderiza item inativo com label, tooltip, ícone e classes do tema', () => {
     const tree = SidebarNavItem(item());
     const nodes = elements(tree);
     assert.equal(nodes[0].type, 'button');
     assert.equal(nodes[0].props.title, 'Criar ou editar reportagens');
-    assert.equal(nodes[0].props.className, 'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer text-slate-300 hover:text-white hover:bg-slate-800/60 font-medium ');
-    assert.equal(nodes.find(node => node.type === Icon)?.props.className, 'h-4 w-4 shrink-0 text-slate-400');
+    assert.equal(nodes[0].props.className?.trim(), sidebarItemClass(false));
+    assert.equal(nodes.find(node => node.type === Icon)?.props.className, sidebarIconClass(false));
     const html = renderItem(item());
     assert.ok(html.includes('type="button"'));
     assert.ok(html.includes('Notícias e Matérias'));
@@ -3495,8 +3501,9 @@ describe('Componentes extraídos da navegação administrativa', () => {
     let clicks = 0;
     const onClick = () => { clicks++; };
     const nodes = elements(SidebarNavItem(item({ isActive: true, onClick })));
-    assert.ok(nodes[0].props.className?.includes('bg-[#004A99] text-white font-semibold shadow-xs ring-1 ring-white/10'));
-    assert.equal(nodes.find(node => node.type === Icon)?.props.className, 'h-4 w-4 shrink-0 text-white');
+    assert.ok(nodes[0].props.className?.includes(sidebarItemClass(true)));
+    assert.equal((nodes[0].props as { 'aria-current'?: string })['aria-current'], 'page');
+    assert.equal(nodes.find(node => node.type === Icon)?.props.className, sidebarIconClass(true));
     assert.strictEqual(nodes[0].props.onClick, onClick);
     nodes[0].props.onClick!();
     assert.equal(clicks, 1);
@@ -3506,18 +3513,19 @@ describe('Componentes extraídos da navegação administrativa', () => {
     for (const badge of [0, 7, 'novo']) {
       const html = renderItem(item({ badge }));
       assert.ok(html.includes('>' + badge + '</span>'));
-      assert.ok(html.includes('text-[10px] font-mono px-1.5 py-0.5 rounded'));
+      assert.ok(html.includes(sidebarBadgeClass(false, false)));
     }
-    assert.ok(!renderItem(item()).includes('font-mono'));
-    assert.ok(renderItem(item({ isActive: true, badge: 0 })).includes('bg-white/20 text-white'));
+    assert.ok(!renderItem(item()).includes(sidebarBadgeClass(false, false)));
+    assert.ok(renderItem(item({ isActive: true, badge: 0 })).includes(sidebarBadgeClass(true, false)));
   });
 
   it('preserva sidebar recolhida, tooltip alternativo e valores padrão das props', () => {
     const collapsed = item({ isCollapsed: true, badge: 7 });
     const html = renderItem(collapsed);
     assert.ok(html.includes('justify-center px-2'));
-    assert.ok(!html.includes('Notícias e Matérias'));
-    assert.ok(!html.includes('font-mono'));
+    assert.ok(!html.includes('>Notícias e Matérias<'));
+    assert.ok(html.includes('aria-label="Notícias e Matérias"'), 'Sem texto visível, o nome fica acessível');
+    assert.ok(!html.includes(sidebarBadgeClass(false, false)));
     assert.equal(elements(SidebarNavItem(collapsed))[0].props.title, 'Criar ou editar reportagens');
     for (const tooltip of [undefined, '']) {
       assert.equal(elements(SidebarNavItem(item({ isCollapsed: true, tooltip })))[0].props.title, 'Notícias e Matérias');
@@ -3525,14 +3533,15 @@ describe('Componentes extraídos da navegação administrativa', () => {
     assert.equal(renderItem(item()), renderItem(item({ isCollapsed: false })));
   });
 
-  it('renderiza pasta fechada com título, ícone e indicador sem revelar subitens', () => {
+  it('renderiza pasta fechada com título e indicador sem revelar subitens', () => {
     let toggles = 0;
     const props = folder({ onToggle: () => { toggles++; } });
     const tree = SidebarFolderAccordion(props);
     const nodes = elements(tree);
     assert.equal(nodes.filter(node => node.type === 'button').length, 1);
-    assert.equal(nodes.find(node => node.type === Icon)?.props.className, 'h-4 w-4 shrink-0 transition-colors text-slate-400');
+    assert.equal(nodes.find(node => node.type === 'button')?.props.className, sidebarFolderClass);
     const html = renderFolder(props);
+    assert.ok(html.includes('aria-expanded="false"'));
     assert.ok(html.includes('Publicações do Site'));
     assert.ok(html.includes('lucide-chevron-right'));
     assert.ok(!html.includes('Notícias e Matérias'));
@@ -3546,19 +3555,17 @@ describe('Componentes extraídos da navegação administrativa', () => {
     const buttons = nodes.filter(node => node.type === 'button');
     assert.equal(buttons.length, 3);
     assert.deepEqual(buttons.slice(1).map(node => node.props.title), ['Criar ou editar reportagens', 'Cadastrar projetos das escolas']);
-    assert.ok(buttons[0].props.className?.includes('text-white bg-slate-800/80 ring-1 ring-white/10'));
-    assert.ok(buttons[1].props.className?.includes('bg-[#004A99] text-white font-bold shadow-xs ring-1 ring-sky-400/30'));
-    assert.ok(buttons[2].props.className?.includes('text-slate-300 hover:text-white hover:bg-slate-800/60 font-medium'));
+    assert.equal(buttons[0].props.className, sidebarFolderClass);
+    assert.equal(buttons[1].props.className, sidebarItemClass(true));
+    assert.equal(buttons[2].props.className, sidebarItemClass(false));
     const html = renderFolder(props);
-    for (const text of ['lucide-chevron-down', 'ml-4 pl-3 border-l-2 border-slate-800', '>0</span>', '>novo</span>']) {
+    for (const text of ['lucide-chevron-down', 'aria-expanded="true"', 'aria-current="page"', '>0</span>', '>novo</span>']) {
       assert.ok(html.includes(text), text);
     }
     assert.ok(!html.includes('Aviso proibido'));
     assert.ok(!html.includes('Tooltip proibido'));
     assert.ok(!html.includes('999'));
-    assert.equal(nodes.filter(node => node.type === Icon).length, 3);
-    assert.equal(nodes.filter(node => node.type === Icon)[1].props.className, 'h-3.5 w-3.5 shrink-0 transition text-white');
-    assert.equal(nodes.filter(node => node.type === Icon)[2].props.className, 'h-3.5 w-3.5 shrink-0 transition text-slate-400 group-hover:text-sky-300');
+    assert.deepEqual(nodes.filter(node => node.type === Icon).map(node => node.props.className), [sidebarIconClass(true), sidebarIconClass(false)]);
   });
 
   it('encaminha as seções corretas ao selecionar itens e mantém alternância separada da seleção', () => {
@@ -3594,7 +3601,7 @@ describe('Componentes extraídos da navegação administrativa', () => {
       const nodes = elements(SidebarFolderAccordion(props));
       assert.equal(nodes[0].type, 'button');
       assert.equal(nodes[0].props.title, 'Publicações do Site');
-      assert.ok(nodes[0].props.className?.includes(isFolderActive ? 'bg-[#004A99] text-white shadow-xs' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'));
+      assert.ok(nodes[0].props.className?.includes(sidebarItemClass(isFolderActive)));
       assert.equal(nodes.filter(node => node.type === Icon).length, 1);
       assert.equal(nodes.filter(node => node.type === 'button').length, 1);
       assert.ok(!renderFolder(props).includes('Notícias e Matérias'));
@@ -3651,17 +3658,17 @@ describe('Componentes extraídos da navegação administrativa', () => {
       const nodes = elements(tree);
       assert.equal(nodes.filter(node => node.type === SidebarNavItem).length, 2);
       const groups = nodes.filter(node => node.type === SidebarFolderAccordion);
-      assert.equal(groups.length, 8);
-      assert.deepEqual(groups.slice(0, 4).map(node => node.props.folder!.id), ['publicacoes', 'aprovacao', 'dados', 'usuarios']);
-      for (let position = 0; position < 4; position++) {
-        assert.strictEqual(groups[position].props.folder, groups[position + 4].props.folder);
-        assert.equal(groups[position].props.isOpen, false);
-        assert.equal(groups[position + 4].props.isCollapsed, false);
+      assert.equal(groups.length, 6);
+      assert.deepEqual(groups.slice(0, 3).map(node => node.props.folder!.id), ['conteudo', 'atendimento', 'configuracoes']);
+      for (let position = 0; position < 3; position++) {
+        assert.strictEqual(groups[position].props.folder, groups[position + 3].props.folder);
+        assert.equal(groups[position].props.isOpen, true);
+        assert.equal(groups[position + 3].props.isCollapsed, false);
         assert.equal(groups[position].props.currentSection, 'visaoGeral');
       }
       groups[0].props.onSelectSection!('noticias');
       assert.deepEqual(mobileUpdates, []);
-      groups[4].props.onSelectSection!('noticias');
+      groups[3].props.onSelectSection!('noticias');
       assert.deepEqual(destinations, ['/admin/noticias', '/admin/noticias']);
       assert.deepEqual(mobileUpdates, [false]);
     } finally { stateMock.mock.restore(); }
@@ -3705,10 +3712,10 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
   });
 
   it('pesquisa nomes de grupos e inclui somente seus itens permitidos', () => {
-    const result = filterAdminNavigation(fixture(), 'Publicações do Site');
+    const result = filterAdminNavigation(fixture(), 'Conteúdo do site');
     assert.deepEqual(result.filteredFolders.map(folder => folder.id), ['publicacoes']);
     assert.deepEqual(result.filteredFolders[0].items.map(item => item.section), ['noticias', 'projetos']);
-    assert.deepEqual(sections('Dados e Contatos'), ['redes']);
+    assert.deepEqual(sections('Configurações'), ['redes']);
   });
 
   it('ignora maiúsculas e minúsculas e espaços nas bordas sem normalizar espaços internos', () => {
@@ -3780,7 +3787,7 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
 
   function navigation(kind: 'page' | 'shell', session: AdminSession & { editorialProfile?: string }, mobile = false, collapsed = false) {
     let search = '';
-    let openFolders = { publicacoes: kind === 'shell', aprovacao: false, dados: false, usuarios: false };
+    let openFolders = { conteudo: true, atendimento: true, configuracoes: true };
     const destinations: string[] = [];
     const router = { back() {}, forward() {}, refresh() {}, replace() {}, prefetch() {}, bfcacheId: 'menu-search-test',
       push(href: string) { destinations.push(href); } };
@@ -3814,7 +3821,7 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
     return {
       render, destinations, isMobileOpen: () => mobile,
       setSearch(value: string) {
-        const input = render().nodes.find(node => node.props.placeholder === 'Pesquisar função ou menu...');
+        const input = render().nodes.find(node => node.props.placeholder === 'Buscar no menu...');
         assert.ok(input?.props.onChange);
         input.props.onChange({ target: { value } });
       },
@@ -3825,32 +3832,33 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
     apiUser: { id: 100, nome: 'Admin', cpf: '', ativo: true, perfil_id: 3, perfil_nome: 'Administrador' },
   };
 
-  it('expande resultados na página e restaura as pastas anteriores ao limpar pelos controles existentes', () => {
+  it('filtra na página e restaura o menu inteiro ao limpar pelos controles existentes', () => {
     const page = navigation('page', admin, true);
-    assert.ok(page.render().nodes.filter(node => node.props.folder).every(node => node.props.isOpen === false));
+    assert.ok(page.render().nodes.filter(node => node.props.folder).every(node => node.props.isOpen === true));
     page.setSearch('YouTube');
     const filtered = page.render();
     const groups = filtered.nodes.filter(node => node.props.folder);
-    assert.deepEqual(groups.map(node => node.props.folder!.id), ['dados', 'dados']);
+    assert.deepEqual(groups.map(node => node.props.folder!.id), ['configuracoes', 'configuracoes']);
     assert.ok(groups.every(node => node.props.isOpen === true));
     assert.deepEqual(groups[0].props.folder!.items.map(item => item.section), ['redes']);
-    assert.equal(filtered.nodes.filter(node => node.props.placeholder === 'Pesquisar função ou menu...').length, 2);
+    assert.equal(filtered.nodes.filter(node => node.props.placeholder === 'Buscar no menu...').length, 2);
     const clear = filtered.nodes.filter(node => node.props.title === 'Limpar pesquisa');
     assert.equal(clear.length, 2);
     clear[1].props.onClick!();
     const restored = page.render().nodes.filter(node => node.props.folder);
-    assert.equal(restored.length, 8);
-    assert.ok(restored.every(node => node.props.isOpen === false));
+    assert.equal(restored.length, 6);
+    assert.ok(restored.every(node => node.props.isOpen === true));
   });
 
-  it('preserva expansão inicial do shell, pesquisa somente no desktop e navegação mobile por links', () => {
+  it('o shell abre o menu inteiro, tem busca no desktop e na gaveta e navega por links', () => {
     const shell = navigation('shell', admin, true);
     const initial = shell.render();
     assert.ok(initial.nodes.some(node => node.props.href === '/admin/noticias'));
-    assert.ok(!initial.nodes.some(node => node.props.href === '/admin/redes' && !node.props.onClick));
+    assert.ok(initial.nodes.some(node => node.props.href === '/admin/redes'));
     shell.setSearch('YouTube');
     const filtered = shell.render();
-    assert.equal(filtered.nodes.filter(node => node.props.placeholder === 'Pesquisar função ou menu...').length, 1);
+    assert.equal(filtered.nodes.filter(node => node.props.placeholder === 'Buscar no menu...').length, 2);
+    assert.ok(!filtered.nodes.some(node => node.props.href === '/admin/noticias'));
     const links = filtered.nodes.filter(node => node.props.href === '/admin/redes');
     assert.equal(links.length, 2);
     assert.ok(links[1].props.onClick);
@@ -3862,7 +3870,6 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
     clear.props.onClick();
     const restored = shell.render();
     assert.ok(restored.nodes.some(node => node.props.href === '/admin/noticias'));
-    assert.ok(!restored.nodes.some(node => node.props.href === '/admin/redes'));
   });
 
   it('E10.2 — gaveta tem diálogo nomeado, referências de foco e fechamento acessível', () => {
@@ -3883,37 +3890,37 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
     groups[1].props.onSelectSection!('redes');
     assert.deepEqual(page.destinations, ['/admin/redes']);
     assert.equal(page.isMobileOpen(), false);
-    assert.equal(page.render().nodes.filter(node => node.props.placeholder === 'Pesquisar função ou menu...').length, 1);
+    assert.equal(page.render().nodes.filter(node => node.props.placeholder === 'Buscar no menu...').length, 1);
     assert.ok(page.render().nodes.find(node => node.props.folder)?.props.isOpen);
   });
 
-  it('preserva diferenças de Início e mensagens vazias nos menus mobile existentes', () => {
+  it('Início e a mensagem de busca vazia seguem a busca no desktop e na gaveta', () => {
     const page = navigation('page', admin, true);
     const shell = navigation('shell', admin, true);
     for (const menu of [page, shell]) menu.setSearch('termo inexistente');
     const root = page.render();
     const subroute = shell.render();
-    assert.equal((root.html.match(/Nenhuma função encontrada para/g) || []).length, 2);
-    assert.equal((subroute.html.match(/Nenhuma função encontrada para/g) || []).length, 1);
-    assert.ok(!root.nodes.some(node => node.props.label === 'Início (Resumo do Painel)'));
-    assert.equal(subroute.nodes.filter(node => node.props.href === '/admin').length, 1);
+    assert.equal((root.html.match(/Nada encontrado para/g) || []).length, 2);
+    assert.equal((subroute.html.match(/Nada encontrado para/g) || []).length, 2);
+    assert.ok(!root.nodes.some(node => node.props.label === 'Início'));
+    assert.equal(subroute.nodes.filter(node => node.props.href === '/admin').length, 0);
     const clear = root.nodes.find(node => node.type === 'button' && node.props.children === 'Limpar pesquisa');
     assert.ok(clear?.props.onClick);
     clear.props.onClick();
-    assert.ok(!page.render().html.includes('Nenhuma função encontrada para'));
+    assert.ok(!page.render().html.includes('Nada encontrado para'));
   });
 
   it('não revela Usuários ou Kanban pela pesquisa e mantém as diferenças de autorização existentes', () => {
     for (const session of [admin, { isGestor: true }, { isGestor: false, profileType: 'Operador de Conteúdo' }]) {
       for (const kind of ['page', 'shell'] as const) {
         const menu = navigation(kind, session, true);
-        menu.setSearch('Equipe e Senhas');
+        menu.setSearch('Usuários e acessos');
         const users = menu.render();
         const hasUsers = kind === 'page'
           ? users.nodes.some(node => node.props.folder?.items.some(item => item.section === 'usuarios'))
           : users.nodes.some(node => node.props.href === '/admin/usuarios');
         assert.equal(hasUsers, kind === 'page' ? session.isGestor : session === admin);
-        menu.setSearch('Rascunho');
+        menu.setSearch('Aprovações');
         const kanban = menu.render();
         const hasKanban = kind === 'page'
           ? kanban.nodes.some(node => node.props.folder?.items.some(item => item.section === 'kanban'))
@@ -3928,23 +3935,164 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
       const menu = navigation(kind, admin);
       menu.setSearch('YouTube');
       const expanded = menu.render();
-      assert.equal(expanded.nodes.filter(node => node.props.placeholder === 'Pesquisar função ou menu...').length, 1);
+      assert.equal(expanded.nodes.filter(node => node.props.placeholder === 'Buscar no menu...').length, 1);
       const collapse = expanded.nodes.find(node => node.props.title === 'Recolher menu lateral');
       assert.ok(collapse?.props.onClick);
       collapse.props.onClick();
       const collapsed = menu.render();
-      assert.equal(collapsed.nodes.filter(node => node.props.placeholder === 'Pesquisar função ou menu...').length, 0);
+      assert.equal(collapsed.nodes.filter(node => node.props.placeholder === 'Buscar no menu...').length, 0);
       if (kind === 'page') {
         const groups = collapsed.nodes.filter(node => node.props.folder);
         assert.equal(groups.length, 1);
         assert.equal(groups[0].props.isCollapsed, true);
-        assert.equal(groups[0].props.folder!.id, 'dados');
+        assert.equal(groups[0].props.folder!.id, 'configuracoes');
       } else {
-        assert.ok(collapsed.nodes.some(node => node.props.title === 'Dados e Contatos do Site'));
+        assert.ok(collapsed.nodes.some(node => node.props.title === 'Configurações'));
         assert.ok(!collapsed.nodes.some(node => node.props.href === '/admin/redes'));
       }
       assert.deepEqual(menu.destinations, []);
     }
+  });
+});
+
+describe('Menu do painel por tarefa e cores centralizadas', () => {
+  const access = { noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, siteInfo: true, redes: true, estadosCidades: true, usuarios: true };
+  const labels = (menu: ReturnType<typeof buildAdminMenu>) => menu.map(folder => [folder.label, folder.items.filter(item => item.visible).map(item => item.label)]);
+
+  it('agrupa por tarefa, com rótulos curtos, e as telas auxiliares saem do menu', () => {
+    const menu = buildAdminMenu(access);
+    assert.deepEqual(labels(menu), [
+      ['Conteúdo do site', ['Notícias', 'Avisos', 'Banners', 'Galeria de fotos', 'Projetos', 'Professores', 'Alunos que Inspiram', 'Perguntas frequentes']],
+      ['Atendimento', ['Dúvidas do público', 'Aprovações']],
+      ['Configurações', ['Números do site', 'Redes sociais', 'Estados e municípios', 'Usuários e acessos']],
+    ]);
+    const sections = menu.flatMap(folder => folder.items.filter(item => item.visible).map(item => item.section));
+    for (const section of ['projetosTemas', 'projetosMembros', 'professoresDisciplinas', 'professoresRelatos', 'alunosCategorias'] as const) {
+      assert.ok(!sections.includes(section), section);
+      assert.ok(ADMIN_SUBROUTE_GROUPS.some(group => group.items.some(item => item.section === section)), 'Continua como aba: ' + section);
+      assert.ok(SECTION_HREFS.get(section), 'A subrota continua: ' + section);
+    }
+  });
+  it('item sem acesso não aparece, e Aprovações leva quem não tem a Fila à aprovação de projetos', () => {
+    const semFila = buildAdminMenu({ ...access, kanban: false }).flatMap(folder => folder.items).filter(item => item.visible && item.label === 'Aprovações');
+    assert.deepEqual(semFila.map(item => item.href), ['/admin/projetos/aprovacao']);
+    const comFila = buildAdminMenu(access).flatMap(folder => folder.items).filter(item => item.visible && item.label === 'Aprovações');
+    assert.deepEqual(comFila.map(item => item.href), ['/admin/kanban']);
+    assert.equal(buildAdminMenu({ ...access, kanban: false, projetos: false }).flatMap(folder => folder.items).some(item => item.visible && item.label === 'Aprovações'), false);
+    const vazio = Object.fromEntries(Object.keys(access).map(key => [key, false])) as typeof access;
+    assert.ok(buildAdminMenu(vazio).every(folder => !folder.visible));
+  });
+  it('as telas em abas destacam o módulo no menu', () => {
+    const menu = buildAdminMenu(access);
+    for (const [section, parent] of [['projetosTemas', 'projetos'], ['projetosMembros', 'projetos'], ['projetosAprovacao', 'projetos'], ['professoresRelatos', 'professores'], ['professoresDisciplinas', 'professores'], ['alunosCategorias', 'alunos'], ['noticias', 'noticias'], ['kanban', 'kanban']] as const) {
+      assert.equal(getActiveMenuSection(section, menu), parent, section);
+    }
+    assert.equal(getActiveMenuSection('projetosAprovacao', buildAdminMenu({ ...access, kanban: false })), 'projetosAprovacao', 'Sem a Fila, é o próprio item');
+  });
+  it('a busca ainda encontra as telas que viraram abas, sem revelar item sem acesso', () => {
+    const search = (query: string, grants = access) => filterAdminNavigation(buildAdminMenu(grants), query).filteredFolders.flatMap(folder => folder.items.map(item => item.section));
+    for (const [query, section] of [['temas', 'projetos'], ['membros', 'projetos'], ['disciplinas', 'professores'], ['relatos', 'professores'], ['categorias', 'alunos']] as const) {
+      assert.ok(search(query).includes(section), query);
+    }
+    assert.deepEqual(search('disciplinas', { ...access, professores: false }), []);
+  });
+  it('contador de Aprovações soma a Fila, ignora a parte que falhou e relê ao ser avisado', async () => {
+    let totals: Record<string, number> = { n_noticias: 2, c_conquistas_aluno: 1, p_relatos: 3, pj_projetos: 4 };
+    function Contador() { const { count, error } = useAprovacoesPendentes(true); return createElement('output', null, error ? 'falhou' : String(count)); }
+    const view = await mountCategories(async url => {
+      const name = url.pathname.split('/').pop()!;
+      if (!(name in totals)) return new Response(JSON.stringify({ success: false, errors: ['sem_permissao'] }), { status: 403, headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ success: true, message: 'ok', data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: totals[name], per_page: 1 } } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }, false, { component: Contador, allowedPaths: /\/(n_noticias|c_conquistas_aluno|p_relatos|pj_projetos)$/ });
+    const settle = () => new Promise(resolve => setImmediate(resolve));
+    try {
+      await view.act(settle);
+      assert.equal(view.html(), '<output>10</output>');
+      assert.ok(view.calls.every(call => call.url.searchParams.get('q[n_status_noticia_slug_eq]') === 'aguardando' && call.url.searchParams.get('per_page') === '1'));
+      totals = { n_noticias: 2, c_conquistas_aluno: 1, pj_projetos: 4 };
+      await view.act(() => notifyAprovacoesPendentes());
+      await view.act(settle);
+      assert.equal(view.html(), '<output>7</output>', 'A parte sem permissão não vira zero nem erro');
+      totals = {};
+      await view.act(() => notifyAprovacoesPendentes());
+      await view.act(settle);
+      assert.equal(view.html(), '<output>falhou</output>', 'Tudo recusado: falha, não zero');
+    } finally { await view.restore(); }
+  });
+  it('moderar em qualquer tela avisa o contador', () => {
+    assert.match(readFileSync('src/components/admin/useProjetosPendentes.ts', 'utf8'), /notifyAprovacoesPendentes\(\)/);
+    assert.match(readFileSync('src/components/admin/useRelatosPendentes.ts', 'utf8'), /notifyAprovacoesPendentes\(\)/);
+    for (const file of ['src/components/admin/CommunityApprovalQueue.tsx', 'src/components/admin/ConquistasPanel.tsx', 'src/components/admin/useEditorialNews.ts', 'src/app/admin/noticias/page.tsx']) {
+      assert.match(readFileSync(file, 'utf8'), /notifyAprovacoesPendentes\(\)/, file);
+    }
+  });
+  it('as cores do painel têm contraste WCAG AA nos modos claro e escuro', () => {
+    const css = readFileSync('src/app/globals.css', 'utf8');
+    const block = (selector: string) => css.slice(css.indexOf(selector));
+    const token = (source: string, name: string) => {
+      const value = source.match(new RegExp(`--admin-${name}:\\s*(#[0-9A-Fa-f]{6})`))?.[1];
+      assert.ok(value, name);
+      return value;
+    };
+    const luminance = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map(start => parseInt(hex.slice(start, start + 2), 16) / 255).map(channel => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const contrast = (a: string, b: string) => {
+      const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+      return (high + 0.05) / (low + 0.05);
+    };
+    for (const [mode, source] of [['claro', block(':root {')], ['escuro', block('.dark {')]] as const) {
+      const pairs: [string, string, number][] = [
+        ['text', 'bg', 4.5], ['text', 'surface', 4.5], ['text', 'surface-muted', 4.5],
+        ['muted', 'bg', 4.5], ['muted', 'surface', 4.5], ['muted', 'surface-muted', 4.5],
+        ['accent', 'surface', 4.5], ['accent', 'surface-muted', 4.5], ['accent', 'bg', 4.5], ['accent-fg', 'accent', 4.5], ['accent-fg', 'accent-hover', 4.5], ['accent', 'accent-soft', 4.5], ['accent', 'accent-soft-active', 4.5], ['warning-strong', 'surface', 3],
+        ['success', 'success-soft', 4.5], ['success', 'surface', 4.5],
+        ['warning', 'warning-soft', 4.5], ['warning', 'surface', 4.5],
+        ['danger', 'danger-soft', 4.5], ['danger', 'surface', 4.5],
+        ['input', 'surface', 3],
+      ];
+      for (const [text, background, minimum] of pairs) {
+        const ratio = contrast(token(source, text), token(source, background));
+        assert.ok(ratio >= minimum, `${mode}: ${text} sobre ${background} = ${ratio.toFixed(2)}`);
+      }
+    }
+  });
+  it('menu e Início usam só as variáveis do tema, sem cores por módulo nem termos técnicos', () => {
+    const paleta = /\b(?:bg|text|border|ring|from|via|to)-(?:amber|emerald|orange|rose|sky|blue|green|teal|violet|red|slate)-\d|\[#[0-9A-Fa-f]{3,8}\]/;
+    for (const file of ['AdminOverview', 'OverviewStats', 'SidebarNavItem', 'SidebarFolderAccordion', 'DesktopSidebarContainer', 'MobileDrawerFooter', 'adminTheme']) {
+      const source = readFileSync(`src/components/admin/${file}.${file === 'adminTheme' ? 'ts' : 'tsx'}`, 'utf8');
+      assert.doesNotMatch(source, paleta, file);
+    }
+    for (const file of ['src/components/admin/AdminOverview.tsx', 'src/components/admin/OverviewStats.tsx']) {
+      assert.doesNotMatch(readFileSync(file, 'utf8'), /Central Executiva|API Rails|\bCMS\b|Carregando API|Governança|LGPD|Falha ao consultar/, file);
+    }
+  });
+});
+
+describe('Caminho do topo do painel', () => {
+  it('não repete o nome quando o grupo e a tela são iguais', () => {
+    assert.equal(SHARED_SECTION_CONFIG.visaoGeral.group, SHARED_SECTION_CONFIG.visaoGeral.title);
+    for (const file of ['src/components/admin/AdminShell.tsx', 'src/app/admin/page.tsx']) {
+      assert.match(readFileSync(file, 'utf8'), /\{currentConfig\.group !== currentConfig\.title && \(/, file);
+    }
+  });
+  it('a tela Início mostra "Painel › Início" uma vez só', () => {
+    const originalState = React.useState;
+    let login = false;
+    const stateMock = mock.method(React, 'useState', (initial: unknown) => {
+      if (initial === false && !login) { login = true; return originalState(true); }
+      if (initial && typeof initial === 'object' && 'isGestor' in initial) return originalState({ isGestor: true, name: 'Ana' });
+      return originalState(initial);
+    });
+    const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'breadcrumb-test' };
+    function Capture() { return AdminDashboardPage(); }
+    try {
+      const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(Capture)));
+      const trail = html.slice(html.indexOf('aria-label="Você está em"'), html.indexOf('</nav>', html.indexOf('aria-label="Você está em"')));
+      assert.equal((trail.match(/>Início</g) || []).length, 1);
+      assert.ok(trail.includes('>Painel<'));
+    } finally { stateMock.mock.restore(); }
   });
 });
 
@@ -4206,10 +4354,10 @@ describe('Tema administrativo compartilhado', () => {
           const dark = initialClass === 'dark';
           assert.equal(control.props.title, dark ? 'Mudar para tema claro' : 'Mudar para tema escuro');
           const touchClass = kind === 'page' ? 'inline-flex min-h-11 min-w-11 lg:min-h-0 lg:min-w-0 items-center justify-center ' : '';
-          assert.equal(control.props.className, touchClass + 'p-2 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer');
+          assert.equal(control.props.className, touchClass + 'p-2 rounded-lg border border-admin-border text-admin-muted hover:bg-admin-surface-muted transition cursor-pointer');
           assert.ok(isValidElement<{ className: string }>(control.props.children));
           assert.equal(control.props.children.type, dark ? Sun : Moon);
-          assert.equal(control.props.children.props.className, dark ? 'h-4 w-4 text-amber-400' : 'h-4 w-4 text-slate-600');
+          assert.equal(control.props.children.props.className, 'h-4 w-4', 'Ícone monocromático');
           control.props.onClick!();
           assert.equal(browser.classes.has('dark'), !dark);
           assert.deepEqual(browser.writes, [['medtec-theme', dark ? 'light' : 'dark']]);
@@ -4293,119 +4441,131 @@ describe('Metadados compartilhados da navegação administrativa', () => {
       perfil_nome: 'Administrador' },
   };
 
-  it('preserva integralmente a ordem, grupos, títulos, descrições e URLs das doze seções', () => {
+  it('mantém a ordem, os grupos, os títulos, as descrições e as URLs das seções', () => {
     const expected = {
       "visaoGeral": {
         "group": "Início",
-        "title": "Início (Resumo do Painel)",
-        "subtitle": "Visão executiva unificada, indicadores em tempo real e atalhos didáticos de acesso rápido.",
+        "title": "Início",
+        "subtitle": "Resumo do site e atalhos para o que você mais usa.",
         "href": "/admin"
       },
       "noticias": {
-        "group": "Publicações do Site",
-        "title": "Notícias e Matérias",
+        "group": "Conteúdo do site",
+        "title": "Notícias",
         "subtitle": "Aqui você escreve novas matérias, escolhe a foto de capa e edita notícias já publicadas no portal.",
         "href": "/admin/noticias"
       },
       "projetos": {
-        "group": "Publicações do Site",
-        "title": "Projetos Pedagógicos",
+        "group": "Conteúdo do site",
+        "title": "Projetos",
         "subtitle": "Cadastre os projetos das escolas com tema, relato, capa, anexos e membros, e acompanhe a aprovação.",
         "href": "/admin/projetos"
       },
       "projetosTemas": {
-        "group": "Publicações do Site",
-        "title": "Temas de Projeto",
+        "group": "Conteúdo do site",
+        "title": "Temas de projeto",
         "subtitle": "Cadastre e organize os temas usados nos projetos pedagógicos.",
         "href": "/admin/projetos/temas"
       },
       "projetosMembros": {
-        "group": "Publicações do Site",
-        "title": "Membros de Projeto",
+        "group": "Conteúdo do site",
+        "title": "Membros de projeto",
         "subtitle": "Cadastre as pessoas que participam dos projetos. O CPF não aparece no site.",
         "href": "/admin/projetos/membros"
       },
+      "projetosAprovacao": {
+        "group": "Conteúdo do site",
+        "title": "Aprovação de projetos",
+        "subtitle": "Confira os projetos aguardando e publique ou reprove cada um.",
+        "href": "/admin/projetos/aprovacao"
+      },
       "duvidas": {
-        "group": "Publicações do Site",
-        "title": "Dúvidas Frequentes (FAQ)",
+        "group": "Conteúdo do site",
+        "title": "Perguntas frequentes",
         "subtitle": "Cadastre, edite e organize as perguntas e respostas que aparecem na Central de Dúvidas do portal.",
         "href": "/admin/faq"
       },
+      "duvidasPublico": {
+        "group": "Conteúdo do site",
+        "title": "Dúvidas do público",
+        "subtitle": "Acompanhe as dúvidas enviadas pelo site e registre o atendimento feito por e-mail ou telefone.",
+        "href": "/admin/faq/publico"
+      },
       "avisos": {
-        "group": "Publicações do Site",
-        "title": "Avisos e Comunicados",
+        "group": "Conteúdo do site",
+        "title": "Avisos",
         "subtitle": "Use esta área para postar comunicados oficiais, calendários e avisos urgentes para as escolas.",
         "href": "/admin/avisos"
       },
       "fotos": {
-        "group": "Publicações do Site",
-        "title": "Banners da Página Inicial",
+        "group": "Conteúdo do site",
+        "title": "Banners",
         "subtitle": "Gerencie as imagens grandes que passam no topo da Página Inicial do site.",
         "href": "/admin/banners"
       },
       "galeria": {
-        "group": "Publicações do Site",
-        "title": "Galeria de Fotos",
+        "group": "Conteúdo do site",
+        "title": "Galeria de fotos",
         "subtitle": "Envie fotografias das salas de aula, estúdios e projetos realizados nos municípios.",
         "href": "/admin/galeria"
       },
       "professores": {
-        "group": "Publicações do Site",
-        "title": "Professores e Mediadores",
+        "group": "Conteúdo do site",
+        "title": "Professores",
         "subtitle": "Cadastre e gerencie os perfis docentes de ministrantes e mediadores, disciplinas e relatos.",
         "href": "/admin/professores"
       },
       "professoresDisciplinas": {
-        "group": "Publicações do Site",
+        "group": "Conteúdo do site",
         "title": "Disciplinas dos Professores",
         "subtitle": "Cadastre e organize as disciplinas vinculadas aos perfis docentes.",
         "href": "/admin/professores/disciplinas"
       },
       "professoresRelatos": {
-        "group": "Publicações do Site",
+        "group": "Conteúdo do site",
         "title": "Relatos sobre Professores",
         "subtitle": "Modere os relatos enviados pelos alunos antes de aparecerem no site.",
         "href": "/admin/professores/relatos"
       },
       "alunos": {
-        "group": "Publicações do Site",
+        "group": "Conteúdo do site",
         "title": "Alunos que Inspiram",
         "subtitle": "Cadastre, publique e gerencie as conquistas dos estudantes e suas categorias.",
         "href": "/admin/alunos"
       },
       "alunosCategorias": {
-        "group": "Publicações do Site",
-        "title": "Categorias de Conquista",
+        "group": "Conteúdo do site",
+        "title": "Categorias de conquista",
         "subtitle": "Cadastre e organize as categorias usadas nas conquistas dos estudantes.",
         "href": "/admin/alunos/categorias"
       },
       "kanban": {
-        "group": "Aprovação e Revisão",
-        "title": "Fila de Aprovação (Passo a Passo)",
-        "subtitle": "Acompanhe as reportagens em rascunho, envie para revisão e publique oficialmente no portal.",
+        "group": "Atendimento",
+        "title": "Aprovações",
+        "subtitle": "Veja o que está aguardando aprovação e publique ou recuse cada item.",
         "href": "/admin/kanban"
       },
       "siteInfo": {
-        "group": "Dados e Contatos do Site",
-        "title": "Números de Alunos e Escolas",
+        "group": "Configurações",
+        "title": "Números do site",
         "subtitle": "Atualize a quantidade oficial de estudantes, escolas, turmas e municípios atendidos.",
         "href": "/admin/institucional"
       },
       "redes": {
-        "group": "Dados e Contatos do Site",
-        "title": "Redes Sociais e WhatsApp",
+        "group": "Configurações",
+        "title": "Redes sociais",
         "subtitle": "Atualize os links oficiais de transmissão, redes sociais e canais de atendimento.",
         "href": "/admin/redes"
       },
       "usuarios": {
-        "group": "Usuários e Acessos",
-        "title": "Gerenciar Equipe e Senhas",
+        "group": "Configurações",
+        "title": "Usuários e acessos",
         "subtitle": "Cadastre operadores por CPF, redefina senhas e gerencie permissões de acesso ao sistema.",
         "href": "/admin/usuarios"
       },
       "estadosCidades": {
-        "group": "Dados e Contatos do Site",
-        "title": "Estados e Municípios",
+        "group": "Configurações",
+        "title": "Estados e municípios",
         "subtitle": "Cadastre e gerencie a base de unidades federativas (UF) e municípios atendidos pelo MEDTEC.",
         "href": "/admin/estados-cidades"
       }
@@ -4414,9 +4574,9 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.deepEqual(Object.keys(SHARED_SECTION_CONFIG), Object.keys(expected));
   });
 
-  it('mantém os dezoito destinos na ordem definida e exclui Início do mapa de redirecionamento', () => {
+  it('mantém os vinte destinos na ordem definida e exclui Início do mapa de redirecionamento', () => {
     assert.deepEqual([...SECTION_HREFS], [
-      ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['projetosTemas', '/admin/projetos/temas'], ['projetosMembros', '/admin/projetos/membros'], ['duvidas', '/admin/faq'],
+      ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['projetosTemas', '/admin/projetos/temas'], ['projetosMembros', '/admin/projetos/membros'], ['projetosAprovacao', '/admin/projetos/aprovacao'], ['duvidas', '/admin/faq'], ['duvidasPublico', '/admin/faq/publico'],
       ['usuarios', '/admin/usuarios'], ['kanban', '/admin/kanban'], ['noticias', '/admin/noticias'],
       ['avisos', '/admin/avisos'], ['galeria', '/admin/galeria'], ['estadosCidades', '/admin/estados-cidades'],
       ['professores', '/admin/professores'], ['professoresDisciplinas', '/admin/professores/disciplinas'],
@@ -4425,7 +4585,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     ]);
     assert.equal(SECTION_HREFS.has('visaoGeral'), false);
     assert.equal(SHARED_SECTION_CONFIG.visaoGeral.href, '/admin');
-    assert.equal(new Set(SECTION_HREFS.values()).size, 18);
+    assert.equal(new Set(SECTION_HREFS.values()).size, 20);
   });
 
   it('preserva exports públicos e compatibilidade dos tipos de seção e props do shell', () => {
@@ -4435,50 +4595,49 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.equal(publicProps.activeSection, 'estadosCidades');
     assert.strictEqual(SECTION_CONFIG, SHARED_SECTION_CONFIG);
     assert.equal(typeof AdminShell, 'function');
-    assert.equal(getFolderIdForSection('estadosCidades'), 'dados');
+    assert.equal(getFolderIdForSection('estadosCidades'), 'configuracoes');
     assert.equal(canAccessAdminUsers(session), true);
   });
 
-  it('preserva Início como seleção local e os onze router.push na página, no desktop e mobile', () => {
+  const MENU_ORDER = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+
+  it('mantém Início como seleção local e o router.push de cada item na página, no desktop e mobile', () => {
     for (const mobile of [false, true]) {
       const page = capture('page', session, mobile);
-      const homes = page.nodes.filter(node => node.props.label === 'Início (Resumo do Painel)');
+      const homes = page.nodes.filter(node => node.props.label === 'Início');
       assert.equal(homes.length, mobile ? 2 : 1);
       for (const home of homes) home.props.onClick!();
       assert.deepEqual(page.selections, mobile ? ['visaoGeral', 'visaoGeral'] : ['visaoGeral']);
       assert.deepEqual(page.calls, []);
       const folders = page.nodes.filter(node => node.props.folder && node.props.onSelectSection);
-      assert.equal(folders.length, mobile ? 8 : 4);
+      assert.equal(folders.length, mobile ? 6 : 3);
       for (const folder of folders) {
-        assert.equal(folder.props.isOpen, false);
+        assert.equal(folder.props.isOpen, true);
         for (const item of folder.props.folder!.items) {
           if (item.visible) folder.props.onSelectSection!(item.section);
         }
       }
-      const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners',
-        '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
-      assert.deepEqual(page.calls, (mobile ? [...menuOrder, ...menuOrder] : menuOrder).map(href => ({ method: 'push', href })));
+      assert.deepEqual(page.calls, (mobile ? [...MENU_ORDER, ...MENU_ORDER] : MENU_ORDER).map(href => ({ method: 'push', href })));
     }
   });
 
-  it('preserva links e pastas inicialmente abertas no shell e a divergência de Estados/Cidades', () => {
+  it('o shell abre o menu inteiro por links, e página e shell agrupam Estados e municípios do mesmo jeito', () => {
     const desktop = capture('shell', session);
     const desktopHrefs = desktop.nodes.flatMap(node => node.props.href ? [node.props.href] : []);
-    assert.deepEqual(desktopHrefs.filter(href => href.startsWith('/admin')),
-      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
+    assert.deepEqual(desktopHrefs.filter(href => href.startsWith('/admin')), ['/admin', ...MENU_ORDER]);
     assert.match(desktop.html, /<a\b[^>]*href="\/admin"/);
     assert.deepEqual(desktop.calls, []);
     const mobile = capture('shell', session, true);
     const mobileHrefs = mobile.nodes.flatMap(node => node.props.href ? [node.props.href] : []);
-    for (const href of SECTION_HREFS.values()) assert.ok(mobileHrefs.includes(href), href);
+    for (const href of MENU_ORDER) assert.ok(mobileHrefs.includes(href), href);
     assert.equal(mobileHrefs.filter(href => href === '/admin').length, 2);
-    assert.equal((mobile.html.match(/placeholder="Pesquisar função ou menu\.\.\."/g) || []).length, 1);
+    assert.equal((mobile.html.match(/placeholder="Buscar no menu\.\.\."/g) || []).length, 2);
     const root = capture('page', session, true, 'estadosCidades');
-    assert.equal((root.html.match(/placeholder="Pesquisar função ou menu\.\.\."/g) || []).length, 2);
-    const dataFolders = root.nodes.filter(node => node.props.folder?.id === 'dados');
+    assert.equal((root.html.match(/placeholder="Buscar no menu\.\.\."/g) || []).length, 2);
+    const dataFolders = root.nodes.filter(node => node.props.folder?.id === 'configuracoes');
     assert.equal(dataFolders.length, 2);
-    assert.ok(dataFolders.every(node => node.props.isFolderActive === false && node.props.isOpen === false));
-    assert.equal(getFolderIdForSection('estadosCidades'), 'dados');
+    assert.ok(dataFolders.every(node => node.props.isFolderActive === true && node.props.isOpen === true));
+    assert.equal(getFolderIdForSection('estadosCidades'), 'configuracoes');
     assert.ok(capture('shell', session, false, 'estadosCidades').html.includes('href="/admin/estados-cidades"'));
   });
 
@@ -4531,7 +4690,13 @@ describe('Metadados compartilhados da navegação administrativa', () => {
 });
 
 
+function fullOverviewMenu(overrides: Partial<Parameters<typeof buildAdminMenu>[0]> = {}, badges: Parameters<typeof buildAdminMenu>[1] = {}) {
+  return buildAdminMenu({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, siteInfo: true, redes: true, estadosCidades: true, usuarios: true, ...overrides }, badges);
+}
+
 describe('Interface componentizada da Visão Geral', () => {
+  const estado = (count: number | null) => ({ count, error: null });
+  const pend = (aprovacoes: number | null, duvidas: number | null, relatos: number | null) => ({ aprovacoes: estado(aprovacoes), duvidas: estado(duvidas), relatos: estado(relatos) });
   function props(overrides: Partial<AdminOverviewProps> = {}): AdminOverviewProps {
     return {
       indicators: {
@@ -4541,116 +4706,217 @@ describe('Interface componentizada da Visão Geral', () => {
         totalFotos: 280, totalCategorias: 12, usersCountLabel: 120,
         loadingFaqs: false, errorFaqs: null, totalFaqs: 35, apiFaqsPublishedCount: 28, apiFaqsPendingCount: 5,
       },
+      menu: fullOverviewMenu(),
       userName: 'Gestora de teste',
-      latestNews: { titulo: 'Notícia recebida', data_publicacao: '2026-10-30', autor_nome: 'Autoria recebida' },
-      announcementTitle: 'Aviso recebido', canAccessKanban: true,
-      onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+      pendencias: pend(10, 4, 3),
+      totalEstados: 27,
+      projetosResumo: { total: 9, pending: 2, published: 6, error: null },
+      bannersTotal: { count: 3, error: null },
+      onCreateNews() {},
       ...overrides,
     };
   }
-  function render(overrides: Partial<AdminOverviewProps> = {}) {
-    return renderToStaticMarkup(createElement(AdminOverview, props(overrides)));
-  }
+  const render = (overrides: Partial<AdminOverviewProps> = {}) => renderToStaticMarkup(createElement(AdminOverview, props(overrides)));
+  const secao = (html: string, id: string) => {
+    const start = html.indexOf(`aria-labelledby="${id}"`);
+    assert.ok(start >= 0, id);
+    return html.slice(start, html.indexOf('</section>', start));
+  };
 
-  it('renderiza os totais preparados, destaques e grades responsivas sem consultar APIs', () => {
+  it('saúda, usa só "Nova notícia" como ação principal e não consulta APIs', () => {
     const originalFetch = globalThis.fetch;
     let requests = 0;
     globalThis.fetch = async () => { requests += 1; throw new Error('Componente visual não consulta dados.'); };
     try {
       const html = render();
-      for (const value of ['450', '231', '280', '120', '35']) assert.ok(html.includes('>' + value + '</p>'));
-      for (const text of ['Gestora de teste', '400', '50', '12', 'Notícia recebida', 'Autoria recebida', 'Aviso recebido']) {
-        assert.ok(html.includes(text), text);
-      }
-      assert.ok(html.includes('grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6'));
-      assert.ok(html.includes('grid-cols-1 md:grid-cols-2 lg:grid-cols-3'));
+      assert.ok(html.includes('Olá, Gestora de teste'));
       assert.equal(requests, 0);
+      assert.equal((html.match(new RegExp(adminPrimaryButtonClass.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'), 'g')) || []).length, 1, 'Só um botão preenchido');
+      assert.match(html, /<button[^>]*class="inline-flex[^"]*bg-admin-accent[^"]*"[^>]*>.*?Nova notícia/);
+      for (const label of ['Novo projeto', 'Ver o site']) {
+        const link = html.match(new RegExp(`<a\\b[^>]*>(?:(?!</a>).)*${label}`))?.[0];
+        assert.ok(link?.includes(adminSecondaryButtonClass), label);
+      }
+      assert.ok(html.includes('target="_blank"')); assert.ok(html.includes('rel="noopener noreferrer"'));
     } finally { globalThis.fetch = originalFetch; }
   });
-
-  it('preserva zero confirmado e os textos vazios sem inserir destaques fictícios', () => {
-    const base = props();
-    const html = render({ indicators: { ...base.indicators,
-      totalNews: 0, apiNewsPublishedCount: 0, apiNewsDraftCount: 0,
-      totalAvisos: 0, apiAvisosAtivosCount: 0, apiAvisosUrgentesCount: 0,
-      totalFotos: 0, totalCategorias: 0, usersCountLabel: 0,
-      totalFaqs: 0, apiFaqsPublishedCount: 0, apiFaqsPendingCount: 0,
-    }, latestNews: undefined, announcementTitle: undefined });
-    assert.equal((html.match(/>0<\/p>/g) || []).length, 5);
-    for (const text of ['Nenhuma matéria cadastrada', 'Nenhuma fotografia catalogada',
-      'Nenhuma notícia publicada ainda',
-      'Sem comunicados urgentes no momento', 'Nenhum comunicado urgente ativo', 'Nenhuma dúvida cadastrada']) {
-      assert.ok(html.includes(text), text);
-    }
-    assert.ok(!html.includes('Notícia recebida'));
-    assert.ok(!html.includes('Prática recebida'));
+  it('sem nome na sessão, a saudação não mostra undefined', () => {
+    assert.doesNotMatch(render({ userName: undefined }), /undefined/);
   });
-
-  it('mantém carregamento e falha distintos de vazio sem exibir totais antigos nos cards', () => {
-    const base = props();
-    const loading = render({ indicators: { ...base.indicators,
-      loadingNews: true, loadingAvisos: true, loadingFotos: true, loadingFaqs: true, usersCountLabel: '...',
-    } });
-    assert.ok(loading.includes('Carregando API...'));
-    assert.ok(loading.includes('Carregando...'));
-    assert.ok(!loading.includes('>450</p>'));
-    assert.ok(!loading.includes('Nenhuma matéria cadastrada'));
-    for (const text of ['Notícia recebida', 'Autoria recebida', '2026-10-30', 'Aviso recebido', '200 avisos em exibição']) {
-      assert.ok(!loading.includes(text), text);
-    }
-    const failed = render({ indicators: { ...base.indicators,
-      errorNews: 'Falha de notícias', errorAvisos: 'Falha de avisos', errorFotos: 'Falha de fotos', errorFaqs: 'Falha de dúvidas', usersCountLabel: 'Indisponível',
-    } });
-    for (const text of ['Indisponível', 'Galeria Indisponível', 'Falha ao consultar /n_noticias',
-      'Falha ao consultar /a_avisos', 'Falha ao consultar /fotos_galeria', 'Falha ao consultar /d_duvidas', 'Falha de comunicação com a API']) {
-      assert.ok(failed.includes(text), text);
-    }
-    assert.ok(!failed.includes('>450</p>'));
-    assert.ok(!failed.includes('Nenhuma matéria cadastrada'));
-    for (const text of ['Notícia recebida', 'Autoria recebida', '2026-10-30', 'Aviso recebido', '200 avisos em exibição']) {
-      assert.ok(!failed.includes(text), text);
-    }
-  });
-
-  it('identifica cada indicador sem integração e não inventa números ou nomes para preenchê-lo', () => {
+  it('atenção e resumo ficam lado a lado no desktop e empilhados no celular', () => {
     const html = render();
-    assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 0);
-    for (const text of ['52 Municípios', '4 trilhas', '4 categorias', 'Nenhum projeto cadastrado',
-      'Nenhuma dúvida cadastrada', 'missões', 'banners ativos', 'Transmissão ao vivo integrada']) {
-      assert.ok(!html.includes(text), text);
-    }
-    const withoutAuthor = render({ latestNews: { titulo: 'Sem autoria', data_publicacao: '', autor_nome: '' } });
-    assert.ok(!withoutAuthor.includes('• SEDUC-RO'));
+    assert.ok(html.includes('<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-2"><section aria-labelledby="inicio-atencao"'), 'Alinhados no topo, sem esticar');
+    assert.doesNotMatch(secao(html, 'inicio-atencao') + secao(html, 'inicio-resumo'), /flex-1 overflow|h-full/);
+    assert.ok(secao(html, 'inicio-atencao').includes('O que está esperando uma ação sua.'));
+    assert.ok(secao(html, 'inicio-resumo').includes('Quantos conteúdos o site tem hoje.'));
+    assert.ok(html.indexOf('inicio-atencao') < html.indexOf('inicio-resumo') && html.indexOf('inicio-resumo') < html.indexOf('inicio-gerenciar'));
   });
-
-  it('preserva links de lista e Novo e mantém a ação editorial restrita desabilitada', () => {
-    const html = render({ canAccessKanban: false });
-    for (const href of ['/admin/projetos', '/admin/projetos?action=new', '/admin/avisos', '/admin/banners',
-      '/admin/galeria', '/admin/faq', '/admin/institucional', '/admin/redes', '/admin/usuarios']) {
-      assert.ok(html.includes('href="' + href + '"'), href);
+  it('"Precisa da sua atenção" é uma lista com uma linha por pendência: faixa âmbar, número, texto e ação à direita', () => {
+    const atencao = secao(render(), 'inicio-atencao');
+    assert.equal((atencao.match(/<li\b/g) || []).length, 3);
+    assert.equal((atencao.match(/border-l-admin-warning-strong/g) || []).length, 3);
+    for (const [value, title, action, href] of [['10', 'Aprovações', 'Revisar', '/admin/kanban'], ['4', 'Dúvidas do público', 'Responder', '/admin/faq/publico'], ['3', 'Relatos', 'Moderar', '/admin/professores/relatos']]) {
+      assert.ok(atencao.includes(`>${value}</span>`), title);
+      assert.ok(atencao.includes(`>${title}</span>`), title);
+      const link = atencao.match(new RegExp(`<a\\b(?=[^>]*href="${href}")(?=[^>]*aria-label="${action}: ${title}")[^>]*><span>${action}</span>`))?.[0];
+      assert.ok(link, action);
+      assert.ok(link.includes(adminTonalLinkClass), 'Mesmo botão tonal dos cartões');
     }
-    assert.ok(/<button[^>]*disabled=""[^>]*><span>Abrir Fila de Aprovação<\/span>/.test(html));
-    assert.equal(SECTION_CONFIG.estadosCidades.href, '/admin/estados-cidades');
-    assert.ok(html.includes('target="_blank"'));
-    assert.ok(html.includes('rel="noopener noreferrer"'));
+    const parcial = secao(render({ pendencias: pend(0, 2, 0) }), 'inicio-atencao');
+    assert.ok(parcial.includes('Dúvidas do público'));
+    assert.ok(!parcial.includes('Aprovações')); assert.ok(!parcial.includes('Relatos')); assert.ok(!parcial.includes('Tudo em dia'));
   });
-
-  it('encaminha as ações Novo, Notícias e Kanban pelos callbacks recebidos', () => {
+  it('enquanto carrega mostra esqueleto, sem mensagem de erro nem "Tudo em dia"', () => {
+    const atencao = secao(render({ pendencias: pend(null, null, null) }), 'inicio-atencao');
+    assert.match(atencao, /aria-busy="true"/);
+    assert.equal((atencao.match(/animate-pulse/g) || []).length, 9);
+    assert.ok(atencao.includes('Carregando as pendências'));
+    assert.doesNotMatch(atencao, /Não foi possível|Tudo em dia|role="alert"/);
+    const parcial = secao(render({ pendencias: pend(2, null, 0) }), 'inicio-atencao');
+    assert.ok(parcial.includes('Aprovações')); assert.equal((parcial.match(/animate-pulse/g) || []).length, 3);
+    assert.doesNotMatch(parcial, /Não foi possível|Tudo em dia/);
+  });
+  it('a mensagem de erro só aparece quando a leitura falhou de fato', () => {
+    const falha = { count: null, error: 'Falhou' };
+    const tudo = secao(render({ pendencias: { aprovacoes: falha, duvidas: falha, relatos: falha } }), 'inicio-atencao');
+    assert.match(tudo, /role="alert"[^>]*>Não foi possível confirmar as pendências agora/);
+    assert.doesNotMatch(tudo, /animate-pulse|Tudo em dia/);
+    const zeroComFalha = secao(render({ pendencias: { aprovacoes: falha, duvidas: estado(0), relatos: estado(0) } }), 'inicio-atencao');
+    assert.ok(zeroComFalha.includes('Não foi possível confirmar')); assert.ok(!zeroComFalha.includes('Tudo em dia'), 'Falha não vira tudo em dia');
+    const parcial = secao(render({ pendencias: { aprovacoes: falha, duvidas: estado(2), relatos: estado(0) } }), 'inicio-atencao');
+    assert.ok(parcial.includes('Dúvidas do público')); assert.ok(parcial.includes('Não foi possível confirmar todas as pendências'));
+    const ainda = secao(render({ pendencias: { aprovacoes: falha, duvidas: estado(null), relatos: estado(0) } }), 'inicio-atencao');
+    assert.match(ainda, /animate-pulse/); assert.ok(ainda.includes('Não foi possível confirmar todas'));
+  });
+  it('"Tudo em dia" só aparece com todos os totais confirmados em zero; sem token, orienta o login', () => {
+    assert.match(secao(render({ pendencias: pend(0, 0, 0) }), 'inicio-atencao'), /role="status"[\s\S]*Tudo em dia/);
+    const semToken = secao(render({ pendencias: undefined }), 'inicio-atencao');
+    assert.ok(!semToken.includes('Tudo em dia')); assert.ok(semToken.includes('Entre com seu CPF para ver as pendências')); assert.doesNotMatch(semToken, /animate-pulse/);
+  });
+  it('Aprovações usa o mesmo total do menu', () => {
+    const page = readFileSync('src/app/admin/page.tsx', 'utf8');
+    assert.match(page, /kanban: aprovacoesPendentes\.count \|\| undefined/);
+    assert.match(page, /projetosAprovacao: projetosResumo\.pending \|\| undefined/);
+    assert.match(page, /aprovacoes: canAccessKanban \? aprovacoesPendentes : \{ count: projetosResumo\.pending, error: projetosResumo\.error \}/);
+    assert.ok(secao(render({ menu: fullOverviewMenu({ kanban: false }) }), 'inicio-atencao').includes('href="/admin/projetos/aprovacao"'), 'Sem a Fila, segue o item do menu');
+  });
+  it('"Resumo do site" é só uma faixa de números, sem botões nem links', () => {
+    const resumo = secao(render(), 'inicio-resumo');
+    assert.doesNotMatch(resumo, /<a\b|<button\b/);
+    for (const [label, value] of [['Notícias', '450'], ['Projetos', '9'], ['Avisos', '231'], ['Banners', '3'], ['Fotos', '280'], ['Perguntas', '35']]) {
+      assert.match(resumo, new RegExp(`<dt[^>]*>${label}</dt><dd[^>]*>${value}</dd>`), label);
+    }
+    assert.ok(resumo.includes('grid-cols-2')); assert.ok(resumo.includes('sm:grid-cols-3'));
+  });
+  it('no Resumo, carregando e falha não viram zero, e zero confirmado aparece', () => {
+    const base = props().indicators;
+    const loading = secao(render({ indicators: { ...base, loadingNews: true, loadingAvisos: true, loadingFotos: true, loadingFaqs: true }, projetosResumo: { total: null, pending: null, published: null, error: null }, bannersTotal: { count: null, error: null } }), 'inicio-resumo');
+    assert.equal((loading.match(/aria-label="Carregando"/g) || []).length, 6);
+    assert.equal((loading.match(/animate-pulse/g) || []).length, 6, 'Esqueleto no lugar dos números');
+    assert.doesNotMatch(loading, />0</);
+    const failed = secao(render({ indicators: { ...base, errorNews: 'x', errorAvisos: 'x', errorFotos: 'x', errorFaqs: 'x' }, projetosResumo: undefined, bannersTotal: undefined }), 'inicio-resumo');
+    assert.equal((failed.match(/aria-label="Indisponível"/g) || []).length, 6);
+    assert.doesNotMatch(failed, />0</);
+    const zero = secao(render({ indicators: { ...base, totalNews: 0, totalAvisos: 0, totalFotos: 0, totalFaqs: 0 }, projetosResumo: { total: 0, pending: 0, published: 0, error: null }, bannersTotal: { count: 0, error: null } }), 'inicio-resumo');
+    assert.equal((zero.match(/>0<\/dd>/g) || []).length, 6);
+  });
+  it('"Gerenciar" repete as seções e os itens do menu, com ícone, frase e "Abrir"', () => {
+    const menu = fullOverviewMenu();
+    const gerenciar = secao(render({ menu }), 'inicio-gerenciar');
+    const positions = menu.map(folder => gerenciar.indexOf(`>${folder.label}</h4>`));
+    assert.ok(positions.every(position => position >= 0)); assert.deepEqual(positions, [...positions].sort((x, y) => x - y));
+    const items = menu.flatMap(folder => folder.items.filter(item => item.visible));
+    for (const item of items) assert.ok(gerenciar.includes(`<span>${item.action}</span>`), item.action);
+    assert.equal((gerenciar.match(/bg-admin-accent-soft text-admin-accent/g) || []).length, items.length);
+    for (const item of items) {
+      assert.ok(gerenciar.includes(`>${item.label}</h5>`), item.label);
+      assert.ok(item.summary.length > 0 && gerenciar.includes(item.summary), item.label);
+      assert.match(gerenciar, new RegExp(`<a\\b(?=[^>]*href="${item.href}")(?=[^>]*aria-label="${item.action}[,"])`), item.label);
+    }
+    assert.ok(gerenciar.includes('auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3'), '1, 2 e 3 colunas');
+    assert.doesNotMatch(gerenciar, /min-h-/, 'A altura acompanha o conteúdo');
+    assert.equal((gerenciar.match(/h-10 w-10/g) || []).length, items.length, 'Ícone de 40px');
+    assert.equal((gerenciar.match(/line-clamp-2/g) || []).length, items.length);
+    assert.equal((gerenciar.match(/mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-admin-border/g) || []).length, items.length, 'Rodapé com divisória');
+    assert.equal((gerenciar.match(/<a\b/g) || []).length, items.length, 'Um único link por cartão');
+    assert.equal((gerenciar.match(/<button\b/g) || []).length, 0);
+  });
+  it('o cartão inteiro é o link: nome com o contador, descrição ligada, hover azul e foco visível', () => {
+    const gerenciar = secao(render(), 'inicio-gerenciar');
+    const link = gerenciar.match(/<a\b[^>]*aria-label="Abrir Notícias, 50 aguardando"[^>]*>/)?.[0];
+    assert.ok(link);
+    assert.ok(link.includes('href="/admin/noticias"')); assert.ok(link.includes('aria-describedby="inicio-card-noticias"'));
+    assert.ok(gerenciar.includes('id="inicio-card-noticias"'));
+    for (const name of ['hover:border-admin-accent', 'hover:shadow-admin-card-hover', 'focus-visible:ring-2', 'focus-visible:ring-admin-accent', 'shadow-admin-card']) assert.ok(link.includes(name), name);
+    assert.match(gerenciar, /aria-label="Abrir Banners"/, 'Sem contador, o nome fica só com o botão');
+    assert.match(gerenciar, /aria-label="Abrir Galeria, Galeria de fotos, 12 categorias"/, 'O botão não cita o nome inteiro da tela');
+    assert.match(gerenciar, /aria-label="Responder dúvidas, Dúvidas do público, 4 sem resposta"/);
+    assert.match(gerenciar, /aria-label="Ver aprovações, 10 pendentes"/);
+  });
+  it('o botão dos cartões é tonal, só visual, com o destino no texto, e fica abaixo de "Nova notícia"', () => {
+    const textos = fullOverviewMenu().flatMap(folder => folder.items.filter(item => item.visible).map(item => item.action));
+    assert.deepEqual(textos, ['Abrir Notícias', 'Abrir Avisos', 'Abrir Banners', 'Abrir Galeria', 'Abrir Projetos', 'Abrir Professores', 'Abrir Alunos', 'Abrir Perguntas', 'Responder dúvidas', 'Ver aprovações', 'Abrir Números', 'Abrir Redes sociais', 'Abrir Estados', 'Abrir Usuários']);
+    assert.equal(fullOverviewMenu({ kanban: false }).flatMap(folder => folder.items).find(item => item.visible && item.section === 'projetosAprovacao')?.action, 'Ver aprovações');
+    const gerenciar = secao(render(), 'inicio-gerenciar');
+    assert.equal((gerenciar.match(/<a\b/g) || []).length, textos.length, 'Sem link aninhado');
+    assert.equal((gerenciar.match(/<button\b/g) || []).length, 0);
+    assert.ok(gerenciar.includes(`<span class="ml-auto ${adminTonalCardActionClass}"><span>Abrir Notícias</span>`));
+    for (const name of ['bg-admin-accent-soft ', 'text-admin-accent', 'rounded-lg', 'group-hover:bg-admin-accent-soft-active', 'group-focus-visible:bg-admin-accent-soft-active']) assert.ok(adminTonalCardActionClass.includes(name), name);
+    for (const name of ['hover:bg-admin-accent-soft-active', 'focus-visible:bg-admin-accent-soft-active', 'focus-visible:ring-2']) assert.ok(adminTonalLinkClass.includes(name), name);
+    assert.doesNotMatch(adminTonalCardActionClass + adminTonalLinkClass, /\bbg-admin-accent(?![-\w])|text-admin-accent-fg/, 'Nunca preenchido como o principal');
+    assert.ok(adminPrimaryButtonClass.includes('bg-admin-accent '));
+  });
+  it('a etiqueta é âmbar só com pendência; zero e detalhes ficam neutros, e sem dado não há etiqueta', () => {
+    const etiqueta = (html: string, text: string) => html.match(new RegExp(`<span class="([^"]*)">${text}</span>`))?.[1];
+    const comPendencia = secao(render(), 'inicio-gerenciar');
+    for (const text of ['50 aguardando', '2 aguardando', '5 aguardando', '3 relatos aguardando', '4 sem resposta', '10 pendentes']) {
+      assert.equal(etiqueta(comPendencia, text), adminCountBadgeClass(true), text);
+    }
+    for (const text of ['200 ativos', '12 categorias', '27 estados', '120 usuários']) assert.equal(etiqueta(comPendencia, text), adminCountBadgeClass(false), text);
+    const zerado = secao(render({ indicators: { ...props().indicators, apiNewsDraftCount: 0 }, pendencias: pend(0, 0, 0) }), 'inicio-gerenciar');
+    for (const text of ['0 aguardando', '0 relatos aguardando', '0 sem resposta', '0 pendentes']) assert.equal(etiqueta(zerado, text), adminCountBadgeClass(false), text);
+    const banners = comPendencia.slice(comPendencia.indexOf('aria-label="Abrir Banners"'));
+    assert.match(banners, /border-t border-admin-border pt-3"><span class="ml-auto/, 'Sem contador, o botão fica à direita, sem etiqueta vazia');
+    assert.ok(adminCountBadgeClass(true).includes('rounded-full')); assert.ok(adminCountBadgeClass(false).includes('rounded-full'));
+  });
+  it('todos os blocos usam cartão com borda e sombra, sobre o fundo cinza-claro da página', () => {
+    const html = render();
+    assert.ok(html.includes(`<div class="${adminCardClass} flex flex-col gap-4 p-5`), 'Saudação');
+    assert.ok(secao(html, 'inicio-atencao').includes(adminCardClass));
+    assert.ok(secao(html, 'inicio-resumo').includes(adminCardClass));
+    assert.ok(adminCardClass.includes('shadow-admin-card'));
+    const css = readFileSync('src/app/globals.css', 'utf8');
+    assert.match(css, /--admin-bg: #EEF2F6;[\s\S]*--admin-surface: #FFFFFF;/);
+    assert.match(css, /--shadow-admin-card: var\(--admin-card-shadow\);/);
+    assert.equal((css.match(/--admin-card-shadow-hover: 0 0 0 1px var\(--admin-accent\)/g) || []).length, 2, 'Hover nos dois modos');
+  });
+  it('os contadores dos cartões não repetem os totais do Resumo', () => {
+    const gerenciar = secao(render(), 'inicio-gerenciar');
+    for (const total of ['450', '231', '280', '35']) assert.ok(!gerenciar.includes(`>${total}`) && !gerenciar.includes(` ${total} `), total);
+    for (const text of ['50 aguardando', '200 ativos', '12 categorias', '2 aguardando', '3 relatos aguardando', '5 aguardando', '4 sem resposta', '10 pendentes', '27 estados', '120 usuários']) {
+      assert.ok(gerenciar.includes(text), text);
+    }
+    const semDados = secao(render({ indicators: { ...props().indicators, loadingNews: true, errorFaqs: 'x' }, projetosResumo: undefined, pendencias: undefined, totalEstados: null }), 'inicio-gerenciar');
+    assert.doesNotMatch(semDados, /undefined|null|\d+ aguardando|sem resposta|pendentes|relatos? aguardando/);
+  });
+  it('cartão ou seção sem acesso não aparece, nem nas ações e pendências', () => {
+    const html = render({ menu: fullOverviewMenu({ noticias: false, projetos: false, kanban: false, duvidas: false, professores: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false }) });
+    assert.ok(!html.includes('Nova notícia')); assert.ok(!html.includes('Novo projeto'));
+    const atencao = secao(html, 'inicio-atencao');
+    for (const text of ['Aprovações', 'Dúvidas do público', 'Relatos']) assert.ok(!atencao.includes(text), text);
+    const gerenciar = secao(html, 'inicio-gerenciar');
+    assert.ok(gerenciar.includes('>Conteúdo do site</h4>'));
+    assert.ok(!gerenciar.includes('>Atendimento</h4>')); assert.ok(!gerenciar.includes('>Configurações</h4>'));
+    for (const href of ['/admin/noticias', '/admin/projetos', '/admin/usuarios', '/admin/kanban', '/admin/faq']) assert.ok(!gerenciar.includes(`href="${href}"`), href);
+    assert.ok(gerenciar.includes('href="/admin/avisos"'));
+  });
+  it('"Nova notícia" usa o callback recebido', () => {
     const calls: string[] = [];
-    const input = props({
-      onOpenNews: () => calls.push('/admin/noticias'),
-      onCreateNews: () => calls.push('/admin/noticias?action=new'),
-      onOpenKanban: () => calls.push('/admin/kanban'),
-    });
-    function activateButtons(node: ReactNode) {
-      if (Array.isArray(node)) { node.forEach(activateButtons); return; }
-      if (!isValidElement<{ children?: ReactNode; disabled?: boolean; onClick?: () => void }>(node)) return;
-      if (node.type === 'button' && !node.props.disabled) node.props.onClick?.();
-      activateButtons(node.props.children);
-    }
-    activateButtons(AdminOverview(input));
-    activateButtons(OverviewStats({ indicators: input.indicators, onOpenNews: input.onOpenNews }));
-    assert.deepEqual(calls, ['/admin/noticias?action=new', '/admin/noticias', '/admin/kanban', '/admin/noticias']);
+    const nodes = noticeNodes(AdminOverview(props({ onCreateNews: () => calls.push('nova') })));
+    const buttons = nodes.filter(node => node.type === 'button');
+    assert.equal(buttons.length, 1);
+    Reflect.apply(buttons[0].props.onClick as () => unknown, undefined, []);
+    assert.deepEqual(calls, ['nova']);
   });
 });
 
@@ -4700,7 +4966,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
       const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'overview-test' };
       const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminDashboardPage)));
       assert.ok(html.includes('Autenticando e carregando painel de gestão...'));
-      assert.ok(!html.includes('Painel do Gestor • Central Executiva CMS'));
+      assert.ok(!html.includes('Precisa da sua atenção'));
       assert.equal(requests, 0);
     } finally { globalThis.fetch = originalFetch; }
   });
@@ -4751,7 +5017,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
     } finally { globalThis.fetch = originalFetch; }
   });
 
-  it('abre o dashboard autenticado sem dados locais e preserva os onze destinos e a autorização do Kanban', () => {
+  it('abre o dashboard autenticado sem dados locais e mantém os destinos do menu e a autorização da Fila', () => {
     const originalState = React.useState;
     const originalFetch = globalThis.fetch;
     let requests = 0;
@@ -4774,9 +5040,10 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
         function CapturePage() { page = AdminDashboardPage(); return page; }
         try {
           const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(CapturePage)));
-          assert.ok(html.includes('Painel do Gestor • Central Executiva CMS'));
-          assert.ok(html.includes('Carregando API...'));
-          assert.ok(html.includes('Indisponível nesta sessão'));
+          assert.ok(html.includes('Olá, Sessão confirmada'));
+          assert.ok(html.includes('aria-label="Carregando"'));
+          assert.ok(!html.includes('Central Executiva') && !html.includes('API Rails'));
+          assert.ok(html.includes('Entre com seu CPF para ver as pendências'));
           assert.ok(!html.includes('Autenticando e carregando painel de gestão...'));
           type NavigationProps = { children?: ReactNode; folder?: { items: { section: string; badge?: number; visible: boolean }[] };
             onSelectSection?: (section: string) => void; canAccessKanban?: boolean };
@@ -4786,7 +5053,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
             if (!isValidElement<NavigationProps>(node)) return;
             if (node.type === AdminOverview) {
               overviewFound = true;
-              assert.equal(node.props.canAccessKanban, editorialProfile === 'Administrador');
+              assert.equal((node.props as { menu?: ReturnType<typeof buildAdminMenu> }).menu?.some(folder => folder.items.some(item => item.section === 'kanban' && item.visible)), editorialProfile === 'Administrador');
             }
             if (node.props.folder && node.props.onSelectSection) {
               for (const item of node.props.folder.items) {
@@ -4798,9 +5065,10 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           }
           visit(page);
           assert.equal(overviewFound, true);
-          const expected = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners',
-            '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
-          if (editorialProfile === 'Administrador') expected.push('/admin/kanban');
+          const expected = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico',
+            '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+          // Sem a Fila, Aprovações leva direto à aprovação de projetos.
+          expected.push(editorialProfile === 'Administrador' ? '/admin/kanban' : '/admin/projetos/aprovacao');
           assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
         } finally { stateMock.mock.restore(); }
       }
@@ -4999,8 +5267,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           indicators: { ...getOverviewMetrics(state), loadingNews: false, errorNews: state.news.error,
             loadingAvisos: false, errorAvisos: state.avisos.error, loadingFotos: false, errorFotos: state.gallery.error,
             loadingFaqs: false, errorFaqs: state.faqs.error },
-          ...getOverviewHighlights(state), canAccessKanban: true,
-          onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+          menu: fullOverviewMenu(), onCreateNews() {},
         }));
         for (const href of ['/admin/projetos', '/admin/faq', '/admin/banners', '/admin/usuarios', '/admin/avisos', '/admin/galeria']) {
           assert.ok(html.includes('href="' + href + '"'), href);
@@ -5038,13 +5305,12 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           indicators: { ...getOverviewMetrics(state), loadingNews: false, errorNews: state.news.error,
             loadingAvisos: false, errorAvisos: state.avisos.error, loadingFotos: false, errorFotos: state.gallery.error,
             loadingFaqs: false, errorFaqs: state.faqs.error },
-          ...getOverviewHighlights(state), canAccessKanban: false,
-          onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+          menu: fullOverviewMenu({ kanban: false }), onCreateNews() {},
         }));
-        assert.ok(html.includes('Painel do Gestor • Central Executiva CMS'));
-        assert.ok(html.includes('Indisponível nesta sessão'));
+        assert.ok(html.includes('Precisa da sua atenção'));
+        assert.ok(html.includes('aria-label="Indisponível"'));
         assert.ok(html.includes('href="/admin/usuarios"'));
-        assert.ok(!html.includes('>0</p>'));
+        assert.ok(!html.includes('>0</dd>'));
       }
     } finally { globalThis.fetch = originalFetch; }
   });
@@ -5066,13 +5332,9 @@ describe('Banners — painel', () => {
   type View = Awaited<ReturnType<typeof mount>>;
   const files = (value: File) => ({ target: { files: [value], value: 'x' } });
   const pick = (view: View, event: unknown) => view.act(() => {
-    const node = view.nodes().find(item => item.type === 'input' && item.props.name === 'banner-imagem');
+    const node = view.nodes().find(item => item.type === FileButton && item.props.name === 'banner-imagem');
     assert.ok(node);
     return Reflect.apply(node.props.onChange as (value: unknown) => unknown, undefined, [event]);
-  });
-  const useLink = (view: View) => view.act(() => {
-    const node = view.nodes().find(item => item.props.name === 'banner-modo' && item.props.value === 'link');
-    return Reflect.apply(node!.props.onChange as () => unknown, undefined, []);
   });
   const writes = (view: View, method: string) => view.calls.filter(call => call.options.method === method);
 
@@ -5147,12 +5409,44 @@ describe('Banners — painel', () => {
       assert.match(view.html(), /Banner cadastrado/);
     } finally { await view.restore(); }
   });
+  it('botão de arquivo e link ficam sempre visíveis, e escolher um limpa o outro', async () => {
+    const view = await mount();
+    const campo = (name: string) => view.nodes().find(item => item.props.name === name);
+    try {
+      await view.act(settle);
+      await view.click('Novo banner');
+      assert.equal(campo('banner-modo'), undefined);
+      assert.ok(campo('banner-imagem')); assert.ok(campo('banner-imagem-url'));
+      await view.change('banner-imagem-url', 'https://x.com/a.jpg');
+      await pick(view, files(new File(['x'], 'arte.png', { type: 'image/png' })));
+      assert.equal(campo('banner-imagem-url')?.props.value, '');
+      assert.equal(campo('banner-imagem')?.props.selected, 'arte.png');
+      await view.change('banner-imagem-url', 'https://x.com/b.jpg');
+      assert.equal(campo('banner-imagem')?.props.selected, undefined);
+      await view.submit('Cadastrar banner');
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(writes(view, 'POST')[0].options.body)), { b_banner: { imagem_url: 'https://x.com/b.jpg' } });
+      await view.click('Trocar imagem do banner 2');
+      assert.ok(campo('banner-imagem')); assert.ok(campo('banner-imagem-url'));
+    } finally { await view.restore(); }
+  });
+  it('arquivo recusado mantém a escolha anterior do banner', async () => {
+    const view = await mount();
+    const campo = (name: string) => view.nodes().find(item => item.props.name === name);
+    try {
+      await view.act(settle);
+      await view.click('Novo banner');
+      await view.change('banner-imagem-url', 'https://x.com/a.jpg');
+      await pick(view, files(new File(['x'], 'arte.gif', { type: 'image/gif' })));
+      assert.match(view.html(), /PNG, JPG ou WEBP/);
+      assert.equal(campo('banner-imagem-url')?.props.value, 'https://x.com/a.jpg');
+    } finally { await view.restore(); }
+  });
   it('cadastra por link só com HTTPS', async () => {
     const view = await mount();
     try {
       await view.act(settle);
       await view.click('Novo banner');
-      await useLink(view);
       for (const value of ['', 'http://x.com/a.jpg', 'javascript:alert(1)', 'nao-e-link']) {
         await view.change('banner-imagem-url', value);
         await view.submit('Cadastrar banner');
@@ -5230,7 +5524,7 @@ describe('Subrota administrativa de Projetos', () => {
       assert.ok(!html.includes('Conteúdo protegido'));
       assert.equal(requests, 0);
       assert.equal(SECTION_CONFIG.projetos.href, '/admin/projetos');
-      assert.equal(getFolderIdForSection('projetos'), 'publicacoes');
+      assert.equal(getFolderIdForSection('projetos'), 'conteudo');
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -5270,7 +5564,7 @@ describe('Subrota administrativa de FAQ', () => {
       assert.ok(!html.includes('Dúvidas Cadastradas'));
       assert.equal(requests, 0);
       assert.equal(SECTION_CONFIG.duvidas.href, '/admin/faq');
-      assert.equal(getFolderIdForSection('duvidas'), 'publicacoes');
+      assert.equal(getFolderIdForSection('duvidas'), 'conteudo');
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -5408,7 +5702,7 @@ describe('Autorização da subrota de usuários', () => {
 
   it('direciona usuários para a subrota e mantém seu agrupamento no shell', () => {
     assert.equal(SECTION_CONFIG.usuarios.href, '/admin/usuarios');
-    assert.equal(getFolderIdForSection('usuarios'), 'usuarios');
+    assert.equal(getFolderIdForSection('usuarios'), 'configuracoes');
   });
 });
 
@@ -6514,7 +6808,7 @@ describe('11. Kanban controlado e permissões editoriais', () => {
   const pendingNews: NewsItem = {
     id: '7', title: 'Materia pendente', slug: 'materia-pendente', excerpt: '',
     content: 'Conteudo', coverImage: '', author: 'Equipe', category: 'Pedagogico',
-    publishedAt: '2026-10-30', featured: false, published: false, rejected: false,
+    publishedAt: '2026-10-30', published: false, rejected: false,
   };
   const callbacks = {
     onApproveNews: async () => { throw new Error('A renderização não deve publicar.'); },
@@ -7951,11 +8245,17 @@ function DuvidasCounterProbe(enabled: boolean) {
 }
 
 describe('Visitantes C3 — interface administrativa', () => {
-  it('aba Visitantes fica dentro da guarda atual, com C1/C2 preservados e montagem sob demanda', () => {
-    const page = AdminFaqSubroutePage(); assert.equal(page.type, AdminShell); assert.equal(page.props.activeSection, 'duvidas');
-    const workspace = page.props.children();
-    const html = renderToStaticMarkup(workspace); assert.match(html, />Visitantes</); assert.match(html, />Categorias</);
-    for (const section of ['duvidas', 'categorias', 'visitantes']) {
+  it('a subrota /admin/faq/publico substitui a aba, dentro da mesma guarda e sem duplicar a tela', () => {
+    const page = AdminFaqPublicoPage();
+    assert.equal(page.type, AdminShell); assert.equal(page.props.activeSection, 'duvidasPublico');
+    assert.equal(page.props.children().type, DuvidasVisitanteModule);
+    assert.equal(SHARED_SECTION_CONFIG.duvidasPublico.href, '/admin/faq/publico');
+    assert.equal(getFolderIdForSection('duvidasPublico'), 'atendimento');
+    assert.match(readFileSync('src/components/admin/AdminShell.tsx', 'utf8'), /activeSection === 'duvidas' \|\| activeSection === 'duvidasPublico'\s*\? canAccessFaqs/);
+    const workspace = AdminFaqSubroutePage().props.children();
+    const html = renderToStaticMarkup(workspace); assert.match(html, />Categorias</); assert.doesNotMatch(html, />Visitantes</);
+    assert.doesNotMatch(readFileSync('src/app/admin/faq/page.tsx', 'utf8'), /DuvidasVisitanteModule/);
+    for (const section of ['duvidas', 'categorias']) {
       const state = mock.method(React, 'useState', (<S,>(initial?: S | (() => S)) => {
         const value = typeof initial === 'function' ? (initial as () => S)() : initial;
         return [value === 'duvidas' ? section : value, () => {}];
@@ -7963,7 +8263,6 @@ describe('Visitantes C3 — interface administrativa', () => {
       try {
         const tree = Reflect.apply(workspace.type as () => ReactNode, undefined, [workspace.props]);
         const nodes = noticeNodes(tree);
-        assert.equal(nodes.filter(node => node.type === DuvidasVisitanteModule).length, section === 'visitantes' ? 1 : 0);
         assert.equal(nodes.filter(node => node.type === DuvidaCategoriesManager).length, section === 'categorias' ? 1 : 0);
         const faq = nodes.find(node => node.type === FaqModule); assert.ok(faq); assert.equal(faq.props.active, section === 'duvidas');
       } finally { state.mock.restore(); }
@@ -7996,16 +8295,17 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.match(failing.html(), /não possui permissão/); assert.doesNotMatch(failing.html(), /<output>0/);
     } finally { await failing.restore(); }
   });
-  it('Início mostra o total, a indisponibilidade ou nada na sessão sem token', () => {
-    const props = { indicators: {} as OverviewStatsIndicators, canAccessKanban: true, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {} };
-    const html = (duvidasPendentes?: { count: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, { ...props, duvidasPendentes }));
-    assert.match(html({ count: 4, error: null }), /Dúvidas de visitantes sem resposta:\s*(<!-- -->)?\s*4/);
-    assert.match(html({ count: null, error: 'x' }), /sem resposta:\s*(<!-- -->)?\s*indisponível/);
-    assert.doesNotMatch(html(), /sem resposta/);
+  it('Início mostra as dúvidas sem resposta, e nada sem pendências confirmadas', () => {
+    const zero = { count: 0, error: null };
+    const html = (duvidas: number | null) => renderToStaticMarkup(createElement(AdminOverview, { indicators: {} as OverviewStatsIndicators, menu: fullOverviewMenu(), pendencias: { aprovacoes: zero, duvidas: { count: duvidas, error: null }, relatos: zero }, onCreateNews() {} }));
+    assert.match(html(4), /aria-label="Responder: Dúvidas do público"/);
+    assert.match(html(4), /4 sem resposta/);
+    assert.doesNotMatch(html(0), /Responder: Dúvidas do público/);
+    assert.doesNotMatch(html(null), /sem resposta/);
   });
   it('item do menu exibe o total sem depender da aba aberta', () => {
     const access = Object.fromEntries(['noticias','projetos','duvidas','avisos','fotos','galeria','professores','alunos','kanban','siteInfo','redes','estadosCidades','usuarios'].map(key => [key, true]));
-    const item = buildAdminMenu(access as Parameters<typeof buildAdminMenu>[0], { duvidas: 7 }).flatMap(folder => folder.items).find(entry => entry.section === 'duvidas');
+    const item = buildAdminMenu(access as Parameters<typeof buildAdminMenu>[0], { duvidasPublico: 7 }).flatMap(folder => folder.items).find(entry => entry.section === 'duvidasPublico');
     assert.equal(item?.badge, 7);
   });
   it('Fila lista as não respondidas, responde sem corpo e tira o item da lista', async () => {
@@ -8020,7 +8320,13 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.equal(view.calls[0].url.searchParams.get('q[respondida_false]'), '1');
       assert.equal(view.calls[0].url.searchParams.get('page'), 'all');
       assert.match(view.html(), /Tem curso de informática/);
-      await view.click('Responder ' + visitanteFixture.nome);
+      await view.click('Marcar como respondida: ' + visitanteFixture.nome);
+      assert.equal(view.calls.some(call => call.options.method === 'PATCH'), false, 'Nada é enviado antes de confirmar');
+      await view.click('Cancelar');
+      assert.equal(view.nodes().some(node => node.props['aria-label'] === 'Confirmar atendimento'), false);
+      assert.equal(view.calls.some(call => call.options.method === 'PATCH'), false);
+      await view.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await view.click('Confirmar resposta');
       await view.act(settle);
       const patch = view.calls.find(call => call.options.method === 'PATCH')!;
       assert.ok(patch.url.pathname.endsWith('/d_duvidas_visitante/' + visitanteFixture.id + '/responder'));
@@ -8028,6 +8334,28 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.match(view.html(), /Dúvida marcada como respondida/);
       assert.match(view.html(), /Nenhuma dúvida sem resposta/, 'page=all sem registros (per_page 0) não é resposta inválida');
       assert.doesNotMatch(view.html(), /role="alert"/);
+    } finally { await view.restore(); }
+  });
+  it('Fila e Dúvidas do público pedem a mesma confirmação', () => {
+    const trechos = ['aria-label="Confirmar atendimento"', 'como respondida? Nenhuma mensagem é enviada: confirme só depois de responder por e-mail ou telefone.', '>Confirmar resposta</button>', '>Cancelar</button>', 'aria-label={`Marcar como respondida: ${item.nome}`}', '>Marcar como respondida</button>'];
+    for (const tela of ['DuvidasVisitanteQueue', 'DuvidasVisitanteModule']) {
+      const fonte = readFileSync(`src/components/admin/${tela}.tsx`, 'utf8');
+      for (const trecho of trechos) assert.ok(fonte.includes(trecho), `${tela}: ${trecho}`);
+    }
+  });
+  it('Fila mantém a dúvida e a confirmação quando a API recusa a marcação', async () => {
+    const view = await mountCategories(async (_url, options) => options.method === 'PATCH'
+      ? categoriaReply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403) : visitanteList([visitanteFixture]),
+    false, { component: () => DuvidasVisitanteQueue(), allowedPaths: /\/d_duvidas_visitante(\/\d+\/responder)?$/ });
+    const settle = async () => { for (let turn = 0; turn < 5; turn++) await Promise.resolve(); };
+    try {
+      await view.act(settle);
+      await view.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await view.click('Confirmar resposta');
+      await view.act(settle);
+      assert.match(view.html(), /não possui permissão/); assert.doesNotMatch(view.html(), /Dúvida marcada como respondida/);
+      assert.ok(view.nodes().some(node => node.props['aria-label'] === 'Confirmar atendimento'));
+      assert.match(view.html(), /Tem curso de informática/);
     } finally { await view.restore(); }
   });
   it('Fila mostra a falha de leitura e permite tentar de novo, sem falso vazio', async () => {
@@ -8060,15 +8388,13 @@ describe('Visitantes C3 — interface administrativa', () => {
       return url.pathname.endsWith('/d_categorias_duvida') ? categoriaList() : duvidaList([]);
     };
 
-    it('botão só aparece em dúvida respondida e entrega o envio à tela do FAQ', async () => {
-      let chosen: DDuvidaVisitante | undefined;
+    it('o link só aparece em dúvida respondida e leva só o id à tela do FAQ', async () => {
       const view = await mountCategories(async () => visitanteList([visitanteFixture, respondida]), false, {
-        component: () => DuvidasVisitanteModule({ onTransformToFaq: item => { chosen = item; } }), allowedPaths: /\/d_duvidas_visitante$/,
+        component: () => DuvidasVisitanteModule(), allowedPaths: /\/d_duvidas_visitante$/,
       });
       try {
-        assert.doesNotMatch(view.html(), new RegExp('Transformar em FAQ: ' + visitanteFixture.nome));
-        await view.click('Transformar em FAQ: Visitante atendido');
-        assert.equal(chosen?.id, 42);
+        assert.equal(view.nodes().some(node => node.props['aria-label'] === 'Transformar em FAQ: ' + visitanteFixture.nome), false);
+        assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Transformar em FAQ: Visitante atendido')?.props.href, '/admin/faq?visitante=42');
       } finally { await view.restore(); }
     });
     it('formulário abre com a pergunta, pede categoria e resposta e só envia campos do contrato', async () => {
@@ -8115,7 +8441,8 @@ describe('Visitantes C3 — interface administrativa', () => {
       try {
         await view.act(settle);
         assert.equal(link(), undefined);
-        await view.click('Responder Visitante atendido');
+        await view.click('Marcar como respondida: Visitante atendido');
+        await view.click('Confirmar resposta');
         await view.act(settle);
         assert.equal(link()?.props.href, '/admin/faq?visitante=42');
       } finally { await view.restore(); }
@@ -8135,18 +8462,6 @@ describe('Visitantes C3 — interface administrativa', () => {
       const missing = await mount(() => categoriaReply({ success: false, message: 'Registro não encontrado', errors: ['x'] }, 404), 99);
       try { await missing.act(settle); assert.match(missing.html(), /role="alert"/); } finally { await missing.restore(); }
     });
-    it('tela do FAQ abre o formulário ao transformar um envio', async () => {
-      const workspace = AdminFaqSubroutePage().props.children();
-      const view = await mountCategories(async () => duvidaList([]), false, { component: () => Reflect.apply(workspace.type as () => ReactNode, undefined, [{}]), allowedPaths: /$^/ });
-      try {
-        await view.click('Visitantes');
-        const modulo = view.nodes().find(node => node.type === DuvidasVisitanteModule);
-        await view.act(() => (modulo?.props.onTransformToFaq as (item: DDuvidaVisitante) => void)(respondida));
-        const faq = view.nodes().find(node => node.type === FaqModule);
-        assert.equal(faq?.props.active, true);
-        assert.deepEqual(faq?.props.prefill, { pergunta: respondida.descricao });
-      } finally { await view.restore(); }
-    });
     it('categorias vazias com page=all (per_page 0) não viram resposta inválida', async () => {
       const fetcher = mock.method(globalThis, 'fetch', async () => categoriaList([], { current_page: 1, total_pages: 1, total_count: 0, per_page: 0 }));
       try { assert.deepEqual((await medtecApi.categoriasDuvida.list({ page: 'all' })).data.items, []); } finally { fetcher.mock.restore(); }
@@ -8161,20 +8476,25 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.match(manager.html(), /Nenhuma dúvida de visitante/); assert.doesNotMatch(manager.html(), /role="alert"/);
     } finally { await manager.restore(); }
   });
-  it('filtros oficiais são exclusivos, reiniciam a página e persistem na paginação', async () => {
+  it('abre em "Não respondidas"; os filtros são exclusivos, reiniciam a página e persistem na paginação', async () => {
     const manager = await mountVisitantes(async url => visitanteList([visitanteFixture], { current_page: Number(url.searchParams.get('page')), total_pages: 3, total_count: 25, per_page: 10 }));
+    const params = () => manager.calls.at(-1)!.url.searchParams;
+    const pressed = (label: string) => manager.nodes().find(node => node.type === 'button' && node.props.children === label)?.props['aria-pressed'];
     try {
-      assert.equal(manager.calls[0].url.searchParams.has('q[respondida_false]'), false);
+      assert.equal(manager.calls[0].url.searchParams.get('q[respondida_false]'), '1');
       assert.equal(manager.calls[0].url.searchParams.has('q[respondida_true]'), false);
+      assert.equal(manager.calls[0].url.searchParams.get('per_page'), '10');
+      assert.equal(pressed('Não respondidas'), true); assert.equal(pressed('Respondidas'), false);
       await manager.click('Próxima'); assert.match(manager.html(), /Página 2 de 3 · 25 envios/);
-      await manager.change('situacaoVisitante', 'pendentes');
-      assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1'); assert.equal(manager.calls.at(-1)!.url.searchParams.get('page'), '1');
-      assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_true]'), false);
-      await manager.click('Próxima'); assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1');
-      await manager.change('situacaoVisitante', 'respondidas');
-      assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_true]'), '1'); assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_false]'), false);
+      assert.equal(params().get('q[respondida_false]'), '1');
+      await manager.click('Respondidas');
+      assert.equal(params().get('q[respondida_true]'), '1'); assert.equal(params().has('q[respondida_false]'), false); assert.equal(params().get('page'), '1');
+      assert.equal(pressed('Respondidas'), true);
       assert.match(manager.html(), /Tem curso de informática/, 'A coleção da API é a fonte de verdade, sem filtro local');
-      await manager.change('situacaoVisitante', 'todas'); assert.equal(manager.calls.at(-1)!.url.searchParams.has('q[respondida_true]'), false);
+      await manager.click('Próxima'); assert.equal(params().get('q[respondida_true]'), '1'); assert.equal(params().get('page'), '2');
+      await manager.click('Não respondidas');
+      assert.equal(params().get('q[respondida_false]'), '1'); assert.equal(params().has('q[respondida_true]'), false); assert.equal(params().get('page'), '1');
+      assert.equal(manager.nodes().some(node => node.props.name === 'situacaoVisitante'), false);
     } finally { await manager.restore(); }
   });
   it('envio novo aparece ao atualizar a lista, sem recarregar a página nem perder o filtro', async () => {
@@ -8182,7 +8502,6 @@ describe('Visitantes C3 — interface administrativa', () => {
     const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(visitanteFixture) : visitanteList(items));
     const novo = { ...visitanteFixture, id: 42, nome: 'Visitante recém-chegado' };
     try {
-      await manager.change('situacaoVisitante', 'pendentes');
       assert.doesNotMatch(manager.html(), /Visitante recém-chegado/);
       items = [novo, visitanteFixture];
       await manager.click('Atualizar lista');
@@ -8190,7 +8509,7 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1');
     } finally { await manager.restore(); }
   });
-  it('lista é buscada ao voltar para a aba, salvo com detalhes abertos ou aba oculta', async () => {
+  it('lista é buscada ao voltar para a aba, salvo com confirmação aberta ou aba oculta', async () => {
     let items = [visitanteFixture];
     const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(visitanteFixture) : visitanteList(items));
     const lists = () => manager.calls.filter(call => call.url.pathname.endsWith('/d_duvidas_visitante')).length;
@@ -8200,8 +8519,8 @@ describe('Visitantes C3 — interface administrativa', () => {
       items = [{ ...visitanteFixture, id: 42, nome: 'Visitante recém-chegado' }, visitanteFixture];
       await manager.visibilityChange('visible'); assert.equal(lists(), inicial + 1);
       assert.match(manager.html(), /Visitante recém-chegado/);
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
-      await manager.visibilityChange('visible'); assert.equal(lists(), inicial + 1, 'Detalhes abertos não são interrompidos');
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await manager.visibilityChange('visible'); assert.equal(lists(), inicial + 1, 'A confirmação aberta não é interrompida');
     } finally { await manager.restore(); }
   });
   it('falha ao atualizar mostra o erro, nunca uma lista vazia', async () => {
@@ -8214,19 +8533,27 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.doesNotMatch(manager.html(), /Nenhuma dúvida de visitante/);
     } finally { await manager.restore(); }
   });
-  it('detalhes consultam ID e exibem a descrição completa e os contatos recebidos', async () => {
-    const detailed = { ...visitanteFixture, telefone: '(69) 99999-0000', descricao: 'Descrição completa recebida na consulta individual.\nSegunda linha.' };
-    const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(detailed) : visitanteList());
+  it('o card mostra nome, e-mail com mailto, telefone com tel, a dúvida completa e a data de envio', async () => {
+    const value = { ...visitanteFixture, telefone: '(69) 99999-0000', descricao: 'Primeira linha da dúvida.\nSegunda linha.' };
+    const manager = await mountVisitantes(async () => visitanteList([value]));
     try {
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
-      assert.equal(manager.calls.at(-1)!.url.pathname.endsWith('/d_duvidas_visitante/41'), true);
-      assert.match(manager.html(), /Descrição completa recebida na consulta individual/); assert.match(manager.html(), /Segunda linha/);
-      assert.match(manager.html(), /ana@example.invalid/); assert.match(manager.html(), /99999-0000/);
-      await manager.click('Fechar detalhes'); assert.doesNotMatch(manager.html(), /Detalhes do envio/);
-      assert.equal(manager.calls.filter(call => call.options.method !== 'GET').length, 0);
+      const html = manager.html();
+      for (const text of ['Ana sintética', 'Primeira linha da dúvida.', 'Segunda linha.', 'Enviada em 31/10/2026']) assert.ok(html.includes(text), text);
+      assert.doesNotMatch(html, /line-clamp/);
+      const link = (href: string) => manager.nodes().find(node => node.type === 'a' && node.props.href === href);
+      assert.equal(link('mailto:ana@example.invalid')?.props.children, 'ana@example.invalid');
+      assert.equal(link('tel:69999990000')?.props.children, '(69) 99999-0000');
+      assert.equal(manager.calls.length, 1, 'O card não precisa de outra consulta');
     } finally { await manager.restore(); }
   });
-  it('marcar respondida usa PATCH sem corpo e apenas registra atendimento externo', async () => {
+  it('e-mail do formulário público não acrescenta cabeçalhos ao mailto', async () => {
+    const manager = await mountVisitantes(async () => visitanteList([{ ...visitanteFixture, email: 'ana@example.invalid?bcc=x@example.invalid' }]));
+    try {
+      const href = String(manager.nodes().find(node => node.type === 'a' && String(node.props.href).startsWith('mailto:'))?.props.href);
+      assert.equal(href.includes('?'), false); assert.equal(href.includes('='), false);
+    } finally { await manager.restore(); }
+  });
+  it('marcar respondida pede confirmação, usa PATCH sem corpo e apenas registra atendimento externo', async () => {
     let marked = false;
     const manager = await mountVisitantes(async (url, options) => {
       if (options.method === 'PATCH') {
@@ -8238,22 +8565,21 @@ describe('Visitantes C3 — interface administrativa', () => {
     try {
       assert.match(manager.html(), /contato com o visitante é feito externamente/); assert.match(manager.html(), /nenhuma mensagem é enviada/);
       await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      assert.deepEqual(manager.calls.map(call => call.options.method), ['GET'], 'Nada é enviado antes de confirmar');
+      await manager.click('Cancelar');
+      assert.deepEqual(manager.calls.map(call => call.options.method), ['GET']);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await manager.click('Confirmar resposta');
       assert.match(manager.html(), /Dúvida marcada como respondida/);
       assert.deepEqual(manager.calls.map(call => call.options.method), ['GET', 'PATCH', 'GET']);
       assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome), false);
+      assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Confirmar atendimento'), false);
     } finally { await manager.restore(); }
   });
-  it('marcação pelo detalhe atualiza atendente e data exclusivamente com o retorno do servidor', async () => {
-    let marked = false;
-    const manager = await mountVisitantes(async (url, options) => {
-      if (options.method === 'PATCH') { marked = true; return categoriaReply(visitanteRespondida); }
-      if (url.pathname.endsWith('/41')) return categoriaReply(visitanteFixture);
-      return visitanteList([marked ? visitanteRespondida : visitanteFixture]);
-    });
+  it('respondida mostra quem respondeu e quando, com os dados do servidor', async () => {
+    const manager = await mountVisitantes(async () => visitanteList([visitanteRespondida]));
     try {
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome); await manager.click('Marcar detalhe como respondido');
-      assert.match(manager.html(), /Atendente sintética/); assert.match(manager.html(), /31\/10\/2026/);
-      assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar detalhe como respondido'), false);
+      assert.match(manager.html(), /Respondida por Atendente sintética em 31\/10\/2026/);
     } finally { await manager.restore(); }
   });
   it('filtro pendente pode ficar vazio após marcação bem-sucedida', async () => {
@@ -8263,7 +8589,7 @@ describe('Visitantes C3 — interface administrativa', () => {
       return visitanteList(marked ? [] : [visitanteFixture]);
     });
     try {
-      await manager.change('situacaoVisitante', 'pendentes'); await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome); await manager.click('Confirmar resposta');
       assert.match(manager.html(), /Nenhuma dúvida de visitante/); assert.equal(manager.calls.at(-1)!.url.searchParams.get('q[respondida_false]'), '1');
     } finally { await manager.restore(); }
   });
@@ -8281,18 +8607,6 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.deepEqual(manager.calls.map(call => call.options.method), ['GET', 'DELETE', 'GET']);
     } finally { await manager.restore(); }
   });
-  it('excluir pelos detalhes fecha o registro somente após sucesso', async () => {
-    let deleted = false;
-    const manager = await mountVisitantes(async (url, options) => {
-      if (options.method === 'DELETE') { deleted = true; return categoriaReply(null, 204); }
-      return url.pathname.endsWith('/41') ? categoriaReply(visitanteFixture) : visitanteList(deleted ? [] : [visitanteFixture]);
-    });
-    try {
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome); await manager.click('Excluir este envio');
-      assert.match(manager.html(), /Detalhes do envio/); await manager.click('Confirmar exclusão');
-      assert.doesNotMatch(manager.html(), /Detalhes do envio/); assert.match(manager.html(), /Envio excluído com sucesso/);
-    } finally { await manager.restore(); }
-  });
   for (const status of [401, 403, 404, 422, 'network'] as const) {
     it('listagem com ' + status + ' não vira vazio e permite nova leitura', async () => {
       let failed = false;
@@ -8308,15 +8622,6 @@ describe('Visitantes C3 — interface administrativa', () => {
       } finally { await manager.restore(); }
     });
   }
-  for (const status of [403, 404]) {
-    it('detalhes HTTP ' + status + ' não abrem um registro da lista como se fosse consulta válida', async () => {
-      const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply({ success: false, errors: [status === 403 ? 'sem_permissao' : 'http_404'] }, status) : visitanteList());
-      try {
-        await manager.click('Ver detalhes de ' + visitanteFixture.nome);
-        assert.match(manager.html(), /role="alert"/); assert.doesNotMatch(manager.html(), /Detalhes do envio/);
-      } finally { await manager.restore(); }
-    });
-  }
   for (const status of [401, 403, 404, 422, 'network'] as const) {
     it('marcação com ' + status + ' não mostra sucesso nem altera situação localmente', async () => {
       const manager = await mountVisitantes(async (_url, options) => {
@@ -8325,8 +8630,9 @@ describe('Visitantes C3 — interface administrativa', () => {
         return categoriaReply({ success: false, message: 'Não foi possível registrar o atendimento', errors: [status === 401 ? 'nao_autenticado' : status === 403 ? 'sem_permissao' : 'Atendimento inválido'] }, status);
       });
       try {
-        await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+        await manager.click('Marcar como respondida: ' + visitanteFixture.nome); await manager.click('Confirmar resposta');
         assert.match(manager.html(), /role="alert"/); assert.doesNotMatch(manager.html(), /Dúvida marcada como respondida/);
+        if (status === 403) assert.match(manager.html(), /não possui permissão/);
         assert.ok(manager.nodes().some(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome));
         assert.equal(manager.calls.length, 2);
       } finally { await manager.restore(); }
@@ -8348,24 +8654,22 @@ describe('Visitantes C3 — interface administrativa', () => {
     const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(visitanteRespondida) : visitanteList([visitanteRespondida]));
     try {
       assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome), false);
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
-      assert.equal(manager.nodes().some(node => node.props['aria-label'] === 'Marcar detalhe como respondido'), false);
     } finally { await manager.restore(); }
   });
   it('resposta 200 ainda não respondida não produz marcação artificial', async () => {
     const manager = await mountVisitantes(async (_url, options) => options.method === 'PATCH' ? categoriaReply(visitanteFixture) : visitanteList());
     try {
-      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome); await manager.click('Confirmar resposta');
       assert.match(manager.html(), /A dúvida permanece não respondida/); assert.doesNotMatch(manager.html(), /Dúvida marcada como respondida/);
     } finally { await manager.restore(); }
   });
   it('telefone/atendente nulos e data inválida são apresentados sem inventar dados', async () => {
-    const value = { ...visitanteFixture, created_at: 'data-invalida' };
-    const manager = await mountVisitantes(async url => url.pathname.endsWith('/41') ? categoriaReply(value) : visitanteList([value]));
+    const value = { ...visitanteRespondida, respondida_por_nome: null, created_at: 'data-invalida' };
+    const manager = await mountVisitantes(async () => visitanteList([value]));
     try {
-      await manager.click('Ver detalhes de ' + visitanteFixture.nome);
-      assert.match(manager.html(), /Não informado/); assert.match(manager.html(), /Data não informada/);
-      assert.doesNotMatch(manager.html(), /Invalid Date|undefined/);
+      assert.match(manager.html(), /Data não informada/); assert.doesNotMatch(manager.html(), /Invalid Date|undefined|Respondida por/);
+      assert.match(manager.html(), /Respondida em 31\/10\/2026/);
+      assert.equal(manager.nodes().some(node => node.type === 'a' && String(node.props.href).startsWith('tel:')), false);
     } finally { await manager.restore(); }
   });
   it('falha de recarga após marcação não repete PATCH nem apaga o sucesso confirmado', async () => {
@@ -8375,7 +8679,7 @@ describe('Visitantes C3 — interface administrativa', () => {
       return marked ? categoriaReply({ success: false }, 503) : visitanteList();
     });
     try {
-      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome); await manager.click('Confirmar resposta');
       assert.match(manager.html(), /Dúvida marcada como respondida/); assert.match(manager.html(), /role="alert"/);
       assert.equal(manager.calls.filter(call => call.options.method === 'PATCH').length, 1);
     } finally { await manager.restore(); }
@@ -8384,7 +8688,7 @@ describe('Visitantes C3 — interface administrativa', () => {
     const pending = adminReturnDeferred<Response>(); let reads = 0;
     const manager = await mountVisitantes(async () => ++reads === 1 ? pending.promise : visitanteList([{ ...visitanteFixture, nome: 'Visitante vigente' }]));
     try {
-      await manager.change('situacaoVisitante', 'respondidas'); assert.match(manager.html(), /Visitante vigente/);
+      await manager.click('Respondidas'); assert.match(manager.html(), /Visitante vigente/);
       await manager.act(() => pending.resolve(visitanteList([{ ...visitanteFixture, nome: 'Visitante obsoleta' }])));
       assert.match(manager.html(), /Visitante vigente/); assert.doesNotMatch(manager.html(), /Visitante obsoleta/);
     } finally { await manager.restore(); }
@@ -8393,7 +8697,8 @@ describe('Visitantes C3 — interface administrativa', () => {
     const pending = adminReturnDeferred<Response>();
     const manager = await mountVisitantes(async (_url, options) => options.method === 'PATCH' ? pending.promise : visitanteList());
     try {
-      const button = manager.nodes().find(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome); assert.ok(button);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      const button = manager.nodes().find(node => node.props.children === 'Confirmar resposta'); assert.ok(button);
       await manager.act(() => { for (let i = 0; i < 2; i++) void Reflect.apply(button.props.onClick as () => unknown, undefined, []); });
       assert.equal(manager.calls.filter(call => call.options.method === 'PATCH').length, 1);
       await manager.act(() => pending.resolve(categoriaReply(visitanteRespondida)));
@@ -8403,7 +8708,8 @@ describe('Visitantes C3 — interface administrativa', () => {
     const pending = adminReturnDeferred<Response>();
     const manager = await mountVisitantes(async (_url, options) => options.method === 'PATCH' ? pending.promise : visitanteList());
     try {
-      const button = manager.nodes().find(node => node.props['aria-label'] === 'Marcar como respondida: ' + visitanteFixture.nome); assert.ok(button);
+      await manager.click('Marcar como respondida: ' + visitanteFixture.nome);
+      const button = manager.nodes().find(node => node.props.children === 'Confirmar resposta'); assert.ok(button);
       await manager.act(() => { void Reflect.apply(button.props.onClick as () => unknown, undefined, []); });
       await manager.unmount(); await manager.act(() => pending.resolve(categoriaReply(visitanteRespondida)));
       assert.equal(manager.calls.length, 2);
@@ -8930,7 +9236,38 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
     it('lista vazia usa os valores de reserva, e valor que não é link não vira link', () => {
       assert.deepEqual(canaisFromApi([]), CANAIS_PADRAO);
       const links = canaisFromApi([{ rede: 'youtube', valor: 'javascript:alert(1)' }, { rede: 'instagram', valor: '@medtec' }, { rede: 'whatsapp', valor: '+55 69 0000-0000' }]);
-      assert.equal(links.youtube, ''); assert.equal(links.instagram, ''); assert.equal(links.whatsapp, '');
+      assert.equal(links.youtube, ''); assert.equal(links.instagram, ''); assert.equal(links.whatsapp, 'https://wa.me/556900000000');
+    });
+    it('WhatsApp vira https://wa.me/55<DDD><número> só com dígitos, e o resto não vira botão', () => {
+      for (const valor of ['69988887777', '(69) 98888-7777', '+55 69 98888-7777', '5569988887777', 'https://wa.me/5569988887777', 'https://www.wa.me/5569988887777?text=oi', ' http://wa.me/5569988887777 ']) {
+        assert.equal(whatsappHref(valor), 'https://wa.me/5569988887777', valor);
+      }
+      assert.equal(whatsappHref('(69) 3216-5300'), 'https://wa.me/556932165300', 'Fixo com DDD tem 10 dígitos');
+      for (const valor of ['', '   ', '123', '699888877771234', 'fale conosco', 'javascript:alert(1)', 'https://chat.whatsapp.com/abc', 'https://exemplo.com/5569988887777', 'https://wa.me/', '0069988887777']) {
+        assert.equal(whatsappHref(valor), '', valor);
+      }
+    });
+    it('número de exemplo nunca aparece como canal oficial', () => {
+      for (const valor of ['https://wa.me/5569911112222', '69911112222', 'https://wa.me/5569999999999']) assert.equal(whatsappHref(valor), '', valor);
+      assert.equal(canaisFromApi([{ rede: 'whatsapp', valor: 'https://wa.me/5569911112222' }, { rede: 'email', valor: 'a@b.c' }]).whatsapp, '');
+      for (const file of ['src/data/db.json', 'src/data/initialData.json']) assert.doesNotMatch(readFileSync(file, 'utf8'), /wa\.me/, file);
+    });
+    it('falha da API, canal desativado ou sem cadastro não mostram WhatsApp em nenhum ponto', () => {
+      assert.equal(CANAIS_PADRAO.whatsapp, '');
+      const semWhatsapp = { ...value, whatsapp: '' };
+      for (const element of [FloatingSocialRotator, SiteFooter, SocialSection, LiveBroadcastSection as React.ComponentType]) {
+        for (const channels of [semWhatsapp, CANAIS_PADRAO]) assert.doesNotMatch(provided(element, channels), /wa\.me|Falar no WhatsApp/);
+      }
+      assert.doesNotMatch(provided(SocialSection, semWhatsapp), /Canal do WhatsApp/);
+      assert.ok(provided(LiveBroadcastSection as React.ComponentType, semWhatsapp).includes('Suporte SEDUC: (69) 0000-0000'), 'O telefone segue como apoio, sem o ícone do WhatsApp');
+    });
+    it('com número cadastrado, botão flutuante, rodapé, redes e ao vivo levam ao WhatsApp em nova aba, com rótulo acessível', () => {
+      const soWhatsapp = { ...value, youtube: '', instagram: '', facebook: '' };
+      for (const [nome, html] of [['flutuante', provided(FloatingSocialRotator, soWhatsapp)], ['rodapé', provided(SiteFooter)], ['redes', provided(SocialSection)], ['ao vivo', provided(LiveBroadcastSection as React.ComponentType)]]) {
+        const link = html.match(/<a\b[^>]*href="https:\/\/wa\.me\/556900000000"[^>]*>/)?.[0];
+        assert.ok(link, nome);
+        assert.match(link, /target="_blank"/, nome); assert.match(link, /rel="noopener noreferrer"/, nome); assert.match(link, /aria-label="[^"]*WhatsApp[^"]*abre em nova aba\)"/, nome);
+      }
     });
     it('o link do YouTube fica em um único ponto do código', () => {
       assert.equal(CANAIS_PADRAO.youtube, YOUTUBE_URL_OFICIAL);
@@ -8985,7 +9322,7 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
       assert.doesNotMatch(provided(FloatingSocialRotator, semYoutube), /youtube\.com/);
     });
     it('sem nenhuma rede, os botões flutuantes somem', () => {
-      assert.equal(provided(FloatingSocialRotator, { ...value, youtube: '', instagram: '', facebook: '' }), '');
+      assert.equal(provided(FloatingSocialRotator, { ...value, youtube: '', instagram: '', facebook: '', whatsapp: '' }), '');
     });
   });
 
@@ -9007,7 +9344,7 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
       assert.doesNotMatch(html, /youtube\.com|Canal no YouTube/, 'Sem link oficial, o botão não aparece');
       assert.match(html, /instagram\.com\/governoro/);
       assert.match(html, /facebook\.com\/governoderondonia/);
-      assert.match(html, /\(69\) 3216-5300/);
+      assert.doesNotMatch(html, /Canal do WhatsApp|wa\.me/, 'Sem número cadastrado, o card não aparece');
       assert.doesNotMatch(html, /999999999/);
     } finally {
       fetchMock.mock.restore();
@@ -9195,7 +9532,6 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
 
   function renderOverviewFromState(state: ReturnType<typeof createInitialOverviewState>) {
     const metrics = getOverviewMetrics(state);
-    const highlights = getOverviewHighlights(state);
     return renderToStaticMarkup(createElement(AdminOverview, {
       indicators: {
         ...metrics,
@@ -9208,12 +9544,9 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
         loadingFaqs: state.faqs.loading,
         errorFaqs: state.faqs.error,
       },
+      menu: fullOverviewMenu(),
       userName: 'Gestor MEDTEC',
-      ...highlights,
-      canAccessKanban: true,
-      onOpenNews() {},
       onCreateNews() {},
-      onOpenKanban() {},
     }));
   }
 
@@ -9265,12 +9598,9 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
       assert.equal(metrics.apiAvisosUrgentesCount, 1);
 
       const html = renderOverviewFromState(state);
-      assert.ok(html.includes('>42</p>'));
-      assert.ok(html.includes('30 publicadas · 9 aguardando'));
-      assert.ok(html.includes('Registros sincronizados com a API Rails'));
-      assert.ok(html.includes('42 dúvidas'));
-      assert.ok(html.includes('30 publicadas · 9 aguardando aprovação'));
-      assert.ok(html.includes('42 registros no catálogo oficial'));
+      assert.ok(html.includes('>42</dd>'));
+      assert.ok(html.includes('9 aguardando'));
+      assert.ok(!html.includes('API Rails'));
       assert.ok(html.includes('href="/admin/faq"'));
       assert.equal((html.match(/Indisponível — sem integração oficial/g) || []).length, 0);
     } finally {
@@ -9295,12 +9625,9 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
       assert.equal(metrics.apiFaqsPublishedCount, 0);
 
       const html = renderOverviewFromState(state);
-      assert.ok(html.includes('0 publicadas · 0 aguardando'));
-      assert.ok(html.includes('Nenhuma dúvida cadastrada'));
-      assert.ok(html.includes('0 dúvidas'));
-      assert.ok(html.includes('Nenhuma dúvida cadastrada até o momento'));
+      assert.ok(html.includes('0 aguardando'));
+      assert.match(html, /<dt[^>]*>Perguntas<\/dt><dd[^>]*>0<\/dd>/);
       assert.ok(html.includes('href="/admin/faq"'));
-      assert.ok(!html.includes('Falha ao consultar /d_duvidas'));
     } finally {
       fetchMock.mock.restore();
     }
@@ -9337,13 +9664,10 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
         assert.equal(metrics.totalAvisos, 14);
 
         const html = renderOverviewFromState(state);
-        assert.ok(html.includes(`Falha ao consultar /d_duvidas · ${expectedMessage}`));
-        assert.ok(html.includes(`Falha de comunicação com a API (${expectedMessage})`));
-        assert.ok(!html.includes('0 publicadas · 0 aguardando'));
-        assert.ok(!html.includes('Nenhuma dúvida cadastrada'));
-        assert.ok(!html.includes('0 dúvidas'));
-        assert.ok(html.includes('>18</p>'));
-        assert.ok(html.includes('>14</p>'));
+        assert.ok(expectedMessage.length > 0);
+        assert.match(html, /<dt[^>]*>Perguntas<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/, 'Falha não vira zero');
+        assert.ok(html.includes('>18</dd>'));
+        assert.ok(html.includes('>14</dd>'));
         assert.ok(html.includes('href="/admin/faq"'));
       } finally {
         fetchMock.mock.restore();
@@ -9383,10 +9707,7 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
         assert.equal(metrics.apiFaqsPublishedCount, null);
 
         const html = renderOverviewFromState(state);
-        assert.ok(html.includes(`Falha ao consultar /d_duvidas · ${scenario.expectedError}`));
-        assert.ok(html.includes(`Falha de comunicação com a API (${scenario.expectedError})`));
-        assert.ok(!html.includes('Nenhuma dúvida cadastrada'));
-        assert.ok(!html.includes('0 dúvidas'));
+        assert.match(html, /<dt[^>]*>Perguntas<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/, scenario.expectedError);
       } finally {
         fetchMock.mock.restore();
       }
@@ -10036,7 +10357,7 @@ for (const existing of [false, true]) it(`E5 — upload da Galeria preserva mult
   } });
   try {
     if (existing) await manager.edit(); else { await manager.newRecord(); await manager.fill(); }
-    const input = manager.nodes().find(node => node.type === 'input' && node.props.type === 'file'); assert.ok(input);
+    const input = manager.nodes().find(node => node.type === FileButton); assert.ok(input);
     await manager.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { files: [new File(['png'], 'apresentacao.png', { type: 'image/png' })] } }]));
     await manager.submit(); assert.equal(manager.calls.length, 1); assert.match(manager.alerts.at(-1)!, /sucesso/);
   } finally { await manager.restore(); }
@@ -10047,11 +10368,11 @@ const e6News: NewsItem = {
   excerpt: 'Resumo oficial', content: 'Conteúdo original da notícia.',
   coverImage: 'https://api.example.test/rails/active_storage/blobs/redirect/original/capa.png',
   author: 'Autora oficial', category: 'Pedagógico', publishedAt: '2026-10-31',
-  featured: false, published: false, rejected: true, rejectionReason: 'Informe a fonte da fotografia.',
+  published: false, rejected: true, rejectionReason: 'Informe a fonte da fotografia.',
 };
 
 async function mountE6(config: {
-  news?: Partial<NewsItem>; create?: boolean; list?: boolean; canEdit?: boolean;
+  news?: Partial<NewsItem>; create?: boolean; list?: boolean; canEdit?: boolean; canPublish?: boolean;
   fetcher?: (url: URL, options: RequestInit) => Promise<Response>;
 } = {}) {
   const news = { ...e6News, ...config.news };
@@ -10063,9 +10384,9 @@ async function mountE6(config: {
     const [mode, setMode] = React.useState<'lista' | 'editor'>(config.list ? 'lista' : 'editor');
     return NewsModule({
       effectiveNews: [news], apiNewsCategories: [{ id: 37, nome: 'Pedagógico', slug: 'pedagogico', ativo: true }],
-      initialEditingNews: config.create || config.list ? undefined : news, initialNew: config.create,
+      initialEditingNews: config.create || config.list ? undefined : news,
       loadingNews: false, errorNews: null, userSession: { name: 'Autora oficial' },
-      canCreate: true, canEdit: config.canEdit ?? true, canDelete: true, canPublish: false,
+      canCreate: true, canEdit: config.canEdit ?? true, canDelete: true, canPublish: config.canPublish ?? false,
       newsViewMode: mode, setNewsViewMode: setMode, onRefresh: refresh,
       onTogglePublished: async () => {}, onPreview() {},
     });
@@ -10091,7 +10412,7 @@ async function mountE6(config: {
         await manager.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { value } }]));
       },
       async upload() {
-        const input = manager.nodes().find(node => node.type === 'input' && node.props.name === 'imagem_capa'); assert.ok(input);
+        const input = manager.nodes().find(node => node.type === FileButton && node.props.name === 'imagem_capa'); assert.ok(input);
         await manager.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { files: [new File(['nova-capa'], 'nova.png', { type: 'image/png' })] } }]));
       },
       async edit() {
@@ -10125,7 +10446,7 @@ describe('E6 — preservação da capa e motivo de reprovação de Notícias', (
         const call = manager.calls[0]; assert.ok(call.url.pathname.endsWith('/n_noticias/91')); assert.equal(call.options.method, 'PATCH');
         assert.deepEqual(assertE6Preserved(call.options.body), {
           titulo: 'Título corrigido', conteudo: 'Conteúdo corrigido.', n_categoria_noticia_id: 37,
-          resumo: 'Resumo oficial', data_publicacao: '2026-10-31',
+          resumo: 'Resumo oficial',
         });
         assert.equal(manager.refreshes(), 1);
       } finally { await manager.restore(); }
@@ -10140,9 +10461,52 @@ describe('E6 — preservação da capa e motivo de reprovação de Notícias', (
       await manager.submit();
       assert.deepEqual(JSON.parse(String(manager.calls[0].options.body)), { n_noticia: {
         titulo: e6News.title, conteudo: e6News.content, n_categoria_noticia_id: 37, resumo: e6News.excerpt,
-        data_publicacao: e6News.publishedAt, imagem_capa_url: 'https://example.test/nova-capa.jpg',
+        imagem_capa_url: 'https://example.test/nova-capa.jpg',
       } });
       assert.equal(manager.refreshes(), 1);
+    } finally { await manager.restore(); }
+  });
+
+  it('formulário não oferece pasta, destaque, urgência nem data', async () => {
+    const manager = await mountE6({ create: true });
+    try {
+      const nodes = manager.nodes();
+      assert.equal(nodes.some(node => node.props.id === 'featured' || node.props.id === 'urgent'), false);
+      assert.equal(nodes.some(node => node.type === 'input' && node.props.type === 'date'), false);
+      assert.equal(nodes.some(node => node.type === 'input' && node.props.list === 'pastas-noticias'), false);
+      assert.equal(nodes.some(node => node.type === 'label' && node.props.children === 'Pasta no Painel'), false);
+      assert.ok(nodes.some(node => node.type === 'label' && node.props.children === 'O que acontece ao salvar'));
+      await manager.text('Ex: Polo ribeirinho recebe novos computadores do MEDTEC...', 'Título novo');
+      await manager.text('Escreva aqui os parágrafos completos da notícia...', 'Conteúdo novo.');
+      await manager.submit();
+      const call = manager.calls[0]; assert.equal(call.options.method, 'POST');
+      assert.deepEqual(JSON.parse(String(call.options.body)), { n_noticia: {
+        titulo: 'Título novo', conteudo: 'Conteúdo novo.', n_categoria_noticia_id: 37,
+      } });
+    } finally { await manager.restore(); }
+  });
+
+  for (const [titulo, config, texto] of [
+    ['sem permissão de publicar vai para aprovação', { create: true }, 'A notícia vai para aprovação antes de aparecer no site.'],
+    ['correção de reprovada sem permissão volta para aprovação', {}, 'A notícia vai para aprovação antes de aparecer no site.'],
+    ['com permissão de publicar continua dependendo do botão', { create: true, canPublish: true }, 'A notícia fica aguardando aprovação. Para colocá-la no site, use o botão "Publicar" na lista.'],
+    ['edição de publicada continua no site', { news: { published: true, rejected: false } }, 'A notícia continua publicada e as alterações vão para o site.'],
+  ] as const) {
+    it(`"O que acontece ao salvar": ${titulo}`, async () => {
+      const manager = await mountE6(config);
+      try {
+        assert.ok(manager.nodes().some(node => node.type === 'div' && node.props.children === texto), texto);
+      } finally { await manager.restore(); }
+    });
+  }
+
+  it('lista de notícias não exibe selos de destaque nem de urgência', async () => {
+    const manager = await mountE6({ list: true });
+    try {
+      const textos = manager.nodes().map(node => node.props.children);
+      assert.ok(textos.includes('Aguardando aprovação') || textos.includes('Recusada'));
+      assert.equal(textos.includes('Destaque'), false);
+      assert.equal(textos.includes('Urgente'), false);
     } finally { await manager.restore(); }
   });
 
@@ -10174,7 +10538,7 @@ describe('E6 — preservação da capa e motivo de reprovação de Notícias', (
       const call = manager.calls[0]; assert.equal(call.options.method, 'PATCH'); assert.ok(call.options.body instanceof FormData);
       assert.equal(new Headers(call.options.headers).get('Content-Type'), null);
       const form = call.options.body;
-      assert.deepEqual([...form.keys()], ['n_noticia[titulo]', 'n_noticia[n_categoria_noticia_id]', 'n_noticia[conteudo]', 'n_noticia[resumo]', 'n_noticia[data_publicacao]', 'n_noticia[imagem_capa]']);
+      assert.deepEqual([...form.keys()], ['n_noticia[titulo]', 'n_noticia[n_categoria_noticia_id]', 'n_noticia[conteudo]', 'n_noticia[resumo]', 'n_noticia[imagem_capa]']);
       assert.equal(form.get('n_noticia[n_categoria_noticia_id]'), '37');
       const image = form.get('n_noticia[imagem_capa]'); assert.ok(image instanceof File); assert.equal(image.name, 'nova.png');
       assert.equal(form.has('n_noticia[imagem_capa_url]'), false);
@@ -10834,7 +11198,7 @@ describe('Banners — Início do painel', () => {
     return createElement('output', null, JSON.stringify(useBannersTotal(enabled)));
   }
   const render = (bannersTotal?: { count: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, {
-    indicators: {} as OverviewStatsIndicators, canAccessKanban: true, bannersTotal, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+    indicators: {} as OverviewStatsIndicators, menu: fullOverviewMenu(), bannersTotal, onCreateNews() {},
   }));
 
   it('conta sem trazer os banners, não consulta se desativado, e falha não vira zero', async () => {
@@ -10851,30 +11215,28 @@ describe('Banners — Início do painel', () => {
     try { await failing.act(settle); assert.match(failing.html(), /&quot;count&quot;:null/); } finally { await failing.restore(); }
   });
   it('Início mostra o total da API e sai do texto antigo', () => {
-    assert.match(render({ count: 3, error: null }), /3 banners/);
-    assert.match(render({ count: 1, error: null }), /1 banner</);
-    assert.match(render({ count: null, error: null }), /Carregando\.\.\./);
-    for (const props of [undefined, { count: null, error: 'x' }]) assert.ok(!render(props).includes('sem integração oficial'));
-    for (const old of ['fotos de estúdio', 'Carrossel &amp; Transmissão']) assert.ok(!render({ count: 3, error: null }).includes(old), old);
+    const banners = (value: Parameters<typeof render>[0]) => render(value);
+    assert.match(banners({ count: 3, error: null }), /<dt[^>]*>Banners<\/dt><dd[^>]*>3<\/dd>/);
+    assert.match(banners({ count: null, error: null }), /<dt[^>]*>Banners<\/dt><dd[^>]*><span[^>]*aria-label="Carregando"/);
+    assert.match(banners({ count: null, error: 'x' }), /<dt[^>]*>Banners<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/);
+    assert.match(banners(undefined), /<dt[^>]*>Banners<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/);
+    for (const old of ['fotos de estúdio', 'Carrossel &amp; Transmissão', 'Carrossel']) assert.ok(!banners({ count: 3, error: null }).includes(old), old);
   });
 });
 
-describe('Banners — carrossel da home', () => {
+describe('Banners — fundo do topo da home', () => {
   const headers = { 'content-type': 'application/json' };
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
   const settle = () => new Promise(resolve => setImmediate(resolve));
   const FILE_URL = 'http://172.16.107.63:3001/rails/active_storage/blobs/redirect/x/banner.png';
   const tres = [{ id: 7, imagem: FILE_URL }, { id: 3, imagem: 'https://exemplo.com/b.jpg' }, { id: 9, imagem: 'https://outro.org/c.webp' }];
   const reply = (data: unknown) => async () => json({ success: true, message: 'Banners encontrados', data });
-  const mount = (banners: BannerPublico[], windowExtras?: Record<string, unknown>) => mountCategories(async () => { throw new Error('O carrossel não consulta a API no navegador'); }, false, {
-    component: () => HomeBannerCarousel({ banners }), allowedPaths: /$^/, windowExtras,
+  const mount = (banners: BannerPublico[], windowExtras?: Record<string, unknown>) => mountCategories(async () => { throw new Error('O fundo não consulta a API no navegador'); }, false, {
+    component: () => HomeHeroBackground({ banners }), allowedPaths: /$^/, windowExtras,
   });
   type View = Awaited<ReturnType<typeof mount>>;
   const images = (view: View) => view.nodes().filter(node => node.type === NextImage);
-  const slide = (view: View, label: string) => view.nodes().find(node => node.props['aria-roledescription'] === 'slide' && node.props['aria-label'] === label)!;
-  const activeLabel = (view: View) => view.nodes().find(node => node.props['aria-roledescription'] === 'slide' && node.props['aria-hidden'] === false)?.props['aria-label'];
-  const region = (view: View) => view.nodes().find(node => node.props['aria-roledescription'] === 'carrossel')!;
-  const fire = (view: View, name: string, event: unknown = {}) => view.act(() => Reflect.apply(region(view).props[name] as (value: unknown) => unknown, undefined, [event]));
+  const visivel = (view: View) => images(view).filter(node => /\bopacity-25\b/.test(String(node.props.className))).map(node => node.props.src);
   const reduced = (matches: boolean) => ({ matchMedia: () => ({ matches, addEventListener() {}, removeEventListener() {} }) });
 
   it('leitura no servidor: lista da API, e qualquer falha vira lista vazia sem erro', async () => {
@@ -10902,42 +11264,59 @@ describe('Banners — carrossel da home', () => {
       assert.equal(timeout.mock.calls[0].arguments[0], 2500);
     } finally { spy.mock.restore(); timeout.mock.restore(); warn.mock.restore(); }
   });
-  it('o servidor usa cache curto, e a home passa a lista pronta para o carrossel antes do topo', () => {
+  it('o servidor usa cache curto, e os banners entram no fundo do topo, no lugar do carrossel e da foto', () => {
     const cached = readFileSync('src/lib/home-banners.ts', 'utf8');
     assert.match(cached, /getHomeBanners\(\)[^{]*\{\s*'use cache';/);
     assert.match(cached, /cacheLife\(\{ stale: 300, revalidate: failed \? 30 : 300 \}\)/);
     const page = readFileSync('src/app/page.tsx', 'utf8');
     assert.doesNotMatch(page, /use client/); assert.match(page, /await getHomeBanners\(\)/);
     const source = readFileSync('src/components/HomePageClient.tsx', 'utf8');
-    assert.ok(source.indexOf('<HomeBannerCarousel banners={banners} />') > 0 && source.indexOf('<HomeBannerCarousel banners={banners} />') < source.indexOf('id="inicio"'));
+    const fundo = source.indexOf('<HomeHeroBackground banners={banners} />');
+    assert.ok(fundo > source.indexOf('id="inicio"') && fundo < source.indexOf('Conteúdo Principal do Hero'), 'Fica atrás do título e do cartão');
+    assert.doesNotMatch(source, /HomeBannerCarousel|Transmissão das aulas do MEDTEC Rondônia/);
+    assert.equal(existsSync('src/components/HomeBannerCarousel.tsx'), false);
   });
-  it('lista vazia não reserva espaço nem mostra nada', async () => {
+  it('sem banners ou com falha na API, mantém /hero.jpg como antes', async () => {
     const view = await mount([]);
-    try { assert.equal(view.html(), ''); assert.equal(view.calls.length, 0); } finally { await view.restore(); }
+    try {
+      assert.equal(images(view).length, 1);
+      const foto = images(view)[0].props;
+      assert.equal(foto.src, '/hero.jpg'); assert.equal(foto.alt, 'Transmissão das aulas do MEDTEC Rondônia');
+      assert.equal(foto.className, 'object-cover opacity-25 mix-blend-luminosity pointer-events-none');
+      assert.equal(foto.fetchPriority, 'high');
+      assert.equal(view.nodes().some(node => node.type === 'button'), false);
+      assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
   });
-  it('vem pronto no HTML do servidor, sem consultar a API no navegador', async () => {
-    const html = renderToStaticMarkup(createElement(HomeBannerCarousel, { banners: tres }));
-    assert.match(html, /aria-roledescription="carrossel"/); assert.match(html, /alt="Banner 1 de 3"/);
+  it('vem pronto no HTML do servidor, decorativo, sem consultar a API no navegador', async () => {
+    const html = renderToStaticMarkup(createElement(HomeHeroBackground, { banners: tres }));
+    assert.match(html, /<img[^>]*alt=""[^>]*aria-hidden="true"|<img[^>]*aria-hidden="true"[^>]*alt=""/);
     assert.match(html, /fetchPriority="high"/);
+    assert.doesNotMatch(html, /\/hero\.jpg|carrossel|Banner 1 de 3/);
     const view = await mount(tres);
     try { await view.act(settle); assert.equal(view.calls.length, 0); } finally { await view.restore(); }
   });
-  it('um banner não tem controles nem troca automática', async () => {
+  it('um banner fica fixo, sem botão de pausa', async () => {
+    mock.timers.enable({ apis: ['setInterval'] });
     const view = await mount([tres[0]]);
     try {
       await view.act(settle);
-      assert.equal(images(view).length, 1); assert.equal(images(view)[0].props.alt, 'Banner 1 de 1');
+      await view.act(() => mock.timers.tick(30000));
+      assert.deepEqual(visivel(view), [tres[0].imagem]);
+      assert.equal(images(view).length, 1);
       assert.equal(view.nodes().filter(node => node.type === 'button').length, 0);
-    } finally { await view.restore(); }
+    } finally { mock.timers.reset(); await view.restore(); }
   });
-  it('um slide por item, na ordem recebida, sem juntar URL e sem otimização', async () => {
+  it('as imagens mantêm o overlay escuro, são decorativas, sem otimização e sem juntar URL', async () => {
     const view = await mount(tres);
     try {
       await view.act(settle);
-      assert.deepEqual(view.nodes().filter(node => node.props['aria-roledescription'] === 'slide').map(node => node.props['aria-label']), ['Banner 1 de 3', 'Banner 2 de 3', 'Banner 3 de 3']);
       assert.deepEqual(images(view).map(node => node.props.src), tres.map(item => item.imagem));
-      assert.deepEqual(images(view).map(node => node.props.alt), ['Banner 1 de 3', 'Banner 2 de 3', 'Banner 3 de 3']);
-      assert.ok(images(view).every(node => node.props.unoptimized === true), 'imagem_url pode ser de qualquer domínio');
+      for (const { props } of images(view)) {
+        assert.equal(props.alt, ''); assert.equal(props['aria-hidden'], true); assert.equal(props.unoptimized, true); assert.equal(props.fill, true);
+        assert.match(String(props.className), /object-cover/); assert.match(String(props.className), /mix-blend-luminosity/); assert.match(String(props.className), /transition-opacity/);
+      }
+      assert.deepEqual(visivel(view), [tres[0].imagem]);
     } finally { await view.restore(); }
   });
   it('a primeira imagem é prioritária e as demais são lazy; distantes nem são montadas', async () => {
@@ -10951,50 +11330,32 @@ describe('Banners — carrossel da home', () => {
       assert.ok(mounted.slice(1).every(node => node.props.loading === 'lazy' && node.props.fetchPriority === undefined));
     } finally { await view.restore(); }
   });
-  it('botões, indicadores e setas do teclado trocam o slide, circulando', async () => {
-    const view = await mount(tres);
-    try {
-      await view.act(settle);
-      assert.equal(activeLabel(view), 'Banner 1 de 3');
-      await view.click('Próximo banner'); assert.equal(activeLabel(view), 'Banner 2 de 3');
-      await view.click('Banner anterior'); await view.click('Banner anterior'); assert.equal(activeLabel(view), 'Banner 3 de 3');
-      await view.click('Ir para o banner 2 de 3'); assert.equal(activeLabel(view), 'Banner 2 de 3');
-      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ir para o banner 2 de 3')?.props['aria-current'], 'true');
-      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ir para o banner 1 de 3')?.props['aria-current'], undefined);
-      const preventDefault = mock.fn();
-      await fire(view, 'onKeyDown', { key: 'ArrowRight', preventDefault }); assert.equal(activeLabel(view), 'Banner 3 de 3');
-      await fire(view, 'onKeyDown', { key: 'ArrowRight', preventDefault }); assert.equal(activeLabel(view), 'Banner 1 de 3');
-      await fire(view, 'onKeyDown', { key: 'ArrowLeft', preventDefault }); assert.equal(activeLabel(view), 'Banner 3 de 3');
-      assert.equal(preventDefault.mock.callCount(), 3);
-      await fire(view, 'onKeyDown', { key: 'Tab', preventDefault }); assert.equal(preventDefault.mock.callCount(), 3, 'Outras teclas seguem normais');
-      assert.equal(slide(view, 'Banner 1 de 3').props['aria-hidden'], true);
-    } finally { await view.restore(); }
-  });
-  it('troca sozinho e pausa com o mouse, o foco e o botão', async () => {
+  it('troca sozinho a cada 6 segundos, circulando, e o botão pausa e retoma', async () => {
     mock.timers.enable({ apis: ['setInterval'] });
     const view = await mount(tres);
-    const tick = () => view.act(() => mock.timers.tick(6000));
+    const tick = (ms = 6000) => view.act(() => mock.timers.tick(ms));
     try {
       await view.act(settle);
-      await tick(); assert.equal(activeLabel(view), 'Banner 2 de 3');
-      await fire(view, 'onMouseEnter'); await tick(); assert.equal(activeLabel(view), 'Banner 2 de 3', 'Mouse pausa');
-      await fire(view, 'onMouseLeave'); await tick(); assert.equal(activeLabel(view), 'Banner 3 de 3');
-      await fire(view, 'onFocus'); await tick(); assert.equal(activeLabel(view), 'Banner 3 de 3', 'Foco pausa');
-      await fire(view, 'onBlur', { currentTarget: { contains: () => true }, relatedTarget: {} }); await tick(); assert.equal(activeLabel(view), 'Banner 3 de 3', 'Foco dentro do carrossel continua pausado');
-      await fire(view, 'onBlur', { currentTarget: { contains: () => false }, relatedTarget: null }); await tick(); assert.equal(activeLabel(view), 'Banner 1 de 3');
-      await view.click('Pausar troca automática'); await tick(); assert.equal(activeLabel(view), 'Banner 1 de 3', 'Botão pausa');
-      await view.click('Retomar troca automática'); await tick(); assert.equal(activeLabel(view), 'Banner 2 de 3');
+      assert.deepEqual(visivel(view), [tres[0].imagem]);
+      await tick(5999); assert.deepEqual(visivel(view), [tres[0].imagem]);
+      await tick(1); assert.deepEqual(visivel(view), [tres[1].imagem]);
+      await tick(); assert.deepEqual(visivel(view), [tres[2].imagem]);
+      await tick(); assert.deepEqual(visivel(view), [tres[0].imagem]);
+      await view.click('Pausar troca das imagens de fundo');
+      await tick(30000); assert.deepEqual(visivel(view), [tres[0].imagem], 'Pausado não troca');
+      await view.click('Retomar troca das imagens de fundo');
+      await tick(); assert.deepEqual(visivel(view), [tres[1].imagem]);
     } finally { mock.timers.reset(); await view.restore(); }
   });
-  it('prefers-reduced-motion desliga a troca automática, sem tirar os controles', async () => {
+  it('com prefers-reduced-motion mostra só a primeira, sem trocar e sem botão', async () => {
     mock.timers.enable({ apis: ['setInterval'] });
     const view = await mount(tres, reduced(true));
     try {
       await view.act(settle);
       await view.act(() => mock.timers.tick(30000));
-      assert.equal(activeLabel(view), 'Banner 1 de 3');
-      assert.ok(!view.nodes().some(node => String(node.props['aria-label']).includes('troca automática')));
-      await view.click('Próximo banner'); assert.equal(activeLabel(view), 'Banner 2 de 3');
+      assert.deepEqual(images(view).map(node => node.props.src), [tres[0].imagem]);
+      assert.deepEqual(visivel(view), [tres[0].imagem]);
+      assert.equal(view.nodes().some(node => node.type === 'button'), false);
     } finally { mock.timers.reset(); await view.restore(); }
   });
 });
@@ -11189,21 +11550,35 @@ describe('Projetos — membros no painel', () => {
       assert.equal(searchParams.get('q[nome_cont]'), 'Maria'); assert.equal(searchParams.get('q[cpf_eq]'), '01251667708');
     } finally { await view.restore(); }
   });
-  it('cadastro valida o CPF antes de enviar e envia só números', async () => {
+  it('"Cadastrar membro" abre o modal e, ao salvar, fecha e recarrega a lista', async () => {
     const view = await mount();
-    const writes = () => view.calls.filter(call => call.options.method === 'POST');
+    const modal = () => view.nodes().find(node => node.type === MembroCadastroModal);
     try {
       await view.act(settle);
-      await view.click('Novo membro');
-      await view.change('membro-nome', 'Maria Ribeiro');
-      await view.change('membro-cpf', '11111111111');
-      await view.submit('Criar membro');
-      assert.match(view.html(), /Informe um CPF válido\./); assert.equal(writes().length, 0);
-      await view.change('membro-cpf', '01251667708');
-      await view.submit('Criar membro');
+      assert.equal(modal(), undefined);
+      await view.click('Cadastrar membro');
+      const leituras = view.calls.length;
+      await view.act(() => (modal()!.props.onCreated as (value: unknown) => void)(membro));
       await view.act(settle);
-      assert.deepEqual(JSON.parse(String(writes()[0].options.body)), { pj_membro: { nome: 'Maria Ribeiro', cpf: '01251667708' } });
-      assert.match(view.html(), /Membro salvo com sucesso/);
+      assert.equal(modal(), undefined);
+      assert.match(view.html(), /Maria Ribeiro cadastrado\./);
+      assert.ok(view.calls.length > leituras, 'A lista é relida');
+    } finally { await view.restore(); }
+  });
+  it('a edição continua no formulário da tela e envia só números', async () => {
+    const view = await mount(() => reply(membro));
+    try {
+      await view.act(settle);
+      await view.click('Editar Maria Ribeiro');
+      await view.change('membro-cpf', '11111111111');
+      await view.submit('Editar membro');
+      assert.match(view.html(), /Informe um CPF válido\./);
+      await view.change('membro-cpf', '012.516.677-08');
+      await view.submit('Editar membro');
+      await view.act(settle);
+      const patch = view.calls.find(call => call.options.method === 'PATCH')!;
+      assert.ok(patch.url.pathname.endsWith('/pj_membros/1'));
+      assert.deepEqual(JSON.parse(String(patch.options.body)), { pj_membro: { nome: 'Maria Ribeiro', cpf: '01251667708' } });
     } finally { await view.restore(); }
   });
   it('membro em projeto mostra a recusa da API ao excluir', async () => {
@@ -11246,7 +11621,7 @@ describe('Projetos — painel', () => {
   }
   type View = Awaited<ReturnType<typeof mount>>;
   const pick = (view: View, name: string, event: unknown) => view.act(() => {
-    const node = view.nodes().find(item => item.type === 'input' && item.props.name === name);
+    const node = view.nodes().find(item => item.type === FileButton && item.props.name === name);
     assert.ok(node, name);
     return Reflect.apply(node.props.onChange as (value: unknown) => unknown, undefined, [event]);
   });
@@ -11304,8 +11679,6 @@ describe('Projetos — painel', () => {
     try {
       await view.act(settle);
       await fillBase(view);
-      const modoLink = view.nodes().find(item => item.props.name === 'projeto-imagem-modo' && item.props.value === 'link');
-      await view.act(() => Reflect.apply(modoLink!.props.onChange as () => unknown, undefined, []));
       await view.change('projeto-imagem-url', 'http://x.com/capa.jpg');
       await view.submit('Criar projeto');
       assert.match(view.html(), /link HTTPS válido/); assert.equal(sentBy(view, 'POST').length, 0);
@@ -11314,6 +11687,177 @@ describe('Projetos — painel', () => {
       await view.act(settle);
       assert.equal(JSON.parse(String(sentBy(view, 'POST')[0].options.body)).pj_projeto.imagem_url, 'https://x.com/capa.jpg');
     } finally { await view.restore(); }
+  });
+  describe('prévia da capa', () => {
+    const alt = (view: View, text: string) => view.nodes().find(item => item.props.alt === text);
+    function urlsDeObjeto() {
+      const created = mock.method(URL, 'createObjectURL', () => 'blob:previa');
+      const revoked = mock.method(URL, 'revokeObjectURL', () => {});
+      return { created, revoked, restore() { created.mock.restore(); revoked.mock.restore(); } };
+    }
+
+    it('arquivo escolhido aparece na prévia sem enviar nada, e remover desfaz a escolha', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        const antes = view.calls.length;
+        assert.equal(view.nodes().some(item => item.props.children === 'Remover escolha'), false);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'blob:previa');
+        assert.equal(view.calls.length, antes, 'Escolher não envia o arquivo');
+        await view.click('Remover escolha');
+        assert.equal(alt(view, 'Prévia da nova capa'), undefined);
+        assert.equal(urls.revoked.mock.callCount(), 1, 'A URL local é liberada');
+        await fillBase(view);
+        await view.submit('Criar projeto');
+        await view.act(settle);
+        assert.equal(typeof sentBy(view, 'POST')[0].options.body, 'string', 'Sem arquivo, vai JSON');
+        assert.equal(JSON.parse(String(sentBy(view, 'POST')[0].options.body)).pj_projeto.imagem_url, undefined);
+      } finally { await view.restore(); urls.restore(); }
+    });
+    it('arquivo recusado não gera prévia e fechar o formulário libera a URL', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.gif', { type: 'image/gif' })));
+        assert.equal(alt(view, 'Prévia da nova capa'), undefined); assert.equal(urls.created.mock.callCount(), 0);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+        await view.click('Cancelar');
+        assert.equal(urls.revoked.mock.callCount(), 1);
+      } finally { await view.restore(); urls.restore(); }
+    });
+    it('link HTTPS aparece na prévia; outro link só orienta; remover limpa', async () => {
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        await view.change('projeto-imagem-url', 'http://x.com/capa.jpg');
+        assert.equal(alt(view, 'Prévia da nova capa'), undefined);
+        assert.match(view.html(), /A prévia só aparece com um link HTTPS válido/);
+        await view.change('projeto-imagem-url', ' https://x.com/nova.jpg ');
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'https://x.com/nova.jpg');
+        await view.click('Remover escolha');
+        assert.equal(alt(view, 'Prévia da nova capa'), undefined);
+        assert.equal(view.nodes().find(item => item.props.name === 'projeto-imagem-url')?.props.value, '');
+      } finally { await view.restore(); }
+    });
+    it('na edição mostra a capa atual; a nova escolha a substitui na tela e remover volta à atual, sem enviar troca', async () => {
+      const view = await mount({}, () => reply(projeto));
+      try {
+        await view.act(settle);
+        await view.click('Editar Hortas em Jirau');
+        await view.act(settle);
+        assert.equal(alt(view, 'Capa atual do projeto')?.props.src, 'https://x.com/capa.jpg');
+        assert.equal(view.nodes().some(item => item.props.children === 'Remover escolha'), false);
+        await view.change('projeto-imagem-url', 'https://x.com/outra.jpg');
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'https://x.com/outra.jpg');
+        assert.equal(alt(view, 'Capa atual do projeto'), undefined);
+        await view.click('Remover escolha');
+        assert.equal(alt(view, 'Capa atual do projeto')?.props.src, 'https://x.com/capa.jpg');
+        await view.submit('Editar projeto');
+        await view.act(settle);
+        assert.equal(JSON.parse(String(sentBy(view, 'PATCH')[0].options.body)).pj_projeto.imagem_url, undefined, 'A capa atual é preservada');
+      } finally { await view.restore(); }
+    });
+    it('colar um link descarta o arquivo escolhido, e escolher arquivo limpa o link', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+        await view.change('projeto-imagem-url', 'https://x.com/nova.jpg');
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'https://x.com/nova.jpg');
+        assert.equal(urls.revoked.mock.callCount(), 1);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'outra.png', { type: 'image/png' })));
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'blob:previa');
+        assert.equal(view.nodes().find(item => item.props.name === 'projeto-imagem-url')?.props.value, '');
+        assert.match(view.html(), /outra\.png \(1 KB\)/);
+      } finally { await view.restore(); urls.restore(); }
+    });
+    it('arquivo recusado mantém a escolha anterior', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.gif', { type: 'image/gif' })));
+        assert.match(view.html(), /A imagem deve ser PNG, JPG ou WEBP/);
+        assert.equal(alt(view, 'Prévia da nova capa')?.props.src, 'blob:previa');
+      } finally { await view.restore(); urls.restore(); }
+    });
+  });
+  describe('botões de arquivo', () => {
+    function assertBotoes(view: View) {
+      assert.match(view.html(), /Escolher imagem/); assert.match(view.html(), /Adicionar arquivos/);
+      const input = (name: string) => view.nodes().find(item => item.type === FileButton && item.props.name === name)!;
+      assert.equal(input('projeto-imagem').props.accept, 'image/png,image/jpeg,image/webp');
+      assert.equal(input('projeto-imagem').props.multiple, undefined);
+      assert.equal(input('projeto-anexos').props.multiple, true);
+      assert.equal(input('projeto-anexos').props.accept, PROJETO_ANEXO_ACCEPT);
+      assert.ok(view.nodes().some(item => item.props.name === 'projeto-imagem-url'), 'O link segue disponível');
+    }
+    it('aparecem no cadastro', async () => {
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        assertBotoes(view);
+      } finally { await view.restore(); }
+    });
+    it('aparecem na edição, mesmo quando a capa atual é um link', async () => {
+      const view = await mount({}, () => reply(projeto));
+      try {
+        await view.act(settle);
+        await view.click('Editar Hortas em Jirau');
+        await view.act(settle);
+        assertBotoes(view);
+        assert.equal(view.nodes().find(item => item.props.name === 'projeto-imagem-url')?.props.value, 'https://x.com/capa.jpg');
+      } finally { await view.restore(); }
+    });
+    it('erros de tipo e tamanho aparecem junto do campo, sem bloquear os válidos', async () => {
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        const alertas = () => view.nodes().filter(item => item.props.role === 'alert' && item.type === 'p').map(item => item.props.children);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.gif', { type: 'image/gif' })));
+        assert.deepEqual(alertas(), ['A imagem deve ser PNG, JPG ou WEBP.']);
+        const pesado = new File(['x'], 'grande.pdf', { type: 'application/pdf' }); Object.defineProperty(pesado, 'size', { value: PROJETO_ANEXO_MAX_BYTES + 1 });
+        await pick(view, 'projeto-anexos', files(pesado, new File(['x'], 'ok.pdf', { type: 'application/pdf' })));
+        assert.ok(alertas().includes('grande.pdf: deve ter até 10 MB.'));
+        assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Retirar ok.pdf'));
+        assert.equal(view.nodes().some(item => item.props['aria-label'] === 'Retirar grande.pdf'), false);
+      } finally { await view.restore(); }
+    });
+    it('lista nome e tamanho, retira antes de salvar e envia pj_projeto[anexos][] e pj_projeto[imagem]', async () => {
+      const view = await mount({ startNew: true });
+      try {
+        await view.act(settle);
+        await fillBase(view);
+        await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
+        await pick(view, 'projeto-anexos', files(new File(['x'], 'fica.pdf', { type: 'application/pdf' }), new File(['y'], 'sai.docx', { type: '' })));
+        assert.match(view.html(), /fica\.pdf \(1 KB\)/); assert.match(view.html(), /sai\.docx \(1 KB\)/);
+        await view.click('Retirar sai.docx');
+        await view.submit('Criar projeto');
+        await view.act(settle);
+        const form = sentBy(view, 'POST')[0].options.body as FormData;
+        assert.ok(form instanceof FormData);
+        assert.equal((form.get('pj_projeto[imagem]') as File).name, 'capa.png');
+        assert.deepEqual(form.getAll('pj_projeto[anexos][]').map(item => (item as File).name), ['fica.pdf']);
+      } finally { await view.restore(); }
+    });
+    it('na edição, os anexos salvos têm link para baixar e os novos se somam', async () => {
+      const view = await mount({}, () => reply(projeto));
+      try {
+        await view.act(settle);
+        await view.click('Editar Hortas em Jirau');
+        await view.act(settle);
+        const baixar = view.nodes().find(item => item.type === 'a' && String(item.props.href).endsWith('/rails/relatorio.pdf'));
+        assert.ok(baixar);
+        assert.ok(view.nodes().some(item => item.props['aria-label'] === 'Remover anexo relatorio.pdf'));
+        await pick(view, 'projeto-anexos', files(new File(['x'], 'novo.pdf', { type: 'application/pdf' })));
+        assert.match(view.html(), /relatorio\.pdf/); assert.match(view.html(), /novo\.pdf/);
+      } finally { await view.restore(); }
+    });
   });
   it('recusa capa e anexos fora das regras e envia os válidos em multipart', async () => {
     const view = await mount({ startNew: true });
@@ -11414,8 +11958,6 @@ describe('Projetos — painel', () => {
       await view.act(settle);
       await view.click('Editar Hortas em Jirau');
       await view.act(settle);
-      const modo = view.nodes().find(item => item.props.name === 'projeto-imagem-modo' && item.props.value === 'upload');
-      await view.act(() => Reflect.apply(modo!.props.onChange as () => unknown, undefined, []));
       await pick(view, 'projeto-imagem', files(new File(['x'], 'capa.png', { type: 'image/png' })));
       await view.submit('Editar projeto');
       await view.act(settle);
@@ -11467,7 +12009,7 @@ describe('Projetos — Início do painel', () => {
     return createElement('output', null, JSON.stringify(useProjetosResumo(enabled)));
   }
   const render = (projetosResumo?: { total: number | null; pending: number | null; published: number | null; error: string | null }) => renderToStaticMarkup(createElement(AdminOverview, {
-    indicators: {} as OverviewStatsIndicators, canAccessKanban: true, projetosResumo, onOpenNews() {}, onCreateNews() {}, onOpenKanban() {},
+    indicators: {} as OverviewStatsIndicators, menu: fullOverviewMenu(), projetosResumo, onCreateNews() {},
   }));
 
   it('resumo conta total, aguardando e publicados sem trazer os projetos', async () => {
@@ -11492,13 +12034,13 @@ describe('Projetos — Início do painel', () => {
       assert.match(failing.html(), /&quot;total&quot;:null/); assert.match(failing.html(), /não possui permissão/);
     } finally { await failing.restore(); }
   });
-  it('Início mostra os totais da API, o carregamento e a indisponibilidade, sem o texto antigo', () => {
+  it('Início mostra o total e os pendentes da API, o carregamento e a indisponibilidade, sem o texto antigo', () => {
     const ok = render({ total: 9, pending: 2, published: 1, error: null });
-    assert.match(ok, /9 projetos/); assert.match(ok, /1 publicado · 2 aguardando/);
+    assert.match(ok, /<dt[^>]*>Projetos<\/dt><dd[^>]*>9<\/dd>/); assert.match(ok, /2 aguardando/);
     for (const old of ['trilhas temáticas', 'guias de rep', 'Prática em destaque', 'Projetos e municípios aguardam']) assert.ok(!ok.includes(old), old);
-    assert.match(render({ total: null, pending: null, published: null, error: null }), /Carregando API/);
-    assert.match(render({ total: null, pending: null, published: null, error: 'Falhou' }), /Falha ao consultar \/pj_projetos · Falhou/);
-    assert.match(render(), /Entre com CPF para consultar a API/);
+    assert.match(render({ total: null, pending: null, published: null, error: null }), /<dt[^>]*>Projetos<\/dt><dd[^>]*><span[^>]*aria-label="Carregando"/);
+    assert.match(render({ total: null, pending: null, published: null, error: 'Falhou' }), /<dt[^>]*>Projetos<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/);
+    assert.match(render(), /<dt[^>]*>Projetos<\/dt><dd[^>]*><span[^>]*aria-label="Indisponível"/);
   });
 });
 
@@ -11547,78 +12089,354 @@ describe('Projetos — Fila de Aprovação', () => {
   });
 });
 
+describe('Projetos — página de aprovação', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const list = (items: unknown[], total_count = items.length, total_pages = 1) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages, total_count, per_page: 10 } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const projeto = {
+    id: 7, titulo: 'Hortas em Jirau', relato: 'Relato completo', tema_nome: 'Agroecologia', escola_nome: 'EEEFM Bolívar', cidade_nome: 'Porto Velho',
+    imagem: null, imagem_url: 'https://x.com/capa.jpg', autor_nome: 'Ana Autora', status: 'aguardando', status_nome: 'Aguardando', created_at: '2026-10-26T12:00:00-03:00',
+    anexos: [{ id: 10, nome: 'relatorio.pdf', tipo: 'application/pdf', tamanho: 52344, url: '/rails/relatorio.pdf' }],
+    membros: [{ id: 5, pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }],
+  };
+  const paths = /\/pj_projetos(\/\d+\/(publicar|reprovar))?$/;
+  const mount = (fetcher: (url: URL, options: RequestInit) => Response) => mountCategories(async (url, options) => fetcher(url, options), false, { component: () => ProjetosAprovacaoPanel(), allowedPaths: paths });
+  const proibido = () => reply({ success: false, message: 'Sem permissão', errors: ['Sem permissão'] }, 403);
+
+  it('a subrota usa o painel e está no menu e nas abas, com contador', () => {
+    assert.equal(AdminProjetosAprovacaoPage().type, ProjetosAprovacaoPanel);
+    assert.equal(SHARED_SECTION_CONFIG.projetosAprovacao.href, '/admin/projetos/aprovacao');
+    assert.equal(getFolderIdForSection('projetosAprovacao'), 'atendimento');
+    assert.ok(ADMIN_SUBROUTE_GROUPS.find(group => group.label === 'Seções de projetos')!.items.some(item => item.section === 'projetosAprovacao'));
+    const access = { noticias: false, projetos: true, duvidas: false, avisos: false, fotos: false, galeria: false, professores: false, alunos: false, kanban: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false };
+    const item = buildAdminMenu(access, { projetosAprovacao: 3 }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!;
+    assert.equal(item.visible, true); assert.equal(item.badge, 3);
+    assert.equal(buildAdminMenu({ ...access, projetos: false }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!.visible, false);
+    const shell = readFileSync('src/components/admin/AdminShell.tsx', 'utf8');
+    assert.match(shell, /projetosAprovacao: projetosPendentes\.count \|\| undefined/);
+    assert.match(readFileSync('src/app/admin/page.tsx', 'utf8'), /projetosAprovacao: projetosResumo\.pending \|\| undefined/);
+  });
+  it('lista só os aguardando, paginado, com capa, título, tema, escola, autor e data, sem CPF', async () => {
+    const view = await mount(() => list([projeto], 12, 2));
+    try {
+      await view.act(settle);
+      const { searchParams } = view.calls[0].url;
+      assert.equal(searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(searchParams.get('page'), '1'); assert.equal(searchParams.get('per_page'), '10');
+      const html = view.html();
+      for (const text of ['Hortas em Jirau', 'Agroecologia', 'EEEFM Bolívar', 'Ana Autora', '26/10/2026', 'Projetos aguardando (12)']) assert.ok(html.includes(text), text);
+      assert.ok(view.nodes().some(node => node.props.alt === 'Capa de Hortas em Jirau' && node.props.src === 'https://x.com/capa.jpg'));
+      assert.doesNotMatch(html, /01251667708/);
+      await view.click('Próxima');
+      await view.act(settle);
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('page'), '2');
+    } finally { await view.restore(); }
+  });
+  it('projeto sem capa não quebra e "Ver detalhes" abre relato, membros e anexos', async () => {
+    const view = await mount(() => list([{ ...projeto, imagem_url: null }]));
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /Sem capa/);
+      assert.doesNotMatch(view.html(), /Relato completo/);
+      await view.click('Ver detalhes de Hortas em Jirau');
+      const html = view.html();
+      for (const text of ['Relato completo', 'Maria Ribeiro · Mediadora', 'relatorio.pdf', 'Porto Velho']) assert.ok(html.includes(text), text);
+      assert.doesNotMatch(html, /01251667708/);
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ocultar detalhes de Hortas em Jirau')?.props['aria-expanded'], true);
+      await view.click('Ocultar detalhes de Hortas em Jirau');
+      assert.doesNotMatch(view.html(), /Relato completo/);
+    } finally { await view.restore(); }
+  });
+  for (const [operation, label, text] of [['publicar', 'Publicar', 'publicado'], ['reprovar', 'Reprovar', 'reprovado']] as const) {
+    it(`${label} usa a rota própria, recarrega, avisa o menu e esvazia a fila`, async () => {
+      let items: unknown[] = [projeto];
+      const view = await mount((_url, options) => {
+        if (options.method === 'PATCH') { items = []; return reply({ ...projeto, status: 'publicada' }); }
+        return list(items);
+      });
+      try {
+        await view.act(settle);
+        await view.click(`${label} Hortas em Jirau`);
+        await view.act(settle);
+        const patch = view.calls.find(call => call.options.method === 'PATCH')!;
+        assert.ok(patch.url.pathname.endsWith(`/pj_projetos/7/${operation}`));
+        assert.equal(patch.options.body, undefined, 'Não existe motivo de reprovação');
+        assert.ok(view.html().includes(`projeto ${text}`));
+        assert.match(view.html(), /Nenhum projeto aguardando aprovação/);
+      } finally { await view.restore(); }
+    });
+  }
+  it('403 na listagem vira "sem permissão", sem fingir fila vazia', async () => {
+    const view = await mount(proibido);
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /role="alert"/); assert.match(view.html(), /Sem permissão/);
+      assert.doesNotMatch(view.html(), /Nenhum projeto aguardando/);
+    } finally { await view.restore(); }
+  });
+  it('403 ao moderar vira "sem permissão" e o projeto continua na fila', async () => {
+    const view = await mount((_url, options) => options.method === 'PATCH' ? proibido() : list([projeto]));
+    try {
+      await view.act(settle);
+      await view.click('Publicar Hortas em Jirau');
+      await view.act(settle);
+      assert.match(view.html(), /Sem permissão/);
+      assert.match(view.html(), /Hortas em Jirau/);
+      assert.doesNotMatch(view.html(), /projeto publicado/);
+    } finally { await view.restore(); }
+  });
+  it('o contador conta só os aguardando, relê ao ser avisado e some com 403', async () => {
+    let total = 3; let falhar = false;
+    function Contador() { return createElement('output', null, String(useProjetosPendentes(true).count)); }
+    const view = await mountCategories(async () => falhar ? proibido() : list([], total), false, { component: Contador, allowedPaths: /\/pj_projetos$/ });
+    try {
+      await view.act(settle);
+      assert.equal(view.html(), '<output>3</output>');
+      assert.equal(view.calls[0].url.searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(view.calls[0].url.searchParams.get('per_page'), '1');
+      total = 2;
+      await view.act(() => notifyProjetosPendentes());
+      await view.act(settle);
+      assert.equal(view.html(), '<output>2</output>');
+      falhar = true;
+      await view.act(() => notifyProjetosPendentes());
+      await view.act(settle);
+      assert.equal(view.html(), '<output>null</output>');
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Botão de arquivo do painel', () => {
+  it('o rótulo parece um botão, e o input continua acessível pelo teclado', () => {
+    const html = renderToStaticMarkup(FileButton({ name: 'capa', accept: 'image/png', multiple: true, onChange() {}, children: 'Escolher imagem' }));
+    assert.match(html, /<label class="[^"]*border[^"]*focus-within:ring-2[^"]*">Escolher imagem<input/);
+    assert.match(html, /type="file"/); assert.match(html, /name="capa"/); assert.match(html, /accept="image\/png"/); assert.match(html, /multiple/);
+    assert.match(html, /class="sr-only"/); assert.doesNotMatch(html, /class="hidden"/);
+  });
+  it('mostra o arquivo escolhido só quando informado', () => {
+    assert.match(renderToStaticMarkup(FileButton({ selected: 'capa.png', onChange() {}, children: 'Escolher imagem' })), /capa\.png/);
+    assert.doesNotMatch(renderToStaticMarkup(FileButton({ onChange() {}, children: 'Escolher imagem' })), /break-all/);
+  });
+  it('todos os inputs de arquivo do painel usam o componente', () => {
+    const fontes = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+      const path = `${dir}/${entry.name}`;
+      return entry.isDirectory() ? fontes(path) : /\.tsx?$/.test(entry.name) ? [path] : [];
+    });
+    const comInput = fontes('src').filter(path => /type=["'{]+file/.test(readFileSync(path, 'utf8')));
+    assert.deepEqual(comInput, ['src/components/admin/FileButton.tsx']);
+    for (const tela of ['BannersPanel', 'ConquistasPanel', 'GalleryModule', 'NewsModule', 'ProjetosPanel']) {
+      assert.match(readFileSync(`src/components/admin/${tela}.tsx`, 'utf8'), /<FileButton\b/, tela);
+    }
+  });
+});
+
+describe('Projetos — modal de cadastro de membro', () => {
+  const headers = { 'content-type': 'application/json' };
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const criado = { id: 8, nome: 'João Lima', cpf: '52998224725' };
+  function mount(write: () => Response = () => new Response(JSON.stringify(criado), { status: 201, headers })) {
+    const created: unknown[] = [];
+    const closed = mock.fn();
+    return mountCategories(async () => write(), false, {
+      component: () => MembroCadastroModal({ onClose: closed, onCreated: value => { created.push(value); } }), allowedPaths: /\/pj_membros$/,
+    }).then(view => ({ view, created, closed }));
+  }
+  it('nome e CPF são validados antes de enviar', async () => {
+    const { view, created } = await mount();
+    try {
+      await view.click('Salvar membro');
+      assert.match(view.html(), /Informe o nome do membro/);
+      await view.change('membro-cadastro-nome', 'João Lima');
+      await view.change('membro-cadastro-cpf', '11111111111');
+      await view.click('Salvar membro');
+      assert.match(view.html(), /Informe um CPF válido/);
+      assert.equal(view.calls.length, 0); assert.equal(created.length, 0);
+    } finally { await view.restore(); }
+  });
+  it('envia só números e devolve o membro criado', async () => {
+    const { view, created } = await mount();
+    try {
+      await view.change('membro-cadastro-nome', ' João Lima ');
+      await view.change('membro-cadastro-cpf', '529.982.247-25');
+      await view.click('Salvar membro');
+      await view.act(settle);
+      assert.equal(view.calls[0].options.method, 'POST');
+      assert.deepEqual(JSON.parse(String(view.calls[0].options.body)), { pj_membro: { nome: 'João Lima', cpf: '52998224725' } });
+      assert.deepEqual(created, [criado]);
+    } finally { await view.restore(); }
+  });
+  it('CPF duplicado mostra o erro da API e mantém o modal aberto', async () => {
+    const { view, created, closed } = await mount(() => new Response(JSON.stringify({ success: false, message: 'Erro de validação', errors: ['Cpf já está em uso'] }), { status: 422, headers }));
+    try {
+      await view.change('membro-cadastro-nome', 'João Lima');
+      await view.change('membro-cadastro-cpf', '52998224725');
+      await view.click('Salvar membro');
+      await view.act(settle);
+      assert.match(view.html(), /Cpf já está em uso/);
+      assert.equal(created.length, 0); assert.equal(closed.mock.callCount(), 0);
+    } finally { await view.restore(); }
+  });
+  it('não usa <form>, pois abre dentro do formulário do projeto; Enter salva sem enviar o projeto', async () => {
+    const { view } = await mount();
+    try {
+      assert.equal(view.nodes().some(node => node.type === 'form'), false);
+      await view.change('membro-cadastro-nome', 'João Lima');
+      await view.change('membro-cadastro-cpf', '52998224725');
+      const enter = { key: 'Enter', prevented: false, preventDefault() { this.prevented = true; } };
+      const input = view.nodes().find(node => node.props.name === 'membro-cadastro-cpf')!;
+      await view.act(() => (input.props.onKeyDown as (event: unknown) => unknown)(enter));
+      await view.act(settle);
+      assert.equal(enter.prevented, true); assert.equal(view.calls.length, 1);
+    } finally { await view.restore(); }
+  });
+  it('Cancelar fecha sem enviar', async () => {
+    const { view, closed } = await mount();
+    try {
+      await view.click('Cancelar');
+      assert.equal(closed.mock.callCount(), 1); assert.equal(view.calls.length, 0);
+    } finally { await view.restore(); }
+  });
+});
+
 describe('Projetos — membros no formulário', () => {
   const headers = { 'content-type': 'application/json' };
   const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
-  const list = (items: unknown[]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: 1 } } });
+  const list = (items: unknown[], total_pages = 1, current_page = 1) => reply({ success: true, data: { items, pagination: { current_page, total_pages, total_count: items.length, per_page: 10 } } });
   const settle = () => new Promise(resolve => setImmediate(resolve));
+  const debounce = () => new Promise(resolve => setTimeout(resolve, 340));
   const maria = { id: 1, nome: 'Maria Ribeiro', cpf: '01251667708' };
-  function mount(found: unknown[], initial: { pj_membro_id: number; nome: string; cpf: string; funcao: string }[] = []) {
+  const joao = { id: 8, nome: 'João Lima', cpf: '52998224725' };
+  function mount(found: unknown[] = [maria, joao], initial: { pj_membro_id: number; nome: string; cpf: string; funcao: string }[] = [], reader?: (url: URL) => Response) {
     const state = { value: initial };
-    const created = { id: 8, nome: 'João Lima', cpf: '52998224725' };
-    return mountCategories(async (_url, options) => options.method === 'POST' ? reply(created, 201) : list(found), false, {
+    return mountCategories(async url => reader ? reader(url) : list(found), false, {
       component: () => ProjetoMembrosEditor({ value: state.value, onChange: next => { state.value = next; } }), allowedPaths: /\/pj_membros$/,
-    }).then(view => ({ view, state }));
+    }).then(async view => {
+      await view.act(settle);
+      return { view, state };
+    });
   }
-  it('CPF inválido não consulta a API', async () => {
-    const { view } = await mount([]);
+  type View = Awaited<ReturnType<typeof mount>>['view'];
+  const abrir = (view: View) => view.act(() => (view.nodes().find(node => node.props.name === 'membro-busca-nome')!.props.onFocus as () => unknown)());
+  const opcoes = (view: View) => view.nodes().filter(node => node.type === 'ul' && node.props['aria-label'] === 'Membros encontrados');
+
+  it('a lista só aparece ao abrir a busca, com nome e CPF mascarado', async () => {
+    const { view } = await mount();
     try {
-      await view.change('membro-busca-cpf', '123');
-      await view.click('Buscar CPF');
-      assert.match(view.html(), /Informe um CPF válido/); assert.equal(view.calls.length, 0);
+      assert.equal(opcoes(view).length, 0);
+      assert.equal(view.nodes().some(node => node.props.name === 'membro-busca-cpf'), false, 'Não há mais digitação de CPF');
+      await abrir(view);
+      assert.equal(opcoes(view).length, 1);
+      assert.match(view.html(), /Maria Ribeiro/); assert.match(view.html(), /\*\*\*\.516\.677-\*\*/);
+      assert.doesNotMatch(view.html(), /01251667708|52998224725/);
     } finally { await view.restore(); }
   });
-  it('CPF cadastrado reutiliza o membro, sem novo POST', async () => {
-    const { view, state } = await mount([maria]);
+  it('a busca usa q[nome_cont] paginado, depois da pausa na digitação', async () => {
+    const { view } = await mount();
     try {
-      await view.change('membro-busca-cpf', '012.516.677-08');
-      await view.click('Buscar CPF');
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('page'), '1');
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('per_page'), '10');
+      assert.equal(view.calls.at(-1)!.url.searchParams.has('q[nome_cont]'), false);
+      const antes = view.calls.length;
+      await view.change('membro-busca-nome', ' Mar');
+      await view.change('membro-busca-nome', ' Maria ');
+      assert.equal(view.calls.length, antes, 'Nada é consultado a cada tecla');
+      await view.act(debounce);
       await view.act(settle);
-      assert.equal(view.calls[0].url.searchParams.get('q[cpf_eq]'), '01251667708');
-      assert.match(view.html(), /Já cadastrado/);
-      await view.change('membro-nova-funcao', ' Mediadora ');
-      await view.click('Adicionar ao projeto');
+      assert.equal(view.calls.length, antes + 1);
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('q[nome_cont]'), 'Maria');
+      assert.equal(view.calls.at(-1)!.url.searchParams.has('q[cpf_eq]'), false);
+    } finally { await view.restore(); }
+  });
+  it('a paginação da busca pede a próxima página e uma nova busca volta à primeira', async () => {
+    const { view } = await mount([], [], url => list([maria], 2, Number(url.searchParams.get('page'))));
+    try {
+      await abrir(view);
+      await view.click('Próxima');
       await view.act(settle);
-      assert.deepEqual(state.value, [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('page'), '2');
+      await view.change('membro-busca-nome', 'Maria');
+      await view.act(debounce);
+      await view.act(settle);
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('page'), '1');
+    } finally { await view.restore(); }
+  });
+  it('selecionar inclui o membro pedindo a função, sem POST, e fecha a lista', async () => {
+    const { view, state } = await mount();
+    try {
+      await abrir(view);
+      await view.click('Adicionar Maria Ribeiro');
+      await view.render();
+      assert.deepEqual(state.value, [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: '' }]);
+      assert.equal(opcoes(view).length, 0);
+      const funcao = view.nodes().find(node => node.props.name === 'membro-funcao-1')!;
+      assert.equal(funcao.props.required, true); assert.equal(funcao.props.autoFocus, true);
+      assert.match(view.html(), /Informe a função e salve o projeto/);
       assert.ok(!view.calls.some(call => call.options.method === 'POST'));
     } finally { await view.restore(); }
   });
-  it('CPF sem cadastro cria o membro só com números e usa o id novo', async () => {
-    const { view, state } = await mount([]);
+  it('membro que já está no projeto fica indisponível na lista e não duplica', async () => {
+    const { view, state } = await mount([maria, joao], [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
     try {
-      await view.change('membro-busca-cpf', '529.982.247-25');
-      await view.click('Buscar CPF');
-      await view.act(settle);
-      await view.change('membro-nova-funcao', 'Aluno');
-      await view.click('Adicionar ao projeto');
-      assert.match(view.html(), /Informe o nome do membro/);
-      await view.change('membro-novo-nome', ' João Lima ');
-      await view.click('Adicionar ao projeto');
-      await view.act(settle);
-      const post = view.calls.find(call => call.options.method === 'POST')!;
-      assert.deepEqual(JSON.parse(String(post.options.body)), { pj_membro: { nome: 'João Lima', cpf: '52998224725' } });
-      assert.equal(state.value[0].pj_membro_id, 8);
+      await abrir(view);
+      const opcao = view.nodes().find(node => node.props['aria-label'] === 'Maria Ribeiro já está no projeto')!;
+      assert.equal(opcao.props.disabled, true);
+      assert.equal(view.nodes().some(node => node.props['aria-label'] === 'Adicionar Maria Ribeiro'), false);
+      await view.act(() => (opcao.props.onClick as () => unknown)());
+      assert.equal(state.value.length, 1);
     } finally { await view.restore(); }
   });
-  it('membro repetido é recusado e a linha mostra o CPF mascarado', async () => {
-    const { view } = await mount([maria], [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
+  it('a linha mantém a edição da função e permite tirar o membro', async () => {
+    const { view, state } = await mount([], [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
     try {
       assert.match(view.html(), /\*\*\*\.516\.677-\*\*/); assert.doesNotMatch(view.html(), /01251667708/);
-      await view.change('membro-busca-cpf', '01251667708');
-      await view.click('Buscar CPF');
-      await view.act(settle);
-      assert.match(view.html(), /já está neste projeto/);
-      assert.doesNotMatch(view.html(), /Adicionar ao projeto/);
+      await view.change('membro-funcao-1', 'Coordenadora');
+      assert.equal(state.value[0].funcao, 'Coordenadora');
+      await view.render();
+      await view.click('Remover Maria Ribeiro do projeto');
+      assert.deepEqual(state.value, []);
     } finally { await view.restore(); }
   });
-  it('função é obrigatória', async () => {
-    const { view, state } = await mount([maria]);
+  it('Enter na busca não envia o formulário do projeto e Escape fecha a lista', async () => {
+    const { view } = await mount();
     try {
-      await view.change('membro-busca-cpf', '01251667708');
-      await view.click('Buscar CPF');
+      await abrir(view);
+      const input = () => view.nodes().find(node => node.props.name === 'membro-busca-nome')!;
+      const enter = { key: 'Enter', prevented: false, preventDefault() { this.prevented = true; } };
+      await view.act(() => (input().props.onKeyDown as (event: unknown) => unknown)(enter));
+      assert.equal(enter.prevented, true); assert.equal(opcoes(view).length, 1);
+      await view.act(() => (input().props.onKeyDown as (event: unknown) => unknown)({ key: 'Escape', preventDefault() {} }));
+      assert.equal(opcoes(view).length, 0);
+    } finally { await view.restore(); }
+  });
+  it('falha na busca mostra o erro e permite tentar de novo', async () => {
+    let falhar = true;
+    const { view } = await mount([], [], () => falhar ? reply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403) : list([maria]));
+    try {
+      await abrir(view);
+      assert.match(view.html(), /role="alert"/);
+      falhar = false;
+      await view.click('Recarregar membros');
       await view.act(settle);
-      await view.click('Adicionar ao projeto');
-      assert.match(view.html(), /Informe a função do membro/); assert.equal(state.value.length, 0);
+      assert.match(view.html(), /Maria Ribeiro/);
+    } finally { await view.restore(); }
+  });
+  it('membro cadastrado no modal já entra selecionado, pedindo a função, sem sair do formulário', async () => {
+    const { view, state } = await mount([], [{ pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }]);
+    const modal = () => view.nodes().find(node => node.type === MembroCadastroModal);
+    try {
+      assert.equal(modal(), undefined);
+      await view.click('Cadastrar membro');
+      const leituras = view.calls.length;
+      await view.act(() => (modal()!.props.onCreated as (value: unknown) => void)(joao));
+      await view.act(settle);
+      await view.render();
+      assert.equal(modal(), undefined);
+      assert.deepEqual(state.value.map(item => [item.pj_membro_id, item.funcao]), [[1, 'Mediadora'], [8, '']]);
+      assert.match(view.html(), /João Lima cadastrado e incluído/);
+      assert.equal(view.nodes().find(node => node.props.name === 'membro-funcao-8')?.props.required, true);
+      assert.doesNotMatch(view.html(), /52998224725/);
+      assert.ok(view.calls.length > leituras, 'A busca passa a conhecer o novo membro');
     } finally { await view.restore(); }
   });
 });
@@ -11838,7 +12656,7 @@ describe('Professores e conquistas — integração com a API', () => {
     ] as const) {
       assert.equal(page.type, AdminShell);
       assert.equal(page.props.activeSection, section);
-      assert.equal(getFolderIdForSection(section), 'publicacoes');
+      assert.equal(getFolderIdForSection(section), 'conteudo');
       const html = renderToStaticMarkup(page.props.children());
       assert.match(html, new RegExp(label));
       assert.doesNotMatch(html, /fictíci|LGPD verificad|Termo LGPD|aria-pressed/i);
@@ -11859,13 +12677,12 @@ describe('Professores e conquistas — integração com a API', () => {
       noticias: false, projetos: false, duvidas: false, avisos: false, fotos: false, galeria: false, professores: true,
       alunos: false, kanban: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false,
     };
-    const folders = buildAdminMenu(access, { professoresRelatos: 3 });
-    assert.deepEqual(folders.map(folder => [folder.id, folder.visible]), [['publicacoes', true], ['aprovacao', false], ['dados', false], ['usuarios', false]]);
+    const folders = buildAdminMenu(access, { professores: 3 });
+    assert.deepEqual(folders.map(folder => [folder.id, folder.visible]), [['conteudo', true], ['atendimento', false], ['configuracoes', false]]);
     const items = folders.flatMap(folder => folder.items);
-    assert.deepEqual(items.filter(item => item.visible).map(item => item.section), ['professores', 'professoresDisciplinas', 'professoresRelatos']);
-    assert.equal(items.find(item => item.section === 'professoresRelatos')?.badge, 3);
-    assert.deepEqual(items.map(item => [item.section, item.href]), [...SECTION_HREFS].sort((a, b) =>
-      items.findIndex(item => item.section === a[0]) - items.findIndex(item => item.section === b[0])));
+    assert.deepEqual(items.filter(item => item.visible).map(item => item.section), ['professores']);
+    assert.equal(items.find(item => item.section === 'professores')?.badge, 3);
+    for (const item of items) assert.equal(item.href, SECTION_HREFS.get(item.section), item.section);
     for (const source of ['src/components/admin/AdminShell.tsx', 'src/app/admin/page.tsx']) {
       const code = readFileSync(source, 'utf8');
       assert.match(code, /buildAdminMenu\(/, source);
@@ -11956,13 +12773,23 @@ describe('Professores e conquistas — integração com a API', () => {
       await view.click('Novo professor');
       assert.ok(view.nodes().some(node => node.props.name === 'professor-disciplina-1'));
       assert.equal(view.nodes().some(node => node.props.name === 'professor-disciplina-2'), false);
+      const form = () => view.nodes().find(node => node.type === 'form' && node.props['aria-label'] === 'Criar professor')!;
+      assert.equal(form().props.noValidate, true, 'Os erros aparecem junto dos campos, não no balão do navegador');
+      assert.deepEqual(view.nodes().filter(node => node.type === 'legend').map(node => node.props.children), ['Dados', 'Escola', 'Disciplinas (ao menos uma)', 'Prática pedagógica']);
       await view.submit('Criar professor');
-      assert.match(view.html(), /Informe nome, escola/);
+      const alertas = () => view.nodes().filter(node => node.props.role === 'alert' && node.type === 'p').map(node => node.props.children);
+      assert.deepEqual(alertas(), ['Informe o nome do professor.', 'Selecione a escola.', 'Selecione ao menos uma disciplina.', 'Descreva a prática pedagógica.']);
+      const nome = () => view.nodes().find(node => node.props.name === 'professor-nome')!;
+      assert.equal(nome().props['aria-invalid'], true);
+      assert.ok(view.nodes().some(node => node.props.role === 'alert' && node.props.id === nome().props['aria-describedby']));
+      assert.equal(view.calls.some(call => call.options.method === 'POST'), false);
       await view.change('professor-nome', 'Nova Professora');
+      assert.equal(alertas().includes('Informe o nome do professor.'), false, 'Corrigir o campo limpa só o erro dele');
+      assert.equal(nome().props['aria-invalid'], undefined);
       await view.change('professor-escola', '3');
       await view.change('professor-pratica', 'Prática');
       await view.submit('Criar professor');
-      assert.match(view.html(), /Selecione ao menos uma disciplina/);
+      assert.deepEqual(alertas(), ['Selecione ao menos uma disciplina.']);
       await view.change('professor-disciplina-1', true);
       await view.submit('Criar professor');
       assert.match(view.html(), /P disciplinas precisa ter ao menos uma/);
@@ -11981,12 +12808,26 @@ describe('Professores e conquistas — integração com a API', () => {
       { ...relato, id: 12, nome: 'Publicado', status: 'publicada', status_nome: 'Publicada' },
       { ...relato, id: 13, nome: 'Reprovado', status: 'reprovada', status_nome: 'Reprovada' },
     ];
-    const view = await mountCategories(async (url, options) => options.method === 'PATCH' ? json(relato) : listReply(statuses), false,
-      { component: () => RelatosPanel(), allowedPaths: /\/p_relatos(\/\d+\/(publicar|reprovar|despublicar))?$/ });
+    const view = await mountCategories(async (url, options) => options.method === 'PATCH' ? json(relato)
+      : url.pathname.endsWith('/p_professores') ? listReply([professor]) : listReply(statuses), false,
+    { component: () => RelatosPanel(), allowedPaths: /\/(p_professores|p_relatos(\/\d+\/(publicar|reprovar|despublicar))?)$/ });
+    const relatos = () => view.calls.filter(call => call.url.pathname.endsWith('/p_relatos')).at(-1)!.url.searchParams;
     try {
       await view.act(settle);
-      assert.equal(view.calls[0].url.searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(relatos().get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(relatos().has('q[p_professor_id_eq]'), false);
       assert.match(view.html(), /joao@exemplo\.com/);
+      assert.match(view.html(), /Aluno: Aguarda/); assert.ok(view.html().includes('Professor: ' + relato.professor_nome));
+      assert.ok(view.nodes().some(node => node.type === 'a' && node.props.href === 'mailto:joao@exemplo.com'));
+      assert.ok(view.nodes().some(node => node.type === 'a' && String(node.props.href) === 'tel:' + relato.telefone.replace(/\D/g, '')));
+      assert.match(view.html(), /Enviado em /);
+      assert.equal(view.nodes().some(node => node.props.name === 'relato-nome'), false, 'O painel não cria relato');
+      await view.change('relato-filtro-professor', String(professor.id));
+      await view.act(settle);
+      assert.equal(relatos().get('q[p_professor_id_eq]'), String(professor.id)); assert.equal(relatos().get('q[n_status_noticia_slug_eq]'), 'aguardando'); assert.equal(relatos().get('page'), '1');
+      await view.change('relato-filtro-status', 'publicada');
+      await view.act(settle);
+      assert.equal(relatos().get('q[n_status_noticia_slug_eq]'), 'publicada'); assert.equal(relatos().get('q[p_professor_id_eq]'), String(professor.id));
       const labels = view.nodes().filter(node => node.type === 'button').map(node => String(node.props['aria-label']));
       for (const label of ['Publicar relato de Aguarda', 'Reprovar relato de Aguarda', 'Despublicar relato de Publicado', 'Publicar relato de Reprovado']) {
         assert.ok(labels.includes(label), label);
@@ -11999,6 +12840,42 @@ describe('Professores e conquistas — integração com a API', () => {
       assert.ok(view.calls.some(call => call.url.pathname.endsWith('/p_relatos/11/reprovar') && call.options.body === undefined));
       assert.match(view.html(), /Relato reprovado/);
     } finally { await view.restore(); }
+  });
+
+  it('excluir relato pede confirmação no próprio card e usa DELETE', async () => {
+    const view = await mountCategories(async (url, options) => options.method === 'DELETE' ? new Response(null, { status: 204 })
+      : url.pathname.endsWith('/p_professores') ? listReply([professor]) : listReply([relato]), false,
+    { component: () => RelatosPanel(), allowedPaths: /\/(p_professores|p_relatos(\/\d+)?)$/ });
+    const deletes = () => view.calls.filter(call => call.options.method === 'DELETE');
+    try {
+      await view.act(settle);
+      await view.click('Excluir relato de ' + relato.nome);
+      assert.equal(deletes().length, 0);
+      await view.click('Cancelar exclusão');
+      await view.click('Excluir relato de ' + relato.nome);
+      await view.click('Confirmar exclusão');
+      await view.act(settle);
+      assert.ok(deletes()[0].url.pathname.endsWith('/p_relatos/' + relato.id));
+      assert.match(view.html(), /Relato excluído/);
+    } finally { await view.restore(); }
+  });
+
+  it('contador de relatos conta só os aguardando, relê ao ser avisado e fica no menu', async () => {
+    let total = 4;
+    function Contador() { return createElement('output', null, String(useRelatosPendentes(true).count)); }
+    const view = await mountCategories(async () => json({ success: true, message: 'ok', data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: total, per_page: 1 } } }), false, { component: Contador, allowedPaths: /\/p_relatos$/ });
+    try {
+      await view.act(settle);
+      assert.equal(view.html(), '<output>4</output>');
+      assert.equal(view.calls[0].url.searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(view.calls[0].url.searchParams.get('per_page'), '1');
+      total = 3;
+      await view.act(() => notifyRelatosPendentes());
+      await view.act(settle);
+      assert.equal(view.html(), '<output>3</output>');
+    } finally { await view.restore(); }
+    assert.match(readFileSync('src/components/admin/AdminShell.tsx', 'utf8'), /professores: relatosPendentes\.count \|\| undefined/);
+    assert.match(readFileSync('src/app/admin/page.tsx', 'utf8'), /professores: relatosPendentes\.count \|\| undefined/);
   });
 
   it('município só filtra escolas e não é enviado na conquista; 403 usa a mensagem do projeto', async () => {
@@ -12057,11 +12934,6 @@ describe('Professores e conquistas — integração com a API', () => {
       assert.ok(input);
       return view.act(() => Reflect.apply(input.props.onChange as () => unknown, undefined, [{ target: { files: [file], value: file.name } }]));
     };
-    const useLink = () => {
-      const radio = view.nodes().find(node => node.props.name === 'conquista-imagem-modo' && node.props.value === 'link');
-      assert.ok(radio);
-      return view.act(() => Reflect.apply(radio.props.onChange as () => unknown, undefined, []));
-    };
     try {
       await view.act(settle);
       await fill();
@@ -12091,7 +12963,15 @@ describe('Professores e conquistas — integração com a API', () => {
 
       const before = posts().length;
       await fill();
-      await useLink();
+      const campo = (name: string) => view.nodes().find(node => node.props.name === name);
+      assert.equal(campo('conquista-imagem-modo'), undefined);
+      assert.ok(campo('conquista-imagem')); assert.ok(campo('conquista-imagem-url'));
+      await view.change('conquista-imagem-url', 'https://exemplo.com/antes.jpg');
+      await chooseFile(new File(['x'], 'a.png', { type: 'image/png' }));
+      assert.equal(campo('conquista-imagem-url')?.props.value, '');
+      assert.match(view.html(), /a\.png \(1 KB\)/);
+      await view.change('conquista-imagem-url', 'https://exemplo.com/depois.jpg');
+      assert.doesNotMatch(view.html(), /a\.png \(1 KB\)/);
       for (const link of ['http://exemplo.com/a.jpg', 'javascript:alert(1)', 'ftp://exemplo.com/a.jpg', 'exemplo.com/a.jpg']) {
         await view.change('conquista-imagem-url', link);
         await view.submit('Criar conquista');
@@ -12101,8 +12981,122 @@ describe('Professores e conquistas — integração com a API', () => {
       await view.change('conquista-imagem-url', 'https://exemplo.com/a.jpg');
       await view.submit('Criar conquista');
       await view.act(settle);
+      assert.equal(typeof posts()[before].options.body, 'string', 'O arquivo descartado não vai junto');
       assert.equal(sent(posts()[before]).c_conquista_aluno.imagem_url, 'https://exemplo.com/a.jpg');
     } finally { await view.restore(); }
+  });
+
+  describe('prévia da imagem da conquista', () => {
+    const salva = { ...conquista, imagem: '/rails/foto.png', imagem_url: null };
+    const mountConquista = (detalhe: unknown = salva) => mountCategories(async (url, options) => {
+      if (options.method === 'PATCH' || options.method === 'POST') return json(detalhe);
+      if (url.pathname.endsWith('/escolas')) return listReply([escola]);
+      if (url.pathname.endsWith('/c_categorias_conquista_aluno')) return listReply([categoria]);
+      if (/\/c_conquistas_aluno\/\d+$/.test(url.pathname)) return json(detalhe);
+      return listReply([conquista]);
+    }, false, { component: () => ConquistasPanel(), allowedPaths: /\/(escolas|c_categorias_conquista_aluno|c_conquistas_aluno(\/\d+)?)$/ });
+    type View = Awaited<ReturnType<typeof mountConquista>>;
+    const alt = (view: View, text: string) => view.nodes().find(node => node.props.alt === text);
+    const escolher = (view: View, file: File) => view.act(() => Reflect.apply(view.nodes().find(node => node.type === FileButton && node.props.name === 'conquista-imagem')!.props.onChange as () => unknown, undefined, [{ target: { files: [file], value: file.name } }]));
+    const abrirEdicao = async (view: View) => { await view.act(settle); await view.click('Editar ' + conquista.titulo); await view.act(settle); };
+    function urlsDeObjeto() {
+      const created = mock.method(URL, 'createObjectURL', () => 'blob:previa');
+      const revoked = mock.method(URL, 'revokeObjectURL', () => {});
+      return { created, revoked, restore() { created.mock.restore(); revoked.mock.restore(); } };
+    }
+
+    it('arquivo escolhido aparece na prévia sem enviar nada, e remover desfaz a escolha', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mountConquista();
+      try {
+        await view.act(settle);
+        await view.click('Nova conquista');
+        const antes = view.calls.length;
+        assert.equal(view.nodes().some(node => node.props.children === 'Remover escolha'), false);
+        await escolher(view, new File(['x'], 'foto.png', { type: 'image/png' }));
+        assert.equal(alt(view, 'Prévia da nova imagem')?.props.src, 'blob:previa');
+        assert.equal(view.calls.length, antes, 'Escolher não envia o arquivo');
+        await view.click('Remover escolha');
+        assert.equal(alt(view, 'Prévia da nova imagem'), undefined);
+        assert.equal(urls.revoked.mock.callCount(), 1, 'A URL local é liberada');
+      } finally { await view.restore(); urls.restore(); }
+    });
+    it('arquivo recusado não gera prévia, mostra o erro no campo e mantém a escolha anterior', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mountConquista();
+      try {
+        await view.act(settle);
+        await view.click('Nova conquista');
+        await escolher(view, new File(['x'], 'foto.gif', { type: 'image/gif' }));
+        assert.equal(alt(view, 'Prévia da nova imagem'), undefined); assert.equal(urls.created.mock.callCount(), 0);
+        assert.ok(view.nodes().some(node => node.props.role === 'alert' && node.props.children === 'A imagem deve ser PNG, JPG ou WEBP.'));
+        await escolher(view, new File(['x'], 'foto.png', { type: 'image/png' }));
+        await escolher(view, new File(['x'], 'foto.gif', { type: 'image/gif' }));
+        assert.equal(alt(view, 'Prévia da nova imagem')?.props.src, 'blob:previa');
+      } finally { await view.restore(); urls.restore(); }
+    });
+    it('link HTTPS aparece na prévia; outro link só orienta; remover limpa', async () => {
+      const view = await mountConquista();
+      try {
+        await view.act(settle);
+        await view.click('Nova conquista');
+        await view.change('conquista-imagem-url', 'http://exemplo.com/a.jpg');
+        assert.equal(alt(view, 'Prévia da nova imagem'), undefined);
+        assert.match(view.html(), /A prévia só aparece com um link HTTPS válido/);
+        await view.change('conquista-imagem-url', ' https://exemplo.com/a.jpg ');
+        assert.equal(alt(view, 'Prévia da nova imagem')?.props.src, 'https://exemplo.com/a.jpg');
+        await view.click('Remover escolha');
+        assert.equal(alt(view, 'Prévia da nova imagem'), undefined);
+        assert.equal(view.nodes().find(node => node.props.name === 'conquista-imagem-url')?.props.value, '');
+      } finally { await view.restore(); }
+    });
+    it('na edição mostra o arquivo salvo; a nova escolha o substitui na tela e remover volta a ele, sem enviar troca', async () => {
+      const urls = urlsDeObjeto();
+      const view = await mountConquista();
+      try {
+        await abrirEdicao(view);
+        assert.match(String(alt(view, 'Imagem atual da conquista')?.props.src), /\/rails\/foto\.png$/);
+        assert.equal(view.nodes().some(node => node.props.children === 'Remover escolha'), false, 'Sem escolha, não há o que remover');
+        await escolher(view, new File(['x'], 'nova.png', { type: 'image/png' }));
+        assert.equal(alt(view, 'Imagem atual da conquista'), undefined);
+        await view.click('Remover escolha');
+        assert.match(String(alt(view, 'Imagem atual da conquista')?.props.src), /\/rails\/foto\.png$/);
+        await view.submit('Editar conquista');
+        await view.act(settle);
+        const patch = view.calls.find(call => call.options.method === 'PATCH')!;
+        assert.equal(typeof patch.options.body, 'string');
+        const enviado = sent(patch).c_conquista_aluno;
+        assert.equal('imagem' in enviado, false); assert.equal('imagem_url' in enviado, false);
+      } finally { await view.restore(); urls.restore(); }
+    });
+    it('na edição com link salvo, mostra o link; remover a troca volta a ele e nada de imagem é enviado', async () => {
+      const view = await mountConquista({ ...conquista, imagem: null, imagem_url: 'https://exemplo.com/salva.jpg' });
+      try {
+        await abrirEdicao(view);
+        const campo = () => view.nodes().find(node => node.props.name === 'conquista-imagem-url');
+        assert.equal(alt(view, 'Imagem atual da conquista')?.props.src, 'https://exemplo.com/salva.jpg');
+        assert.equal(campo()?.props.value, 'https://exemplo.com/salva.jpg');
+        await view.change('conquista-imagem-url', 'https://exemplo.com/nova.jpg');
+        assert.equal(alt(view, 'Prévia da nova imagem')?.props.src, 'https://exemplo.com/nova.jpg');
+        await view.click('Remover escolha');
+        assert.equal(campo()?.props.value, 'https://exemplo.com/salva.jpg');
+        assert.equal(alt(view, 'Imagem atual da conquista')?.props.src, 'https://exemplo.com/salva.jpg');
+        await view.submit('Editar conquista');
+        await view.act(settle);
+        assert.equal('imagem_url' in sent(view.calls.find(call => call.options.method === 'PATCH')!).c_conquista_aluno, false);
+      } finally { await view.restore(); }
+    });
+    it('não há ação para apagar a imagem salva: limpar o link não envia remoção', async () => {
+      const view = await mountConquista({ ...conquista, imagem: null, imagem_url: 'https://exemplo.com/salva.jpg' });
+      try {
+        await abrirEdicao(view);
+        await view.change('conquista-imagem-url', '');
+        assert.equal(alt(view, 'Imagem atual da conquista')?.props.src, 'https://exemplo.com/salva.jpg');
+        await view.submit('Editar conquista');
+        await view.act(settle);
+        assert.equal('imagem_url' in sent(view.calls.find(call => call.options.method === 'PATCH')!).c_conquista_aluno, false);
+      } finally { await view.restore(); }
+    });
   });
 
   it('Fila de Aprovação lista conquistas e relatos aguardando e os publica', async () => {
@@ -12140,10 +13134,16 @@ describe('Professores e conquistas — integração com a API', () => {
     try {
       await view.submit();
       assert.equal(view.calls.length, 0);
-      assert.match(view.html(), /Informe seu nome/);
+      assert.match(view.html(), /Informe o nome do aluno/); assert.match(view.html(), />Nome do aluno</);
       await view.change('relato-nome', 'João');
       await view.change('relato-email', 'joao@exemplo.com');
-      await view.change('relato-telefone', '(69) 99999-0000');
+      const telefone = () => view.nodes().find(node => node.props.name === 'relato-telefone')!.props.value;
+      await view.change('relato-telefone', '6999990');
+      await view.change('relato-texto', 'Mudou meu jeito de estudar.');
+      await view.submit();
+      assert.match(view.html(), /Informe o telefone com DDD/); assert.equal(view.calls.length, 0, 'Fora de 10 ou 11 dígitos não envia');
+      await view.change('relato-telefone', 'ab(69) 99999-0000zz999');
+      assert.equal(telefone(), '(69) 99999-0000', 'Só números, no máximo 11');
       await view.change('relato-texto', 'Mudou meu jeito de estudar.');
       await view.submit();
       assert.match(view.html(), /Email já enviou um relato/);
@@ -12152,7 +13152,29 @@ describe('Professores e conquistas — integração com a API', () => {
       assert.match(view.html(), /Muitos envios\. Aguarde um minuto\./);
       await view.submit();
       assert.match(view.html(), /Relato enviado\. Ele aparece no site depois de aprovado\./);
-      assert.deepEqual(sent(view.calls[0]), { p_relato: { nome: 'João', email: 'joao@exemplo.com', telefone: '(69) 99999-0000', texto: 'Mudou meu jeito de estudar.' } });
+      assert.deepEqual(sent(view.calls[0]), { p_relato: { nome: 'João', email: 'joao@exemplo.com', telefone: '69999990000', texto: 'Mudou meu jeito de estudar.' } });
+    } finally { await view.restore(); }
+  });
+
+  it('máscara do telefone acompanha a digitação com 10 ou 11 dígitos', () => {
+    for (const [digitado, esperado] of [['', ''], ['a', ''], ['6', '(6'], ['69', '(69'], ['699', '(69) 9'], ['699999', '(69) 9999'], ['6999999', '(69) 9999-9'],
+      ['6933334444', '(69) 3333-4444'], ['69999990000', '(69) 99999-0000'], ['(69) 99999-0000', '(69) 99999-0000'], ['699999900001234', '(69) 99999-0000']] as const) {
+      assert.equal(formatTelefone(digitado), esperado, digitado);
+    }
+  });
+
+  it('formulário público aceita telefone de 10 dígitos e envia só números', async () => {
+    const view = await mountCategories(async () => json({ success: true, message: 'ok', data: null }, 201), false, {
+      component: () => RelatoProfessorForm({ professorId: 7, professorNome: 'Ana' }),
+      allowedPaths: /\/publico\/p_professores\/7\/p_relatos$/, anonymous: true,
+    });
+    try {
+      await view.change('relato-nome', 'João');
+      await view.change('relato-email', 'joao@exemplo.com');
+      await view.change('relato-telefone', '6933334444');
+      await view.change('relato-texto', 'Relato');
+      await view.submit();
+      assert.equal(sent(view.calls[0]).p_relato.telefone, '6933334444');
     } finally { await view.restore(); }
   });
 
@@ -12172,12 +13194,13 @@ describe('Professores e conquistas — integração com a API', () => {
     await withFetch(() => json({ success: true, message: 'ok', data: {
       id: 7, nome: 'Ana', pratica_pedagogica: 'Prática', escola_nome: 'Escola', cidade_nome: 'Porto Velho',
       email: 'prof@x.com', disciplinas: [{ nome: 'Biologia', slug: 'biologia' }],
-      relatos: [{ nome: 'João', texto: 'Relato publicado', created_at: 'x', email: 'joao@x.com' }],
+      relatos: [{ nome: 'João', texto: 'Relato publicado', created_at: 'x', email: 'joao@x.com', telefone: '69999990000' }],
     } }), async () => {
       const nodes = noticeNodes(await ProfessorDetalhePage({ params: Promise.resolve({ id: '7' }) }));
       const text = nodes.flatMap(node => React.Children.toArray(node.props.children as ReactNode)).filter(child => typeof child === 'string').join(' ');
       assert.match(text, /Relato publicado/);
-      assert.doesNotMatch(text, /@x\.com/);
+      assert.match(text, /Aluno: João/);
+      assert.doesNotMatch(text, /@x\.com|69999990000/);
       assert.equal(nodes.find(node => node.type === RelatoProfessorForm)?.props.professorId, 7);
     });
   });

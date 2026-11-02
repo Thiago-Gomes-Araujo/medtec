@@ -5,6 +5,7 @@ import { useCallback, useId, useState, type FormEvent } from 'react';
 import { SECTION_CONFIG } from '@/lib/admin-navigation';
 import { medtecApi, type PjMembro } from '@/lib/api';
 import { formatCpf, isValidCpf, maskCpf, onlyDigits } from '@/lib/projetos-content';
+import MembroCadastroModal from './MembroCadastroModal';
 import { buttonClass, inputClass, labelClass, panelClass, renderFeedback, renderPagination, useAdminAction, useApiList } from './communityAdminUi';
 
 // O membro é reaproveitado entre projetos; a função fica no vínculo de cada projeto.
@@ -13,14 +14,15 @@ export default function MembrosProjetoPanel() {
   const [page, setPage] = useState(1);
   const [inputs, setInputs] = useState({ nome: '', cpf: '' });
   const [filters, setFilters] = useState({ nome: '', cpf: '' });
-  const [form, setForm] = useState<{ id?: number; nome: string; cpf: string } | null>(null);
+  const [form, setForm] = useState<{ id: number; nome: string; cpf: string } | null>(null);
+  const [cadastrando, setCadastrando] = useState(false);
   const [deleting, setDeleting] = useState<PjMembro | null>(null);
   const read = useCallback((signal: AbortSignal) => medtecApi.membrosProjeto.list({
     page, per_page: 10, 'q[nome_cont]': filters.nome || undefined, 'q[cpf_eq]': filters.cpf || undefined,
   }, signal), [page, filters]);
   const { items, pagination, loading, error, reload } = useApiList<PjMembro>(read);
   const action = useAdminAction();
-  const blocked = action.busy || form !== null || deleting !== null;
+  const blocked = action.busy || form !== null || deleting !== null || cadastrando;
 
   function search(event: FormEvent) {
     event.preventDefault();
@@ -38,8 +40,7 @@ export default function MembrosProjetoPanel() {
     if (!isValidCpf(form.cpf)) { action.setError('Informe um CPF válido.'); return; }
     const data = { nome: form.nome.trim(), cpf: onlyDigits(form.cpf) };
     const saved = await action.run(async () => {
-      if (form.id) await medtecApi.membrosProjeto.update(form.id, data);
-      else await medtecApi.membrosProjeto.create(data);
+      await medtecApi.membrosProjeto.update(form.id, data);
       return 'Membro salvo com sucesso.';
     });
     if (saved) { setForm(null); reload(); }
@@ -66,8 +67,8 @@ export default function MembrosProjetoPanel() {
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Cada pessoa é cadastrada uma vez. O CPF não aparece no site.</p>
         </div>
         <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
-          setForm({ nome: '', cpf: '' }); action.setError(null); action.setSuccess(null);
-        }}>Novo membro</button>
+          setCadastrando(true); action.setError(null); action.setSuccess(null);
+        }}>Cadastrar membro</button>
       </header>
 
       <form aria-label="Filtrar membros" className="grid gap-3 sm:grid-cols-3" onSubmit={search}>
@@ -83,7 +84,11 @@ export default function MembrosProjetoPanel() {
       </div>}
       {renderFeedback(action.error, action.success)}
 
-      {form && <form onSubmit={save} aria-label={form.id ? 'Editar membro' : 'Criar membro'} className="space-y-4 border-y border-slate-200 dark:border-slate-800 py-4">
+      {cadastrando && <MembroCadastroModal onClose={() => setCadastrando(false)} onCreated={membro => {
+        setCadastrando(false); action.setSuccess(`${membro.nome} cadastrado.`); reload();
+      }} />}
+
+      {form && <form onSubmit={save} aria-label="Editar membro" className="space-y-4 border-y border-slate-200 dark:border-slate-800 py-4">
         <fieldset disabled={action.busy} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">

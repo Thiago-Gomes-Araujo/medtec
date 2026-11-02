@@ -1,498 +1,212 @@
 'use client';
 
 import Link from 'next/link';
-import { Plus, ExternalLink, Newspaper, Lightbulb, Megaphone, Presentation, Images,
-  CheckCircle2, SlidersHorizontal, BarChart3, Share2, UserCog, HelpCircle, ChevronRight, ArrowRight } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ExternalLink, Plus } from 'lucide-react';
 import OverviewStats, { type OverviewStatsIndicators } from '@/components/admin/OverviewStats';
 import type { ProjetosResumo } from '@/components/admin/useProjetosResumo';
-import type { NNoticia } from '@/lib/api';
+import { adminCardClass, adminCardLinkClass, adminCountBadgeClass, adminPrimaryButtonClass, adminSecondaryButtonClass, adminTonalCardActionClass, adminTonalLinkClass } from '@/components/admin/adminTheme';
+import { SECTION_CONFIG, type AdminSection, type buildAdminMenu } from '@/lib/admin-navigation';
+
+export interface PendenciaEstado {
+  count: number | null;
+  error: string | null;
+}
+
+export interface AdminOverviewPendencias {
+  /** O mesmo total mostrado no item Aprovações do menu. */
+  aprovacoes: PendenciaEstado;
+  duvidas: PendenciaEstado;
+  relatos: PendenciaEstado;
+}
 
 export interface AdminOverviewProps {
   indicators: OverviewStatsIndicators;
+  /** A mesma árvore do menu: quem não tem acesso ao item também não vê o cartão. */
+  menu: ReturnType<typeof buildAdminMenu>;
   userName?: string;
-  latestNews?: Pick<NNoticia, 'titulo' | 'data_publicacao' | 'autor_nome'>;
-  announcementTitle?: string;
-  canAccessKanban: boolean;
-  duvidasPendentes?: { count: number | null; error: string | null };
+  /** Ausente quando a sessão não consulta a API, como no acesso local. */
+  pendencias?: AdminOverviewPendencias;
+  totalEstados?: number | null;
   projetosResumo?: ProjetosResumo;
   bannersTotal?: { count: number | null; error: string | null };
-  onOpenNews: () => void;
   onCreateNews: () => void;
-  onOpenKanban: () => void;
+}
+
+interface Contador {
+  text: string;
+  pendentes: number;
+}
+
+// O nome do link começa pelo texto do botão; o nome da tela só entra se o botão não o citar.
+function cardLinkName(action: string, label: string, contador?: Contador | null): string {
+  const nomeNoBotao = action.toLowerCase().includes(label.toLowerCase());
+  return [action, nomeNoBotao ? null : label, contador?.text].filter(Boolean).join(', ');
+}
+
+const plural = (value: number, singular: string, varios: string) => `${value} ${value === 1 ? singular : varios}`;
+
+function AttentionRow({ value, title, detail, href, action }: { value: number; title: string; detail: string; href: string; action: string }) {
+  return (
+    <li className="flex items-center gap-3 border-l-4 border-l-admin-warning-strong px-3 py-2.5">
+      <span className="w-9 shrink-0 text-center text-xl font-bold leading-none text-admin-text">{value}</span>
+      <p className="min-w-0 flex-1 text-sm text-admin-text">
+        <span className="font-semibold">{title}</span>{' '}
+        <span className="text-xs text-admin-muted">{detail}</span>
+      </p>
+      <Link href={href} aria-label={`${action}: ${title}`} className={adminTonalLinkClass}>
+        <span>{action}</span>
+        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+      </Link>
+    </li>
+  );
+}
+
+function AttentionSkeleton() {
+  return (
+    <li aria-hidden="true" className="flex items-center gap-3 border-l-4 border-l-admin-border px-3 py-2.5">
+      <span className="h-6 w-9 shrink-0 rounded bg-admin-surface-muted animate-pulse motion-reduce:animate-none" />
+      <span className="h-4 flex-1 rounded bg-admin-surface-muted animate-pulse motion-reduce:animate-none" />
+      <span className="h-8 w-20 shrink-0 rounded-lg bg-admin-surface-muted animate-pulse motion-reduce:animate-none" />
+    </li>
+  );
 }
 
 export default function AdminOverview({
-  indicators, userName, latestNews, announcementTitle,
-  canAccessKanban, duvidasPendentes, projetosResumo, bannersTotal, onOpenNews, onCreateNews, onOpenKanban,
+  indicators, menu, userName, pendencias, totalEstados, projetosResumo, bannersTotal, onCreateNews,
 }: AdminOverviewProps) {
-  const {
-    loadingNews, errorNews, totalNews, apiNewsDraftCount,
-    loadingAvisos, errorAvisos, totalAvisos, apiAvisosAtivosCount,
-    loadingFotos, errorFotos, totalFotos,
-    loadingFaqs, errorFaqs, totalFaqs, apiFaqsPendingCount, apiFaqsPublishedCount,
-    usersCountLabel,
-  } = indicators;
-  const projetosSemDados = !projetosResumo || !!projetosResumo.error;
-  const bannersLabel = !bannersTotal || bannersTotal.error ? 'Indisponível'
-    : bannersTotal.count === null ? 'Carregando...' : `${bannersTotal.count} banner${bannersTotal.count === 1 ? '' : 's'}`;
+  const { loadingNews, errorNews, apiNewsDraftCount, loadingAvisos, errorAvisos, apiAvisosAtivosCount,
+    loadingFotos, errorFotos, totalCategorias, loadingFaqs, errorFaqs, apiFaqsPendingCount, usersCountLabel } = indicators;
+  const visibleItems = menu.flatMap(folder => folder.items.filter(item => item.visible));
+  const canSee = (section: AdminSection) => visibleItems.some(item => item.section === section);
+  const aprovacoes = visibleItems.find(item => item.section === 'kanban' || item.section === 'projetosAprovacao');
+
+  const sem = { count: null, error: null };
+  const cards = [
+    aprovacoes && { key: 'aprovacoes', estado: pendencias?.aprovacoes ?? sem, title: 'Aprovações', detail: 'aguardando aprovação', href: aprovacoes.href, action: 'Revisar' },
+    canSee('duvidasPublico') && { key: 'duvidas', estado: pendencias?.duvidas ?? sem, title: 'Dúvidas do público', detail: 'sem resposta', href: SECTION_CONFIG.duvidasPublico.href, action: 'Responder' },
+    canSee('professores') && { key: 'relatos', estado: pendencias?.relatos ?? sem, title: 'Relatos', detail: 'aguardando moderação', href: SECTION_CONFIG.professoresRelatos.href, action: 'Moderar' },
+  ].filter(card => !!card);
+  const pendentes = cards.filter(card => (card.estado.count ?? 0) > 0);
+  // Falha e carregamento são estados diferentes: a mensagem só aparece quando a leitura falhou de fato.
+  const carregando = cards.filter(card => card.estado.count === null && !card.estado.error);
+  const falhou = cards.some(card => card.estado.count === null && !!card.estado.error);
+
+  // Só o que o Resumo não mostra: pendências e detalhes, nunca os mesmos totais. `pendentes` decide a cor da etiqueta.
+  const aguardando = (count: number | null | undefined, indisponivel: boolean, text: (value: number) => string): Contador | null =>
+    indisponivel || count == null ? null : { text: text(count), pendentes: count };
+  const detalhe = (count: number | null | undefined, indisponivel: boolean, text: (value: number) => string): Contador | null =>
+    indisponivel || count == null ? null : { text: text(count), pendentes: 0 };
+  const aprovacoesContador = aguardando(pendencias?.aprovacoes.count, false, value => plural(value, 'pendente', 'pendentes'));
+  const contadores: Partial<Record<AdminSection, Contador | null>> = {
+    noticias: aguardando(apiNewsDraftCount, !!(loadingNews || errorNews), value => `${value} aguardando`),
+    avisos: detalhe(apiAvisosAtivosCount, !!(loadingAvisos || errorAvisos), value => plural(value, 'ativo', 'ativos')),
+    galeria: detalhe(totalCategorias, !!(loadingFotos || errorFotos), value => plural(value, 'categoria', 'categorias')),
+    projetos: aguardando(projetosResumo?.pending, !!projetosResumo?.error, value => `${value} aguardando`),
+    professores: aguardando(pendencias?.relatos.count, false, value => plural(value, 'relato aguardando', 'relatos aguardando')),
+    duvidas: aguardando(apiFaqsPendingCount, !!(loadingFaqs || errorFaqs), value => `${value} aguardando`),
+    duvidasPublico: aguardando(pendencias?.duvidas.count, false, value => `${value} sem resposta`),
+    kanban: aprovacoesContador,
+    projetosAprovacao: aprovacoesContador,
+    estadosCidades: detalhe(totalEstados, false, value => plural(value, 'estado', 'estados')),
+    usuarios: { text: `${usersCountLabel} usuários`, pendentes: 0 },
+  };
 
   return (
-    <div className="space-y-6">
-
-      {/* 1. Cabeçalho Compacto de Boas-Vindas */}
-      <div className="rounded-2xl bg-gradient-to-r from-[#071731] via-[#0B254E] to-[#0A3066] text-white p-5 sm:p-6 border border-slate-700/60 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8">
+      <div className={`${adminCardClass} flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between`}>
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-400">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Central administrativa MEDTEC</span>
-          </div>
-          <h2 className="text-lg sm:text-xl font-black tracking-tight">
-            Painel do Gestor • Central Executiva CMS
-          </h2>
-          <p className="text-xs text-slate-300">
-            SEDUC-RO • Olá, <strong className="text-white">{userName}</strong>. Selecione um módulo abaixo para gerenciar publicações, triagem e governança.
-          </p>
+          <h2 className="text-xl font-bold tracking-tight text-admin-text">{userName ? `Olá, ${userName}` : 'Olá'}</h2>
+          <p className="text-xs text-admin-muted">Veja o que precisa de atenção e escolha o que deseja fazer.</p>
         </div>
-
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          <Link
-            href="/admin/projetos?action=new"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>+ Novo Projeto</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={onCreateNews}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>+ Nova Notícia</span>
-          </button>
-
-          <Link
-            href="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white text-xs font-semibold transition"
-          >
-            <ExternalLink className="h-3.5 w-3.5 text-sky-300" />
-            <span>Ver Portal Público</span>
+          {canSee('noticias') && (
+            <button type="button" onClick={onCreateNews} className={adminPrimaryButtonClass}>
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Nova notícia</span>
+            </button>
+          )}
+          {canSee('projetos') && (
+            <Link href="/admin/projetos?action=new" className={adminSecondaryButtonClass}>
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Novo projeto</span>
+            </Link>
+          )}
+          <Link href="/" target="_blank" rel="noopener noreferrer" className={adminSecondaryButtonClass}>
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Ver o site</span>
           </Link>
         </div>
       </div>
 
-      <OverviewStats indicators={indicators} projetosResumo={projetosResumo} onOpenNews={onOpenNews} />
-
-      {/* 3. Grade Principal de Módulos do Sistema (6 Launcher Cards com linguagem 100% didática) */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
-          <h3 className="text-sm font-black uppercase tracking-wider text-slate-600 dark:text-slate-300">
-            O que você deseja gerenciar agora?
-          </h3>
-          <span className="text-xs text-slate-400">
-            Clique em um módulo para abrir seu espaço de trabalho
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-
-          {/* Módulo 01: Notícias e Matérias */}
-          <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-[#004A99]/40 transition flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-[#004A99] dark:text-sky-400 border border-blue-100/60 dark:border-blue-900/40 flex items-center justify-center">
-                    <Newspaper className="h-4 w-4" />
-                  </div>
-                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
-                    Notícias e Matérias
-                  </h4>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  {loadingNews ? 'Carregando...' : errorNews ? 'Indisponível' : `${totalNews} matérias`}
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Tudo o que você publicar aqui aparecerá imediatamente na página &ldquo;Notícias&rdquo; e na grade principal do site oficial.
-              </p>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800/80 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Última publicação no ar:
-                </span>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
-                  {loadingNews ? 'Carregando...' : errorNews ? 'Falha de comunicação com a API' : (latestNews?.titulo || 'Nenhuma notícia publicada ainda')}
-                </p>
-                <p className="text-[10px] text-slate-400 pt-0.5">
-                  {!loadingNews && !errorNews && latestNews
-                    ? [latestNews.data_publicacao, latestNews.autor_nome].filter(Boolean).join(' • ') : ''}
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={onOpenNews}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
-            >
-              <span>Abrir Notícias e Matérias</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+        <section aria-labelledby="inicio-atencao" className="space-y-3">
+          <div>
+            <h3 id="inicio-atencao" className="text-sm font-semibold text-admin-text">Precisa da sua atenção</h3>
+            <p className="text-xs text-admin-muted">O que está esperando uma ação sua.</p>
           </div>
-
-          {/* Módulo: Projetos Pedagógicos */}
-          <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-amber-500/40 transition flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-100/60 dark:border-amber-900/40 flex items-center justify-center">
-                    <Lightbulb className="h-4 w-4" />
-                  </div>
-                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
-                    Projetos Pedagógicos
-                  </h4>
-                </div>
-                <span className="max-w-36 shrink-0 text-right text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold border border-amber-200/80 dark:border-amber-800/80">
-                  {projetosSemDados ? 'Indisponível' : projetosResumo?.total === null ? 'Carregando...' : `${projetosResumo?.total} projeto${projetosResumo?.total === 1 ? '' : 's'}`}
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Cadastre projetos com tema, relato, capa, anexos e membros, e acompanhe a aprovação.
-              </p>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800/80 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Situação dos projetos:
-                </span>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
-                  {projetosSemDados ? 'Indisponível nesta sessão' : projetosResumo?.total === null ? 'Carregando...'
-                    : `${projetosResumo?.published} publicado${projetosResumo?.published === 1 ? '' : 's'} · ${projetosResumo?.pending} aguardando`}
-                </p>
-              </div>
+          {!pendencias ? (
+            <p role="status" className={`${adminCardClass} p-4 text-sm text-admin-muted`}>Entre com seu CPF para ver as pendências.</p>
+          ) : pendentes.length > 0 || carregando.length > 0 ? (
+            <div className={`${adminCardClass} overflow-hidden`} aria-busy={carregando.length > 0}>
+              <ul className="divide-y divide-admin-border">
+                {pendentes.map(card => (
+                  <AttentionRow key={card.key} value={card.estado.count as number} title={card.title} detail={card.detail} href={card.href} action={card.action} />
+                ))}
+                {carregando.map(card => <AttentionSkeleton key={card.key} />)}
+              </ul>
+              {carregando.length > 0 && <p role="status" className="sr-only">Carregando as pendências.</p>}
+              {falhou && <p role="alert" className="border-t border-admin-border px-4 py-2 text-xs text-admin-danger">Não foi possível confirmar todas as pendências agora.</p>}
             </div>
+          ) : falhou ? (
+            <p role="alert" className={`${adminCardClass} p-4 text-sm text-admin-danger`}>Não foi possível confirmar as pendências agora.</p>
+          ) : (
+            <p role="status" className={`${adminCardClass} flex items-center gap-2 p-4 text-sm font-semibold text-admin-success`}>
+              <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>Tudo em dia</span>
+            </p>
+          )}
+        </section>
 
-            <div className="flex items-center gap-2 pt-1">
-              <Link
-                href="/admin/projetos"
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
-              >
-                <span>Abrir Projetos</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-              <Link
-                href="/admin/projetos?action=new"
-                className="inline-flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-xs cursor-pointer"
-                title="Cadastrar Novo Projeto"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Novo</span>
-              </Link>
-            </div>
+        <section aria-labelledby="inicio-resumo" className="space-y-3">
+          <div>
+            <h3 id="inicio-resumo" className="text-sm font-semibold text-admin-text">Resumo do site</h3>
+            <p className="text-xs text-admin-muted">Quantos conteúdos o site tem hoje.</p>
           </div>
-
-          {/* Módulo 02: Avisos e Comunicados */}
-          <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-[#004A99]/40 transition flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-[#004A99] dark:text-sky-400 border border-blue-100/60 dark:border-blue-900/40 flex items-center justify-center">
-                    <Megaphone className="h-4 w-4" />
-                  </div>
-                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
-                    Avisos e Comunicados
-                  </h4>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  {loadingAvisos ? 'Carregando...' : errorAvisos ? 'Indisponível' : `${totalAvisos} avisos`}
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Use esta área para postar comunicados oficiais. Todos os avisos ativos aparecem com destaque na Página Inicial do portal.
-              </p>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800/80 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Último comunicado urgente ativo:
-                </span>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
-                  {loadingAvisos ? 'Carregando...' : errorAvisos ? 'Falha de comunicação com a API' : (announcementTitle || 'Sem comunicados urgentes no momento')}
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
-                  {loadingAvisos ? 'Carregando...' : errorAvisos ? 'Indisponível' : `${apiAvisosAtivosCount} avisos em exibição no portal`}
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href="/admin/avisos"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
-            >
-              <span>Abrir Avisos e Comunicados</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-
-          {/* Módulo 03: Banners da Página Inicial */}
-          <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-[#004A99]/40 transition flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-[#004A99] dark:text-sky-400 border border-blue-100/60 dark:border-blue-900/40 flex items-center justify-center">
-                    <Presentation className="h-4 w-4" />
-                  </div>
-                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
-                    Banners da Página Inicial
-                  </h4>
-                </div>
-                <span className="max-w-36 shrink-0 text-right text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  {bannersLabel}
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Cadastre, troque e exclua as imagens do carrossel no topo da Página Inicial do portal.
-              </p>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800/80 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Carrossel no site:
-                </span>
-                <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                  {bannersLabel}
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href="/admin/banners"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
-            >
-              <span>Trocar Banners da Home</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-
-          {/* Módulo 04: Galeria de Fotos */}
-          <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-[#004A99]/40 transition flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-[#004A99] dark:text-sky-400 border border-blue-100/60 dark:border-blue-900/40 flex items-center justify-center">
-                    <Images className="h-4 w-4" />
-                  </div>
-                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
-                    Galeria de Fotos
-                  </h4>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  {loadingFotos ? 'Carregando...' : errorFotos ? 'Indisponível' : `${totalFotos} fotos`}
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Todas as fotos enviadas aqui aparecem na aba pública &ldquo;Galeria&rdquo;, destacando as salas de aula, estúdios e feiras escolares nos municípios.
-              </p>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800/80 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Acervo Pedagógico de Rondônia:
-                </span>
-                <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                  {loadingFotos ? 'Carregando...' : errorFotos ? 'Falha de comunicação com a API' : `${totalFotos} fotos catalogadas no acervo oficial da API Rails v1.`}
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
-                  Fotos públicas visíveis no portal
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href="/admin/galeria"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
-            >
-              <span>Abrir Galeria de Fotos</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-
-          {/* Módulo 05: Fila de Aprovação (Passo a Passo) */}
-          <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-[#004A99]/40 transition flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-[#004A99] dark:text-sky-400 border border-blue-100/60 dark:border-blue-900/40 flex items-center justify-center">
-                    <CheckCircle2 className="h-4 w-4" />
-                  </div>
-                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
-                    Fila de Aprovação (Passo a Passo)
-                  </h4>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  {loadingNews ? '...' : errorNews ? 'Indisponível' : `${apiNewsDraftCount} pendentes`}
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Acompanhe o fluxo de reportagens: triagem em rascunho, validação jurídica/LGPD e aprovação final para publicação oficial no site.
-              </p>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800/80 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Triagem & Governança Editorial:
-                </span>
-                <p className="text-xs text-slate-700 dark:text-slate-300 line-clamp-2">
-                  {loadingNews ? 'Carregando...' : errorNews ? 'Falha de comunicação com a API' : `${apiNewsDraftCount} matéria${apiNewsDraftCount === 1 ? '' : 's'} no fluxo de triagem e governança editorial.`}
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
-                  Fluxo: Rascunho ➔ Revisão ➔ Publicado
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              disabled={!canAccessKanban}
-              onClick={onOpenKanban}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
-            >
-              <span>Abrir Fila de Aprovação</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          {/* Módulo 06: Dados, Contatos e Equipe */}
-          <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-[#004A99]/40 transition flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-[#004A99] dark:text-sky-400 border border-blue-100/60 dark:border-blue-900/40 flex items-center justify-center">
-                    <SlidersHorizontal className="h-4 w-4" />
-                  </div>
-                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
-                    Dados, Contatos e Equipe
-                  </h4>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  {usersCountLabel} operadores
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Atualize a quantidade oficial de alunos e escolas no rodapé, links de redes sociais/WhatsApp e cadastre operadores por CPF.
-              </p>
-
-              <div className="space-y-1.5 pt-1">
-                <Link
-                  href="/admin/institucional"
-                  className="w-full text-left px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#071324] hover:bg-blue-50/60 dark:hover:bg-blue-950/30 border border-slate-100 dark:border-slate-800/80 hover:border-blue-200/60 dark:hover:border-blue-900/40 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between transition cursor-pointer group"
-                >
-                  <span className="flex items-center gap-2">
-                    <BarChart3 className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400" />
-                    <span>Números de Alunos e Escolas</span>
-                  </span>
-                  <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition" />
-                </Link>
-                <Link
-                  href="/admin/redes"
-                  className="w-full text-left px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#071324] hover:bg-blue-50/60 dark:hover:bg-blue-950/30 border border-slate-100 dark:border-slate-800/80 hover:border-blue-200/60 dark:hover:border-blue-900/40 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between transition cursor-pointer group"
-                >
-                  <span className="flex items-center gap-2">
-                    <Share2 className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400" />
-                    <span>Redes Sociais e WhatsApp</span>
-                  </span>
-                  <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition" />
-                </Link>
-                <Link
-                  href="/admin/usuarios"
-                  className="w-full text-left px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-[#071324] hover:bg-blue-50/60 dark:hover:bg-blue-950/30 border border-slate-100 dark:border-slate-800/80 hover:border-blue-200/60 dark:hover:border-blue-900/40 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between transition cursor-pointer group"
-                >
-                  <span className="flex items-center gap-2">
-                    <UserCog className="h-3.5 w-3.5 text-[#004A99] dark:text-sky-400" />
-                    <span>Gerenciar Equipe e Senhas ({usersCountLabel})</span>
-                  </span>
-                  <ChevronRight className="h-3.5 w-3.5 text-slate-400 group-hover:text-[#004A99] dark:group-hover:text-sky-400 transition" />
-                </Link>
-              </div>
-            </div>
-
-            <Link
-              href="/admin/institucional"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
-            >
-              <span>Gerenciar Dados e Configurações</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-
-          {/* Módulo: Central de Dúvidas Frequentes (FAQ) */}
-          <div className="bg-white dark:bg-[#0B1729] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-[#004A99]/40 transition flex flex-col justify-between space-y-4">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/50 text-[#004A99] dark:text-sky-400 border border-sky-100/60 dark:border-sky-900/40 flex items-center justify-center">
-                    <HelpCircle className="h-4 w-4" />
-                  </div>
-                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">
-                    Dúvidas Frequentes (FAQ)
-                  </h4>
-                </div>
-                <span className="max-w-36 shrink-0 text-right text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border border-slate-200/80 dark:border-slate-700/80">
-                  {loadingFaqs ? 'Carregando...' : errorFaqs ? 'Indisponível' : `${totalFaqs} dúvida${totalFaqs === 1 ? '' : 's'}`}
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Cadastre e edite perguntas e respostas oficiais da SEDUC sobre aulas ao vivo, sinal satelital, professores mediadores e certificação.
-              </p>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#071324] border border-slate-100 dark:border-slate-800/80 space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Central de Respostas Oficiais:
-                </span>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
-                  {loadingFaqs
-                    ? 'Carregando...'
-                    : errorFaqs
-                    ? `Falha de comunicação com a API (${errorFaqs})`
-                    : totalFaqs === 0
-                    ? 'Nenhuma dúvida cadastrada até o momento'
-                    : `${apiFaqsPublishedCount} publicada${apiFaqsPublishedCount === 1 ? '' : 's'} · ${apiFaqsPendingCount} aguardando aprovação`}
-                </p>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium pt-0.5">
-                  {loadingFaqs
-                    ? 'Carregando...'
-                    : errorFaqs
-                    ? 'Indisponível'
-                    : `${totalFaqs} registro${totalFaqs === 1 ? '' : 's'} no catálogo oficial`}
-                </p>
-              </div>
-
-              {duvidasPendentes && (
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  Dúvidas de visitantes sem resposta:{' '}
-                  {duvidasPendentes.error ? 'indisponível' : duvidasPendentes.count ?? 'carregando...'}
-                </p>
-              )}
-            </div>
-
-            <Link
-              href="/admin/faq"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold transition shadow-xs cursor-pointer"
-            >
-              <span>Abrir Central de Dúvidas</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-
-        </div>
+          <OverviewStats indicators={indicators} projetosResumo={projetosResumo} bannersTotal={bannersTotal} />
+        </section>
       </div>
 
+      <section aria-labelledby="inicio-gerenciar" className="space-y-5">
+        <h3 id="inicio-gerenciar" className="text-sm font-semibold text-admin-text">Gerenciar</h3>
+        {menu.filter(folder => folder.visible).map(folder => (
+          <div key={folder.id} className="space-y-3">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-admin-muted">{folder.label}</h4>
+            <div className="grid auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {folder.items.filter(item => item.visible).map(item => {
+                const Icon = item.icon;
+                const contador = contadores[item.section];
+                return (
+                  <Link key={item.section} href={item.href} className={adminCardLinkClass}
+                    aria-label={cardLinkName(item.action, item.label, contador)} aria-describedby={`inicio-card-${item.section}`}>
+                    <span className="grid h-10 w-10 place-items-center rounded-lg bg-admin-accent-soft text-admin-accent">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <h5 className="mt-3 text-base font-semibold text-admin-text">{item.label}</h5>
+                    <p id={`inicio-card-${item.section}`} className="mt-1 mb-4 line-clamp-2 text-sm leading-snug text-admin-muted">{item.summary}</p>
+                    <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-admin-border pt-3">
+                      {contador && <span className={adminCountBadgeClass(contador.pendentes > 0)}>{contador.text}</span>}
+                      <span className={`ml-auto ${adminTonalCardActionClass}`}>
+                        <span>{item.action}</span>
+                        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }

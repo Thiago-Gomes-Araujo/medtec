@@ -8,8 +8,56 @@
   --font-mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+/* Cores do painel: usar só estas classes (bg-admin-*, text-admin-*, border-admin-*). */
+@theme inline {
+  --color-admin-bg: var(--admin-bg);
+  --color-admin-surface: var(--admin-surface);
+  --color-admin-surface-muted: var(--admin-surface-muted);
+  --color-admin-border: var(--admin-border);
+  --color-admin-input: var(--admin-input);
+  --color-admin-text: var(--admin-text);
+  --color-admin-muted: var(--admin-muted);
+  --color-admin-accent: var(--admin-accent);
+  --color-admin-accent-hover: var(--admin-accent-hover);
+  --color-admin-accent-fg: var(--admin-accent-fg);
+  --color-admin-accent-soft: var(--admin-accent-soft);
+  --color-admin-accent-soft-active: var(--admin-accent-soft-active);
+  --color-admin-success: var(--admin-success);
+  --color-admin-success-soft: var(--admin-success-soft);
+  --color-admin-warning: var(--admin-warning);
+  --color-admin-warning-soft: var(--admin-warning-soft);
+  --color-admin-warning-strong: var(--admin-warning-strong);
+  --color-admin-danger: var(--admin-danger);
+  --color-admin-danger-soft: var(--admin-danger-soft);
+  --shadow-admin-card: var(--admin-card-shadow);
+  --shadow-admin-card-hover: var(--admin-card-shadow-hover);
+}
+
 @layer base {
   :root {
+    /* PAINEL: azul SEDUC como único destaque; verde, âmbar e vermelho só para status (contraste WCAG AA) */
+    --admin-bg: #EEF2F6;
+    --admin-surface: #FFFFFF;
+    --admin-surface-muted: #F1F5F9;
+    --admin-border: #E2E8F0;
+    --admin-input: #64748B;
+    --admin-text: #0F172A;
+    --admin-muted: #475569;
+    --admin-accent: #004A99;
+    --admin-accent-hover: #003875;
+    --admin-accent-fg: #FFFFFF;
+    --admin-accent-soft: #E0F2FE;
+    --admin-accent-soft-active: #BAE6FD;
+    --admin-success: #047857;
+    --admin-success-soft: #ECFDF5;
+    --admin-warning: #92400E;
+    --admin-warning-soft: #FEF3C7;
+    --admin-warning-strong: #D97706;
+    --admin-danger: #B91C1C;
+    --admin-danger-soft: #FEF2F2;
+    --admin-card-shadow: 0 1px 2px rgb(15 23 42 / 0.06), 0 1px 3px rgb(15 23 42 / 0.08);
+    --admin-card-shadow-hover: 0 0 0 1px var(--admin-accent), 0 4px 12px rgb(0 74 153 / 0.18);
+
     --font-sans: var(--font-sans, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif);
     --font-display: var(--font-display, var(--font-sans, "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif));
     --font-mono: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
@@ -50,6 +98,28 @@
   }
 
   .dark {
+    --admin-bg: #0B1528;
+    --admin-surface: #132238;
+    --admin-surface-muted: #1E293B;
+    --admin-border: #334155;
+    --admin-input: #94A3B8;
+    --admin-text: #F8FAFC;
+    --admin-muted: #CBD5E1;
+    --admin-accent: #38BDF8;
+    --admin-accent-hover: #7DD3FC;
+    --admin-accent-fg: #0B1528;
+    --admin-accent-soft: #172844;
+    --admin-accent-soft-active: #1E3A5F;
+    --admin-success: #6EE7B7;
+    --admin-success-soft: #064E3B;
+    --admin-warning: #FDE68A;
+    --admin-warning-soft: #78350F;
+    --admin-warning-strong: #F59E0B;
+    --admin-danger: #FECACA;
+    --admin-danger-soft: #7F1D1D;
+    --admin-card-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+    --admin-card-shadow-hover: 0 0 0 1px var(--admin-accent), 0 4px 12px rgb(56 189 248 / 0.18);
+
     /* MODO ESCURO INSTITUCIONAL SÓBRIO */
     --background: #0B1528;
     --foreground: #F8FAFC;

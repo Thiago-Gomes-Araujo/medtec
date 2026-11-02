@@ -33,8 +33,6 @@ export interface PreviewNewsData {
   coverImage?: string;
   author?: string;
   publishedAt?: string;
-  featured?: boolean;
-  urgent?: boolean;
   published?: boolean;
 }
 

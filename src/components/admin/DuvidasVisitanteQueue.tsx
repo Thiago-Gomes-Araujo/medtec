@@ -10,11 +10,12 @@ import { notifyDuvidasPendentes } from './useDuvidasPendentes';
 const NAO_RESPONDIDAS = { page: 'all', 'q[respondida_false]': 1 };
 const readPendentes = (signal: AbortSignal) => medtecApi.duvidasVisitante.list(NAO_RESPONDIDAS, signal);
 
-// Responder só registra o atendimento feito por e-mail ou telefone: a API não recebe nem guarda a resposta.
+// Marcar como respondida só registra o atendimento feito por e-mail ou telefone: a API não recebe nem guarda a resposta.
 export default function DuvidasVisitanteQueue() {
   const pendentes = useApiList<DDuvidaVisitante>(readPendentes);
   const action = useAdminAction();
   const [respondidas, setRespondidas] = useState<DDuvidaVisitante[]>([]);
+  const [confirming, setConfirming] = useState<number | null>(null);
 
   async function responder(item: DDuvidaVisitante) {
     const done = await action.run(async () => {
@@ -22,14 +23,14 @@ export default function DuvidasVisitanteQueue() {
       if (value.respondida) setRespondidas(previous => [value, ...previous]);
       return value.respondida ? 'Dúvida marcada como respondida.' : 'Registro atualizado. A dúvida permanece não respondida.';
     });
-    if (done) { pendentes.reload(); notifyDuvidasPendentes(); }
+    if (done) { setConfirming(null); pendentes.reload(); notifyDuvidasPendentes(); }
   }
 
   return (
     <section aria-label="Dúvidas de visitantes sem resposta" className={panelClass}>
       <header>
         <h2 className="text-base font-bold text-slate-900 dark:text-white">Dúvidas de visitantes ({pendentes.items.length})</h2>
-        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Entre em contato por e-mail ou telefone. Responder apenas registra o atendimento; nenhuma mensagem é enviada.</p>
+        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Entre em contato por e-mail ou telefone. Marcar como respondida apenas registra o atendimento; nenhuma mensagem é enviada.</p>
       </header>
       {renderFeedback(action.error, action.success)}
 
@@ -43,7 +44,14 @@ export default function DuvidasVisitanteQueue() {
         {pendentes.items.map(item => <li key={item.id} className="space-y-2 py-3">
           <p className="text-xs text-slate-600 dark:text-slate-400"><strong className="text-slate-900 dark:text-white">{item.nome}</strong> · {item.email}{item.telefone ? ` · ${item.telefone}` : ''}</p>
           <p className="whitespace-pre-line break-words text-sm text-slate-700 dark:text-slate-200">{item.descricao}</p>
-          <button type="button" className={buttonClass} disabled={action.busy} aria-label={`Responder ${item.nome}`} onClick={() => void responder(item)}>Responder</button>
+          <button type="button" className={buttonClass} disabled={action.busy || confirming !== null} aria-label={`Marcar como respondida: ${item.nome}`} onClick={() => { setConfirming(item.id); action.setError(null); action.setSuccess(null); }}>Marcar como respondida</button>
+          {confirming === item.id && <div role="group" aria-label="Confirmar atendimento" className="space-y-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+            <p>Marcar a dúvida de <strong className="break-words">{item.nome}</strong> como respondida? Nenhuma mensagem é enviada: confirme só depois de responder por e-mail ou telefone.</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" disabled={action.busy} className={buttonClass} onClick={() => void responder(item)}>Confirmar resposta</button>
+              <button type="button" disabled={action.busy} className={buttonClass} onClick={() => { setConfirming(null); action.setError(null); }}>Cancelar</button>
+            </div>
+          </div>}
         </li>)}
       </ul>}
 

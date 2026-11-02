@@ -687,8 +687,6 @@ export interface NoticiaApi {
   categoria_id?: number;
   categoria_nome?: string;
   data_publicacao?: string;
-  destaque?: boolean;
-  urgente?: boolean;
   publicado?: boolean;
   visualizacoes?: number;
   tags?: string[];

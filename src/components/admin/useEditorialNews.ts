@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ApiError, getMediaUrl, medtecApi, type NNoticia } from '@/lib/api';
 import type { NewsItem } from '@/types';
+import { notifyAprovacoesPendentes } from './useAprovacoesPendentes';
 
 interface EditorialPermissions {
   canApprove?: boolean;
@@ -50,8 +51,6 @@ export function useEditorialNews({ canApprove = false, canReject = false }: Edit
     author: news.autor_nome,
     category: news.categoria_nome,
     publishedAt: news.data_publicacao,
-    featured: false,
-    urgent: false,
     folder: news.categoria_nome || 'Geral',
     published: news.status === 'publicada',
     rejected: news.status === 'reprovada',
@@ -68,6 +67,7 @@ export function useEditorialNews({ canApprove = false, canReject = false }: Edit
     // Uma leitura iniciada antes da mutação não pode ser a atualização pós-decisão.
     await pendingRead.current;
     await reload();
+    notifyAprovacoesPendentes();
     return true;
   }, [canApprove, reload]);
 
@@ -79,6 +79,7 @@ export function useEditorialNews({ canApprove = false, canReject = false }: Edit
     await medtecApi.noticias.reprovar(newsId, reason.trim());
     await pendingRead.current;
     await reload();
+    notifyAprovacoesPendentes();
     return true;
   }, [canReject, reload]);
 

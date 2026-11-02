@@ -104,7 +104,6 @@ src/
 │   ├── Methodology.tsx         # Linha do tempo dos 5 passos pedagógicos (Server Component)
 │   ├── NewsGrid.tsx            # Grid interativo com busca e filtros de notícias
 │   ├── NewsModal.tsx           # Modal de leitura rápida de matérias
-│   ├── NewsPublicationPreview.tsx # Pré-visualização editorial no CMS
 │   ├── NewsSection.tsx         # Seção de notícias da landing page inicial
 │   ├── NewsViewTracker.tsx     # Rastreador assíncrono de visualizações de matérias
 │   ├── PageHeader.tsx          # Cabeçalho padrão de páginas internas (Server Component)

@@ -55,7 +55,7 @@ export default function SocialChannelsModule({
       label: 'WhatsApp de Suporte / Polos',
       desc: 'Canal direto para atendimento pedagógico e técnico',
       icon: MessageSquare,
-      placeholder: 'Informe o contato de WhatsApp',
+      placeholder: 'DDD e número, só dígitos, ou link wa.me',
     },
     {
       rede: 'telefone' as const,

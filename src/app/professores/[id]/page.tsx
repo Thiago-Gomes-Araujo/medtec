@@ -90,7 +90,7 @@ export default async function ProfessorDetalhePage({ params }: Props) {
                       <li key={`${relato.created_at}-${index}`} className="rounded-xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-4">
                         <Quote className="h-5 w-5 text-slate-300 dark:text-slate-600 mb-1" />
                         <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-200 whitespace-pre-line break-words">{relato.texto}</p>
-                        <p className="mt-2 text-xs font-semibold text-slate-900 dark:text-white">{relato.nome}</p>
+                        <p className="mt-2 text-xs font-semibold text-slate-900 dark:text-white">{`Aluno: ${relato.nome}`}</p>
                       </li>
                     ))}
                   </ul>
