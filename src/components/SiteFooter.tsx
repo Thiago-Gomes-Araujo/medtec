@@ -115,7 +115,7 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-sky-400/25 dark:border-white/10 pt-6 text-xs text-sky-200/80 dark:text-slate-500 sm:flex-row">
+        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-sky-400/25 dark:border-white/10 pt-6 text-xs text-sky-200/80 dark:text-slate-400 sm:flex-row">
           <p>© 2026 Governo do Estado de Rondônia - SEDUC-RO. Todos os direitos reservados.</p>
           <p>Conforme diretrizes da LGPD e do Estatuto da Criança e do Adolescente (ECA).</p>
         </div>
