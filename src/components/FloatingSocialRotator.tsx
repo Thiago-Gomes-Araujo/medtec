@@ -7,11 +7,12 @@ import {
   InstagramIcon,
   FacebookIcon,
   YoutubeIcon,
+  WhatsAppIcon,
 } from '@/components/SocialIcons';
 import { useSiteChannels } from '@/components/SiteChannelsProvider';
 
 interface SocialItem {
-  id: 'instagram' | 'facebook' | 'youtube';
+  id: 'instagram' | 'facebook' | 'youtube' | 'whatsapp';
   name: string;
   actionLabel: string;
   bgColor: string;
@@ -47,6 +48,15 @@ const SOCIAL_NETWORKS: SocialItem[] = [
     hoverColor: 'hover:bg-[#d90000]',
     ariaLabel: 'Acessar as transmissões no canal do YouTube da SEDUC Rondônia (abre em nova aba)',
     Icon: YoutubeIcon,
+  },
+  {
+    id: 'whatsapp',
+    name: 'WhatsApp',
+    actionLabel: 'Falar no WhatsApp',
+    bgColor: 'bg-[#128C7E]',
+    hoverColor: 'hover:bg-[#0e7268]',
+    ariaLabel: 'Falar com a SEDUC-RO pelo WhatsApp (abre em nova aba)',
+    Icon: WhatsAppIcon,
   },
 ];
 
@@ -89,7 +99,7 @@ export default function FloatingSocialRotator() {
       className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2.5 select-none"
     >
       {/* ========================================================
-          MENU RÁPIDO NO HOVER: 3 OUTRAS REDES SOCIAIS
+          MENU RÁPIDO NO HOVER: AS OUTRAS REDES SOCIAIS
       ======================================================== */}
       <AnimatePresence>
         {isHovered && (

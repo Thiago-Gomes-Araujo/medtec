@@ -169,7 +169,7 @@ import ProjetoDetalhePage, { generateMetadata as projetoMetadata } from '../src/
 import ProjetosView from '../src/components/ProjetosView';
 import HomeBannerCarousel from '../src/components/HomeBannerCarousel';
 import { readHomeBanners } from '../src/lib/home-banners';
-import { CANAIS_PADRAO, canaisFromApi, YOUTUBE_URL_OFICIAL } from '../src/lib/site-channels';
+import { CANAIS_PADRAO, canaisFromApi, whatsappHref, YOUTUBE_URL_OFICIAL } from '../src/lib/site-channels';
 import { readSiteChannels } from '../src/lib/site-channels-server';
 import { SiteChannelsProvider } from '../src/components/SiteChannelsProvider';
 import { canAccessBanners } from '../src/lib/admin-session';
@@ -8989,7 +8989,38 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
     it('lista vazia usa os valores de reserva, e valor que não é link não vira link', () => {
       assert.deepEqual(canaisFromApi([]), CANAIS_PADRAO);
       const links = canaisFromApi([{ rede: 'youtube', valor: 'javascript:alert(1)' }, { rede: 'instagram', valor: '@medtec' }, { rede: 'whatsapp', valor: '+55 69 0000-0000' }]);
-      assert.equal(links.youtube, ''); assert.equal(links.instagram, ''); assert.equal(links.whatsapp, '');
+      assert.equal(links.youtube, ''); assert.equal(links.instagram, ''); assert.equal(links.whatsapp, 'https://wa.me/556900000000');
+    });
+    it('WhatsApp vira https://wa.me/55<DDD><número> só com dígitos, e o resto não vira botão', () => {
+      for (const valor of ['69988887777', '(69) 98888-7777', '+55 69 98888-7777', '5569988887777', 'https://wa.me/5569988887777', 'https://www.wa.me/5569988887777?text=oi', ' http://wa.me/5569988887777 ']) {
+        assert.equal(whatsappHref(valor), 'https://wa.me/5569988887777', valor);
+      }
+      assert.equal(whatsappHref('(69) 3216-5300'), 'https://wa.me/556932165300', 'Fixo com DDD tem 10 dígitos');
+      for (const valor of ['', '   ', '123', '699888877771234', 'fale conosco', 'javascript:alert(1)', 'https://chat.whatsapp.com/abc', 'https://exemplo.com/5569988887777', 'https://wa.me/', '0069988887777']) {
+        assert.equal(whatsappHref(valor), '', valor);
+      }
+    });
+    it('número de exemplo nunca aparece como canal oficial', () => {
+      for (const valor of ['https://wa.me/5569911112222', '69911112222', 'https://wa.me/5569999999999']) assert.equal(whatsappHref(valor), '', valor);
+      assert.equal(canaisFromApi([{ rede: 'whatsapp', valor: 'https://wa.me/5569911112222' }, { rede: 'email', valor: 'a@b.c' }]).whatsapp, '');
+      for (const file of ['src/data/db.json', 'src/data/initialData.json']) assert.doesNotMatch(readFileSync(file, 'utf8'), /wa\.me/, file);
+    });
+    it('falha da API, canal desativado ou sem cadastro não mostram WhatsApp em nenhum ponto', () => {
+      assert.equal(CANAIS_PADRAO.whatsapp, '');
+      const semWhatsapp = { ...value, whatsapp: '' };
+      for (const element of [FloatingSocialRotator, SiteFooter, SocialSection, LiveBroadcastSection as React.ComponentType]) {
+        for (const channels of [semWhatsapp, CANAIS_PADRAO]) assert.doesNotMatch(provided(element, channels), /wa\.me|Falar no WhatsApp/);
+      }
+      assert.doesNotMatch(provided(SocialSection, semWhatsapp), /Canal do WhatsApp/);
+      assert.ok(provided(LiveBroadcastSection as React.ComponentType, semWhatsapp).includes('Suporte SEDUC: (69) 0000-0000'), 'O telefone segue como apoio, sem o ícone do WhatsApp');
+    });
+    it('com número cadastrado, botão flutuante, rodapé, redes e ao vivo levam ao WhatsApp em nova aba, com rótulo acessível', () => {
+      const soWhatsapp = { ...value, youtube: '', instagram: '', facebook: '' };
+      for (const [nome, html] of [['flutuante', provided(FloatingSocialRotator, soWhatsapp)], ['rodapé', provided(SiteFooter)], ['redes', provided(SocialSection)], ['ao vivo', provided(LiveBroadcastSection as React.ComponentType)]]) {
+        const link = html.match(/<a\b[^>]*href="https:\/\/wa\.me\/556900000000"[^>]*>/)?.[0];
+        assert.ok(link, nome);
+        assert.match(link, /target="_blank"/, nome); assert.match(link, /rel="noopener noreferrer"/, nome); assert.match(link, /aria-label="[^"]*WhatsApp[^"]*abre em nova aba\)"/, nome);
+      }
     });
     it('o link do YouTube fica em um único ponto do código', () => {
       assert.equal(CANAIS_PADRAO.youtube, YOUTUBE_URL_OFICIAL);
@@ -9044,7 +9075,7 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
       assert.doesNotMatch(provided(FloatingSocialRotator, semYoutube), /youtube\.com/);
     });
     it('sem nenhuma rede, os botões flutuantes somem', () => {
-      assert.equal(provided(FloatingSocialRotator, { ...value, youtube: '', instagram: '', facebook: '' }), '');
+      assert.equal(provided(FloatingSocialRotator, { ...value, youtube: '', instagram: '', facebook: '', whatsapp: '' }), '');
     });
   });
 
@@ -9066,7 +9097,7 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
       assert.doesNotMatch(html, /youtube\.com|Canal no YouTube/, 'Sem link oficial, o botão não aparece');
       assert.match(html, /instagram\.com\/governoro/);
       assert.match(html, /facebook\.com\/governoderondonia/);
-      assert.match(html, /\(69\) 3216-5300/);
+      assert.doesNotMatch(html, /Canal do WhatsApp|wa\.me/, 'Sem número cadastrado, o card não aparece');
       assert.doesNotMatch(html, /999999999/);
     } finally {
       fetchMock.mock.restore();

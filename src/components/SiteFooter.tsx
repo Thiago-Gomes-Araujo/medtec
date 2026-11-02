@@ -4,9 +4,10 @@ import React from 'react';
 import Link from 'next/link';
 import { ExternalLink, Phone, Mail, MapPin } from 'lucide-react';
 import { useSiteChannels } from '@/components/SiteChannelsProvider';
+import { WhatsAppIcon } from '@/components/SocialIcons';
 
 export default function SiteFooter() {
-  const { phone, email, address } = useSiteChannels();
+  const { phone, email, address, whatsapp } = useSiteChannels();
 
   return (
     <footer className="relative mt-20 border-t border-slate-200 dark:border-slate-800 bg-[#004A99] dark:bg-[#08152B] text-white transition-colors duration-200">
@@ -46,6 +47,12 @@ export default function SiteFooter() {
                     <Mail size={13} className="shrink-0 text-sky-300" />
                     <span>{email}</span>
                   </p>
+                )}
+                {whatsapp && (
+                  <a href={whatsapp} target="_blank" rel="noopener noreferrer" aria-label="Falar com a SEDUC-RO pelo WhatsApp (abre em nova aba)" className="flex items-center gap-1.5 hover:underline">
+                    <WhatsAppIcon size={13} className="shrink-0 text-sky-300" />
+                    <span>WhatsApp</span>
+                  </a>
                 )}
               </div>
             </div>
