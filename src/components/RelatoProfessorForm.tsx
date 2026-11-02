@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { ApiError, medtecApi } from '@/lib/api';
-import { relatoErrorMessage } from '@/lib/community-content';
+import { formatTelefone, relatoErrorMessage } from '@/lib/community-content';
 
 const EMPTY_FORM = { nome: '', email: '', telefone: '', texto: '' };
 const inputClass = 'w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#071324] px-3 py-2 text-base text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#004A99] dark:focus:ring-sky-400';
@@ -24,11 +24,11 @@ export default function RelatoProfessorForm({ professorId, professorNome }: { pr
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (lock.current) return;
-    const data = { nome: values.nome.trim(), email: values.email.trim(), telefone: values.telefone.trim(), texto: values.texto.trim() };
+    const data = { nome: values.nome.trim(), email: values.email.trim(), telefone: values.telefone.replace(/\D/g, ''), texto: values.texto.trim() };
     const problems = [
-      !data.nome && 'Informe seu nome.',
+      !data.nome && 'Informe o nome do aluno.',
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && 'Informe um e-mail válido.',
-      !/^\d{10,11}$/.test(data.telefone.replace(/\D/g, '')) && 'Informe o telefone com DDD (10 ou 11 dígitos).',
+      !/^\d{10,11}$/.test(data.telefone) && 'Informe o telefone com DDD (10 ou 11 dígitos).',
       !data.texto && 'Escreva o seu relato.',
     ].filter((problem): problem is string => Boolean(problem));
     setErrors(problems);
@@ -56,7 +56,7 @@ export default function RelatoProfessorForm({ professorId, professorNome }: { pr
     <form onSubmit={submit} noValidate aria-label={`Enviar relato sobre ${professorNome}`} className="space-y-4 rounded-2xl border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] p-5 sm:p-6">
       <div>
         <h2 className="font-display text-lg font-bold text-slate-900 dark:text-white">Deixe seu relato</h2>
-        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Seu nome aparece com o relato depois de aprovado. E-mail e telefone não são exibidos no site.</p>
+        <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">O nome do aluno aparece com o relato depois de aprovado. E-mail e telefone não são exibidos no site.</p>
       </div>
       {errors.length > 0 && <ul role="alert" className="list-disc space-y-1 pl-5 text-sm text-red-700 dark:text-red-300">
         {errors.map(message => <li key={message}>{message}</li>)}
@@ -65,7 +65,7 @@ export default function RelatoProfessorForm({ professorId, professorNome }: { pr
       <fieldset disabled={pending} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
-            <label htmlFor={`${id}-nome`} className={labelClass}>Nome</label>
+            <label htmlFor={`${id}-nome`} className={labelClass}>Nome do aluno</label>
             <input id={`${id}-nome`} name="relato-nome" autoComplete="name" value={values.nome} className={inputClass} onChange={event => update('nome', event.target.value)} />
           </div>
           <div className="space-y-1.5">
@@ -74,7 +74,7 @@ export default function RelatoProfessorForm({ professorId, professorNome }: { pr
           </div>
           <div className="space-y-1.5">
             <label htmlFor={`${id}-telefone`} className={labelClass}>Telefone com DDD</label>
-            <input id={`${id}-telefone`} name="relato-telefone" type="tel" autoComplete="tel" value={values.telefone} className={inputClass} onChange={event => update('telefone', event.target.value)} />
+            <input id={`${id}-telefone`} name="relato-telefone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="(DD) 99999-9999" value={values.telefone} className={inputClass} onChange={event => update('telefone', formatTelefone(event.target.value))} />
           </div>
         </div>
         <div className="space-y-1.5">

@@ -180,6 +180,7 @@ import {
   getNameInitials,
   isHttpsUrl,
   validateConquistaImage,
+  formatTelefone,
 } from '../src/lib/community-content';
 
 // Inclui dados fora do contrato Rails para caracterizar as comparações em
@@ -12762,10 +12763,16 @@ describe('Professores e conquistas — integração com a API', () => {
     try {
       await view.submit();
       assert.equal(view.calls.length, 0);
-      assert.match(view.html(), /Informe seu nome/);
+      assert.match(view.html(), /Informe o nome do aluno/); assert.match(view.html(), />Nome do aluno</);
       await view.change('relato-nome', 'João');
       await view.change('relato-email', 'joao@exemplo.com');
-      await view.change('relato-telefone', '(69) 99999-0000');
+      const telefone = () => view.nodes().find(node => node.props.name === 'relato-telefone')!.props.value;
+      await view.change('relato-telefone', '6999990');
+      await view.change('relato-texto', 'Mudou meu jeito de estudar.');
+      await view.submit();
+      assert.match(view.html(), /Informe o telefone com DDD/); assert.equal(view.calls.length, 0, 'Fora de 10 ou 11 dígitos não envia');
+      await view.change('relato-telefone', 'ab(69) 99999-0000zz999');
+      assert.equal(telefone(), '(69) 99999-0000', 'Só números, no máximo 11');
       await view.change('relato-texto', 'Mudou meu jeito de estudar.');
       await view.submit();
       assert.match(view.html(), /Email já enviou um relato/);
@@ -12774,7 +12781,29 @@ describe('Professores e conquistas — integração com a API', () => {
       assert.match(view.html(), /Muitos envios\. Aguarde um minuto\./);
       await view.submit();
       assert.match(view.html(), /Relato enviado\. Ele aparece no site depois de aprovado\./);
-      assert.deepEqual(sent(view.calls[0]), { p_relato: { nome: 'João', email: 'joao@exemplo.com', telefone: '(69) 99999-0000', texto: 'Mudou meu jeito de estudar.' } });
+      assert.deepEqual(sent(view.calls[0]), { p_relato: { nome: 'João', email: 'joao@exemplo.com', telefone: '69999990000', texto: 'Mudou meu jeito de estudar.' } });
+    } finally { await view.restore(); }
+  });
+
+  it('máscara do telefone acompanha a digitação com 10 ou 11 dígitos', () => {
+    for (const [digitado, esperado] of [['', ''], ['a', ''], ['6', '(6'], ['69', '(69'], ['699', '(69) 9'], ['699999', '(69) 9999'], ['6999999', '(69) 9999-9'],
+      ['6933334444', '(69) 3333-4444'], ['69999990000', '(69) 99999-0000'], ['(69) 99999-0000', '(69) 99999-0000'], ['699999900001234', '(69) 99999-0000']] as const) {
+      assert.equal(formatTelefone(digitado), esperado, digitado);
+    }
+  });
+
+  it('formulário público aceita telefone de 10 dígitos e envia só números', async () => {
+    const view = await mountCategories(async () => json({ success: true, message: 'ok', data: null }, 201), false, {
+      component: () => RelatoProfessorForm({ professorId: 7, professorNome: 'Ana' }),
+      allowedPaths: /\/publico\/p_professores\/7\/p_relatos$/, anonymous: true,
+    });
+    try {
+      await view.change('relato-nome', 'João');
+      await view.change('relato-email', 'joao@exemplo.com');
+      await view.change('relato-telefone', '6933334444');
+      await view.change('relato-texto', 'Relato');
+      await view.submit();
+      assert.equal(sent(view.calls[0]).p_relato.telefone, '6933334444');
     } finally { await view.restore(); }
   });
 
