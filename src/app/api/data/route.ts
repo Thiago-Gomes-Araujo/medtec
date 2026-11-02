@@ -45,10 +45,6 @@ function isValidDatabaseSchema(body: unknown): body is DatabaseSchema {
     return false;
   }
 
-  if (!Array.isArray(candidate.banners)) {
-    return false;
-  }
-
   if (candidate.users !== undefined && !Array.isArray(candidate.users)) {
     return false;
   }
@@ -149,7 +145,6 @@ export async function PUT(request: Request) {
       body.siteInfo = current.siteInfo;
       body.stats = current.stats;
       body.socials = current.socials;
-      body.banners = current.banners;
     }
 
     const success = saveDatabase(body);

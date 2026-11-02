@@ -33,9 +33,9 @@ Uma tela existir não comprova persistência, publicação ou consumo público. 
 ## 2. Diagnóstico principal
 
 1. Os **quatro pilares**, o cabeçalho de **Formação Geral Básica + Itinerários Formativos**, as duas matrizes e seus oito cards estão em código em [TechAdvantages.tsx](../src/components/TechAdvantages.tsx), sem serviço ou editor correspondente.
-2. A Home não lê `siteInfo`, `stats` ou `banners` do painel. O Hero usa `/hero.jpg`, textos e indicadores fixos. Alterar a prévia institucional não altera a Home pública.
+2. A Home não lê `siteInfo` ou `stats` do painel. Os banners vêm de `GET /publico/b_banners` (veja [BANNERS_MAPEAMENTO.md](BANNERS_MAPEAMENTO.md)). O Hero usa `/hero.jpg`, textos e indicadores fixos. Alterar a prévia institucional não altera a Home pública.
 3. Notícias, avisos, galeria, geografia, canais, usuários e permissões têm integrações Rails identificadas. FAQ já foi integrado nos lotes recentes; não deve receber outro módulo ou modelo paralelo.
-4. Projetos, banners e informações institucionais têm interfaces reaproveitáveis, mas a gravação principal está bloqueada. Seus dados administrativos ainda usam `GET /api/data`.
+4. Informações institucionais têm interfaces reaproveitáveis, mas a gravação principal está bloqueada. Seus dados administrativos ainda usam `GET /api/data`.
 5. Professores, alunos, escolas e transparência consomem handlers de compatibilidade que retornam coleções vazias. Isso sinaliza dependência de backend, não ausência comprovada de conteúdo oficial.
 6. `/redes`, `/ao-vivo`, rodapé e redes flutuantes usam contatos fixos; o CRUD Rails de canais existente não está conectado a essas exibições.
 7. O README descreve uma arquitetura antiga de CMS em JSON, inclusive arquivo de dados que não existe mais (`medtecData.ts`). O código atual e os contratos específicos prevalecem para este planejamento.
@@ -121,7 +121,7 @@ Há **15 rotas públicas de página**, incluindo `/`, mais o detalhe dinâmico d
 
 ### 4.1 Imagens, documentos, links e conteúdo lateral
 
-- A Home usa `/hero.jpg`. Existem também logos PNG, imagens em `public/uploads`, dois SVG em `public/banners` e outros assets; existência no disco não prova publicação. Não migrar arquivos sem revisão de origem, direitos e vínculo.
+- A Home usa `/hero.jpg`. Existem também logos PNG, imagens em `public/uploads`, e outros assets; existência no disco não prova publicação. Não migrar arquivos sem revisão de origem, direitos e vínculo.
 - A galeria mantém `CATALOG_INFO` e prioridade para IDs legados `gal-1` etc., com localização, infraestrutura e origem fixas. O contrato atual de foto não cobre esses campos nem status de publicação; adaptar o componente e estender o recurso existente depois de homologação, sem inferir metadados pelo ID.
 - O PDF em `ReplicationPassportModal` só muda estados com temporizadores; não baixa arquivo. Duração “4 semanas”, “16 horas” e “100% alinhado” são fixas. O dossiê oferece impressão do navegador, não geração de PDF pelo Rails.
 - Não foi encontrado um módulo de documentos/legislação, anexos curriculares ou acervo PDF oficial no fluxo prioritário. Hoje as citações são textos; não existe contrato de upload de documentos equivalente ao upload de capas.
@@ -139,7 +139,7 @@ Há **15 rotas públicas de página**, incluindo `/`, mais o detalhe dinâmico d
 | `/admin/galeria` | `GalleryModule`, fotos/categorias (E) | CRUD, imagem arquivo/URL, categorias, modal e prévia | Estender publicação/acessibilidade/metadados na entidade existente, sem nova galeria. |
 | `/admin/faq` | `FaqModule`, `DuvidaCategoriesManager`, `DuvidasVisitanteModule` (D) | Três áreas: dúvidas, categorias e visitantes; filtros, paginação, aprovação e atendimento | Homologar contratos existentes. `admin-faq.ts` é legado sem uso nesta rota; relatórios 9A/9B não representam o estado mais recente. |
 | `/admin/projetos`, `/admin/projetos/temas`, `/admin/projetos/membros` | `ProjetosPanel`, `TemasProjetoPanel`, `MembrosProjetoPanel` | `/pj_projetos`, `/pj_temas`, `/pj_membros` | Integrado. Veja [PROJETOS_MAPEAMENTO.md](PROJETOS_MAPEAMENTO.md). |
-| `/admin/banners` | `SitePhotosManager`, `admin-banners.ts` (L + acervos E) | Leitura legada, prévia em memória, capas de notícias e fotos oficiais em leitura | Salvar, aplicar, excluir/reordenar e envio do banner bloqueados. Seleção local não publica nem faz upload; integrar recurso N. |
+| `/admin/banners` | `BannersPanel` | `/b_banners` | Integrado. Veja [BANNERS_MAPEAMENTO.md](BANNERS_MAPEAMENTO.md). |
 | `/admin/institucional` | `SiteInfoModule` + `AdminLiveSimulator`, `GET /api/data` (L) | Campos de Hero, lei e métricas; prévia; salvar desabilitado | Evoluir a rota em editor institucional/indicadores com contratos N; reaproveitar formulário e linguagem visual, sem conservar acoplamento a `DatabaseSchema`. |
 | `/admin/redes` | `SocialChannelsModule`, `admin-channels.ts`, canais Rails (E) | Leitura, alteração de valor, posição, visibilidade e gravação em lote | Reusar; sete redes fixas do seed, sem criar/excluir nem inventar TikTok. Falta consumo público. |
 | `/admin/estados-cidades` | `EstadosCidadesModule`, geografia Rails (E) | CRUD e filtros de estados/municípios | Reutilizar IDs geográficos em projetos e escolas. Cidade não é escola/polo. |
@@ -148,9 +148,9 @@ Há **15 rotas públicas de página**, incluindo `/`, mais o detalhe dinâmico d
 
 ### 5.1 Fonte local não é a solução para o CMS novo
 
-`src/types/index.ts` possui `DatabaseSchema`, `SiteInfo`, `Stats`, `BannerItem`, tipos de FAQ e outras entidades antigas. `src/lib/api/types.ts` contém os contratos Rails atuais; centralizar contratos novos nesse domínio após aceite, com adaptadores explícitos.
+`src/types/index.ts` possui `DatabaseSchema`, `SiteInfo`, `Stats`, tipos de FAQ e outras entidades antigas. `src/lib/api/types.ts` contém os contratos Rails atuais; centralizar contratos novos nesse domínio após aceite, com adaptadores explícitos.
 
-`db.json` e `initialData.json` têm `siteInfo`, quatro métricas, redes e três banners; as coleções de notícias, avisos, galeria, usuários, escolas, professores, alunos e FAQ estão vazias no snapshot auditado. `getDatabase()` mescla defaults e pode devolver o snapshot inicial em erro; sua presença não comprova dados oficiais Rails.
+`db.json` e `initialData.json` têm `siteInfo`, quatro métricas e redes; as coleções de notícias, avisos, galeria, usuários, escolas, professores, alunos e FAQ estão vazias no snapshot auditado. `getDatabase()` mescla defaults e pode devolver o snapshot inicial em erro; sua presença não comprova dados oficiais Rails.
 
 `GET /api/data` exige sessão Next.js, retorna uma estrutura ampla e pode consultar usuários via cliente servidor Rails. `PUT /api/data` ainda existe e escreve configurações locais, mas zera notícias, avisos, galeria, usuários, projetos e FAQ antes de gravar. Não usar esse caminho para persistir o novo CMS nem reativar botões bloqueados. Não foram executados esses handlers nesta auditoria.
 

@@ -42,13 +42,6 @@ export interface AnnouncementItem {
   };
 }
 
-export interface BannerItem {
-  id: string;
-  imageUrl: string;
-  title?: string;
-  linkUrl?: string;
-}
-
 export interface GalleryItem {
   id: string;
   title: string;
@@ -96,8 +89,6 @@ export interface SiteInfo {
   heroBadge: string;
   heroTitle: string;
   heroDescription: string;
-  heroImage: string;
-  studioImage: string;
   videoUrl?: string;
 }
 
@@ -241,7 +232,6 @@ export interface DatabaseSchema {
   announcements: AnnouncementItem[];
   news: NewsItem[];
   gallery: GalleryItem[];
-  banners: BannerItem[];
   users?: UserAccount[];
   schools?: Escola[];
   teachers?: Professor[];
