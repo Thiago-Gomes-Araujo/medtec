@@ -4,26 +4,26 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, BookOpen, Building2, MapPin, Users } from 'lucide-react';
 import { medtecApi, type PaginationMeta, type ProfessorPublico } from '@/lib/api';
-import { communityErrorMessage, getNameInitials } from '@/lib/community-content';
+import CommunityComingSoon from '@/components/CommunityComingSoon';
+import { COMMUNITY_COMING_SOON, getNameInitials } from '@/lib/community-content';
 
 interface TeacherProfilesProps {
   disciplina?: string;
   busca?: string;
+  onUnavailable?: () => void;
 }
 
-export default function TeacherProfiles({ disciplina = '', busca = '' }: TeacherProfilesProps) {
+export default function TeacherProfiles({ disciplina = '', busca = '', onUnavailable }: TeacherProfilesProps) {
   const [teachers, setTeachers] = useState<ProfessorPublico[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [version, setVersion] = useState(0);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
     async function loadTeachers() {
       setLoading(true);
-      setError(null);
       try {
         const response = await medtecApi.professoresPublicos.list({
           disciplina: disciplina || undefined, busca: busca || undefined, page, per_page: 12,
@@ -31,15 +31,18 @@ export default function TeacherProfiles({ disciplina = '', busca = '' }: Teacher
         if (controller.signal.aborted) return;
         setTeachers(response.data.items);
         setPagination(response.data.pagination);
-      } catch (err) {
-        if (!controller.signal.aborted) setError(communityErrorMessage(err));
+      } catch {
+        if (!controller.signal.aborted) {
+          setUnavailable(true);
+          onUnavailable?.();
+        }
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
     }
     void loadTeachers();
     return () => controller.abort();
-  }, [disciplina, busca, page, version]);
+  }, [disciplina, busca, page, onUnavailable]);
 
   if (loading) {
     return (
@@ -55,13 +58,8 @@ export default function TeacherProfiles({ disciplina = '', busca = '' }: Teacher
     );
   }
 
-  if (error) {
-    return (
-      <div role="alert" className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-6 text-sm text-amber-900 dark:text-amber-200 space-y-3">
-        <p>{error}</p>
-        <button type="button" onClick={() => setVersion((current) => current + 1)} className="font-bold underline cursor-pointer">Tentar novamente</button>
-      </div>
-    );
+  if (unavailable) {
+    return <CommunityComingSoon icon={Users} message={COMMUNITY_COMING_SOON.professores} />;
   }
 
   if (teachers.length === 0) {

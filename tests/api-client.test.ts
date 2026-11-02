@@ -143,6 +143,9 @@ import ConquistasPanel from '../src/components/admin/ConquistasPanel';
 import CommunityApprovalQueue from '../src/components/admin/CommunityApprovalQueue';
 import RelatoProfessorForm from '../src/components/RelatoProfessorForm';
 import AlunosView from '../src/components/AlunosView';
+import ProfessoresView from '../src/components/ProfessoresView';
+import TeacherProfiles from '../src/components/TeacherProfiles';
+import CommunityComingSoon from '../src/components/CommunityComingSoon';
 import StudentStories from '../src/components/StudentStories';
 import ProfessorDetalhePage from '../src/app/professores/[id]/page';
 import type { ConquistaPublica, ProfessorPublico } from '../src/lib/api/types';
@@ -11336,11 +11339,19 @@ describe('Professores e conquistas — integração com a API', () => {
     } finally { await view.restore(); }
   });
 
-  it('página do professor responde 404 e mostra relatos sem contato', async () => {
+  it('página do professor mostra "em breve" em qualquer erro da API e relatos sem contato', async () => {
     await assert.rejects(ProfessorDetalhePage({ params: Promise.resolve({ id: 'abc' }) }));
-    await withFetch(() => problem(404, ['nao_encontrado'], 'Não encontrado'), async () => {
-      await assert.rejects(ProfessorDetalhePage({ params: Promise.resolve({ id: '7' }) }));
-    });
+    for (const reply of [
+      () => problem(404, ['nao_encontrado'], 'Não encontrado'),
+      () => problem(500, ['erro_interno'], 'Erro interno'),
+      () => { throw new TypeError('fetch failed'); },
+    ]) {
+      await withFetch(reply, async () => {
+        const nodes = noticeNodes(await ProfessorDetalhePage({ params: Promise.resolve({ id: '7' }) }));
+        assert.equal(nodes.find(node => node.type === CommunityComingSoon)?.props.message, 'O quadro de professores e mediadores estará disponível em breve.');
+        assert.ok(!nodes.some(node => node.props.role === 'alert' || node.type === RelatoProfessorForm));
+      });
+    }
     await withFetch(() => json({ success: true, message: 'ok', data: {
       id: 7, nome: 'Ana', pratica_pedagogica: 'Prática', escola_nome: 'Escola', cidade_nome: 'Porto Velho',
       email: 'prof@x.com', disciplinas: [{ nome: 'Biologia', slug: 'biologia' }],
@@ -11351,6 +11362,95 @@ describe('Professores e conquistas — integração com a API', () => {
       assert.match(text, /Relato publicado/);
       assert.doesNotMatch(text, /@x\.com/);
       assert.equal(nodes.find(node => node.type === RelatoProfessorForm)?.props.professorId, 7);
+    });
+  });
+
+  describe('seções públicas sem a API', () => {
+    const noError = (html: string) => {
+      assert.match(html, /Em breve/);
+      assert.doesNotMatch(html, /role="alert"|Tentar novamente|Tente novamente|Não foi possível|Falha|Erro/);
+    };
+    const failures: [string, () => Promise<Response>][] = [
+      ['404', async () => problem(404, ['nao_encontrado'], 'Não encontrado')],
+      ['500', async () => problem(500, ['erro_interno'], 'Erro interno')],
+      ['rede', async () => { throw new TypeError('fetch failed'); }],
+    ];
+    const silenceWarnings = () => mock.method(console, 'warn', () => {});
+    // O mural usa motion, que não renderiza em HTML neste ambiente: lê a árvore de elementos.
+    const muralText = (view: { nodes(): { props: { children?: unknown; role?: unknown } }[] }) => {
+      assert.ok(!view.nodes().some(node => node.props.role === 'alert'));
+      return view.nodes().flatMap(node => [node.props.children].flat()).filter(value => typeof value === 'string').join(' ');
+    };
+
+    for (const [name, fail] of failures) {
+      it(`/alunos mostra "em breve" sem filtros nem erro (${name})`, async () => {
+        const warn = silenceWarnings();
+        const view = await mountCategories(fail, false, { component: () => AlunosView(), allowedPaths: /\/publico\/(c_conquistas_aluno|c_categorias_conquista_aluno)$/, anonymous: true });
+        try {
+          await view.act(settle);
+          noError(view.html());
+          assert.match(view.html(), /As histórias dos estudantes estarão disponíveis em breve/);
+          assert.doesNotMatch(view.html(), /conquistas-busca|conquistas-categoria/);
+        } finally { await view.restore(); warn.mock.restore(); }
+      });
+
+      it(`/professores mostra "em breve" e avisa a página para ocultar os filtros (${name})`, async () => {
+        let unavailable = 0;
+        const onUnavailable = () => { unavailable++; };
+        const view = await mountCategories(fail, false, { component: () => TeacherProfiles({ onUnavailable }), allowedPaths: /\/publico\/p_professores$/, anonymous: true });
+        try {
+          await view.act(settle);
+          noError(view.html());
+          assert.match(view.html(), /O quadro de professores e mediadores estará disponível em breve/);
+          assert.equal(unavailable, 1);
+        } finally { await view.restore(); }
+      });
+
+      it(`home mostra "em breve" nas duas colunas (${name})`, async () => {
+        const view = await mountCategories(fail, false, { component: () => CommunityMuralSection(), allowedPaths: /\/publico\/(p_professores|c_conquistas_aluno)$/, anonymous: true });
+        try {
+          await view.act(settle);
+          const text = muralText(view);
+          noError(text);
+          assert.match(text, /O quadro de professores e mediadores estará disponível em breve/);
+          assert.match(text, /As histórias dos estudantes estarão disponíveis em breve/);
+        } finally { await view.restore(); }
+      });
+    }
+
+    it('/professores oculta os filtros quando a lista fica indisponível', async () => {
+      const warn = silenceWarnings();
+      const view = await mountCategories(async () => problem(404, ['nao_encontrado']), false, { component: () => ProfessoresView(), allowedPaths: /\/publico\/p_disciplinas$/, anonymous: true });
+      try {
+        await view.act(settle);
+        assert.match(view.html(), /name="professores-busca"/);
+        const list = view.nodes().find(node => node.type === TeacherProfiles);
+        assert.ok(list);
+        await view.act(() => Reflect.apply(list.props.onUnavailable as () => unknown, undefined, []));
+        assert.doesNotMatch(view.html(), /name="professores-busca"|name="professores-disciplina"/);
+      } finally { await view.restore(); warn.mock.restore(); }
+    });
+
+    it('home degrada só a coluna que falhou e lista vazia não vira "em breve"', async () => {
+      const view = await mountCategories(async url => url.pathname.endsWith('/p_professores') ? problem(500, ['erro_interno']) : listReply([publicConquista]), false, {
+        component: () => CommunityMuralSection(), allowedPaths: /\/publico\/(p_professores|c_conquistas_aluno)$/, anonymous: true,
+      });
+      try {
+        await view.act(settle);
+        const text = muralText(view);
+        assert.match(text, /O quadro de professores e mediadores estará disponível em breve/);
+        assert.match(text, new RegExp(publicConquista.titulo));
+        assert.doesNotMatch(text, /As histórias dos estudantes estarão disponíveis em breve/);
+      } finally { await view.restore(); }
+      const empty = await mountCategories(async url => url.pathname.endsWith('/c_categorias_conquista_aluno')
+        ? json({ success: true, message: 'ok', data: [] }) : listReply([]), false, {
+        component: () => AlunosView(), allowedPaths: /\/publico\/(c_conquistas_aluno|c_categorias_conquista_aluno)$/, anonymous: true,
+      });
+      try {
+        await empty.act(settle);
+        assert.doesNotMatch(empty.html(), /Em breve/);
+        assert.match(empty.html(), /name="conquistas-busca"/);
+      } finally { await empty.restore(); }
     });
   });
 

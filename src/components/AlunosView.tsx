@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Users } from 'lucide-react';
+import CommunityComingSoon from '@/components/CommunityComingSoon';
 import StudentStories from '@/components/StudentStories';
 import { medtecApi, type CategoriaConquistaPublica, type ConquistaPublica } from '@/lib/api';
-import { communityErrorMessage } from '@/lib/community-content';
+import { COMMUNITY_COMING_SOON } from '@/lib/community-content';
 
 const PAGE_SIZE = 12;
 const fieldClass = 'w-full rounded-md border border-slate-200 dark:border-[#1A365D] bg-slate-50 dark:bg-[#061224] py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#004A99] dark:focus:ring-[#00D8FF]';
@@ -17,8 +18,7 @@ export default function AlunosView() {
   const [busca, setBusca] = useState('');
   const [conquistas, setConquistas] = useState<ConquistaPublica[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [version, setVersion] = useState(0);
+  const [unavailable, setUnavailable] = useState(false);
   const [visible, setVisible] = useState(PAGE_SIZE);
 
   useEffect(() => {
@@ -45,7 +45,6 @@ export default function AlunosView() {
     const controller = new AbortController();
     async function loadConquistas() {
       setLoading(true);
-      setError(null);
       try {
         const response = await medtecApi.conquistasPublicas.list({
           categoria: categoria || undefined, busca: busca || undefined, page: 'all',
@@ -53,15 +52,15 @@ export default function AlunosView() {
         if (controller.signal.aborted) return;
         setConquistas(response.data.items);
         setVisible(PAGE_SIZE);
-      } catch (err) {
-        if (!controller.signal.aborted) setError(communityErrorMessage(err));
+      } catch {
+        if (!controller.signal.aborted) setUnavailable(true);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
     }
     void loadConquistas();
     return () => controller.abort();
-  }, [categoria, busca, version]);
+  }, [categoria, busca]);
 
   // O filtro `cidade` da API pede o id, mas o site não tem rota pública de cidades
   // nem recebe esse id: as opções e o recorte usam `cidade_nome` da própria lista.
@@ -74,6 +73,10 @@ export default function AlunosView() {
     () => (cidade ? conquistas.filter((item) => item.cidade_nome === cidade) : conquistas),
     [conquistas, cidade],
   );
+
+  if (unavailable) {
+    return <CommunityComingSoon icon={Users} message={COMMUNITY_COMING_SOON.conquistas} />;
+  }
 
   return (
     <div>
@@ -102,11 +105,6 @@ export default function AlunosView() {
 
       {loading ? (
         <p role="status" className="py-12 text-center text-sm text-slate-500 dark:text-slate-400">Carregando conquistas...</p>
-      ) : error ? (
-        <div role="alert" className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-6 text-sm text-amber-900 dark:text-amber-200 space-y-3">
-          <p>{error}</p>
-          <button type="button" onClick={() => setVersion((current) => current + 1)} className="font-bold underline cursor-pointer">Tentar novamente</button>
-        </div>
       ) : (
         <>
           <StudentStories conquistas={filtered.slice(0, visible)} />
