@@ -710,3 +710,127 @@ export interface QueryParams {
   q?: Record<string, QueryFilterValue>;
   [key: string]: unknown;
 }
+
+// Projetos pedagógicos — contrato docs/ROTAS_PROJETOS.md.
+export interface PjTema {
+  id: number;
+  nome: string;
+  slug: string;
+  ativo: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PjTemaInput {
+  nome: string;
+  slug?: string;
+  ativo?: boolean;
+}
+
+export interface PjMembro {
+  id: number;
+  nome: string;
+  cpf: string;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PjMembroInput {
+  nome: string;
+  cpf: string;
+}
+
+export interface PjAnexo {
+  id: number;
+  nome: string;
+  tipo: string;
+  tamanho: number;
+  url: string;
+}
+
+// `id` é o do vínculo com o projeto; `pj_membro_id` é o do membro.
+export interface PjProjetoMembro {
+  id: number;
+  pj_membro_id: number;
+  nome: string;
+  cpf: string;
+  funcao: string;
+}
+
+export interface PjProjeto {
+  id: number;
+  titulo: string;
+  relato: string;
+  pj_tema_id: number;
+  tema_nome: string;
+  escola_id: number;
+  escola_nome: string;
+  cidade_nome: string;
+  imagem_url: string | null;
+  imagem: string | null;
+  anexos: PjAnexo[];
+  membros: PjProjetoMembro[];
+  n_status_noticia_id: number;
+  status: ModeracaoStatus;
+  status_nome: string;
+  autor_id: number | null;
+  autor_nome: string | null;
+  avaliado_por_id: number | null;
+  avaliado_por_nome: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Novo vínculo, troca de função ou saída do projeto: só o que muda é enviado.
+export type PjProjetoMembroAttribute =
+  | { pj_membro_id: number; funcao: string }
+  | { id: number; funcao: string }
+  | { id: number; _destroy: true };
+
+export interface PjProjetoInput {
+  titulo: string;
+  relato: string;
+  pj_tema_id: number;
+  escola_id: number;
+  imagem?: File;
+  imagem_url?: string;
+  anexos?: File[];
+  pj_projeto_membros_attributes?: PjProjetoMembroAttribute[];
+}
+
+export interface ProjetoPublico {
+  id: number;
+  titulo: string;
+  relato: string;
+  tema_nome: string;
+  tema_slug: string;
+  escola_nome: string;
+  cidade_nome: string;
+  imagem: string | null;
+  imagem_url: string | null;
+  created_at: string;
+}
+
+export interface ProjetoPublicoDetalhe extends ProjetoPublico {
+  membros: { nome: string; funcao: string }[];
+  anexos: PjAnexo[];
+}
+
+export interface TemaProjetoPublico {
+  nome: string;
+  slug: string;
+}
+
+export interface PublicoProjetosParams {
+  tema?: string;
+  cidade?: number;
+  busca?: string;
+  page?: number | 'all';
+  per_page?: number;
+}

@@ -70,7 +70,7 @@ import PublicDuvidasPage from '../src/app/duvidas/page';
 import FaqSection from '../src/components/FaqSection';
 import DuvidaCategoriesManager from '../src/components/admin/DuvidaCategoriesManager';
 import type { DCategoriaDuvida, DDuvida, DDuvidaInput } from '../src/lib/api/types';
-import type { DDuvidaVisitante } from '../src/lib/api/types';
+import type { DDuvidaVisitante, PjProjetoInput } from '../src/lib/api/types';
 import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput } from '../src/lib/api/types';
 import ProjectsModule, { type ProjectViewMode } from '../src/components/admin/ProjectsModule';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
@@ -11240,6 +11240,105 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
         state.mock.restore();
       }
     }
+  });
+});
+
+describe('Projetos — service', () => {
+  const headers = { 'content-type': 'application/json' };
+  const json = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const list = (items: unknown[]) => json({ success: true, message: 'ok', data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: 10 } } });
+  const projeto = { id: 1, titulo: 'Hortas', relato: 'Relato', pj_tema_id: 2, tema_nome: 'Tema', escola_id: 3, escola_nome: 'Escola', cidade_nome: 'Cidade', imagem: null, imagem_url: null, anexos: [], membros: [], status: 'aguardando', status_nome: 'Aguardando' };
+  const input = { titulo: 'Hortas', relato: 'Relato', pj_tema_id: 2, escola_id: 3 };
+  async function capture<T>(reply: Response, run: () => Promise<T>) {
+    const calls: { url: URL; options: RequestInit }[] = [];
+    const spy = mock.method(globalThis, 'fetch', async (target: RequestInfo | URL, options: RequestInit = {}) => { calls.push({ url: new URL(String(target)), options }); return reply; });
+    setStoredTokens({ access_token: 'projeto-user', refresh_token: 'projeto-refresh' });
+    try { return { result: await run(), calls }; } finally { spy.mock.restore(); clearStoredTokens(); }
+  }
+
+  for (const [label, service, path, root] of [
+    ['temas', medtecApi.temasProjeto, '/pj_temas', 'pj_tema'],
+    ['membros', medtecApi.membrosProjeto, '/pj_membros', 'pj_membro'],
+  ] as const) {
+    it(label + ': CRUD com método, rota, Bearer e corpo do contrato', async () => {
+      const data = { nome: 'Nome', cpf: '01251667708', slug: 's', ativo: true };
+      const crud = service as unknown as { list(p: unknown): Promise<unknown>; get(id: number): Promise<unknown>; create(d: unknown): Promise<unknown>; update(id: number, d: unknown): Promise<unknown>; delete(id: number): Promise<unknown> };
+      const steps: [string, string, Response, () => Promise<unknown>][] = [
+        ['GET', path, list([]), () => crud.list({ page: 1 })],
+        ['GET', path + '/9', json({ id: 9 }), () => crud.get(9)],
+        ['POST', path, json({ id: 9 }, 201), () => crud.create(data)],
+        ['PATCH', path + '/9', json({ id: 9 }), () => crud.update(9, data)],
+        ['DELETE', path + '/9', json(null, 204), () => crud.delete(9)],
+      ];
+      for (const [method, route, reply, run] of steps) {
+        const { calls } = await capture(reply, run);
+        assert.equal(calls[0].options.method, method); assert.ok(calls[0].url.pathname.endsWith(route), route);
+        assert.equal(new Headers(calls[0].options.headers).get('Authorization'), 'Bearer projeto-user');
+        if (method === 'POST' || method === 'PATCH') assert.deepEqual(JSON.parse(String(calls[0].options.body)), { [root]: data });
+      }
+    });
+  }
+  it('busca de membro por CPF usa q[cpf_eq]', async () => {
+    const { calls } = await capture(list([]), () => medtecApi.membrosProjeto.list({ 'q[cpf_eq]': '01251667708' }));
+    assert.equal(calls[0].url.searchParams.get('q[cpf_eq]'), '01251667708');
+  });
+  it('sem arquivo envia JSON só com os campos do contrato', async () => {
+    const attrs = [{ pj_membro_id: 1, funcao: 'Aluna' }, { id: 5, funcao: 'Coordenadora' }, { id: 6, _destroy: true as const }];
+    const { calls } = await capture(json(projeto, 201), () => medtecApi.projetos.create({ ...input, imagem_url: 'https://x.com/c.jpg', pj_projeto_membros_attributes: attrs, status: 'publicada', autor_id: 9 } as PjProjetoInput));
+    assert.deepEqual(JSON.parse(String(calls[0].options.body)), { pj_projeto: { ...input, imagem_url: 'https://x.com/c.jpg', pj_projeto_membros_attributes: attrs } });
+    assert.equal(new Headers(calls[0].options.headers).get('Content-Type'), 'application/json');
+    const { calls: empty } = await capture(json(projeto), () => medtecApi.projetos.update(1, input));
+    assert.deepEqual(JSON.parse(String(empty[0].options.body)), { pj_projeto: input }, 'Sem mudança de membros, a chave não é enviada');
+  });
+  it('com arquivos envia multipart com capa, vários anexos e vínculos indexados', async () => {
+    const imagem = new File(['c'], 'capa.png', { type: 'image/png' });
+    const anexos = [new File(['a'], 'a.pdf', { type: 'application/pdf' }), new File(['b'], 'b.jpg', { type: 'image/jpeg' })];
+    const { calls } = await capture(json(projeto), () => medtecApi.projetos.update(1, { ...input, imagem, imagem_url: '', anexos,
+      pj_projeto_membros_attributes: [{ pj_membro_id: 1, funcao: 'Aluna' }, { id: 5, _destroy: true }] }));
+    const form = calls[0].options.body as FormData;
+    assert.ok(form instanceof FormData); assert.equal(calls[0].options.method, 'PATCH');
+    assert.equal(new Headers(calls[0].options.headers).has('Content-Type'), false, 'O navegador define o boundary');
+    assert.equal(form.get('pj_projeto[titulo]'), 'Hortas'); assert.equal(form.get('pj_projeto[escola_id]'), '3'); assert.equal(form.get('pj_projeto[imagem_url]'), '');
+    assert.equal((form.get('pj_projeto[imagem]') as File).name, 'capa.png');
+    assert.deepEqual(form.getAll('pj_projeto[anexos][]').map(file => (file as File).name), ['a.pdf', 'b.jpg']);
+    assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][0][pj_membro_id]'), '1');
+    assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][0][funcao]'), 'Aluna');
+    assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][1][id]'), '5');
+    assert.equal(form.get('pj_projeto[pj_projeto_membros_attributes][1][_destroy]'), 'true');
+  });
+  it('moderação e remoção de anexo usam as rotas próprias, sem corpo', async () => {
+    for (const action of ['publicar', 'reprovar', 'despublicar'] as const) {
+      const { calls } = await capture(json(projeto), () => medtecApi.projetos[action](1));
+      assert.equal(calls[0].options.method, 'PATCH'); assert.ok(calls[0].url.pathname.endsWith('/pj_projetos/1/' + action)); assert.equal(calls[0].options.body, undefined);
+    }
+    const { calls } = await capture(json(null, 204), () => medtecApi.projetos.removerAnexo(1, 10));
+    assert.equal(calls[0].options.method, 'DELETE'); assert.ok(calls[0].url.pathname.endsWith('/pj_projetos/1/anexos/10'));
+  });
+  it('filtros do painel chegam à API', async () => {
+    const { calls } = await capture(list([projeto]), () => medtecApi.projetos.list({ 'q[titulo_cont]': 'x', 'q[pj_tema_id_eq]': 1, 'q[escola_id_eq]': 2, 'q[escola_g_cidade_id_eq]': 3, 'q[pj_membros_id_eq]': 4, 'q[n_status_noticia_slug_eq]': 'aguardando' }));
+    for (const key of ['titulo_cont', 'pj_tema_id_eq', 'escola_id_eq', 'escola_g_cidade_id_eq', 'pj_membros_id_eq', 'n_status_noticia_slug_eq']) assert.ok(calls[0].url.searchParams.has('q[' + key + ']'), key);
+  });
+  it('rotas públicas não enviam token e nunca devolvem CPF, autor ou auditoria', async () => {
+    const vazado = { ...projeto, tema_slug: 't', created_at: 'x', cpf: '01251667708', autor_nome: 'Autora', avaliado_por_nome: 'Avaliadora', created_by: '1' };
+    const lista = await capture(list([vazado]), () => medtecApi.projetosPublicos.list({ tema: 't', cidade: 1, busca: 'h', page: 2, per_page: 5 }));
+    assert.equal(lista.calls[0].url.pathname.endsWith('/publico/pj_projetos'), true);
+    assert.equal(new Headers(lista.calls[0].options.headers).has('Authorization'), false); assert.equal(lista.calls[0].options.credentials, 'omit');
+    assert.deepEqual([...lista.calls[0].url.searchParams.keys()].sort(), ['busca', 'cidade', 'page', 'per_page', 'tema']);
+    const detalhe = await capture(json({ success: true, message: 'Projeto encontrado', data: { ...vazado,
+      membros: [{ id: 5, pj_membro_id: 1, nome: 'Maria', cpf: '01251667708', funcao: 'Mediadora' }],
+      anexos: [{ id: 10, nome: 'a.pdf', tipo: 'application/pdf', tamanho: 1, url: '/a.pdf', extra: 'x' }] } }), () => medtecApi.projetosPublicos.get(1));
+    assert.equal(new Headers(detalhe.calls[0].options.headers).has('Authorization'), false);
+    assert.deepEqual(detalhe.result.data.membros, [{ nome: 'Maria', funcao: 'Mediadora' }]);
+    assert.deepEqual(detalhe.result.data.anexos, [{ id: 10, nome: 'a.pdf', tipo: 'application/pdf', tamanho: 1, url: '/a.pdf' }]);
+    for (const value of [JSON.stringify(lista.result), JSON.stringify(detalhe.result)]) {
+      for (const secret of ['01251667708', 'cpf', 'Autora', 'Avaliadora', 'created_by']) assert.ok(!value.includes(secret), secret);
+    }
+  });
+  it('resposta pública fora do contrato é recusada', async () => {
+    const invalidTema = mock.method(globalThis, 'fetch', async () => json({ success: true, data: [{ nome: 1 }] }));
+    try { await assert.rejects(medtecApi.projetosPublicos.listTemas(), /Temas de Projeto/); } finally { invalidTema.mock.restore(); }
+    const invalidDetalhe = mock.method(globalThis, 'fetch', async () => json({ success: true, data: { id: 1, titulo: 'x' } }));
+    try { await assert.rejects(medtecApi.projetosPublicos.get(1), /API pública de Projetos/); } finally { invalidDetalhe.mock.restore(); }
   });
 });
 

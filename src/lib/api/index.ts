@@ -27,6 +27,7 @@ import { categoriasDuvidaService, duvidasService, duvidasVisitanteService, duvid
 import { escolasService } from './services/escolas.service';
 import { disciplinasProfessorService, professoresService, relatosService, professoresPublicosService } from './services/professores.service';
 import { categoriasConquistaService, conquistasService, conquistasPublicasService } from './services/conquistas.service';
+import { temasProjetoService, membrosProjetoService, projetosService, projetosPublicosService } from './services/projetos.service';
 
 export const medtecApi = {
   // Autenticação e Sessão (/auth)
@@ -86,6 +87,12 @@ export const medtecApi = {
   categoriasConquista: categoriasConquistaService,
   conquistas: conquistasService,
   conquistasPublicas: conquistasPublicasService,
+
+  // Projetos pedagógicos (/pj_projetos, /pj_temas e /pj_membros)
+  temasProjeto: temasProjetoService,
+  membrosProjeto: membrosProjetoService,
+  projetos: projetosService,
+  projetosPublicos: projetosPublicosService,
 };
 
 // Exportações de infraestrutura e utilitários
