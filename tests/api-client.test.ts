@@ -42,7 +42,7 @@ import MobileDrawerFooter, { type MobileDrawerFooterProps } from '../src/compone
 import NextImage from 'next/image';
 import NextLink from 'next/link';
 import { ExternalLink, LogOut } from 'lucide-react';
-import { adminPrimaryButtonClass, adminSecondaryButtonClass, sidebarBadgeClass, sidebarFolderClass, sidebarIconButtonClass, sidebarIconClass, sidebarItemClass, sidebarPortalLinkClass } from '../src/components/admin/adminTheme';
+import { adminCardClass, adminCountBadgeClass, adminPrimaryButtonClass, adminSecondaryButtonClass, sidebarBadgeClass, sidebarFolderClass, sidebarIconButtonClass, sidebarIconClass, sidebarItemClass, sidebarPortalLinkClass } from '../src/components/admin/adminTheme';
 import {
   ADMIN_STATIC_TAB_ALIASES,
   ADMIN_STATIC_ROUTE_ALIASES,
@@ -4046,7 +4046,7 @@ describe('Menu do painel por tarefa e cores centralizadas', () => {
       const pairs: [string, string, number][] = [
         ['text', 'bg', 4.5], ['text', 'surface', 4.5], ['text', 'surface-muted', 4.5],
         ['muted', 'bg', 4.5], ['muted', 'surface', 4.5], ['muted', 'surface-muted', 4.5],
-        ['accent', 'surface', 4.5], ['accent', 'surface-muted', 4.5], ['accent-fg', 'accent', 4.5], ['accent-fg', 'accent-hover', 4.5], ['accent', 'accent-soft', 4.5], ['warning-strong', 'surface', 3],
+        ['accent', 'surface', 4.5], ['accent', 'surface-muted', 4.5], ['accent', 'bg', 4.5], ['accent-fg', 'accent', 4.5], ['accent-fg', 'accent-hover', 4.5], ['accent', 'accent-soft', 4.5], ['warning-strong', 'surface', 3],
         ['success', 'success-soft', 4.5], ['success', 'surface', 4.5],
         ['warning', 'warning-soft', 4.5], ['warning', 'surface', 4.5],
         ['danger', 'danger-soft', 4.5], ['danger', 'surface', 4.5],
@@ -4745,7 +4745,10 @@ describe('Interface componentizada da Visão Geral', () => {
   });
   it('atenção e resumo ficam lado a lado no desktop e empilhados no celular', () => {
     const html = render();
-    assert.ok(html.includes('<div class="grid grid-cols-1 gap-6 lg:grid-cols-2"><section aria-labelledby="inicio-atencao"'));
+    assert.ok(html.includes('<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-2"><section aria-labelledby="inicio-atencao"'), 'Alinhados no topo, sem esticar');
+    assert.doesNotMatch(secao(html, 'inicio-atencao') + secao(html, 'inicio-resumo'), /flex-1 overflow|h-full/);
+    assert.ok(secao(html, 'inicio-atencao').includes('O que está esperando uma ação sua.'));
+    assert.ok(secao(html, 'inicio-resumo').includes('Quantos conteúdos o site tem hoje.'));
     assert.ok(html.indexOf('inicio-atencao') < html.indexOf('inicio-resumo') && html.indexOf('inicio-resumo') < html.indexOf('inicio-gerenciar'));
   });
   it('"Precisa da sua atenção" é uma lista com uma linha por pendência: faixa âmbar, número, texto e ação à direita', () => {
@@ -4826,18 +4829,48 @@ describe('Interface componentizada da Visão Geral', () => {
     for (const item of items) {
       assert.ok(gerenciar.includes(`>${item.label}</h5>`), item.label);
       assert.ok(item.summary.length > 0 && gerenciar.includes(item.summary), item.label);
-      assert.match(gerenciar, new RegExp(`<a\\b(?=[^>]*href="${item.href}")(?=[^>]*aria-label="Abrir ${item.label}")`), item.label);
+      assert.match(gerenciar, new RegExp(`<a\\b(?=[^>]*href="${item.href}")(?=[^>]*aria-label="Abrir ${item.label}[:"])`), item.label);
     }
     assert.ok(gerenciar.includes('auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3'), '1, 2 e 3 colunas');
-    assert.equal((gerenciar.match(/min-h-52/g) || []).length, items.length, 'Altura mínima uniforme');
+    assert.doesNotMatch(gerenciar, /min-h-/, 'A altura acompanha o conteúdo');
     assert.equal((gerenciar.match(/h-10 w-10/g) || []).length, items.length, 'Ícone de 40px');
     assert.equal((gerenciar.match(/line-clamp-2/g) || []).length, items.length);
     assert.equal((gerenciar.match(/mt-auto flex items-center justify-between gap-3 border-t border-admin-border/g) || []).length, items.length, 'Rodapé com divisória');
+    assert.equal((gerenciar.match(/<a\b/g) || []).length, items.length, 'Um único link por cartão');
+    assert.equal((gerenciar.match(/<button\b/g) || []).length, 0);
   });
-  it('o rodapé do cartão traz o contador à esquerda e "Abrir" à direita', () => {
+  it('o cartão inteiro é o link: nome com o contador, descrição ligada, hover azul e foco visível', () => {
     const gerenciar = secao(render(), 'inicio-gerenciar');
-    assert.match(gerenciar, /border-t border-admin-border pt-3"><span[^>]*>50 aguardando<\/span><a\b[^>]*aria-label="Abrir Notícias"/);
-    assert.match(gerenciar, /border-t border-admin-border pt-3"><span[^>]*><\/span><a\b[^>]*aria-label="Abrir Banners"/, 'Sem contador, "Abrir" continua à direita');
+    const link = gerenciar.match(/<a\b[^>]*aria-label="Abrir Notícias: 50 aguardando"[^>]*>/)?.[0];
+    assert.ok(link);
+    assert.ok(link.includes('href="/admin/noticias"')); assert.ok(link.includes('aria-describedby="inicio-card-noticias"'));
+    assert.ok(gerenciar.includes('id="inicio-card-noticias"'));
+    for (const name of ['hover:border-admin-accent', 'hover:shadow-admin-card-hover', 'focus-visible:ring-2', 'focus-visible:ring-admin-accent', 'shadow-admin-card']) assert.ok(link.includes(name), name);
+    assert.match(gerenciar, /aria-label="Abrir Banners"/, 'Sem contador, o nome fica só com a tela');
+  });
+  it('a etiqueta é âmbar só com pendência; zero e detalhes ficam neutros, e sem dado não há etiqueta', () => {
+    const etiqueta = (html: string, text: string) => html.match(new RegExp(`<span class="([^"]*)">${text}</span>`))?.[1];
+    const comPendencia = secao(render(), 'inicio-gerenciar');
+    for (const text of ['50 aguardando', '2 aguardando', '5 aguardando', '3 relatos aguardando', '4 sem resposta', '10 pendentes']) {
+      assert.equal(etiqueta(comPendencia, text), adminCountBadgeClass(true), text);
+    }
+    for (const text of ['200 ativos', '12 categorias', '27 estados', '120 usuários']) assert.equal(etiqueta(comPendencia, text), adminCountBadgeClass(false), text);
+    const zerado = secao(render({ indicators: { ...props().indicators, apiNewsDraftCount: 0 }, pendencias: pend(0, 0, 0) }), 'inicio-gerenciar');
+    for (const text of ['0 aguardando', '0 relatos aguardando', '0 sem resposta', '0 pendentes']) assert.equal(etiqueta(zerado, text), adminCountBadgeClass(false), text);
+    const banners = comPendencia.slice(comPendencia.indexOf('aria-label="Abrir Banners"'));
+    assert.match(banners, /border-t border-admin-border pt-3"><span class="ml-auto/, 'Sem contador, "Abrir" fica à direita, sem etiqueta vazia');
+    assert.ok(adminCountBadgeClass(true).includes('rounded-full')); assert.ok(adminCountBadgeClass(false).includes('rounded-full'));
+  });
+  it('todos os blocos usam cartão com borda e sombra, sobre o fundo cinza-claro da página', () => {
+    const html = render();
+    assert.ok(html.includes(`<div class="${adminCardClass} flex flex-col gap-4 p-5`), 'Saudação');
+    assert.ok(secao(html, 'inicio-atencao').includes(adminCardClass));
+    assert.ok(secao(html, 'inicio-resumo').includes(adminCardClass));
+    assert.ok(adminCardClass.includes('shadow-admin-card'));
+    const css = readFileSync('src/app/globals.css', 'utf8');
+    assert.match(css, /--admin-bg: #EEF2F6;[\s\S]*--admin-surface: #FFFFFF;/);
+    assert.match(css, /--shadow-admin-card: var\(--admin-card-shadow\);/);
+    assert.equal((css.match(/--admin-card-shadow-hover: 0 0 0 1px var\(--admin-accent\)/g) || []).length, 2, 'Hover nos dois modos');
   });
   it('os contadores dos cartões não repetem os totais do Resumo', () => {
     const gerenciar = secao(render(), 'inicio-gerenciar');

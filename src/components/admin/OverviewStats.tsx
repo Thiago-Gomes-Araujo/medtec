@@ -39,7 +39,7 @@ export default function OverviewStats({ indicators, projetosResumo, bannersTotal
   ];
 
   return (
-    <dl className={`${adminCardClass} grid h-full grid-cols-2 content-center gap-x-4 gap-y-4 p-4 sm:grid-cols-3`}>
+    <dl className={`${adminCardClass} grid grid-cols-2 gap-x-4 gap-y-4 p-4 sm:grid-cols-3`}>
       {items.map(item => (
         <div key={item.label} className="flex flex-col-reverse">
           <dt className="text-xs text-admin-muted">{item.label}</dt>
