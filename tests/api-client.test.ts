@@ -8071,7 +8071,13 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.equal(view.calls[0].url.searchParams.get('q[respondida_false]'), '1');
       assert.equal(view.calls[0].url.searchParams.get('page'), 'all');
       assert.match(view.html(), /Tem curso de informática/);
-      await view.click('Responder ' + visitanteFixture.nome);
+      await view.click('Marcar como respondida: ' + visitanteFixture.nome);
+      assert.equal(view.calls.some(call => call.options.method === 'PATCH'), false, 'Nada é enviado antes de confirmar');
+      await view.click('Cancelar');
+      assert.equal(view.nodes().some(node => node.props['aria-label'] === 'Confirmar atendimento'), false);
+      assert.equal(view.calls.some(call => call.options.method === 'PATCH'), false);
+      await view.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await view.click('Confirmar resposta');
       await view.act(settle);
       const patch = view.calls.find(call => call.options.method === 'PATCH')!;
       assert.ok(patch.url.pathname.endsWith('/d_duvidas_visitante/' + visitanteFixture.id + '/responder'));
@@ -8079,6 +8085,28 @@ describe('Visitantes C3 — interface administrativa', () => {
       assert.match(view.html(), /Dúvida marcada como respondida/);
       assert.match(view.html(), /Nenhuma dúvida sem resposta/, 'page=all sem registros (per_page 0) não é resposta inválida');
       assert.doesNotMatch(view.html(), /role="alert"/);
+    } finally { await view.restore(); }
+  });
+  it('Fila e Dúvidas do público pedem a mesma confirmação', () => {
+    const trechos = ['aria-label="Confirmar atendimento"', 'como respondida? Nenhuma mensagem é enviada: confirme só depois de responder por e-mail ou telefone.', '>Confirmar resposta</button>', '>Cancelar</button>', 'aria-label={`Marcar como respondida: ${item.nome}`}', '>Marcar como respondida</button>'];
+    for (const tela of ['DuvidasVisitanteQueue', 'DuvidasVisitanteModule']) {
+      const fonte = readFileSync(`src/components/admin/${tela}.tsx`, 'utf8');
+      for (const trecho of trechos) assert.ok(fonte.includes(trecho), `${tela}: ${trecho}`);
+    }
+  });
+  it('Fila mantém a dúvida e a confirmação quando a API recusa a marcação', async () => {
+    const view = await mountCategories(async (_url, options) => options.method === 'PATCH'
+      ? categoriaReply({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403) : visitanteList([visitanteFixture]),
+    false, { component: () => DuvidasVisitanteQueue(), allowedPaths: /\/d_duvidas_visitante(\/\d+\/responder)?$/ });
+    const settle = async () => { for (let turn = 0; turn < 5; turn++) await Promise.resolve(); };
+    try {
+      await view.act(settle);
+      await view.click('Marcar como respondida: ' + visitanteFixture.nome);
+      await view.click('Confirmar resposta');
+      await view.act(settle);
+      assert.match(view.html(), /não possui permissão/); assert.doesNotMatch(view.html(), /Dúvida marcada como respondida/);
+      assert.ok(view.nodes().some(node => node.props['aria-label'] === 'Confirmar atendimento'));
+      assert.match(view.html(), /Tem curso de informática/);
     } finally { await view.restore(); }
   });
   it('Fila mostra a falha de leitura e permite tentar de novo, sem falso vazio', async () => {
@@ -8164,7 +8192,8 @@ describe('Visitantes C3 — interface administrativa', () => {
       try {
         await view.act(settle);
         assert.equal(link(), undefined);
-        await view.click('Responder Visitante atendido');
+        await view.click('Marcar como respondida: Visitante atendido');
+        await view.click('Confirmar resposta');
         await view.act(settle);
         assert.equal(link()?.props.href, '/admin/faq?visitante=42');
       } finally { await view.restore(); }
