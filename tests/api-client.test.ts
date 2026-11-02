@@ -33,6 +33,7 @@ import { PathnameContext, SearchParamsContext } from 'next/dist/shared/lib/hooks
 import AdminFaqSubroutePage from '../src/app/admin/faq/page';
 import AdminProjetosLayout from '../src/app/admin/projetos/layout';
 import TemasProjetoPanel from '../src/components/admin/TemasProjetoPanel';
+import MembrosProjetoPanel from '../src/components/admin/MembrosProjetoPanel';
 import AdminBannersSubroutePage from '../src/app/admin/banners/page';
 import AdminDashboardRoute from '../src/app/admin/page';
 import DesktopSidebarContainer from '../src/components/admin/DesktopSidebarContainer';
@@ -11310,6 +11311,69 @@ describe('Projetos — temas no painel', () => {
       await view.act(settle);
       assert.deepEqual(JSON.parse(String(view.calls.find(call => call.options.method === 'PATCH')!.options.body)), { pj_tema: { ativo: false } });
       assert.match(view.html(), /desativado\./);
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Projetos — membros no painel', () => {
+  const headers = { 'content-type': 'application/json' };
+  const membro = { id: 1, nome: 'Maria Ribeiro', cpf: '01251667708' };
+  const reply = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const list = (items = [membro]) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages: 1, total_count: items.length, per_page: 10 } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const mount = (write: (options: RequestInit) => Response = () => reply(membro, 201)) => mountCategories(async (_url, options) => options.method && options.method !== 'GET' ? write(options) : list(), false, {
+    component: () => MembrosProjetoPanel(), allowedPaths: /\/pj_membros(\/\d+)?$/,
+  });
+
+  it('a listagem mascara o CPF e liga o membro ao filtro de projetos', async () => {
+    const view = await mount();
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /Maria Ribeiro/); assert.match(view.html(), /\*\*\*\.516\.677-\*\*/);
+      assert.doesNotMatch(view.html(), /01251667708|012\.516\.677-08/);
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ver projetos de Maria Ribeiro')?.props.href, '/admin/projetos?membro=1');
+    } finally { await view.restore(); }
+  });
+  it('filtros usam q[nome_cont] e q[cpf_eq] só com números e recusam CPF inválido', async () => {
+    const view = await mount();
+    try {
+      await view.act(settle);
+      await view.change('membro-busca-cpf', '123');
+      await view.submit('Filtrar membros');
+      assert.match(view.html(), /Informe um CPF válido para buscar/);
+      await view.change('membro-busca-nome', ' Maria ');
+      await view.change('membro-busca-cpf', '012.516.677-08');
+      await view.submit('Filtrar membros');
+      await view.act(settle);
+      const { searchParams } = view.calls.at(-1)!.url;
+      assert.equal(searchParams.get('q[nome_cont]'), 'Maria'); assert.equal(searchParams.get('q[cpf_eq]'), '01251667708');
+    } finally { await view.restore(); }
+  });
+  it('cadastro valida o CPF antes de enviar e envia só números', async () => {
+    const view = await mount();
+    const writes = () => view.calls.filter(call => call.options.method === 'POST');
+    try {
+      await view.act(settle);
+      await view.click('Novo membro');
+      await view.change('membro-nome', 'Maria Ribeiro');
+      await view.change('membro-cpf', '11111111111');
+      await view.submit('Criar membro');
+      assert.match(view.html(), /Informe um CPF válido\./); assert.equal(writes().length, 0);
+      await view.change('membro-cpf', '01251667708');
+      await view.submit('Criar membro');
+      await view.act(settle);
+      assert.deepEqual(JSON.parse(String(writes()[0].options.body)), { pj_membro: { nome: 'Maria Ribeiro', cpf: '01251667708' } });
+      assert.match(view.html(), /Membro salvo com sucesso/);
+    } finally { await view.restore(); }
+  });
+  it('membro em projeto mostra a recusa da API ao excluir', async () => {
+    const view = await mount(() => reply({ success: false, message: 'Não foi possível excluir', errors: ['Não foi possível excluir'] }, 422));
+    try {
+      await view.act(settle);
+      await view.click('Excluir Maria Ribeiro');
+      await view.click('Confirmar exclusão');
+      await view.act(settle);
+      assert.match(view.html(), /Não foi possível excluir/);
     } finally { await view.restore(); }
   });
 });
