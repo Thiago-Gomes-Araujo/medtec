@@ -250,7 +250,7 @@ export default function AdminShell({
     redes: canAccessSocials,
     estadosCidades: canAccessEstados,
     usuarios: canAccessUsers,
-  }, { duvidasPublico: duvidasPendentes.count || undefined, kanban: aprovacoesPendentes || undefined, projetosAprovacao: projetosPendentes || undefined, professores: relatosPendentes || undefined, ...badges });
+  }, { duvidasPublico: duvidasPendentes.count || undefined, kanban: aprovacoesPendentes.count || undefined, projetosAprovacao: projetosPendentes.count || undefined, professores: relatosPendentes.count || undefined, ...badges });
 
   // Pesquisa rápida da Sidebar
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
@@ -638,8 +638,12 @@ export default function AdminShell({
               <nav aria-label="Você está em" className="flex items-center gap-1.5 text-xs font-medium text-admin-muted">
                 <span className="hidden sm:inline">Painel</span>
                 <ChevronRight className="h-3.5 w-3.5 hidden sm:inline" />
-                <span className="hidden md:inline">{currentConfig.group}</span>
-                <ChevronRight className="h-3.5 w-3.5 hidden md:inline" />
+                {currentConfig.group !== currentConfig.title && (
+                  <>
+                    <span className="hidden md:inline">{currentConfig.group}</span>
+                    <ChevronRight className="h-3.5 w-3.5 hidden md:inline" />
+                  </>
+                )}
                 <span className="font-semibold text-admin-text truncate">
                   {currentConfig.title}
                 </span>

@@ -15,7 +15,7 @@ const QUERY = { page: 1, per_page: 1, 'q[n_status_noticia_slug_eq]': 'aguardando
 
 // Soma o que a Fila de Aprovação modera. Dúvidas do público têm contador próprio no menu.
 export function useAprovacoesPendentes(enabled: boolean) {
-  const [count, setCount] = useState<number | null>(null);
+  const [state, setState] = useState<{ count: number | null; error: string | null }>({ count: null, error: null });
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
@@ -36,10 +36,13 @@ export function useAprovacoesPendentes(enabled: boolean) {
     ]).then(results => {
       if (controller.signal.aborted) return;
       const totals = results.flatMap(result => result.status === 'fulfilled' ? [result.value.data.pagination.total_count] : []);
-      setCount(totals.length > 0 ? totals.reduce((sum, value) => sum + value, 0) : null);
+      // A parte recusada fica de fora; sem nenhuma resposta, não há total a mostrar.
+      setState(totals.length > 0
+        ? { count: totals.reduce((sum, value) => sum + value, 0), error: null }
+        : { count: null, error: 'Não foi possível carregar as aprovações.' });
     });
     return () => controller.abort();
   }, [enabled, version]);
 
-  return count;
+  return state;
 }

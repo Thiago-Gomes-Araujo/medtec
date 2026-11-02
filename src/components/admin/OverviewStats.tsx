@@ -18,10 +18,12 @@ interface OverviewStatsProps {
   bannersTotal?: { count: number | null; error: string | null };
 }
 
-// Número sem confirmação não vira zero: carregando mostra reticências, e a falha, um traço com nome acessível.
+// Número sem confirmação não vira zero: carregando mostra o esqueleto, e a falha, um traço com nome acessível.
 function resumoValue(loading: boolean, failed: boolean, value: number | null | undefined) {
-  if (failed) return <span title="Indisponível" aria-label="Indisponível">—</span>;
-  if (loading || value === null || value === undefined) return <span title="Carregando" aria-label="Carregando">…</span>;
+  if (failed) return <span role="img" title="Indisponível" aria-label="Indisponível">—</span>;
+  if (loading || value === null || value === undefined) {
+    return <span role="img" aria-label="Carregando" className="my-0.5 block h-6 w-10 rounded bg-admin-surface-muted animate-pulse motion-reduce:animate-none" />;
+  }
   return value;
 }
 
@@ -37,7 +39,7 @@ export default function OverviewStats({ indicators, projetosResumo, bannersTotal
   ];
 
   return (
-    <dl className={`${adminCardClass} grid grid-cols-2 gap-x-4 gap-y-3 p-4 sm:grid-cols-3 lg:grid-cols-6`}>
+    <dl className={`${adminCardClass} grid h-full grid-cols-2 content-center gap-x-4 gap-y-4 p-4 sm:grid-cols-3`}>
       {items.map(item => (
         <div key={item.label} className="flex flex-col-reverse">
           <dt className="text-xs text-admin-muted">{item.label}</dt>

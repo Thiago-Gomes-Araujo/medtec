@@ -7,11 +7,16 @@ import type { ProjetosResumo } from '@/components/admin/useProjetosResumo';
 import { adminCardClass, adminLinkClass, adminPrimaryButtonClass, adminSecondaryButtonClass } from '@/components/admin/adminTheme';
 import { SECTION_CONFIG, type AdminSection, type buildAdminMenu } from '@/lib/admin-navigation';
 
+export interface PendenciaEstado {
+  count: number | null;
+  error: string | null;
+}
+
 export interface AdminOverviewPendencias {
   /** O mesmo total mostrado no item Aprovações do menu. */
-  aprovacoes: number | null;
-  duvidas: number | null;
-  relatos: number | null;
+  aprovacoes: PendenciaEstado;
+  duvidas: PendenciaEstado;
+  relatos: PendenciaEstado;
 }
 
 export interface AdminOverviewProps {
@@ -29,16 +34,26 @@ export interface AdminOverviewProps {
 
 const plural = (value: number, singular: string, varios: string) => `${value} ${value === 1 ? singular : varios}`;
 
-function AttentionCard({ value, title, detail, href, action }: { value: number; title: string; detail: string; href: string; action: string }) {
+function AttentionRow({ value, title, detail, href, action }: { value: number; title: string; detail: string; href: string; action: string }) {
   return (
-    <div className={`${adminCardClass} flex items-center justify-between gap-4 border-l-4 border-l-admin-warning-strong p-4`}>
-      <div className="min-w-0">
-        <p className="text-3xl font-bold leading-none text-admin-text">{value}</p>
-        <h4 className="mt-2 text-sm font-semibold text-admin-text">{title}</h4>
-        <p className="text-xs text-admin-muted">{detail}</p>
-      </div>
+    <li className="flex items-center gap-3 border-l-4 border-l-admin-warning-strong px-3 py-2.5">
+      <span className="w-9 shrink-0 text-center text-xl font-bold leading-none text-admin-text">{value}</span>
+      <p className="min-w-0 flex-1 text-sm text-admin-text">
+        <span className="font-semibold">{title}</span>{' '}
+        <span className="text-xs text-admin-muted">{detail}</span>
+      </p>
       <Link href={href} aria-label={`${action}: ${title}`} className={`${adminSecondaryButtonClass} shrink-0`}>{action}</Link>
-    </div>
+    </li>
+  );
+}
+
+function AttentionSkeleton() {
+  return (
+    <li aria-hidden="true" className="flex items-center gap-3 border-l-4 border-l-admin-border px-3 py-2.5">
+      <span className="h-6 w-9 shrink-0 rounded bg-admin-surface-muted animate-pulse motion-reduce:animate-none" />
+      <span className="h-4 flex-1 rounded bg-admin-surface-muted animate-pulse motion-reduce:animate-none" />
+      <span className="h-8 w-20 shrink-0 rounded-lg bg-admin-surface-muted animate-pulse motion-reduce:animate-none" />
+    </li>
   );
 }
 
@@ -51,14 +66,16 @@ export default function AdminOverview({
   const canSee = (section: AdminSection) => visibleItems.some(item => item.section === section);
   const aprovacoes = visibleItems.find(item => item.section === 'kanban' || item.section === 'projetosAprovacao');
 
+  const sem = { count: null, error: null };
   const cards = [
-    aprovacoes && { key: 'aprovacoes', value: pendencias?.aprovacoes ?? null, title: 'Aprovações', detail: 'aguardando aprovação', href: aprovacoes.href, action: 'Revisar' },
-    canSee('duvidasPublico') && { key: 'duvidas', value: pendencias?.duvidas ?? null, title: 'Dúvidas do público', detail: 'sem resposta', href: SECTION_CONFIG.duvidasPublico.href, action: 'Responder' },
-    canSee('professores') && { key: 'relatos', value: pendencias?.relatos ?? null, title: 'Relatos', detail: 'aguardando moderação', href: SECTION_CONFIG.professoresRelatos.href, action: 'Moderar' },
+    aprovacoes && { key: 'aprovacoes', estado: pendencias?.aprovacoes ?? sem, title: 'Aprovações', detail: 'aguardando aprovação', href: aprovacoes.href, action: 'Revisar' },
+    canSee('duvidasPublico') && { key: 'duvidas', estado: pendencias?.duvidas ?? sem, title: 'Dúvidas do público', detail: 'sem resposta', href: SECTION_CONFIG.duvidasPublico.href, action: 'Responder' },
+    canSee('professores') && { key: 'relatos', estado: pendencias?.relatos ?? sem, title: 'Relatos', detail: 'aguardando moderação', href: SECTION_CONFIG.professoresRelatos.href, action: 'Moderar' },
   ].filter(card => !!card);
-  const pendentes = cards.filter(card => card.value !== null && card.value > 0);
-  // "Tudo em dia" só com todos os totais confirmados: carregando ou com falha, nada é afirmado.
-  const tudoEmDia = !!pendencias && cards.every(card => card.value === 0);
+  const pendentes = cards.filter(card => (card.estado.count ?? 0) > 0);
+  // Falha e carregamento são estados diferentes: a mensagem só aparece quando a leitura falhou de fato.
+  const carregando = cards.filter(card => card.estado.count === null && !card.estado.error);
+  const falhou = cards.some(card => card.estado.count === null && !!card.estado.error);
 
   // Só o que o Resumo não mostra: pendências e detalhes, nunca os mesmos totais.
   const contadores: Partial<Record<AdminSection, string | null>> = {
@@ -66,11 +83,11 @@ export default function AdminOverview({
     avisos: loadingAvisos || errorAvisos || apiAvisosAtivosCount == null ? null : plural(apiAvisosAtivosCount, 'ativo', 'ativos'),
     galeria: loadingFotos || errorFotos || totalCategorias == null ? null : plural(totalCategorias, 'categoria', 'categorias'),
     projetos: projetosResumo?.pending == null || projetosResumo.error ? null : `${projetosResumo.pending} aguardando`,
-    professores: pendencias?.relatos == null ? null : plural(pendencias.relatos, 'relato aguardando', 'relatos aguardando'),
+    professores: pendencias?.relatos.count == null ? null : plural(pendencias.relatos.count, 'relato aguardando', 'relatos aguardando'),
     duvidas: loadingFaqs || errorFaqs || apiFaqsPendingCount == null ? null : `${apiFaqsPendingCount} aguardando`,
-    duvidasPublico: pendencias?.duvidas == null ? null : `${pendencias.duvidas} sem resposta`,
-    kanban: pendencias?.aprovacoes == null ? null : plural(pendencias.aprovacoes, 'pendente', 'pendentes'),
-    projetosAprovacao: pendencias?.aprovacoes == null ? null : plural(pendencias.aprovacoes, 'pendente', 'pendentes'),
+    duvidasPublico: pendencias?.duvidas.count == null ? null : `${pendencias.duvidas.count} sem resposta`,
+    kanban: pendencias?.aprovacoes.count == null ? null : plural(pendencias.aprovacoes.count, 'pendente', 'pendentes'),
+    projetosAprovacao: pendencias?.aprovacoes.count == null ? null : plural(pendencias.aprovacoes.count, 'pendente', 'pendentes'),
     estadosCidades: totalEstados == null ? null : plural(totalEstados, 'estado', 'estados'),
     usuarios: `${usersCountLabel} usuários`,
   };
@@ -102,60 +119,63 @@ export default function AdminOverview({
         </div>
       </div>
 
-      <section aria-labelledby="inicio-atencao" className="space-y-3">
-        <h3 id="inicio-atencao" className="text-sm font-semibold text-admin-text">Precisa da sua atenção</h3>
-        {pendentes.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {pendentes.map(card => (
-              <AttentionCard key={card.key} value={card.value as number} title={card.title} detail={card.detail} href={card.href} action={card.action} />
-            ))}
-          </div>
-        )}
-        {pendentes.length === 0 && tudoEmDia && (
-          <p role="status" className={`${adminCardClass} flex items-center gap-2 p-4 text-sm font-semibold text-admin-success`}>
-            <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>Tudo em dia</span>
-          </p>
-        )}
-        {pendentes.length === 0 && !tudoEmDia && (
-          <p role="status" className={`${adminCardClass} p-4 text-sm text-admin-muted`}>
-            {pendencias ? 'Não foi possível confirmar as pendências agora.' : 'Entre com seu CPF para ver as pendências.'}
-          </p>
-        )}
-      </section>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <section aria-labelledby="inicio-atencao" className="flex flex-col gap-3">
+          <h3 id="inicio-atencao" className="text-sm font-semibold text-admin-text">Precisa da sua atenção</h3>
+          {!pendencias ? (
+            <p role="status" className={`${adminCardClass} flex-1 p-4 text-sm text-admin-muted`}>Entre com seu CPF para ver as pendências.</p>
+          ) : pendentes.length > 0 || carregando.length > 0 ? (
+            <div className={`${adminCardClass} flex-1 overflow-hidden`} aria-busy={carregando.length > 0}>
+              <ul className="divide-y divide-admin-border">
+                {pendentes.map(card => (
+                  <AttentionRow key={card.key} value={card.estado.count as number} title={card.title} detail={card.detail} href={card.href} action={card.action} />
+                ))}
+                {carregando.map(card => <AttentionSkeleton key={card.key} />)}
+              </ul>
+              {carregando.length > 0 && <p role="status" className="sr-only">Carregando as pendências.</p>}
+              {falhou && <p role="alert" className="border-t border-admin-border px-4 py-2 text-xs text-admin-danger">Não foi possível confirmar todas as pendências agora.</p>}
+            </div>
+          ) : falhou ? (
+            <p role="alert" className={`${adminCardClass} flex-1 p-4 text-sm text-admin-danger`}>Não foi possível confirmar as pendências agora.</p>
+          ) : (
+            <p role="status" className={`${adminCardClass} flex flex-1 items-center gap-2 p-4 text-sm font-semibold text-admin-success`}>
+              <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>Tudo em dia</span>
+            </p>
+          )}
+        </section>
 
-      <section aria-labelledby="inicio-resumo" className="space-y-3">
-        <h3 id="inicio-resumo" className="text-sm font-semibold text-admin-text">Resumo do site</h3>
-        <OverviewStats indicators={indicators} projetosResumo={projetosResumo} bannersTotal={bannersTotal} />
-      </section>
+        <section aria-labelledby="inicio-resumo" className="flex flex-col gap-3">
+          <h3 id="inicio-resumo" className="text-sm font-semibold text-admin-text">Resumo do site</h3>
+          <div className="flex-1">
+            <OverviewStats indicators={indicators} projetosResumo={projetosResumo} bannersTotal={bannersTotal} />
+          </div>
+        </section>
+      </div>
 
       <section aria-labelledby="inicio-gerenciar" className="space-y-5">
         <h3 id="inicio-gerenciar" className="text-sm font-semibold text-admin-text">Gerenciar</h3>
         {menu.filter(folder => folder.visible).map(folder => (
           <div key={folder.id} className="space-y-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-admin-muted">{folder.label}</h4>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
               {folder.items.filter(item => item.visible).map(item => {
                 const Icon = item.icon;
                 const contador = contadores[item.section];
                 return (
-                  <div key={item.section} className={`${adminCardClass} flex flex-col justify-between gap-3 p-4`}>
-                    <div className="flex items-start gap-3">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-admin-accent-soft text-admin-accent">
-                        <Icon className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-2">
-                          <h5 className="text-sm font-semibold text-admin-text">{item.label}</h5>
-                          {contador && <span className="text-[11px] text-admin-muted">{contador}</span>}
-                        </div>
-                        <p className="mt-0.5 text-xs leading-relaxed text-admin-muted">{item.summary}</p>
-                      </div>
+                  <div key={item.section} className={`${adminCardClass} flex min-h-52 flex-col p-5`}>
+                    <span className="grid h-10 w-10 place-items-center rounded-lg bg-admin-accent-soft text-admin-accent">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </span>
+                    <h5 className="mt-3 text-base font-semibold text-admin-text">{item.label}</h5>
+                    <p className="mt-1 line-clamp-2 text-sm leading-snug text-admin-muted">{item.summary}</p>
+                    <div className="mt-auto flex items-center justify-between gap-3 border-t border-admin-border pt-3">
+                      <span className="min-w-0 text-xs text-admin-muted">{contador}</span>
+                      <Link href={item.href} aria-label={`Abrir ${item.label}`} className={`${adminLinkClass} shrink-0`}>
+                        <span>Abrir</span>
+                        <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                      </Link>
                     </div>
-                    <Link href={item.href} aria-label={`Abrir ${item.label}`} className={`${adminLinkClass} self-end`}>
-                      <span>Abrir</span>
-                      <ArrowRight className="h-3 w-3" aria-hidden="true" />
-                    </Link>
                   </div>
                 );
               })}

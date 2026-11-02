@@ -3998,7 +3998,7 @@ describe('Menu do painel por tarefa e cores centralizadas', () => {
   });
   it('contador de Aprovações soma a Fila, ignora a parte que falhou e relê ao ser avisado', async () => {
     let totals: Record<string, number> = { n_noticias: 2, c_conquistas_aluno: 1, p_relatos: 3, pj_projetos: 4 };
-    function Contador() { return createElement('output', null, String(useAprovacoesPendentes(true))); }
+    function Contador() { const { count, error } = useAprovacoesPendentes(true); return createElement('output', null, error ? 'falhou' : String(count)); }
     const view = await mountCategories(async url => {
       const name = url.pathname.split('/').pop()!;
       if (!(name in totals)) return new Response(JSON.stringify({ success: false, errors: ['sem_permissao'] }), { status: 403, headers: { 'content-type': 'application/json' } });
@@ -4016,7 +4016,7 @@ describe('Menu do painel por tarefa e cores centralizadas', () => {
       totals = {};
       await view.act(() => notifyAprovacoesPendentes());
       await view.act(settle);
-      assert.equal(view.html(), '<output>null</output>', 'Tudo recusado: sem contador');
+      assert.equal(view.html(), '<output>falhou</output>', 'Tudo recusado: falha, não zero');
     } finally { await view.restore(); }
   });
   it('moderar em qualquer tela avisa o contador', () => {
@@ -4067,6 +4067,32 @@ describe('Menu do painel por tarefa e cores centralizadas', () => {
     for (const file of ['src/components/admin/AdminOverview.tsx', 'src/components/admin/OverviewStats.tsx']) {
       assert.doesNotMatch(readFileSync(file, 'utf8'), /Central Executiva|API Rails|\bCMS\b|Carregando API|Governança|LGPD|Falha ao consultar/, file);
     }
+  });
+});
+
+describe('Caminho do topo do painel', () => {
+  it('não repete o nome quando o grupo e a tela são iguais', () => {
+    assert.equal(SHARED_SECTION_CONFIG.visaoGeral.group, SHARED_SECTION_CONFIG.visaoGeral.title);
+    for (const file of ['src/components/admin/AdminShell.tsx', 'src/app/admin/page.tsx']) {
+      assert.match(readFileSync(file, 'utf8'), /\{currentConfig\.group !== currentConfig\.title && \(/, file);
+    }
+  });
+  it('a tela Início mostra "Painel › Início" uma vez só', () => {
+    const originalState = React.useState;
+    let login = false;
+    const stateMock = mock.method(React, 'useState', (initial: unknown) => {
+      if (initial === false && !login) { login = true; return originalState(true); }
+      if (initial && typeof initial === 'object' && 'isGestor' in initial) return originalState({ isGestor: true, name: 'Ana' });
+      return originalState(initial);
+    });
+    const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'breadcrumb-test' };
+    function Capture() { return AdminDashboardPage(); }
+    try {
+      const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(Capture)));
+      const trail = html.slice(html.indexOf('aria-label="Você está em"'), html.indexOf('</nav>', html.indexOf('aria-label="Você está em"')));
+      assert.equal((trail.match(/>Início</g) || []).length, 1);
+      assert.ok(trail.includes('>Painel<'));
+    } finally { stateMock.mock.restore(); }
   });
 });
 
@@ -4669,6 +4695,8 @@ function fullOverviewMenu(overrides: Partial<Parameters<typeof buildAdminMenu>[0
 }
 
 describe('Interface componentizada da Visão Geral', () => {
+  const estado = (count: number | null) => ({ count, error: null });
+  const pend = (aprovacoes: number | null, duvidas: number | null, relatos: number | null) => ({ aprovacoes: estado(aprovacoes), duvidas: estado(duvidas), relatos: estado(relatos) });
   function props(overrides: Partial<AdminOverviewProps> = {}): AdminOverviewProps {
     return {
       indicators: {
@@ -4680,7 +4708,7 @@ describe('Interface componentizada da Visão Geral', () => {
       },
       menu: fullOverviewMenu(),
       userName: 'Gestora de teste',
-      pendencias: { aprovacoes: 10, duvidas: 4, relatos: 3 },
+      pendencias: pend(10, 4, 3),
       totalEstados: 27,
       projetosResumo: { total: 9, pending: 2, published: 6, error: null },
       bannersTotal: { count: 3, error: null },
@@ -4715,32 +4743,56 @@ describe('Interface componentizada da Visão Geral', () => {
   it('sem nome na sessão, a saudação não mostra undefined', () => {
     assert.doesNotMatch(render({ userName: undefined }), /undefined/);
   });
-  it('"Precisa da sua atenção" mostra só o que está pendente, com número, faixa âmbar e ação', () => {
+  it('atenção e resumo ficam lado a lado no desktop e empilhados no celular', () => {
+    const html = render();
+    assert.ok(html.includes('<div class="grid grid-cols-1 gap-6 lg:grid-cols-2"><section aria-labelledby="inicio-atencao"'));
+    assert.ok(html.indexOf('inicio-atencao') < html.indexOf('inicio-resumo') && html.indexOf('inicio-resumo') < html.indexOf('inicio-gerenciar'));
+  });
+  it('"Precisa da sua atenção" é uma lista com uma linha por pendência: faixa âmbar, número, texto e ação à direita', () => {
     const atencao = secao(render(), 'inicio-atencao');
-    for (const [value, title, action, href] of [['10', 'Aprovações', 'Revisar', '/admin/kanban'], ['4', 'Dúvidas do público', 'Responder', '/admin/faq/publico'], ['3', 'Relatos', 'Moderar', '/admin/professores/relatos']]) {
-      assert.ok(atencao.includes(`>${value}</p>`), title);
-      assert.ok(atencao.includes(`>${title}</h4>`), title);
-      assert.match(atencao, new RegExp(`href="${href}"[^>]*>${action}<|aria-label="${action}: ${title}"[^>]*>${action}<`), action);
-    }
+    assert.equal((atencao.match(/<li\b/g) || []).length, 3);
     assert.equal((atencao.match(/border-l-admin-warning-strong/g) || []).length, 3);
-    const parcial = secao(render({ pendencias: { aprovacoes: 0, duvidas: 2, relatos: 0 } }), 'inicio-atencao');
+    for (const [value, title, action, href] of [['10', 'Aprovações', 'Revisar', '/admin/kanban'], ['4', 'Dúvidas do público', 'Responder', '/admin/faq/publico'], ['3', 'Relatos', 'Moderar', '/admin/professores/relatos']]) {
+      assert.ok(atencao.includes(`>${value}</span>`), title);
+      assert.ok(atencao.includes(`>${title}</span>`), title);
+      assert.match(atencao, new RegExp(`<a\\b(?=[^>]*href="${href}")(?=[^>]*aria-label="${action}: ${title}")[^>]*>${action}</a>`), action);
+    }
+    const parcial = secao(render({ pendencias: pend(0, 2, 0) }), 'inicio-atencao');
     assert.ok(parcial.includes('Dúvidas do público'));
     assert.ok(!parcial.includes('Aprovações')); assert.ok(!parcial.includes('Relatos')); assert.ok(!parcial.includes('Tudo em dia'));
   });
-  it('"Tudo em dia" só aparece com todos os totais confirmados em zero', () => {
-    assert.match(secao(render({ pendencias: { aprovacoes: 0, duvidas: 0, relatos: 0 } }), 'inicio-atencao'), /role="status"[\s\S]*Tudo em dia/);
-    const incerto = secao(render({ pendencias: { aprovacoes: null, duvidas: 0, relatos: 0 } }), 'inicio-atencao');
-    assert.ok(!incerto.includes('Tudo em dia')); assert.ok(incerto.includes('Não foi possível confirmar as pendências agora'));
+  it('enquanto carrega mostra esqueleto, sem mensagem de erro nem "Tudo em dia"', () => {
+    const atencao = secao(render({ pendencias: pend(null, null, null) }), 'inicio-atencao');
+    assert.match(atencao, /aria-busy="true"/);
+    assert.equal((atencao.match(/animate-pulse/g) || []).length, 9);
+    assert.ok(atencao.includes('Carregando as pendências'));
+    assert.doesNotMatch(atencao, /Não foi possível|Tudo em dia|role="alert"/);
+    const parcial = secao(render({ pendencias: pend(2, null, 0) }), 'inicio-atencao');
+    assert.ok(parcial.includes('Aprovações')); assert.equal((parcial.match(/animate-pulse/g) || []).length, 3);
+    assert.doesNotMatch(parcial, /Não foi possível|Tudo em dia/);
+  });
+  it('a mensagem de erro só aparece quando a leitura falhou de fato', () => {
+    const falha = { count: null, error: 'Falhou' };
+    const tudo = secao(render({ pendencias: { aprovacoes: falha, duvidas: falha, relatos: falha } }), 'inicio-atencao');
+    assert.match(tudo, /role="alert"[^>]*>Não foi possível confirmar as pendências agora/);
+    assert.doesNotMatch(tudo, /animate-pulse|Tudo em dia/);
+    const zeroComFalha = secao(render({ pendencias: { aprovacoes: falha, duvidas: estado(0), relatos: estado(0) } }), 'inicio-atencao');
+    assert.ok(zeroComFalha.includes('Não foi possível confirmar')); assert.ok(!zeroComFalha.includes('Tudo em dia'), 'Falha não vira tudo em dia');
+    const parcial = secao(render({ pendencias: { aprovacoes: falha, duvidas: estado(2), relatos: estado(0) } }), 'inicio-atencao');
+    assert.ok(parcial.includes('Dúvidas do público')); assert.ok(parcial.includes('Não foi possível confirmar todas as pendências'));
+    const ainda = secao(render({ pendencias: { aprovacoes: falha, duvidas: estado(null), relatos: estado(0) } }), 'inicio-atencao');
+    assert.match(ainda, /animate-pulse/); assert.ok(ainda.includes('Não foi possível confirmar todas'));
+  });
+  it('"Tudo em dia" só aparece com todos os totais confirmados em zero; sem token, orienta o login', () => {
+    assert.match(secao(render({ pendencias: pend(0, 0, 0) }), 'inicio-atencao'), /role="status"[\s\S]*Tudo em dia/);
     const semToken = secao(render({ pendencias: undefined }), 'inicio-atencao');
-    assert.ok(!semToken.includes('Tudo em dia')); assert.ok(semToken.includes('Entre com seu CPF para ver as pendências'));
-    const parcialComFalha = secao(render({ pendencias: { aprovacoes: null, duvidas: 2, relatos: 0 } }), 'inicio-atencao');
-    assert.ok(parcialComFalha.includes('Dúvidas do público')); assert.ok(!parcialComFalha.includes('Não foi possível'));
+    assert.ok(!semToken.includes('Tudo em dia')); assert.ok(semToken.includes('Entre com seu CPF para ver as pendências')); assert.doesNotMatch(semToken, /animate-pulse/);
   });
   it('Aprovações usa o mesmo total do menu', () => {
     const page = readFileSync('src/app/admin/page.tsx', 'utf8');
-    assert.match(page, /kanban: aprovacoesPendentes \|\| undefined/);
+    assert.match(page, /kanban: aprovacoesPendentes\.count \|\| undefined/);
     assert.match(page, /projetosAprovacao: projetosResumo\.pending \|\| undefined/);
-    assert.match(page, /aprovacoes: canAccessKanban \? aprovacoesPendentes : projetosResumo\.pending/);
+    assert.match(page, /aprovacoes: canAccessKanban \? aprovacoesPendentes : \{ count: projetosResumo\.pending, error: projetosResumo\.error \}/);
     assert.ok(secao(render({ menu: fullOverviewMenu({ kanban: false }) }), 'inicio-atencao').includes('href="/admin/projetos/aprovacao"'), 'Sem a Fila, segue o item do menu');
   });
   it('"Resumo do site" é só uma faixa de números, sem botões nem links', () => {
@@ -4749,12 +4801,13 @@ describe('Interface componentizada da Visão Geral', () => {
     for (const [label, value] of [['Notícias', '450'], ['Projetos', '9'], ['Avisos', '231'], ['Banners', '3'], ['Fotos', '280'], ['Perguntas', '35']]) {
       assert.match(resumo, new RegExp(`<dt[^>]*>${label}</dt><dd[^>]*>${value}</dd>`), label);
     }
-    assert.ok(resumo.includes('grid-cols-2')); assert.ok(resumo.includes('lg:grid-cols-6'));
+    assert.ok(resumo.includes('grid-cols-2')); assert.ok(resumo.includes('sm:grid-cols-3'));
   });
   it('no Resumo, carregando e falha não viram zero, e zero confirmado aparece', () => {
     const base = props().indicators;
     const loading = secao(render({ indicators: { ...base, loadingNews: true, loadingAvisos: true, loadingFotos: true, loadingFaqs: true }, projetosResumo: { total: null, pending: null, published: null, error: null }, bannersTotal: { count: null, error: null } }), 'inicio-resumo');
     assert.equal((loading.match(/aria-label="Carregando"/g) || []).length, 6);
+    assert.equal((loading.match(/animate-pulse/g) || []).length, 6, 'Esqueleto no lugar dos números');
     assert.doesNotMatch(loading, />0</);
     const failed = secao(render({ indicators: { ...base, errorNews: 'x', errorAvisos: 'x', errorFotos: 'x', errorFaqs: 'x' }, projetosResumo: undefined, bannersTotal: undefined }), 'inicio-resumo');
     assert.equal((failed.match(/aria-label="Indisponível"/g) || []).length, 6);
@@ -4775,8 +4828,16 @@ describe('Interface componentizada da Visão Geral', () => {
       assert.ok(item.summary.length > 0 && gerenciar.includes(item.summary), item.label);
       assert.match(gerenciar, new RegExp(`<a\\b(?=[^>]*href="${item.href}")(?=[^>]*aria-label="Abrir ${item.label}")`), item.label);
     }
-    assert.ok(gerenciar.includes('grid-cols-1 gap-4 md:grid-cols-2'), 'Uma coluna no celular');
-    assert.ok(secao(render(), 'inicio-atencao').includes('grid-cols-1'));
+    assert.ok(gerenciar.includes('auto-rows-fr grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3'), '1, 2 e 3 colunas');
+    assert.equal((gerenciar.match(/min-h-52/g) || []).length, items.length, 'Altura mínima uniforme');
+    assert.equal((gerenciar.match(/h-10 w-10/g) || []).length, items.length, 'Ícone de 40px');
+    assert.equal((gerenciar.match(/line-clamp-2/g) || []).length, items.length);
+    assert.equal((gerenciar.match(/mt-auto flex items-center justify-between gap-3 border-t border-admin-border/g) || []).length, items.length, 'Rodapé com divisória');
+  });
+  it('o rodapé do cartão traz o contador à esquerda e "Abrir" à direita', () => {
+    const gerenciar = secao(render(), 'inicio-gerenciar');
+    assert.match(gerenciar, /border-t border-admin-border pt-3"><span[^>]*>50 aguardando<\/span><a\b[^>]*aria-label="Abrir Notícias"/);
+    assert.match(gerenciar, /border-t border-admin-border pt-3"><span[^>]*><\/span><a\b[^>]*aria-label="Abrir Banners"/, 'Sem contador, "Abrir" continua à direita');
   });
   it('os contadores dos cartões não repetem os totais do Resumo', () => {
     const gerenciar = secao(render(), 'inicio-gerenciar');
@@ -8184,7 +8245,8 @@ describe('Visitantes C3 — interface administrativa', () => {
     } finally { await failing.restore(); }
   });
   it('Início mostra as dúvidas sem resposta, e nada sem pendências confirmadas', () => {
-    const html = (duvidas: number | null) => renderToStaticMarkup(createElement(AdminOverview, { indicators: {} as OverviewStatsIndicators, menu: fullOverviewMenu(), pendencias: { aprovacoes: 0, duvidas, relatos: 0 }, onCreateNews() {} }));
+    const zero = { count: 0, error: null };
+    const html = (duvidas: number | null) => renderToStaticMarkup(createElement(AdminOverview, { indicators: {} as OverviewStatsIndicators, menu: fullOverviewMenu(), pendencias: { aprovacoes: zero, duvidas: { count: duvidas, error: null }, relatos: zero }, onCreateNews() {} }));
     assert.match(html(4), /aria-label="Responder: Dúvidas do público"/);
     assert.match(html(4), /4 sem resposta/);
     assert.doesNotMatch(html(0), /Responder: Dúvidas do público/);
@@ -12001,7 +12063,7 @@ describe('Projetos — página de aprovação', () => {
     assert.equal(item.visible, true); assert.equal(item.badge, 3);
     assert.equal(buildAdminMenu({ ...access, projetos: false }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!.visible, false);
     const shell = readFileSync('src/components/admin/AdminShell.tsx', 'utf8');
-    assert.match(shell, /projetosAprovacao: projetosPendentes \|\| undefined/);
+    assert.match(shell, /projetosAprovacao: projetosPendentes\.count \|\| undefined/);
     assert.match(readFileSync('src/app/admin/page.tsx', 'utf8'), /projetosAprovacao: projetosResumo\.pending \|\| undefined/);
   });
   it('lista só os aguardando, paginado, com capa, título, tema, escola, autor e data, sem CPF', async () => {
@@ -12075,7 +12137,7 @@ describe('Projetos — página de aprovação', () => {
   });
   it('o contador conta só os aguardando, relê ao ser avisado e some com 403', async () => {
     let total = 3; let falhar = false;
-    function Contador() { return createElement('output', null, String(useProjetosPendentes(true))); }
+    function Contador() { return createElement('output', null, String(useProjetosPendentes(true).count)); }
     const view = await mountCategories(async () => falhar ? proibido() : list([], total), false, { component: Contador, allowedPaths: /\/pj_projetos$/ });
     try {
       await view.act(settle);
@@ -12749,7 +12811,7 @@ describe('Professores e conquistas — integração com a API', () => {
 
   it('contador de relatos conta só os aguardando, relê ao ser avisado e fica no menu', async () => {
     let total = 4;
-    function Contador() { return createElement('output', null, String(useRelatosPendentes(true))); }
+    function Contador() { return createElement('output', null, String(useRelatosPendentes(true).count)); }
     const view = await mountCategories(async () => json({ success: true, message: 'ok', data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: total, per_page: 1 } } }), false, { component: Contador, allowedPaths: /\/p_relatos$/ });
     try {
       await view.act(settle);
@@ -12761,8 +12823,8 @@ describe('Professores e conquistas — integração com a API', () => {
       await view.act(settle);
       assert.equal(view.html(), '<output>3</output>');
     } finally { await view.restore(); }
-    assert.match(readFileSync('src/components/admin/AdminShell.tsx', 'utf8'), /professores: relatosPendentes \|\| undefined/);
-    assert.match(readFileSync('src/app/admin/page.tsx', 'utf8'), /professores: relatosPendentes \|\| undefined/);
+    assert.match(readFileSync('src/components/admin/AdminShell.tsx', 'utf8'), /professores: relatosPendentes\.count \|\| undefined/);
+    assert.match(readFileSync('src/app/admin/page.tsx', 'utf8'), /professores: relatosPendentes\.count \|\| undefined/);
   });
 
   it('município só filtra escolas e não é enviado na conquista; 403 usa a mensagem do projeto', async () => {

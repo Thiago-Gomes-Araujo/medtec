@@ -324,12 +324,12 @@ export default function AdminDashboardPage() {
     noticias: errorNews ? undefined : (loadingNews ? undefined : (totalNews ?? undefined)),
     avisos: errorAvisos ? undefined : (loadingAvisos ? undefined : (totalAvisos ?? undefined)),
     galeria: errorFotos ? undefined : (loadingFotos ? undefined : (totalFotos ?? undefined)),
-    kanban: aprovacoesPendentes || undefined,
+    kanban: aprovacoesPendentes.count || undefined,
     estadosCidades: totalEstados !== null && totalEstados > 0 ? totalEstados : undefined,
     usuarios: errorUsers ? undefined : (totalUsers ?? undefined),
     duvidasPublico: duvidasPendentes.count || undefined,
     projetosAprovacao: projetosResumo.pending || undefined,
-    professores: relatosPendentes || undefined,
+    professores: relatosPendentes.count || undefined,
   });
 
   // Pesquisa Rápida da Sidebar (Filtro Instantâneo Didático)
@@ -672,8 +672,12 @@ export default function AdminDashboardPage() {
               <nav aria-label="Você está em" className="flex items-center gap-1.5 text-xs font-medium text-admin-muted">
                 <span className="hidden sm:inline">Painel</span>
                 <ChevronRight className="h-3.5 w-3.5 hidden sm:inline" />
-                <span className="hidden md:inline">{currentConfig.group}</span>
-                <ChevronRight className="h-3.5 w-3.5 hidden md:inline" />
+                {currentConfig.group !== currentConfig.title && (
+                  <>
+                    <span className="hidden md:inline">{currentConfig.group}</span>
+                    <ChevronRight className="h-3.5 w-3.5 hidden md:inline" />
+                  </>
+                )}
                 <span className="font-semibold text-admin-text truncate">
                   {currentConfig.title}
                 </span>
@@ -754,8 +758,8 @@ export default function AdminDashboardPage() {
               userName={userSession.name || userSession.username}
               pendencias={canReadApiCounters ? {
                 // O mesmo valor do item Aprovações do menu, conforme o acesso à Fila.
-                aprovacoes: canAccessKanban ? aprovacoesPendentes : projetosResumo.pending,
-                duvidas: duvidasPendentes.count,
+                aprovacoes: canAccessKanban ? aprovacoesPendentes : { count: projetosResumo.pending, error: projetosResumo.error },
+                duvidas: duvidasPendentes,
                 relatos: relatosPendentes,
               } : undefined}
               totalEstados={totalEstados}
