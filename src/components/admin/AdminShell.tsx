@@ -29,7 +29,8 @@ import {
   Info,
   Lock,
 } from 'lucide-react';
-import { medtecApi, clearStoredTokens, type AuthUser } from '@/lib/api';
+import { medtecApi, clearStoredTokens, fetchWithTimeout, isConnectionFailure, isTimeoutError, type AuthUser } from '@/lib/api';
+import AdminSessionError from '@/components/admin/AdminSessionError';
 import { canAccessBanners, canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
@@ -92,6 +93,8 @@ export default function AdminShell({
   // Estado de Autenticação / Sessão
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loadingAuth, setLoadingAuth] = useState(true);
+  const [authFailed, setAuthFailed] = useState(false);
+  const [authAttempt, setAuthAttempt] = useState(0);
   const [userSession, setUserSession] = useState<AdminSession>({ isGestor: false });
 
   // Sincronização do tema escuro
@@ -105,6 +108,7 @@ export default function AdminShell({
     // O cleanup invalida somente este setup, inclusive após ocultar e reativar.
     let active = true;
     const verifyAuth = async () => {
+      let sessionUnreachable = false;
       try {
         let authenticated = false;
 
@@ -134,7 +138,10 @@ export default function AdminShell({
 
         // 2. Fallback de sessão local
         if (!authenticated) {
-          const authRes = await fetch('/api/auth');
+          const authRes = await fetchWithTimeout('/api/auth').catch((cause: unknown) => {
+            sessionUnreachable = isConnectionFailure(cause);
+            throw cause;
+          });
           if (!active) return;
           if (authRes.ok) {
             const authJson = await authRes.json();
@@ -152,6 +159,7 @@ export default function AdminShell({
           }
         }
 
+        setAuthFailed(false);
         if (!authenticated) {
           setIsLoggedIn(false);
           router.push(getAdminLoginHref(pathname || '/admin', window.location.search));
@@ -159,7 +167,13 @@ export default function AdminShell({
       } catch (err) {
         if (!active) return;
         console.error('AdminShell: Erro ao verificar autenticação:', err);
-        router.push('/admin/login');
+        // Sem resposta do servidor, a navegação para o login também ficaria presa no carregamento.
+        if (sessionUnreachable || isTimeoutError(err)) {
+          setIsLoggedIn(false);
+          setAuthFailed(true);
+        } else {
+          router.push('/admin/login');
+        }
       } finally {
         if (active) setLoadingAuth(false);
       }
@@ -167,7 +181,7 @@ export default function AdminShell({
 
     void verifyAuth();
     return () => { active = false; };
-  }, [router, pathname]);
+  }, [router, pathname, authAttempt]);
 
   // Fecha o drawer mobile ao mudar de rota
   const [prevPathname, setPrevPathname] = useState(pathname);
@@ -183,7 +197,11 @@ export default function AdminShell({
       console.warn('AdminShell: Erro ao chamar logout da API v1:', err);
     }
     clearStoredTokens();
-    await fetch('/api/auth', { method: 'DELETE' });
+    try {
+      await fetchWithTimeout('/api/auth', { method: 'DELETE' });
+    } catch (err) {
+      console.warn('AdminShell: Erro ao encerrar a sessão local:', err);
+    }
     router.push('/admin/login');
   };
 
@@ -246,7 +264,6 @@ export default function AdminShell({
     professores: canAccessProfessores,
     alunos: canAccessAlunos,
     kanban: canAccessKanban,
-    siteInfo: canAccessSiteInfo,
     redes: canAccessSocials,
     estadosCidades: canAccessEstados,
     usuarios: canAccessUsers,
@@ -255,6 +272,18 @@ export default function AdminShell({
   // Pesquisa rápida da Sidebar
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
   const activeMenuSection = getActiveMenuSection(activeSection, folders);
+
+  if (authFailed && !isLoggedIn && !loadingAuth) {
+    return (
+      <AdminSessionError
+        onRetry={() => {
+          setAuthFailed(false);
+          setLoadingAuth(true);
+          setAuthAttempt((attempt) => attempt + 1);
+        }}
+      />
+    );
+  }
 
   // Tela de carregamento enquanto valida sessão
   if (loadingAuth || !isLoggedIn) {
@@ -670,7 +699,7 @@ export default function AdminShell({
         {/* ========================================================
             4. CORPO DO CONTEÚDO
         ======================================================== */}
-        <main className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
+        <main id="conteudo-principal" className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
           {/* Barra de Topo do Módulo com Botão "← Voltar para o Início" */}
           {activeSection !== 'visaoGeral' && userSession.isGestor && (
             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-admin-border">

@@ -23,6 +23,7 @@ import ExecutiveDossierModal from '../src/components/ExecutiveDossierModal';
 import LiveBroadcastSection from '../src/components/LiveBroadcastSection';
 import type { AvisoPublico, PublicoAvisosParams } from '../src/lib/api/types';
 import * as adminAuthNavigation from '../src/lib/admin-auth-navigation';
+import * as professorPublico from '../src/lib/professor-publico';
 import { Sun, Moon } from 'lucide-react';
 import React, { createElement, isValidElement, type ReactNode } from 'react';
 import { jsx } from 'react/jsx-runtime';
@@ -101,8 +102,15 @@ import {
   getMediaUrl,
   apiFetch,
   getApiBaseUrl,
+  API_TIMEOUT_MS,
+  API_UPLOAD_TIMEOUT_MS,
+  fetchWithTimeout,
+  isConnectionFailure,
+  isTimeoutError,
 } from '../src/lib/api/client';
-import { ApiError } from '../src/lib/api/errors';
+import { API_TIMEOUT_MESSAGE, ApiError } from '../src/lib/api/errors';
+import AdminSessionError from '../src/components/admin/AdminSessionError';
+import SiteErrorPage from '../src/app/error';
 import {
   setStoredTokens,
   getStoredAccessToken,
@@ -164,6 +172,7 @@ import AlunosView from '../src/components/AlunosView';
 import ProfessoresView from '../src/components/ProfessoresView';
 import TeacherProfiles from '../src/components/TeacherProfiles';
 import CommunityComingSoon from '../src/components/CommunityComingSoon';
+import TransparencySection from '../src/components/TransparencySection';
 import StudentStories from '../src/components/StudentStories';
 import ProfessorDetalhePage from '../src/app/professores/[id]/page';
 import ProjetoDetalhePage, { generateMetadata as projetoMetadata } from '../src/app/projetos/[id]/page';
@@ -182,6 +191,7 @@ import {
   isHttpsUrl,
   validateConquistaImage,
   formatTelefone,
+  COMMUNITY_COMING_SOON,
 } from '../src/lib/community-content';
 
 // Inclui dados fora do contrato Rails para caracterizar as comparações em
@@ -1594,9 +1604,9 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       instances.push(instance);
       const dashboard = AdminDashboardRoute();
       const children = React.Children.toArray(dashboard.props.children);
-      const content = children.find(node => isValidElement(node) && typeof node.type === 'string');
-      assert.ok(isValidElement<{ className: string }>(content));
-      loadings.push(content.props.className.includes('items-center justify-center'));
+      const content = children.find(node => isValidElement(node) && (typeof node.type === 'string' || node.type === AdminSessionError));
+      assert.ok(isValidElement<{ className?: string }>(content));
+      loadings.push(content.type !== AdminSessionError && String(content.props.className).includes('items-center justify-center'));
       const boundary = children.find(node => isValidElement(node) && node.type === React.Suspense);
       assert.ok(isValidElement(boundary));
       React.useEffect(() => { activations++; }, []);
@@ -1823,6 +1833,18 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       assert.equal(page.loading, false);
       assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/noticias?action=new' }]);
     } finally { await page.restore(); }
+  });
+
+  it('sem resposta do servidor sai do carregamento e não redireciona', async () => {
+    for (const failure of [new TypeError('fetch failed'), new DOMException('Tempo esgotado', 'TimeoutError')]) {
+      const page = await mountSession({ source: 'local' });
+      try {
+        page.calls.length = 0;
+        await page.settle(() => page.localRequests[0].reject(failure));
+        assert.deepEqual(page.calls, []);
+        assert.equal(page.loading, false);
+      } finally { await page.restore(); }
+    }
   });
 
   it('preserva o login por erro vigente e mantém o loading de sessão', async () => {
@@ -3006,6 +3028,18 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     } finally { await shell.restore(); }
   });
 
+  it('sem resposta do servidor sai do carregamento e não redireciona', async () => {
+    for (const failure of [new TypeError('fetch failed'), new DOMException('Tempo esgotado', 'TimeoutError')]) {
+      const shell = await mountShell({ source: 'local' });
+      try {
+        await shell.settle(() => shell.localRequests[0].reject(failure));
+        assert.equal(shell.loadingAuth, false);
+        assert.equal(shell.view?.loading, false);
+        assert.deepEqual(shell.calls, []);
+      } finally { await shell.restore(); }
+    }
+  });
+
   it('preserva login genérico e finally quando o erro é vigente', async () => {
     const shell = await mountShell({ source: 'local' });
     try {
@@ -3956,7 +3990,7 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
 });
 
 describe('Menu do painel por tarefa e cores centralizadas', () => {
-  const access = { noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, siteInfo: true, redes: true, estadosCidades: true, usuarios: true };
+  const access = { noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, redes: true, estadosCidades: true, usuarios: true };
   const labels = (menu: ReturnType<typeof buildAdminMenu>) => menu.map(folder => [folder.label, folder.items.filter(item => item.visible).map(item => item.label)]);
 
   it('agrupa por tarefa, com rótulos curtos, e as telas auxiliares saem do menu', () => {
@@ -3964,7 +3998,7 @@ describe('Menu do painel por tarefa e cores centralizadas', () => {
     assert.deepEqual(labels(menu), [
       ['Conteúdo do site', ['Notícias', 'Avisos', 'Banners', 'Galeria de fotos', 'Projetos', 'Professores', 'Alunos que Inspiram', 'Perguntas frequentes']],
       ['Atendimento', ['Dúvidas do público', 'Aprovações']],
-      ['Configurações', ['Números do site', 'Redes sociais', 'Estados e municípios', 'Usuários e acessos']],
+      ['Configurações', ['Redes sociais', 'Estados e municípios', 'Usuários e acessos']],
     ]);
     const sections = menu.flatMap(folder => folder.items.filter(item => item.visible).map(item => item.section));
     for (const section of ['projetosTemas', 'projetosMembros', 'professoresDisciplinas', 'professoresRelatos', 'alunosCategorias'] as const) {
@@ -4547,8 +4581,8 @@ describe('Metadados compartilhados da navegação administrativa', () => {
       },
       "siteInfo": {
         "group": "Configurações",
-        "title": "Números do site",
-        "subtitle": "Atualize a quantidade oficial de estudantes, escolas, turmas e municípios atendidos.",
+        "title": "Quatro Pilares da Home",
+        "subtitle": "Simule os Quatro Pilares da página inicial. As alterações ainda não são publicadas.",
         "href": "/admin/institucional"
       },
       "redes": {
@@ -4599,7 +4633,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.equal(canAccessAdminUsers(session), true);
   });
 
-  const MENU_ORDER = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+  const MENU_ORDER = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico', '/admin/kanban', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
 
   it('mantém Início como seleção local e o router.push de cada item na página, no desktop e mobile', () => {
     for (const mobile of [false, true]) {
@@ -4691,7 +4725,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
 
 
 function fullOverviewMenu(overrides: Partial<Parameters<typeof buildAdminMenu>[0]> = {}, badges: Parameters<typeof buildAdminMenu>[1] = {}) {
-  return buildAdminMenu({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, siteInfo: true, redes: true, estadosCidades: true, usuarios: true, ...overrides }, badges);
+  return buildAdminMenu({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, redes: true, estadosCidades: true, usuarios: true, ...overrides }, badges);
 }
 
 describe('Interface componentizada da Visão Geral', () => {
@@ -4855,7 +4889,7 @@ describe('Interface componentizada da Visão Geral', () => {
   });
   it('o botão dos cartões é tonal, só visual, com o destino no texto, e fica abaixo de "Nova notícia"', () => {
     const textos = fullOverviewMenu().flatMap(folder => folder.items.filter(item => item.visible).map(item => item.action));
-    assert.deepEqual(textos, ['Abrir Notícias', 'Abrir Avisos', 'Abrir Banners', 'Abrir Galeria', 'Abrir Projetos', 'Abrir Professores', 'Abrir Alunos', 'Abrir Perguntas', 'Responder dúvidas', 'Ver aprovações', 'Abrir Números', 'Abrir Redes sociais', 'Abrir Estados', 'Abrir Usuários']);
+    assert.deepEqual(textos, ['Abrir Notícias', 'Abrir Avisos', 'Abrir Banners', 'Abrir Galeria', 'Abrir Projetos', 'Abrir Professores', 'Abrir Alunos', 'Abrir Perguntas', 'Responder dúvidas', 'Ver aprovações', 'Abrir Redes sociais', 'Abrir Estados', 'Abrir Usuários']);
     assert.equal(fullOverviewMenu({ kanban: false }).flatMap(folder => folder.items).find(item => item.visible && item.section === 'projetosAprovacao')?.action, 'Ver aprovações');
     const gerenciar = secao(render(), 'inicio-gerenciar');
     assert.equal((gerenciar.match(/<a\b/g) || []).length, textos.length, 'Sem link aninhado');
@@ -4900,7 +4934,7 @@ describe('Interface componentizada da Visão Geral', () => {
     assert.doesNotMatch(semDados, /undefined|null|\d+ aguardando|sem resposta|pendentes|relatos? aguardando/);
   });
   it('cartão ou seção sem acesso não aparece, nem nas ações e pendências', () => {
-    const html = render({ menu: fullOverviewMenu({ noticias: false, projetos: false, kanban: false, duvidas: false, professores: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false }) });
+    const html = render({ menu: fullOverviewMenu({ noticias: false, projetos: false, kanban: false, duvidas: false, professores: false, redes: false, estadosCidades: false, usuarios: false }) });
     assert.ok(!html.includes('Nova notícia')); assert.ok(!html.includes('Novo projeto'));
     const atencao = secao(html, 'inicio-atencao');
     for (const text of ['Aprovações', 'Dúvidas do público', 'Relatos']) assert.ok(!atencao.includes(text), text);
@@ -5066,7 +5100,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           visit(page);
           assert.equal(overviewFound, true);
           const expected = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico',
-            '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
+            '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
           // Sem a Fila, Aprovações leva direto à aprovação de projetos.
           expected.push(editorialProfile === 'Administrador' ? '/admin/kanban' : '/admin/projetos/aprovacao');
           assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
@@ -5595,7 +5629,7 @@ describe('Subrota administrativa de FAQ', () => {
       requests += 1;
       assert.equal(url, '/api/data');
       assert.equal(options?.method, 'GET');
-      assert.equal(options?.signal, controller.signal);
+      assert.ok(options?.signal instanceof AbortSignal);
       return new Response(JSON.stringify({ faqs: [item], siteInfo: { title: 'Não utilizado' } }), {
         status: 200, headers: { 'Content-Type': 'application/json' },
       });
@@ -7171,14 +7205,15 @@ async function simulateAdminReturnLogin(query: string, expected: string, pending
   } finally { await login.restore(); }
 }
 
-async function simulateAdminReturnProxy(path: string, authenticated = false) {
-  const isolated: { exports: { proxy?: (request: NextRequest) => NextResponse } } = { exports: {} };
+function loadIsolatedProxy(authenticated = false) {
+  const isolated: { exports: { proxy?: (request: NextRequest) => NextResponse | Promise<NextResponse> } } = { exports: {} };
   const { outputText } = transpileModule(readFileSync('src/proxy.ts', 'utf8'), { compilerOptions: { module: ModuleKind.CommonJS } });
   runInNewContext(outputText, {
     exports: isolated.exports, URL, Headers, crypto: { randomUUID: () => 'request-id-sintetico' },
     require(name: string) {
       if (name === 'next/server') return { NextResponse };
       if (name === '@/lib/admin-auth-navigation') return adminAuthNavigation;
+      if (name === '@/lib/professor-publico') return professorPublico;
       if (name === '@/lib/auth') return {
         AUTH_COOKIE_NAME: 'synthetic-cookie',
         verifySessionToken(value: string | undefined) {
@@ -7190,7 +7225,11 @@ async function simulateAdminReturnProxy(path: string, authenticated = false) {
     },
   }, { timeout: 1000 });
   assert.equal(typeof isolated.exports.proxy, 'function');
-  const response = isolated.exports.proxy!(new NextRequest('https://medtec.invalid' + path, {
+  return isolated.exports.proxy!;
+}
+
+async function simulateAdminReturnProxy(path: string, authenticated = false) {
+  const response = await loadIsolatedProxy(authenticated)(new NextRequest('https://medtec.invalid' + path, {
     headers: authenticated ? { cookie: 'synthetic-cookie=synthetic-valid' } : {},
   }));
   return { status: response.status, location: response.headers.get('location') };
@@ -7425,7 +7464,7 @@ describe('Categorias de Dúvidas C1 — serviço autenticado', () => {
   it('listagem e consulta aceitam cancelamento; vazio oficial preserva total zero', async () => {
     const controller = new AbortController();
     const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
-      assert.equal(options?.signal, controller.signal);
+      assert.ok(options?.signal instanceof AbortSignal);
       return String(input).endsWith('/21') ? categoriaReply(categoriaDuvidaFixture) : categoriaList([]);
     });
     try {
@@ -7835,7 +7874,7 @@ describe('Dúvidas C2 — oito endpoints autenticados', () => {
   it('reutiliza cancelamento do cliente e preserva avaliador nulo', async () => {
     const controller = new AbortController();
     const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
-      assert.equal(options?.signal, controller.signal);
+      assert.ok(options?.signal instanceof AbortSignal);
       return String(input).includes('/31') ? categoriaReply(duvidaFixture) : duvidaList([]);
     });
     try {
@@ -8202,7 +8241,7 @@ describe('Visitantes C3 — quatro endpoints autenticados', () => {
   it('leituras aceitam signal e preservam campos nulos', async () => {
     const controller = new AbortController();
     const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
-      assert.equal(options?.signal, controller.signal); return String(input).includes('/41') ? categoriaReply(visitanteFixture) : visitanteList();
+      assert.ok(options?.signal instanceof AbortSignal); return String(input).includes('/41') ? categoriaReply(visitanteFixture) : visitanteList();
     });
     try {
       assert.deepEqual((await service.list({ page: 1 }, controller.signal)).data.items, [visitanteFixture]);
@@ -8304,7 +8343,7 @@ describe('Visitantes C3 — interface administrativa', () => {
     assert.doesNotMatch(html(null), /sem resposta/);
   });
   it('item do menu exibe o total sem depender da aba aberta', () => {
-    const access = Object.fromEntries(['noticias','projetos','duvidas','avisos','fotos','galeria','professores','alunos','kanban','siteInfo','redes','estadosCidades','usuarios'].map(key => [key, true]));
+    const access = Object.fromEntries(['noticias','projetos','duvidas','avisos','fotos','galeria','professores','alunos','kanban','redes','estadosCidades','usuarios'].map(key => [key, true]));
     const item = buildAdminMenu(access as Parameters<typeof buildAdminMenu>[0], { duvidasPublico: 7 }).flatMap(folder => folder.items).find(entry => entry.section === 'duvidasPublico');
     assert.equal(item?.badge, 7);
   });
@@ -8825,7 +8864,7 @@ describe('FAQ público Lote D — três endpoints anônimos', () => {
   it('filtros vazios são omitidos e leituras aceitam cancelamento', async () => {
     const controller = new AbortController();
     const fetcher = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options?: RequestInit) => {
-      const url = new URL(String(input)); assert.equal(options?.signal, controller.signal); assert.equal(options?.cache, 'no-store');
+      const url = new URL(String(input)); assert.ok(options?.signal instanceof AbortSignal); assert.equal(options?.cache, 'no-store');
       assert.equal(url.searchParams.has('categoria'), false); assert.equal(url.searchParams.has('busca'), false);
       return url.pathname.endsWith('/d_duvidas') ? publicDuvidaList([]) : publicCategoryReply([]);
     });
@@ -11023,8 +11062,7 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
 
     const workspace = page.props.children();
     const html = renderToStaticMarkup(workspace);
-    assert.match(html, />Quatro Pilares da Home</);
-    assert.match(html, />Textos do Hero e Indicadores</);
+    assert.doesNotMatch(html, /Textos do Hero e Indicadores/);
     assert.match(html, /Editor dos Quatro Pilares Estratégicos da Home/);
     assert.match(html, /Modo de Simulação em Memória — Alterações Temporárias \(Não Publicadas\)/);
   });
@@ -11113,24 +11151,14 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
     }
   });
 
-  it('mantém HomePillarsModule montado e alterna com Textos do Hero e Indicadores em /admin/institucional', async () => {
-    const page = AdminInstitucionalSubroutePage();
-    const workspace = (page.props.children as () => React.ReactElement)();
-    for (const section of ['pilares', 'indicadores'] as const) {
-      const state = mock.method(React, 'useState', (<S,>(initial?: S | (() => S)) => {
-        const value = typeof initial === 'function' ? (initial as () => S)() : initial;
-        return [value === 'pilares' ? section : value, () => {}];
-      }) as typeof React.useState);
-      try {
-        const tree = Reflect.apply(workspace.type as () => ReactNode, undefined, [workspace.props]);
-        const nodes = noticeNodes(tree);
-        const pillars = nodes.find((node) => node.type === HomePillarsModule);
-        assert.ok(pillars, 'HomePillarsModule permanece montado para preservar o rascunho em memória');
-        assert.equal(pillars.props.active, section === 'pilares');
-      } finally {
-        state.mock.restore();
-      }
-    }
+  it('"Números do site" sai do menu e do Início, e os números da home continuam como estão', () => {
+    const menu = buildAdminMenu({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, redes: true, estadosCidades: true, usuarios: true });
+    const items = menu.flatMap(folder => folder.items);
+    assert.ok(!items.some(item => item.section === 'siteInfo' || item.label === 'Números do site' || item.href === '/admin/institucional'));
+    assert.equal(existsSync('src/components/admin/SiteInfoModule.tsx'), false);
+    assert.doesNotMatch(readFileSync('src/app/admin/institucional/page.tsx', 'utf8'), /SiteInfo|\/api\/data/);
+    const home = readFileSync('src/components/HomePageClient.tsx', 'utf8');
+    for (const value of ['6.000+', '129', '330', '52']) assert.ok(home.includes(value), value);
   });
 });
 
@@ -12109,7 +12137,7 @@ describe('Projetos — página de aprovação', () => {
     assert.equal(SHARED_SECTION_CONFIG.projetosAprovacao.href, '/admin/projetos/aprovacao');
     assert.equal(getFolderIdForSection('projetosAprovacao'), 'atendimento');
     assert.ok(ADMIN_SUBROUTE_GROUPS.find(group => group.label === 'Seções de projetos')!.items.some(item => item.section === 'projetosAprovacao'));
-    const access = { noticias: false, projetos: true, duvidas: false, avisos: false, fotos: false, galeria: false, professores: false, alunos: false, kanban: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false };
+    const access = { noticias: false, projetos: true, duvidas: false, avisos: false, fotos: false, galeria: false, professores: false, alunos: false, kanban: false, redes: false, estadosCidades: false, usuarios: false };
     const item = buildAdminMenu(access, { projetosAprovacao: 3 }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!;
     assert.equal(item.visible, true); assert.equal(item.badge, 3);
     assert.equal(buildAdminMenu({ ...access, projetos: false }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!.visible, false);
@@ -12675,7 +12703,7 @@ describe('Professores e conquistas — integração com a API', () => {
   it('gera os menus da árvore única, respeitando as permissões informadas por cada tela', () => {
     const access = {
       noticias: false, projetos: false, duvidas: false, avisos: false, fotos: false, galeria: false, professores: true,
-      alunos: false, kanban: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false,
+      alunos: false, kanban: false, redes: false, estadosCidades: false, usuarios: false,
     };
     const folders = buildAdminMenu(access, { professores: 3 });
     assert.deepEqual(folders.map(folder => [folder.id, folder.visible]), [['conteudo', true], ['atendimento', false], ['configuracoes', false]]);
@@ -13178,10 +13206,12 @@ describe('Professores e conquistas — integração com a API', () => {
     } finally { await view.restore(); }
   });
 
-  it('página do professor mostra "em breve" em qualquer erro da API e relatos sem contato', async () => {
+  it('página do professor dá 404 quando a API responde 404, "em breve" nas outras falhas, e relatos sem contato', async () => {
     await assert.rejects(ProfessorDetalhePage({ params: Promise.resolve({ id: 'abc' }) }));
+    await withFetch(() => problem(404, ['nao_encontrado'], 'Não encontrado'), async () => {
+      await assert.rejects(ProfessorDetalhePage({ params: Promise.resolve({ id: '7' }) }), /NEXT_HTTP_ERROR_FALLBACK;404/);
+    });
     for (const reply of [
-      () => problem(404, ['nao_encontrado'], 'Não encontrado'),
       () => problem(500, ['erro_interno'], 'Erro interno'),
       () => { throw new TypeError('fetch failed'); },
     ]) {
@@ -13203,6 +13233,41 @@ describe('Professores e conquistas — integração com a API', () => {
       assert.doesNotMatch(text, /@x\.com|69999990000/);
       assert.equal(nodes.find(node => node.type === RelatoProfessorForm)?.props.professorId, 7);
     });
+  });
+
+  it('Proxy reescreve para a página 404 só quando a API responde 404 em /professores/[id]', async () => {
+    const request = (path: string, headers: Record<string, string> = {}) => loadIsolatedProxy()(new NextRequest('https://medtec.invalid' + path, { headers }));
+    const rewriteTarget = (response: NextResponse) => response.headers.get('x-middleware-rewrite');
+
+    await withFetch(() => problem(404, ['nao_encontrado'], 'Não encontrado'), async () => {
+      const response = await request('/professores/7');
+      assert.equal(rewriteTarget(response), 'https://medtec.invalid/_not-found');
+      assert.equal(response.headers.get('x-request-id'), 'request-id-sintetico');
+    });
+    for (const reply of [
+      () => json({ success: true, message: 'ok', data: { id: 7 } }),
+      () => problem(500, ['erro_interno'], 'Erro interno'),
+      () => { throw new TypeError('fetch failed'); },
+    ]) {
+      await withFetch(reply, async () => {
+        const response = await request('/professores/7');
+        assert.equal(rewriteTarget(response), null);
+        assert.equal(response.headers.get('x-middleware-next'), '1');
+      });
+    }
+
+    const fetchMock = mock.method(globalThis, 'fetch', async () => { throw new Error('Não deve consultar a API.'); });
+    try {
+      assert.equal(rewriteTarget(await request('/professores/abc')), 'https://medtec.invalid/_not-found');
+      for (const [path, headers] of [
+        ['/professores/7', { 'sec-fetch-dest': 'empty' }],
+        ['/professores', {}],
+        ['/professores/7/outro', {}],
+      ] as const) {
+        assert.equal(rewriteTarget(await request(path, headers)), null);
+      }
+      assert.equal(fetchMock.mock.callCount(), 0);
+    } finally { fetchMock.mock.restore(); }
   });
 
   describe('seções públicas sem a API', () => {
@@ -13447,5 +13512,242 @@ describe('Reativação sob Activity e seleção de UF (pós-auditoria)', () => {
 
   it('a primeira UF criada passa a ser o estado efetivo', async () => {
     assert.deepEqual(await createEstadoAfter([]), [99]);
+  });
+});
+
+describe('Tempo limite das chamadas à API', () => {
+  const realTimeout = AbortSignal.timeout.bind(AbortSignal);
+  // A requisição só termina quando o signal cancela, como uma API travada.
+  const hang = (_input: RequestInfo | URL, options: RequestInit = {}) => new Promise<Response>((_resolve, reject) => {
+    const signal = options.signal!;
+    if (signal.aborted) reject(signal.reason);
+    else signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+  });
+
+  it('API travada vira erro com mensagem própria, sem carregamento infinito', async () => {
+    const spy = mock.method(globalThis, 'fetch', hang);
+    try {
+      const failure = await apiFetch('/publico/n_noticias', { skipAuth: true, timeoutMs: 5 }).catch((error: unknown) => error) as ApiError;
+      assert.ok(failure instanceof ApiError);
+      assert.equal(failure.status, 0);
+      assert.deepEqual(failure.errors, ['tempo_esgotado']);
+      assert.equal(ApiError.getFriendlyMessage(failure), API_TIMEOUT_MESSAGE);
+    } finally { spy.mock.restore(); }
+  });
+
+  it('corpo travado depois dos headers também expira, em vez de virar resposta vazia', async () => {
+    const spy = mock.method(globalThis, 'fetch', async (_input: RequestInfo | URL, options: RequestInit = {}) => new Response(new ReadableStream({
+      start(controller) { options.signal!.addEventListener('abort', () => controller.error(options.signal!.reason), { once: true }); },
+    }), { status: 200, headers: { 'content-type': 'application/json' } }));
+    try {
+      const failure = await apiFetch('/publico/n_noticias', { skipAuth: true, timeoutMs: 5 }).catch((error: unknown) => error) as ApiError;
+      assert.deepEqual(failure.errors, ['tempo_esgotado']);
+    } finally { spy.mock.restore(); }
+  });
+
+  it('o tempo é curto, e o upload de arquivo tem mais folga', async () => {
+    const timeout = mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
+    const spy = mock.method(globalThis, 'fetch', async () => new Response(null, { status: 204 }));
+    try {
+      await apiFetch('/n_noticias', { skipAuth: true });
+      await apiFetch('/n_noticias', { skipAuth: true, method: 'POST', body: '{}' });
+      await apiFetch('/n_noticias', { skipAuth: true, method: 'POST', body: new FormData() });
+      assert.deepEqual(timeout.mock.calls.map(call => call.arguments[0]), [API_TIMEOUT_MS, API_TIMEOUT_MS, API_UPLOAD_TIMEOUT_MS]);
+    } finally { spy.mock.restore(); timeout.mock.restore(); }
+  });
+
+  it('o signal de quem chamou continua cancelando, e isso não é tempo esgotado', async () => {
+    const spy = mock.method(globalThis, 'fetch', hang);
+    const controller = new AbortController();
+    try {
+      const pending = apiFetch('/n_noticias', { skipAuth: true, signal: controller.signal }).catch((error: unknown) => error);
+      controller.abort();
+      const failure = await pending as ApiError;
+      assert.deepEqual(failure.errors, ['falha_de_rede']);
+    } finally { spy.mock.restore(); }
+  });
+
+  it('fetchWithTimeout cobre o que não passa por apiFetch', async () => {
+    const spy = mock.method(globalThis, 'fetch', hang);
+    try {
+      await assert.rejects(fetchWithTimeout('/api/auth', {}, 5), (error: unknown) => isTimeoutError(error) && isConnectionFailure(error));
+    } finally { spy.mock.restore(); }
+    assert.ok(isConnectionFailure(new TypeError('fetch failed')));
+    assert.ok(!isConnectionFailure(new SyntaxError('JSON inválido')));
+  });
+
+  it('railsApiFetch responde 504 em vez de deixar a rota do servidor presa', async () => {
+    const env = { cpf: process.env.BACKEND_ADMIN_CPF, password: process.env.BACKEND_ADMIN_PASSWORD };
+    process.env.BACKEND_ADMIN_CPF = 'cpf-ficticio';
+    process.env.BACKEND_ADMIN_PASSWORD = 'senha-ficticia';
+    const timeout = mock.method(AbortSignal, 'timeout', () => realTimeout(5));
+    const spy = mock.method(globalThis, 'fetch', (input: RequestInfo | URL, options: RequestInit = {}) => String(input).endsWith('/auth/login')
+      ? Promise.resolve(new Response(JSON.stringify({ data: { access_token: 'a', refresh_token: 'r' } }), { status: 200 }))
+      : hang(input, options));
+    try {
+      const result = await railsApiFetch('/usuarios');
+      assert.equal(result.ok, false);
+      assert.equal(result.status, 504);
+      assert.equal(result.message, API_TIMEOUT_MESSAGE);
+    } finally {
+      spy.mock.restore(); timeout.mock.restore();
+      process.env.BACKEND_ADMIN_CPF = env.cpf; process.env.BACKEND_ADMIN_PASSWORD = env.password;
+      if (env.cpf === undefined) delete process.env.BACKEND_ADMIN_CPF;
+      if (env.password === undefined) delete process.env.BACKEND_ADMIN_PASSWORD;
+    }
+  });
+
+  it('as páginas públicas mostram o estado de erro quando a API trava', async () => {
+    const timeout = mock.method(AbortSignal, 'timeout', () => realTimeout(5));
+    const spy = mock.method(globalThis, 'fetch', hang);
+    try {
+      const contents = (tree: ReactNode) => noticeNodes(tree).find(node => typeof node.type === 'function' && node.type.name.startsWith('Public'));
+      const avisos = await Reflect.apply(contents(PublicAvisosPage({}))!.type as () => Promise<ReactNode>, undefined, [{}]);
+      assert.match(String(noticeNodes(avisos)[0].props.error), /demorou demais/);
+      const aoVivo = await Reflect.apply(contents(PublicAoVivoPage())!.type as () => Promise<ReactNode>, undefined, [{}]);
+      assert.match(String(noticeNodes(aoVivo)[0].props.announcementsError), /demorou demais/);
+      const noticia = await PublicNoticiaDetalhePage({ params: Promise.resolve({ id: 'travada' }) });
+      assert.ok(noticeNodes(noticia).some(node => node.props.role === 'alert'));
+      const projeto = await ProjetoDetalhePage({ params: Promise.resolve({ id: '7' }) });
+      assert.ok(noticeNodes(projeto).some(node => node.type === CommunityComingSoon));
+      const professor = await ProfessorDetalhePage({ params: Promise.resolve({ id: '7' }) });
+      assert.ok(noticeNodes(professor).some(node => node.type === CommunityComingSoon));
+    } finally { spy.mock.restore(); timeout.mock.restore(); }
+  });
+
+  it('nenhuma chamada citada na vistoria usa fetch sem tempo limite', () => {
+    for (const file of ['src/lib/rails-backend.ts', 'src/components/admin/AdminShell.tsx', 'src/app/admin/page.tsx', 'src/app/admin/login/page.tsx', 'src/components/TransparencySection.tsx', 'src/lib/admin-faq.ts']) {
+      assert.doesNotMatch(readFileSync(file, 'utf8'), /(?<![\w.])fetch\(/, file);
+    }
+  });
+
+  it('a tela de sessão oferece repetir e ir para o login', () => {
+    const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'sessao-test' };
+    const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminSessionError, { onRetry() {} })));
+    assert.match(html, /role="alert"/);
+    assert.match(html, /Tentar novamente/);
+    assert.match(html, /href="\/admin\/login"/);
+    assert.doesNotMatch(html, /Autenticando/);
+  });
+});
+
+describe('/transparencia sem rota oficial', () => {
+  type Tree = { nodes(): React.ReactElement<NoticeNodeProps>[] };
+  async function renderSection(reply: () => Promise<Response>, run: (view: Tree, click: (label: string) => Promise<void>) => Promise<void>) {
+    const doc = { nodeType: 9, addEventListener() {}, removeEventListener() {}, activeElement: null, body: null, defaultView: null as unknown, documentElement: { classList: { contains() { return false; } } } };
+    const browser = { document: doc, HTMLIFrameElement: class {} };
+    doc.defaultView = browser;
+    const globals = { window: browser, document: doc, IS_REACT_ACT_ENVIRONMENT: true };
+    const descriptors = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+    for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+    const spy = mock.method(globalThis, 'fetch', reply);
+    const error = mock.method(console, 'error', () => {});
+    let tree: ReactNode = null;
+    function Host() { tree = TransparencySection(); return null; }
+    const root = createRoot({ nodeType: 1, tagName: 'DIV', namespaceURI: 'http://www.w3.org/1999/xhtml', ownerDocument: doc, addEventListener() {}, removeEventListener() {}, textContent: '' } as unknown as Element);
+    const flush = () => React.act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); });
+    const view = { nodes: () => noticeNodes(tree) };
+    try {
+      await React.act(async () => { root.render(createElement(Host)); });
+      await flush();
+      await run(view, async (label) => {
+        const button = view.nodes().find(node => node.type === 'button' && React.Children.toArray(node.props.children).some(child => String(child).includes(label)));
+        assert.ok(button, label);
+        await React.act(async () => { Reflect.apply(button.props.onClick as () => void, undefined, []); });
+        await flush();
+      });
+    } finally {
+      await React.act(async () => { root.unmount(); });
+      spy.mock.restore(); error.mock.restore();
+      for (const [key, descriptor] of descriptors) {
+        if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key);
+      }
+    }
+  }
+  const respond = (body: unknown, status = 200) => async () => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+
+  it('listas vazias viram "em breve", sem busca nem abas', async () => {
+    await renderSection(respond({ indicadores: [], contratos: [] }), async (view) => {
+      assert.equal(view.nodes().find(node => node.type === CommunityComingSoon)?.props.message, COMMUNITY_COMING_SOON.transparencia);
+      assert.ok(!view.nodes().some(node => node.type === 'input'));
+      assert.ok(!view.nodes().some(node => node.props.role === 'alert'));
+    });
+  });
+
+  it('erro de carga mostra aviso, e não "em breve", e permite tentar de novo', async () => {
+    for (const reply of [respond({}, 500), async () => { throw new TypeError('fetch failed'); }]) {
+      await renderSection(reply, async (view, click) => {
+        assert.ok(view.nodes().some(node => node.props.role === 'alert'));
+        assert.ok(!view.nodes().some(node => node.type === CommunityComingSoon));
+        const calls = (globalThis.fetch as unknown as { mock: { callCount(): number } }).mock.callCount();
+        await click('Tentar novamente');
+        assert.equal((globalThis.fetch as unknown as { mock: { callCount(): number } }).mock.callCount(), calls + 1);
+      });
+    }
+  });
+
+  it('com dados da API, mostra a busca e os itens', async () => {
+    const indicador = { ano: 2026, data: '01/2026', metrica: 'Matrículas', valor: '6.000', fonte: { nome: 'INEP', url: 'https://example.com' } };
+    await renderSection(respond({ indicadores: [indicador], contratos: [] }), async (view) => {
+      assert.ok(view.nodes().some(node => node.type === 'input'));
+      assert.ok(!view.nodes().some(node => node.type === CommunityComingSoon));
+    });
+  });
+});
+
+describe('Página de erro do site', () => {
+  it('mostra mensagem amigável no padrão do site, sem detalhes técnicos, e permite repetir', () => {
+    const error = mock.method(console, 'error', () => {});
+    const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'erro-test' };
+    try {
+      const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router },
+        createElement(PathnameContext.Provider, { value: '/' }, createElement(SiteErrorPage, { error: new Error('detalhe-interno'), retry() {} }))));
+      assert.match(html, /Algo deu errado nesta página/);
+      assert.match(html, /Tentar novamente/);
+      assert.match(html, /<main/);
+      assert.doesNotMatch(html, /detalhe-interno/);
+    } finally { error.mock.restore(); }
+  });
+  it('recarrega com retry, como pede a versão instalada do Next', () => {
+    assert.match(readFileSync('src/app/error.tsx', 'utf8'), /onClick=\{\(\) => retry\(\)\}/);
+  });
+});
+
+describe('Acessibilidade do login e do layout', () => {
+  const render = () => {
+    const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'login-a11y' };
+    return renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(AdminLoginPage)));
+  };
+
+  it('os campos têm rótulo associado', () => {
+    const html = render();
+    for (const id of ['login-cpf', 'login-senha']) {
+      assert.match(html, new RegExp('<label[^>]*for="' + id + '"'), id);
+      assert.match(html, new RegExp('<input[^>]*id="' + id + '"'), id);
+    }
+  });
+
+  it('"Manter conectado" não existe mais', () => {
+    const html = render();
+    assert.doesNotMatch(html, /Manter conectado/);
+    assert.doesNotMatch(html, /type="checkbox"/);
+  });
+
+  it('texto pequeno não usa as cores reprovadas no contraste AA', () => {
+    const source = readFileSync('src/app/admin/login/page.tsx', 'utf8');
+    const form = source.slice(source.indexOf('LADO DIREITO'));
+    assert.doesNotMatch(form, /(?<![:\w-])text-slate-400/);
+    assert.doesNotMatch(form, /placeholder:text-slate-400 dark:placeholder:text-slate-500/);
+    assert.doesNotMatch(form, /(?<!dark:)placeholder:text-slate-400/);
+  });
+
+  it('"Pular para o conteúdo" é o primeiro item do layout e todo <main> é o seu destino', () => {
+    const layout = readFileSync('src/app/layout.tsx', 'utf8');
+    assert.ok(layout.indexOf('Pular para o conteúdo') < layout.indexOf('{children}'));
+    assert.match(layout, /href="#conteudo-principal"/);
+    const pending = [...readdirSync('src', { recursive: true, encoding: 'utf8' })]
+      .filter(file => file.endsWith('.tsx'))
+      .filter(file => /<main(?![^>]*id="conteudo-principal")/.test(readFileSync('src/' + file, 'utf8')));
+    assert.deepEqual(pending, []);
   });
 });

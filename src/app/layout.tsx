@@ -108,6 +108,12 @@ export default async function RootLayout({
         />
       </head>
       <body className="bg-[#F8FAFC] dark:bg-[#0B1528] min-h-screen text-[#0F172A] dark:text-[#F8FAFC] font-sans antialiased selection:bg-[#004A99] selection:text-white dark:selection:bg-[#38BDF8] dark:selection:text-slate-900 flex flex-col transition-colors duration-200 overflow-x-hidden max-w-[100vw]">
+        <a
+          href="#conteudo-principal"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-[#004A99] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+        >
+          Pular para o conteúdo
+        </a>
         <SiteChannelsProvider value={await getSiteChannels()}>
           {children}
           <FloatingSocialRotator />

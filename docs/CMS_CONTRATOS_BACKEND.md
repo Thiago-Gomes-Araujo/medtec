@@ -1041,7 +1041,7 @@ Leitura pública (`GET /api/v1/publico/cms/docentes?funcao=ministrante&page=1&pe
       "menor_de_idade": true,
       "nome_signatario": "Maria Helena Santos Oliveira",
       "vinculo_signatario": "mae",
-      "documento_signatario": "123.456.789-00",
+      "documento_signatario": "000.000.000-00",
       "termo_lgpd_midia_id": 89,
       "autoriza_nome_relato": true,
       "autoriza_imagem_foto": true,

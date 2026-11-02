@@ -267,7 +267,7 @@ GET /g_cidades?q[g_estado_id_eq]=1&page=all
 **Não precisa de token.** O CPF pode ir com ou sem pontuação.
 
 ```json
-{ "cpf": "111.444.777-35", "password": "SenhaAdmin123" }
+{ "cpf": "000.000.000-00", "password": "senha-ficticia" }
 ```
 
 Também aceita os campos dentro de `auth`: `{ "auth": { "cpf": "...", "password": "..." } }`.
@@ -278,8 +278,8 @@ Também aceita os campos dentro de `auth`: `{ "auth": { "cpf": "...", "password"
   "success": true,
   "message": "Login efetuado com sucesso.",
   "data": {
-    "access_token": "eyJhbGciOiJIUzI1NiJ9...",
-    "refresh_token": "9f3c1a...(128 caracteres)"
+    "access_token": "access-token-ficticio",
+    "refresh_token": "refresh-token-ficticio"
   },
   "timestamp": "..."
 }
@@ -301,7 +301,7 @@ Também aceita os campos dentro de `auth`: `{ "auth": { "cpf": "...", "password"
 **Não precisa de access token.**
 
 ```json
-{ "refresh_token": "9f3c1a..." }
+{ "refresh_token": "refresh-token-ficticio" }
 ```
 
 **200**: mesmo formato do login, com os **dois tokens novos**.
@@ -309,7 +309,7 @@ Também aceita os campos dentro de `auth`: `{ "auth": { "cpf": "...", "password"
 {
   "success": true,
   "message": "Token renovado",
-  "data": { "access_token": "eyJ...", "refresh_token": "b71e..." }
+  "data": { "access_token": "access-token-ficticio", "refresh_token": "refresh-token-ficticio" }
 }
 ```
 
@@ -337,7 +337,7 @@ Também aceita os campos dentro de `auth`: `{ "auth": { "cpf": "...", "password"
   "data": {
     "id": 1,
     "nome": "Administrador",
-    "cpf": "11144477735",
+    "cpf": "00000000000",
     "ativo": true,
     "perfil_id": 3,
     "perfil_nome": "Administrador"
@@ -367,7 +367,7 @@ Todas precisam de token **e** de permissão do perfil (senão: 403 `sem_permissa
 {
   "id": 4,
   "nome": "Maria Silva",
-  "cpf": "93541134780",
+  "cpf": "00000000000",
   "ativo": true,
   "perfil_id": 1,
   "perfil_nome": "Jornalista",
@@ -389,8 +389,8 @@ Devolve o objeto usuário (sem envelope). 404 se não existir.
 ```json
 {
   "nome": "Maria Silva",
-  "cpf": "935.411.347-80",
-  "password": "senha12345",
+  "cpf": "000.000.000-00",
+  "password": "senha-ficticia",
   "perfil_id": 1,
   "ativo": true
 }

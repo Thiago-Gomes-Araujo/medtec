@@ -5,7 +5,7 @@
  */
 
 import { ApiResponse, AuthTokens, QueryParams } from './types';
-import { API_UNREACHABLE_MESSAGE, ApiError } from './errors';
+import { API_TIMEOUT_MESSAGE, API_UNREACHABLE_MESSAGE, ApiError } from './errors';
 import {
   getStoredAccessToken,
   getStoredRefreshToken,
@@ -100,6 +100,53 @@ export function buildQueryString(params?: QueryParams | Record<string, unknown>)
   return str ? `?${str}` : '';
 }
 
+// API travada vira erro na tela, nunca carregamento infinito. Upload de arquivo precisa de mais tempo.
+export const API_TIMEOUT_MS = 8000;
+export const API_UPLOAD_TIMEOUT_MS = 60000;
+
+/**
+ * Soma o tempo limite ao signal de quem chamou: qualquer um dos dois cancela a requisição.
+ * Usa AbortController porque AbortSignal.any ainda falta em navegadores aceitos pelo Next.
+ */
+function withTimeoutSignal(timeoutMs: number, callerSignal?: AbortSignal | null) {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  if (!callerSignal) return { signal: timeout, timeout };
+
+  const combined = new AbortController();
+  for (const source of [callerSignal, timeout]) {
+    if (source.aborted) combined.abort(source.reason);
+    else source.addEventListener('abort', () => combined.abort(source.reason), { once: true, signal: combined.signal });
+  }
+  return { signal: combined.signal, timeout };
+}
+
+/**
+ * fetch com tempo limite, para o que não passa por apiFetch. A leitura do corpo também é coberta.
+ */
+export function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs: number = API_TIMEOUT_MS
+): Promise<Response> {
+  return fetch(input, { ...init, signal: withTimeoutSignal(timeoutMs, init.signal).signal });
+}
+
+export function isTimeoutError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'TimeoutError';
+}
+
+// Rejeição do próprio fetch: o servidor não foi alcançado, o que não diz nada sobre a sessão ou os dados.
+export function isConnectionFailure(error: unknown): boolean {
+  return isTimeoutError(error) || error instanceof TypeError;
+}
+
+function timeoutError(): ApiError {
+  return ApiError.fromResponse(0, {
+    message: API_TIMEOUT_MESSAGE,
+    errors: ['tempo_esgotado'],
+  });
+}
+
 // Mutex de renovação concorrente de tokens: apenas 1 chamada a /auth/refresh_token por vez
 let activeRefreshPromise: Promise<boolean> | null = null;
 
@@ -111,7 +158,7 @@ async function executeTokenRefresh(): Promise<boolean> {
   }
 
   try {
-    const response = await fetch(`${getApiBaseUrl()}/auth/refresh_token`, {
+    const response = await fetchWithTimeout(`${getApiBaseUrl()}/auth/refresh_token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -141,6 +188,7 @@ async function executeTokenRefresh(): Promise<boolean> {
 export interface ApiFetchOptions extends RequestInit {
   params?: QueryParams | Record<string, unknown>;
   skipAuth?: boolean;
+  timeoutMs?: number;
 }
 
 /**
@@ -151,7 +199,7 @@ export async function apiFetch<T>(
   options: ApiFetchOptions = {},
   isRetry: boolean = false
 ): Promise<T> {
-  const { params, skipAuth, ...fetchOptions } = options;
+  const { params, skipAuth, timeoutMs, signal: callerSignal, ...fetchOptions } = options;
 
   const queryString = buildQueryString(params);
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
@@ -175,13 +223,20 @@ export async function apiFetch<T>(
     }
   }
 
+  const { signal, timeout } = withTimeoutSignal(
+    timeoutMs ?? (fetchOptions.body instanceof FormData ? API_UPLOAD_TIMEOUT_MS : API_TIMEOUT_MS),
+    callerSignal
+  );
+
   let response: Response;
   try {
     response = await fetch(fullUrl, {
       ...fetchOptions,
       headers,
+      signal,
     });
   } catch {
+    if (timeout.aborted) throw timeoutError();
     throw ApiError.fromResponse(0, {
       message: API_UNREACHABLE_MESSAGE,
       errors: ['falha_de_rede'],
@@ -228,6 +283,8 @@ export async function apiFetch<T>(
     try {
       responseData = await response.json();
     } catch {
+      // O corpo pode travar depois dos headers; sem isso, a falha viraria resposta vazia.
+      if (timeout.aborted) throw timeoutError();
       // JSON inválido
     }
   }

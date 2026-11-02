@@ -3,7 +3,8 @@
  * Conforme especificado em rotas_front.md
  */
 
-import { getApiBaseUrl } from '@/lib/api/client';
+import { fetchWithTimeout, getApiBaseUrl, isTimeoutError } from '@/lib/api/client';
+import { API_TIMEOUT_MESSAGE } from '@/lib/api/errors';
 
 let cachedAccessToken: string | null = null;
 let cachedRefreshToken: string | null = null;
@@ -36,7 +37,7 @@ export async function getBackendAdminToken(): Promise<string | null> {
   // Se temos refresh_token, tenta renovar
   if (cachedRefreshToken) {
     try {
-      const refreshRes = await fetch(`${getApiBaseUrl()}/auth/refresh_token`, {
+      const refreshRes = await fetchWithTimeout(`${getApiBaseUrl()}/auth/refresh_token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: cachedRefreshToken }),
@@ -59,7 +60,7 @@ export async function getBackendAdminToken(): Promise<string | null> {
   // Realiza novo login com credenciais administrativas
   const credentials = getBackendAdminCredentials();
   try {
-    const loginRes = await fetch(`${getApiBaseUrl()}/auth/login`, {
+    const loginRes = await fetchWithTimeout(`${getApiBaseUrl()}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
@@ -98,16 +99,24 @@ export async function railsApiFetch<T = unknown>(
   headers.set('Content-Type', 'application/json');
   headers.set('Authorization', `Bearer ${token}`);
 
-  let res = await fetch(url, { ...options, headers });
+  const timedOut = { ok: false, status: 504, message: API_TIMEOUT_MESSAGE, errors: ['tempo_esgotado'] };
 
-  // Se retornou 401 token_expirado, tenta renovar uma vez
-  if (res.status === 401) {
-    cachedAccessToken = null;
-    token = await getBackendAdminToken();
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-      res = await fetch(url, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(url, { ...options, headers });
+
+    // Se retornou 401 token_expirado, tenta renovar uma vez
+    if (res.status === 401) {
+      cachedAccessToken = null;
+      token = await getBackendAdminToken();
+      if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
+        res = await fetchWithTimeout(url, { ...options, headers });
+      }
     }
+  } catch (err) {
+    if (isTimeoutError(err)) return timedOut;
+    throw err;
   }
 
   if (res.status === 204) {
@@ -126,7 +135,8 @@ export async function railsApiFetch<T = unknown>(
       errors: json?.errors || [],
       data: json,
     };
-  } catch {
+  } catch (err) {
+    if (isTimeoutError(err)) return timedOut;
     return {
       ok: res.ok,
       status: res.status,

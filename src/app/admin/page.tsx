@@ -42,7 +42,11 @@ import { sidebarIconButtonClass, sidebarPortalLinkClass, sidebarSearchInputClass
 import {
   medtecApi,
   clearStoredTokens,
+  fetchWithTimeout,
+  isConnectionFailure,
+  isTimeoutError,
 } from '@/lib/api';
+import AdminSessionError from '@/components/admin/AdminSessionError';
 
 function getAdminNavigationIntent(params: URLSearchParams) {
   const tabParam = params.get('tab') || params.get('section');
@@ -157,6 +161,8 @@ export default function AdminDashboardPage() {
     profileType?: string;
     editorialProfile?: string;
   }>({ isGestor: false });
+  const [authFailed, setAuthFailed] = useState(false);
+  const [authAttempt, setAuthAttempt] = useState(0);
 
   // A sessão Rails confirma o perfil editorial; permissões de edição não aprovam notícias.
   const canAccessKanban = userSession.isGestor && userSession.editorialProfile === 'Administrador';
@@ -180,6 +186,7 @@ export default function AdminDashboardPage() {
     // Mantém a guarda também na carga: nenhum alias canônico consulta sessão
     // ou overview nesta página, inclusive se a URL mudar antes do microtask.
     if (hasCanonicalAdminAlias(new URLSearchParams(window.location.search))) return;
+    let sessionUnreachable = false;
     try {
       let authenticated = false;
       let overviewAuthorized = false;
@@ -221,7 +228,10 @@ export default function AdminDashboardPage() {
 
       // 2. Fallback de sessão local caso o token ainda não exista
       if (!authenticated) {
-        const authRes = await fetch('/api/auth');
+        const authRes = await fetchWithTimeout('/api/auth').catch((cause: unknown) => {
+          sessionUnreachable = isConnectionFailure(cause);
+          throw cause;
+        });
         if (!isCurrent()) return;
         if (authRes.ok) {
           const authJson = await authRes.json();
@@ -263,7 +273,13 @@ export default function AdminDashboardPage() {
     } catch (err) {
       if (!isCurrent()) return;
       console.error(err);
-      router.push('/admin/login');
+      // Sem resposta do servidor, a navegação para o login também ficaria presa no carregamento.
+      if (sessionUnreachable || isTimeoutError(err)) {
+        setIsLoggedIn(false);
+        setAuthFailed(true);
+      } else {
+        router.push('/admin/login');
+      }
     }
   }, [router, loadOverview]);
 
@@ -274,7 +290,11 @@ export default function AdminDashboardPage() {
       console.warn('Erro ao chamar logout da API v1:', err);
     }
     clearStoredTokens();
-    await fetch('/api/auth', { method: 'DELETE' });
+    try {
+      await fetchWithTimeout('/api/auth', { method: 'DELETE' });
+    } catch (err) {
+      console.warn('Erro ao encerrar a sessão local:', err);
+    }
     router.push('/admin/login');
   };
 
@@ -301,7 +321,6 @@ export default function AdminDashboardPage() {
     userSession.profileType === 'Editor de Notícias' ||
     userSession.profileType === 'Operador de Conteúdo';
   const canAccessSocials = userSession.isGestor;
-  const canAccessSiteInfo = userSession.isGestor;
   const canAccessUsers = userSession.isGestor;
   const canAccessEstados = userSession.isGestor;
 
@@ -316,7 +335,6 @@ export default function AdminDashboardPage() {
     professores: canAccessProfessores,
     alunos: canAccessAlunos,
     kanban: canAccessKanban,
-    siteInfo: canAccessSiteInfo,
     redes: canAccessSocials,
     estadosCidades: canAccessEstados,
     usuarios: canAccessUsers,
@@ -337,9 +355,23 @@ export default function AdminDashboardPage() {
   const activeMenuSection = getActiveMenuSection(currentSection, folders);
   const aliasNavigation = (
     <Suspense fallback={null}>
-      <AdminAliasNavigation onSelectSection={handleSelectSection} onLoadData={loadData} />
+      <AdminAliasNavigation key={authAttempt} onSelectSection={handleSelectSection} onLoadData={loadData} />
     </Suspense>
   );
+
+  if (!isLoggedIn && authFailed) {
+    return (
+      <>
+      {aliasNavigation}
+      <AdminSessionError
+        onRetry={() => {
+          setAuthFailed(false);
+          setAuthAttempt((attempt) => attempt + 1);
+        }}
+      />
+      </>
+    );
+  }
 
   // Loading State
   if (!isLoggedIn) {
@@ -706,7 +738,7 @@ export default function AdminDashboardPage() {
         {/* ========================================================
             4. CORPO DO CONTEÚDO (MÓDULO ATIVO)
         ======================================================== */}
-        <main className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
+        <main id="conteudo-principal" className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
           
           {/* Barra de Topo do Módulo com Botão "← Voltar para o Início" */}
           {currentSection !== 'visaoGeral' && userSession.isGestor && (

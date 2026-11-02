@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { AUTH_COOKIE_NAME, verifySessionToken } from '@/lib/auth';
 import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
+import { getProfessorPathId, isProfessorMissing } from '@/lib/professor-publico';
 
 /**
  * Padrões de caminhos sensíveis e arquivos de configuração que devem ser bloqueados
@@ -86,13 +87,34 @@ export function proxy(request: NextRequest) {
   }
 
   // 5. Continuação com cabeçalho de rastreabilidade injetado
-  const response = NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
-  response.headers.set('x-request-id', requestId);
-  return response;
+  const continueRequest = () => {
+    const response = NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+    response.headers.set('x-request-id', requestId);
+    return response;
+  };
+
+  // 6. Professor inexistente: a rota é pré-renderizada em parte e o status sai junto com o shell,
+  // então o notFound() da página ficaria em 200. Fetch do navegador (navegação interna e prefetch)
+  // fica de fora: não abre a página pela URL e não deve gerar uma consulta por link da lista.
+  const professorId = getProfessorPathId(pathname);
+  if (professorId !== null && request.method !== 'OPTIONS' && request.headers.get('sec-fetch-dest') !== 'empty') {
+    return isProfessorMissing(professorId).then((missing) => {
+      if (!missing) return continueRequest();
+      const response = NextResponse.rewrite(new URL('/_not-found', request.url), {
+        request: {
+          headers: requestHeaders,
+        },
+      });
+      response.headers.set('x-request-id', requestId);
+      return response;
+    });
+  }
+
+  return continueRequest();
 }
 
 // Suporte a compatibilidade para exportação padrão e nomeada de middleware

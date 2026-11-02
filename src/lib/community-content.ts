@@ -7,6 +7,7 @@ export const COMMUNITY_COMING_SOON = {
   conquistas: 'As histórias dos estudantes estarão disponíveis em breve.',
   projetos: 'Os projetos pedagógicos das escolas estarão disponíveis em breve.',
   galeria: 'O acervo fotográfico estará disponível em breve.',
+  transparencia: 'Os indicadores e contratos oficiais estarão disponíveis em breve.',
 };
 
 export const CONQUISTA_IMAGE_MAX_BYTES = 5 * 1024 * 1024;

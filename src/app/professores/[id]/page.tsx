@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -7,8 +7,9 @@ import CommunityComingSoon from '@/components/CommunityComingSoon';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
 import RelatoProfessorForm from '@/components/RelatoProfessorForm';
-import { medtecApi, type ProfessorPublicoDetalhe } from '@/lib/api';
+import { ApiError, medtecApi, type ProfessorPublicoDetalhe } from '@/lib/api';
 import { COMMUNITY_COMING_SOON, getNameInitials } from '@/lib/community-content';
+import { isValidProfessorId } from '@/lib/professor-publico';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -21,16 +22,17 @@ type FetchProfessorResult =
   | { status: 'not_found' }
   | { status: 'unavailable' };
 
-async function fetchProfessor(id: string): Promise<FetchProfessorResult> {
-  if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) return { status: 'not_found' };
+// fetch com signal não é memoizado: cache evita consultar a API de novo entre metadados e página.
+const fetchProfessor = cache(async (id: string): Promise<FetchProfessorResult> => {
+  if (!isValidProfessorId(id)) return { status: 'not_found' };
   try {
     const response = await medtecApi.professoresPublicos.get(Number(id));
     return { status: 'ok', item: response.data };
-  } catch {
-    // Rota ainda não implantada e professor inexistente respondem 404 do mesmo jeito.
-    return { status: 'unavailable' };
+  } catch (error) {
+    // Professor não publicado ou excluído responde 404; qualquer outra falha é da API.
+    return { status: error instanceof ApiError && error.isNotFound() ? 'not_found' : 'unavailable' };
   }
-}
+});
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -51,7 +53,7 @@ export default async function ProfessorDetalhePage({ params }: Props) {
     <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
 
-      <main className="flex-1 py-12">
+      <main id="conteudo-principal" className="flex-1 py-12">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
           <Link href="/professores" className="inline-flex items-center gap-2 text-xs font-semibold text-[#05549D] dark:text-[#00D8FF] hover:underline">
             <ArrowLeft size={16} />

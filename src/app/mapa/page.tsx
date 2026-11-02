@@ -21,7 +21,7 @@ export default function MapaPage() {
     <div className="flex flex-col min-h-screen bg-[#F8FAFC] dark:bg-[#0B1528] text-slate-800 dark:text-slate-100 overflow-x-hidden max-w-[100vw]">
       <SiteHeader />
 
-      <main className="flex-1 pb-16">
+      <main id="conteudo-principal" className="flex-1 pb-16">
         <PageHeader
           eyebrow="O MEDTEC nas comunidades"
           title="Mapa de Escolas Conectadas"

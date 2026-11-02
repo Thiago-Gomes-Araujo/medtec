@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { AnnouncementType } from '@/types';
 
-export type PreviewContentType = 'noticia' | 'aviso' | 'galeria' | 'siteInfo';
+export type PreviewContentType = 'noticia' | 'aviso' | 'galeria';
 
 export interface PreviewNewsData {
   title?: string;
@@ -57,33 +57,10 @@ export interface PreviewGalleryData {
   date?: string;
 }
 
-export interface PreviewSiteInfoData {
-  stats?: {
-    studentsCount?: string;
-    schoolsCount?: string;
-    citiesCount?: string;
-    liveHoursCount?: string;
-  };
-  siteInfo?: {
-    heroTitle?: string;
-    heroDescription?: string;
-    studentsCount?: string;
-    schoolsCount?: string;
-    citiesCount?: string;
-  };
-  studentsCount?: string;
-  schoolsCount?: string;
-  citiesCount?: string;
-  liveHoursCount?: string;
-  heroTitle?: string;
-  heroDescription?: string;
-}
-
 export type PreviewItemData =
   | PreviewNewsData
   | PreviewAnnouncementData
-  | PreviewGalleryData
-  | PreviewSiteInfoData;
+  | PreviewGalleryData;
 
 export interface AdminLiveSimulatorProps {
   type: PreviewContentType;
@@ -257,10 +234,6 @@ export default function AdminLiveSimulator({
                 data={galleryData}
                 onOpenLightbox={() => setLightboxOpen(true)}
               />
-            )}
-
-            {type === 'siteInfo' && (
-              <SiteInfoPreviewRenderer data={data as PreviewSiteInfoData} />
             )}
           </div>
         </div>
@@ -631,82 +604,6 @@ function GalleryPreviewRenderer({
 }
 
 /* ========================================================
-   RENDERIZADOR 4: NÚMEROS E TEXTOS DO SITE (SITE INFO)
-======================================================== */
-function SiteInfoPreviewRenderer({
-  data,
-}: {
-  data: PreviewSiteInfoData;
-}) {
-  const stats = data.stats;
-  const siteInfo = data.siteInfo;
-
-  const students = stats?.studentsCount || siteInfo?.studentsCount || data.studentsCount || '6.000+';
-  const schools = stats?.schoolsCount || siteInfo?.schoolsCount || data.schoolsCount || '129';
-  const cities = stats?.citiesCount || siteInfo?.citiesCount || data.citiesCount || '52';
-  const hours = stats?.liveHoursCount || data.liveHoursCount || '3.500h+';
-
-  const heroTitle = siteInfo?.heroTitle || data.heroTitle || 'Ensino Médio com Mediação Tecnológica em Rondônia';
-  const heroDescription = siteInfo?.heroDescription || data.heroDescription || 'Aulas transmitidas ao vivo dos estúdios da SEDUC em Porto Velho para os 52 municípios.';
-
-  return (
-    <div className="space-y-4">
-      {/* Miniatura do Título e Descrição */}
-      <div className="p-4 rounded-xl bg-slate-900 text-white space-y-2 border border-slate-800">
-        <span className="text-[10px] uppercase font-bold text-sky-400">Cabeçalho da Página Inicial</span>
-        <h3 className="text-sm sm:text-base font-black leading-snug">{heroTitle}</h3>
-        <p className="text-xs text-slate-300 leading-relaxed line-clamp-2">{heroDescription}</p>
-      </div>
-
-      {/* 4 Indicadores Oficiais da Home */}
-      <div className="space-y-1">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block px-1">
-          Quadro Oficial de Indicadores da Home
-        </span>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0C1E38] shadow-xs">
-            <p className="text-xl sm:text-2xl font-black text-[#004A99] dark:text-[#00D8FF] tabular-nums tracking-tight">
-              {students}
-            </p>
-            <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5">
-              Estudantes atendidos
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0C1E38] shadow-xs">
-            <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
-              {schools}
-            </p>
-            <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5">
-              Unidades escolares
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0C1E38] shadow-xs">
-            <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tabular-nums tracking-tight">
-              {cities}
-            </p>
-            <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5">
-              Municípios cobertos
-            </p>
-          </div>
-
-          <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0C1E38] shadow-xs">
-            <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums tracking-tight">
-              {hours}
-            </p>
-            <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 mt-0.5">
-              Horas de transmissão
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ========================================================
    MODAL DE PRÉ-VISUALIZAÇÃO AMPLA EM TELA CHEIA
 ======================================================== */
 export interface AdminPreviewModalProps {
@@ -845,10 +742,6 @@ export function AdminPreviewModal({
               data={data as PreviewGalleryData}
               onOpenLightbox={() => {}}
             />
-          )}
-
-          {type === 'siteInfo' && (
-            <SiteInfoPreviewRenderer data={data as PreviewSiteInfoData} />
           )}
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { cache } from 'react';
 import type { Metadata } from 'next';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
@@ -18,7 +18,8 @@ type FetchNewsDetailResult =
   | { status: 'not_found' }
   | { status: 'error'; message: string };
 
-async function fetchNewsDetail(idOrSlug: string): Promise<FetchNewsDetailResult> {
+// fetch com signal não é memoizado: cache evita consultar a API de novo entre metadados e página.
+const fetchNewsDetail = cache(async (idOrSlug: string): Promise<FetchNewsDetailResult> => {
   const clean = (idOrSlug || '').trim();
   if (!clean) return { status: 'not_found' };
 
@@ -36,7 +37,7 @@ async function fetchNewsDetail(idOrSlug: string): Promise<FetchNewsDetailResult>
         : 'Não foi possível carregar os detalhes desta notícia no momento. Tente novamente em instantes.';
     return { status: 'error', message };
   }
-}
+});
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -76,7 +77,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
       <div className="flex flex-col min-h-screen bg-[#F0F4F8] dark:bg-[#040B16] text-[#0B1B30] dark:text-[#E6F4FF] overflow-x-hidden max-w-[100vw]">
         <SiteHeader />
 
-        <main className="flex-1 py-12">
+        <main id="conteudo-principal" className="flex-1 py-12">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
             <div>
               <Link
@@ -131,7 +132,7 @@ export default async function NoticiaDetalhePage({ params }: Props) {
         </div>
       </div>
 
-      <main className="flex-1 py-12">
+      <main id="conteudo-principal" className="flex-1 py-12">
         <article className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8">
           {/* Voltar para todas as notícias */}
           <div>

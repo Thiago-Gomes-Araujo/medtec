@@ -1,6 +1,5 @@
 import {
   Award,
-  BarChart3,
   ClipboardCheck,
   FolderKanban,
   GraduationCap,
@@ -150,8 +149,8 @@ export const SECTION_CONFIG: Record<
   },
   siteInfo: {
     group: 'Configurações',
-    title: 'Números do site',
-    subtitle: 'Atualize a quantidade oficial de estudantes, escolas, turmas e municípios atendidos.',
+    title: 'Quatro Pilares da Home',
+    subtitle: 'Simule os Quatro Pilares da página inicial. As alterações ainda não são publicadas.',
     href: '/admin/institucional',
   },
   redes: {
@@ -208,7 +207,6 @@ export type AdminMenuAccess =
   | 'professores'
   | 'alunos'
   | 'kanban'
-  | 'siteInfo'
   | 'redes'
   | 'estadosCidades'
   | 'usuarios';
@@ -267,7 +265,6 @@ const ADMIN_MENU: AdminMenuFolder[] = [
     label: 'Configurações',
     icon: Settings,
     items: [
-      { section: 'siteInfo', access: 'siteInfo', label: 'Números do site', tooltip: 'Quantidade de alunos, escolas e textos institucionais', summary: 'Atualize os totais de alunos e escolas.', action: 'Abrir Números', icon: BarChart3 },
       { section: 'redes', access: 'redes', label: 'Redes sociais', tooltip: 'Links de YouTube, Instagram, WhatsApp e contatos', summary: 'Atualize os links das redes sociais e os contatos.', action: 'Abrir Redes sociais', icon: Share2 },
       { section: 'estadosCidades', access: 'estadosCidades', label: 'Estados e municípios', tooltip: 'Cadastrar estados (UF) e municípios', summary: 'Cadastre os estados e os municípios atendidos.', action: 'Abrir Estados', icon: MapPin },
       { section: 'usuarios', access: 'usuarios', label: 'Usuários e acessos', tooltip: 'Cadastrar a equipe por CPF, senhas e permissões', summary: 'Cadastre a equipe e defina os acessos.', action: 'Abrir Usuários', icon: UserCog },

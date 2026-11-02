@@ -33,7 +33,7 @@ export default function HomePageClient({ banners }: { banners: BannerPublico[] }
       {/* CABEÇALHO FLUTUANTE EM GLASSMORPHISM */}
       <SiteHeader onOpenPitchModal={() => setPitchModalOpen(true)} />
 
-      <main className="flex-1">
+      <main id="conteudo-principal" className="flex-1">
         {/* ================= HERO SECTION: AMAZÔNIA AEROESPACIAL / TELEMETRIA ================= */}
         <section id="inicio" className="relative overflow-hidden bg-gradient-to-r from-[#05549D] via-[#072F5E] to-[#0A3D73] dark:from-[#040D1A] dark:via-[#07162C] dark:to-[#040D1A] text-white pt-6 pb-24 lg:pt-12 lg:pb-32 scroll-mt-20">
           

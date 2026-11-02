@@ -1,9 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, ExternalLink, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Search, ExternalLink, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Indicador, Contrato } from '@/types';
 import { sanitizeSearchInput } from '@/lib/security';
+import { fetchWithTimeout } from '@/lib/api/client';
+import CommunityComingSoon from '@/components/CommunityComingSoon';
+import { COMMUNITY_COMING_SOON } from '@/lib/community-content';
 
 export default function TransparencySection() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,22 +15,24 @@ export default function TransparencySection() {
   const [indicadores, setIndicadores] = useState<Indicador[]>([]);
   const [contratos, setContratos] = useState<Contrato[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
     async function loadTransparency() {
-      setLoading(true);
       try {
-        const res = await fetch('/api/transparency');
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted) {
-            setIndicadores(data.indicadores || []);
-            setContratos(data.contratos || []);
-          }
+        const res = await fetchWithTimeout('/api/transparency');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (isMounted) {
+          setIndicadores(data.indicadores || []);
+          setContratos(data.contratos || []);
+          setLoadFailed(false);
         }
       } catch (err) {
         console.error('Falha ao carregar dados de transparência da API:', err);
+        if (isMounted) setLoadFailed(true);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -36,7 +41,16 @@ export default function TransparencySection() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadAttempt]);
+
+  const retryLoad = () => {
+    setLoading(true);
+    setLoadFailed(false);
+    setLoadAttempt((attempt) => attempt + 1);
+  };
+
+  // A rota oficial ainda não existe: sem dados, a seção mostra "em breve", não listas vazias.
+  const hasData = indicadores.length > 0 || contratos.length > 0;
 
   const filterItem = (title: string, year: number) => {
     const matchYear = selectedYear === 'todos' || year === selectedYear;
@@ -54,62 +68,6 @@ export default function TransparencySection() {
 
   return (
     <div>
-      {/* Search and Filters Header */}
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative sm:w-80">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-[#6482A6]" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
-            maxLength={100}
-            placeholder="Busca rápida em transparência..."
-            className="w-full rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] py-2 pl-9 pr-3 text-sm text-slate-800 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-primary dark:focus:border-[#00D8FF] focus:outline-none focus:ring-1 focus:ring-primary shadow-sm transition-colors"
-          />
-        </div>
-
-        {/* Year Pills */}
-        <div className="flex flex-wrap gap-1.5">
-          {['todos', 2026, 2025, 2024].map((ano) => (
-            <button
-              key={ano}
-              onClick={() => setSelectedYear(ano)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                selectedYear === ano
-                  ? 'bg-primary dark:bg-[#00D8FF] text-primary-foreground dark:text-slate-950 shadow-sm'
-                  : 'border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#0F2647]'
-              }`}
-            >
-              {ano === 'todos' ? 'Todos os anos' : ano}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tabs Switcher */}
-      <div className="flex border-b border-slate-200 dark:border-[#1A365D] mb-6 gap-2">
-        <button
-          onClick={() => setActiveTab('indicadores')}
-          className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
-            activeTab === 'indicadores'
-              ? 'border-primary dark:border-[#00D8FF] text-primary dark:text-[#00D8FF]'
-              : 'border-transparent text-slate-500 dark:text-[#6482A6] hover:text-slate-800 dark:hover:text-[#E6F4FF]'
-          }`}
-        >
-          Indicadores Educacionais ({loading ? '...' : filteredIndicadores.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('orcamento')}
-          className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
-            activeTab === 'orcamento'
-              ? 'border-primary dark:border-[#00D8FF] text-primary dark:text-[#00D8FF]'
-              : 'border-transparent text-slate-500 dark:text-[#6482A6] hover:text-slate-800 dark:hover:text-[#E6F4FF]'
-          }`}
-        >
-          Execução Orçamentária e Contratos ({loading ? '...' : filteredContratos.length})
-        </button>
-      </div>
-
       {loading ? (
         <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -123,8 +81,76 @@ export default function TransparencySection() {
             </div>
           ))}
         </div>
+      ) : loadFailed ? (
+        <div role="alert" className="flex items-start gap-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-5 text-amber-900 dark:text-amber-200">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">Não foi possível carregar os dados de transparência.</p>
+            <button type="button" onClick={retryLoad} className="text-sm font-semibold underline cursor-pointer">
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      ) : !hasData ? (
+        <CommunityComingSoon icon={ShieldCheck} message={COMMUNITY_COMING_SOON.transparencia} />
       ) : (
         <>
+          {/* Search and Filters Header */}
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative sm:w-80">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-[#6482A6]" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(sanitizeSearchInput(e.target.value))}
+                maxLength={100}
+                placeholder="Busca rápida em transparência..."
+                className="w-full rounded-lg border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#061224] py-2 pl-9 pr-3 text-sm text-slate-800 dark:text-[#E6F4FF] placeholder-slate-400 dark:placeholder-[#6482A6] focus:border-primary dark:focus:border-[#00D8FF] focus:outline-none focus:ring-1 focus:ring-primary shadow-sm transition-colors"
+              />
+            </div>
+
+            {/* Year Pills */}
+            <div className="flex flex-wrap gap-1.5">
+              {['todos', 2026, 2025, 2024].map((ano) => (
+                <button
+                  key={ano}
+                  onClick={() => setSelectedYear(ano)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                    selectedYear === ano
+                      ? 'bg-primary dark:bg-[#00D8FF] text-primary-foreground dark:text-slate-950 shadow-sm'
+                      : 'border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#0F2647]'
+                  }`}
+                >
+                  {ano === 'todos' ? 'Todos os anos' : ano}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tabs Switcher */}
+          <div className="flex border-b border-slate-200 dark:border-[#1A365D] mb-6 gap-2">
+            <button
+              onClick={() => setActiveTab('indicadores')}
+              className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+                activeTab === 'indicadores'
+                  ? 'border-primary dark:border-[#00D8FF] text-primary dark:text-[#00D8FF]'
+                  : 'border-transparent text-slate-500 dark:text-[#6482A6] hover:text-slate-800 dark:hover:text-[#E6F4FF]'
+              }`}
+            >
+              Indicadores Educacionais ({filteredIndicadores.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('orcamento')}
+              className={`pb-3 px-4 text-sm font-semibold transition-colors border-b-2 cursor-pointer ${
+                activeTab === 'orcamento'
+                  ? 'border-primary dark:border-[#00D8FF] text-primary dark:text-[#00D8FF]'
+                  : 'border-transparent text-slate-500 dark:text-[#6482A6] hover:text-slate-800 dark:hover:text-[#E6F4FF]'
+              }`}
+            >
+              Execução Orçamentária e Contratos ({filteredContratos.length})
+            </button>
+          </div>
+
           {/* Indicators Grid */}
           {activeTab === 'indicadores' && (
             <div className="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -225,15 +251,19 @@ export default function TransparencySection() {
             )}
           </div>
         )}
-      </>
-    )}
+        </>
+      )}
 
       {/* Official Audit Notice */}
       <div className="mt-8 rounded-xl border border-sky-200 dark:border-[#1A365D] bg-sky-50/80 dark:bg-[#0C1E38] p-4 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2.5">
           <ShieldCheck className="h-5 w-5 text-sky-600 dark:text-[#00D8FF] shrink-0" />
           <p className="text-xs text-sky-950 dark:text-slate-300">
-            <strong>Garantia de Transparência Pública:</strong> Todos os dados e contratos apresentados obedecem à Lei de Acesso à Informação (LAI nº 12.527/2011) e às normas do Tribunal de Contas do Estado de Rondônia (TCE-RO).
+            {hasData ? (
+              <><strong>Garantia de Transparência Pública:</strong> Todos os dados e contratos apresentados obedecem à Lei de Acesso à Informação (LAI nº 12.527/2011) e às normas do Tribunal de Contas do Estado de Rondônia (TCE-RO).</>
+            ) : (
+              'Enquanto isso, consulte os dados oficiais no Portal da Transparência de Rondônia.'
+            )}
           </p>
         </div>
         <a

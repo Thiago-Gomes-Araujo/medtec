@@ -17,14 +17,16 @@ import {
   Info
 } from 'lucide-react';
 
-import { setStoredTokens } from '@/lib/api';
+import { fetchWithTimeout, setStoredTokens } from '@/lib/api';
 import { getSafeAdminReturnTarget } from '@/lib/admin-auth-navigation';
+
+// /api/auth espera até 5 s em cada uma das duas consultas à API antes de responder.
+const LOGIN_TIMEOUT_MS = 15000;
 
 export default function AdminLoginPage() {
   const [cpf, setCpf] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -44,11 +46,11 @@ export default function AdminLoginPage() {
 
     try {
       // O servidor autentica e cria o cookie necessário para acessar o painel.
-      const res = await fetch('/api/auth', {
+      const res = await fetchWithTimeout('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: cleanCpf, password }),
-      });
+      }, LOGIN_TIMEOUT_MS);
 
       const data = await res.json();
       if (res.ok && data.success) {
@@ -137,7 +139,7 @@ export default function AdminLoginPage() {
       {/* =========================================
           LADO DIREITO: FORMULÁRIO DO PAINEL GESTOR
           ========================================= */}
-      <div className="flex-1 flex flex-col justify-center items-center bg-white dark:bg-[#081528] p-6 sm:p-10 md:p-14 min-h-screen text-slate-900 dark:text-[#E6F4FF] transition-colors duration-200">
+      <main id="conteudo-principal" className="flex-1 flex flex-col justify-center items-center bg-white dark:bg-[#081528] p-6 sm:p-10 md:p-14 min-h-screen text-slate-900 dark:text-[#E6F4FF] transition-colors duration-200">
         
         <div className="w-full max-w-[390px] mx-auto">
           
@@ -184,19 +186,20 @@ export default function AdminLoginPage() {
             
             {/* Campo CPF */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label htmlFor="login-cpf" className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                 CPF do Operador ou Gestor
               </label>
               <div className="relative">
                 <input
+                  id="login-cpf"
                   type="text"
                   required
                   value={cpf}
                   onChange={(e) => setCpf(e.target.value)}
                   placeholder="000.000.000-00 (com ou sem pontuação)"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-sm text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#005ca9]/20 dark:focus:ring-cyan-500/20 focus:border-[#005ca9] dark:focus:border-cyan-400 transition-all bg-white dark:bg-[#0C1E38]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-500 dark:border-slate-500 text-sm text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#005ca9]/20 dark:focus:ring-cyan-500/20 focus:border-[#005ca9] dark:focus:border-cyan-400 transition-all bg-white dark:bg-[#0C1E38]"
                 />
-                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-mono">
                 Informe o seu CPF cadastrado no sistema
@@ -206,7 +209,7 @@ export default function AdminLoginPage() {
             {/* Campo Senha */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <label htmlFor="login-senha" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Senha de acesso
                 </label>
                 <button
@@ -219,37 +222,25 @@ export default function AdminLoginPage() {
               </div>
               <div className="relative">
                 <input
+                  id="login-senha"
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Digite sua senha"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-sm text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#005ca9]/20 dark:focus:ring-cyan-500/20 focus:border-[#005ca9] dark:focus:border-cyan-400 transition-all bg-white dark:bg-[#0C1E38]"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-500 dark:border-slate-500 text-sm text-slate-800 dark:text-[#E6F4FF] placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#005ca9]/20 dark:focus:ring-cyan-500/20 focus:border-[#005ca9] dark:focus:border-cyan-400 transition-all bg-white dark:bg-[#0C1E38]"
                 />
-                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1"
                   tabIndex={-1}
                   aria-label={showPassword ? 'Ocultar senha' : 'Ver senha'}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-            </div>
-
-            {/* Checkbox Manter conectado */}
-            <div className="pt-1">
-              <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-600 dark:text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-[#005ca9] dark:text-[#00D8FF] focus:ring-[#005ca9] cursor-pointer"
-                />
-                <span>Manter conectado</span>
-              </label>
             </div>
 
             {/* Botão Acessar Painel */}
@@ -265,7 +256,7 @@ export default function AdminLoginPage() {
           </form>
 
           {/* Aviso de acesso institucional */}
-          <div className="mt-4 p-2.5 bg-slate-50 dark:bg-[#0C1E38] border border-slate-100 dark:border-[#1A365D] rounded-md text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-2">
+          <div className="mt-4 p-2.5 bg-slate-50 dark:bg-[#0C1E38] border border-slate-100 dark:border-[#1A365D] rounded-md text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-2">
             <Info size={14} className="text-[#005ca9] dark:text-[#00D8FF] shrink-0" />
             <span>Acesso restrito a gestores e técnicos autorizados da SEDUC-RO.</span>
           </div>
@@ -283,15 +274,15 @@ export default function AdminLoginPage() {
               <span>Voltar ao portal público</span>
             </Link>
 
-            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400">
-              <ShieldCheck size={14} className="text-slate-400" />
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+              <ShieldCheck size={14} className="text-slate-500 dark:text-slate-400" />
               <span>Ambiente de acesso seguro</span>
             </div>
           </div>
 
         </div>
 
-      </div>
+      </main>
 
       {/* Modal de Esqueceu a Senha */}
       {showForgotModal && (

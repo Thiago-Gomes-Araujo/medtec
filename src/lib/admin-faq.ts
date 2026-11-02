@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from '@/lib/api/client';
 import type { FaqItem } from '@/types';
 
 // Compatibilidade dos dois identificadores usados nos links administrativos.
@@ -9,7 +10,7 @@ export function getLegacyFaqHref(params: URLSearchParams): string | null {
 // Preserva a fonte administrativa legada até existir contrato Rails de FAQ.
 // /api/faqs é um handler público vazio e não substitui esta leitura.
 export async function readAdminFaqs(signal?: AbortSignal): Promise<FaqItem[]> {
-  const response = await fetch('/api/data', { method: 'GET', cache: 'no-store', signal });
+  const response = await fetchWithTimeout('/api/data', { method: 'GET', cache: 'no-store', signal });
   if (!response.ok) {
     throw new Error(`Não foi possível carregar o FAQ (HTTP ${response.status}).`);
   }
