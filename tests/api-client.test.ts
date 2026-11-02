@@ -82,6 +82,9 @@ import ProjetosPanel from '../src/components/admin/ProjetosPanel';
 import ProjetoMembrosEditor from '../src/components/admin/ProjetoMembrosEditor';
 import MembroCadastroModal from '../src/components/admin/MembroCadastroModal';
 import ProjetosApprovalQueue from '../src/components/admin/ProjetosApprovalQueue';
+import ProjetosAprovacaoPanel from '../src/components/admin/ProjetosAprovacaoPanel';
+import AdminProjetosAprovacaoPage from '../src/app/admin/projetos/aprovacao/page';
+import { useProjetosPendentes, notifyProjetosPendentes } from '../src/components/admin/useProjetosPendentes';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
 import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
@@ -3035,8 +3038,8 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
   });
 
   for (const [profile, allowed] of [['Administrador', true], ['Gestor', true], ['Jornalista', false], ['Operador de Conteúdo', false], ['Editor de Notícias', false]] as const) {
-    it('as três subrotas de projetos seguem os perfis com permissão: ' + profile, async () => {
-      for (const section of ['projetos', 'projetosTemas', 'projetosMembros'] as const) {
+    it('as subrotas de projetos seguem os perfis com permissão: ' + profile, async () => {
+      for (const section of ['projetos', 'projetosTemas', 'projetosMembros', 'projetosAprovacao'] as const) {
         let renders = 0;
         const shell = await mountShell({ section, pathname: SHARED_SECTION_CONFIG[section].href, children: () => { renders++; return 'B2: conteúdo protegido'; } });
         try {
@@ -4326,6 +4329,12 @@ describe('Metadados compartilhados da navegação administrativa', () => {
         "subtitle": "Cadastre as pessoas que participam dos projetos. O CPF não aparece no site.",
         "href": "/admin/projetos/membros"
       },
+      "projetosAprovacao": {
+        "group": "Publicações do Site",
+        "title": "Aprovação de Projetos",
+        "subtitle": "Confira os projetos aguardando e publique ou reprove cada um.",
+        "href": "/admin/projetos/aprovacao"
+      },
       "duvidas": {
         "group": "Publicações do Site",
         "title": "Dúvidas Frequentes (FAQ)",
@@ -4415,9 +4424,9 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.deepEqual(Object.keys(SHARED_SECTION_CONFIG), Object.keys(expected));
   });
 
-  it('mantém os dezoito destinos na ordem definida e exclui Início do mapa de redirecionamento', () => {
+  it('mantém os dezenove destinos na ordem definida e exclui Início do mapa de redirecionamento', () => {
     assert.deepEqual([...SECTION_HREFS], [
-      ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['projetosTemas', '/admin/projetos/temas'], ['projetosMembros', '/admin/projetos/membros'], ['duvidas', '/admin/faq'],
+      ['fotos', '/admin/banners'], ['projetos', '/admin/projetos'], ['projetosTemas', '/admin/projetos/temas'], ['projetosMembros', '/admin/projetos/membros'], ['projetosAprovacao', '/admin/projetos/aprovacao'], ['duvidas', '/admin/faq'],
       ['usuarios', '/admin/usuarios'], ['kanban', '/admin/kanban'], ['noticias', '/admin/noticias'],
       ['avisos', '/admin/avisos'], ['galeria', '/admin/galeria'], ['estadosCidades', '/admin/estados-cidades'],
       ['professores', '/admin/professores'], ['professoresDisciplinas', '/admin/professores/disciplinas'],
@@ -4426,7 +4435,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     ]);
     assert.equal(SECTION_HREFS.has('visaoGeral'), false);
     assert.equal(SHARED_SECTION_CONFIG.visaoGeral.href, '/admin');
-    assert.equal(new Set(SECTION_HREFS.values()).size, 18);
+    assert.equal(new Set(SECTION_HREFS.values()).size, 19);
   });
 
   it('preserva exports públicos e compatibilidade dos tipos de seção e props do shell', () => {
@@ -4456,7 +4465,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
           if (item.visible) folder.props.onSelectSection!(item.section);
         }
       }
-      const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners',
+      const menuOrder = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/avisos', '/admin/banners',
         '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/kanban', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
       assert.deepEqual(page.calls, (mobile ? [...menuOrder, ...menuOrder] : menuOrder).map(href => ({ method: 'push', href })));
     }
@@ -4466,7 +4475,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     const desktop = capture('shell', session);
     const desktopHrefs = desktop.nodes.flatMap(node => node.props.href ? [node.props.href] : []);
     assert.deepEqual(desktopHrefs.filter(href => href.startsWith('/admin')),
-      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
+      ['/admin', '/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias']);
     assert.match(desktop.html, /<a\b[^>]*href="\/admin"/);
     assert.deepEqual(desktop.calls, []);
     const mobile = capture('shell', session, true);
@@ -4799,7 +4808,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           }
           visit(page);
           assert.equal(overviewFound, true);
-          const expected = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/faq', '/admin/avisos', '/admin/banners',
+          const expected = ['/admin/noticias', '/admin/projetos', '/admin/projetos/temas', '/admin/projetos/membros', '/admin/projetos/aprovacao', '/admin/faq', '/admin/avisos', '/admin/banners',
             '/admin/galeria', '/admin/professores', '/admin/professores/disciplinas', '/admin/professores/relatos', '/admin/alunos', '/admin/alunos/categorias', '/admin/institucional', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
           if (editorialProfile === 'Administrador') expected.push('/admin/kanban');
           assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
@@ -11601,6 +11610,124 @@ describe('Projetos — Fila de Aprovação', () => {
       await view.click('Reprovar Hortas em Jirau');
       await view.act(settle);
       assert.ok(view.calls.some(call => call.url.pathname.endsWith('/pj_projetos/7/reprovar')));
+    } finally { await view.restore(); }
+  });
+});
+
+describe('Projetos — página de aprovação', () => {
+  const headers = { 'content-type': 'application/json' };
+  const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+  const list = (items: unknown[], total_count = items.length, total_pages = 1) => reply({ success: true, data: { items, pagination: { current_page: 1, total_pages, total_count, per_page: 10 } } });
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  const projeto = {
+    id: 7, titulo: 'Hortas em Jirau', relato: 'Relato completo', tema_nome: 'Agroecologia', escola_nome: 'EEEFM Bolívar', cidade_nome: 'Porto Velho',
+    imagem: null, imagem_url: 'https://x.com/capa.jpg', autor_nome: 'Ana Autora', status: 'aguardando', status_nome: 'Aguardando', created_at: '2026-10-26T12:00:00-03:00',
+    anexos: [{ id: 10, nome: 'relatorio.pdf', tipo: 'application/pdf', tamanho: 52344, url: '/rails/relatorio.pdf' }],
+    membros: [{ id: 5, pj_membro_id: 1, nome: 'Maria Ribeiro', cpf: '01251667708', funcao: 'Mediadora' }],
+  };
+  const paths = /\/pj_projetos(\/\d+\/(publicar|reprovar))?$/;
+  const mount = (fetcher: (url: URL, options: RequestInit) => Response) => mountCategories(async (url, options) => fetcher(url, options), false, { component: () => ProjetosAprovacaoPanel(), allowedPaths: paths });
+  const proibido = () => reply({ success: false, message: 'Sem permissão', errors: ['Sem permissão'] }, 403);
+
+  it('a subrota usa o painel e está no menu e nas abas, com contador', () => {
+    assert.equal(AdminProjetosAprovacaoPage().type, ProjetosAprovacaoPanel);
+    assert.equal(SHARED_SECTION_CONFIG.projetosAprovacao.href, '/admin/projetos/aprovacao');
+    assert.equal(getFolderIdForSection('projetosAprovacao'), 'publicacoes');
+    assert.ok(ADMIN_SUBROUTE_GROUPS.find(group => group.label === 'Seções de projetos')!.items.some(item => item.section === 'projetosAprovacao'));
+    const access = { noticias: false, projetos: true, duvidas: false, avisos: false, fotos: false, galeria: false, professores: false, alunos: false, kanban: false, siteInfo: false, redes: false, estadosCidades: false, usuarios: false };
+    const item = buildAdminMenu(access, { projetosAprovacao: 3 }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!;
+    assert.equal(item.visible, true); assert.equal(item.badge, 3);
+    assert.equal(buildAdminMenu({ ...access, projetos: false }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!.visible, false);
+    const shell = readFileSync('src/components/admin/AdminShell.tsx', 'utf8');
+    assert.match(shell, /projetosAprovacao: projetosPendentes \|\| undefined/);
+    assert.match(readFileSync('src/app/admin/page.tsx', 'utf8'), /projetosAprovacao: projetosResumo\.pending \|\| undefined/);
+  });
+  it('lista só os aguardando, paginado, com capa, título, tema, escola, autor e data, sem CPF', async () => {
+    const view = await mount(() => list([projeto], 12, 2));
+    try {
+      await view.act(settle);
+      const { searchParams } = view.calls[0].url;
+      assert.equal(searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(searchParams.get('page'), '1'); assert.equal(searchParams.get('per_page'), '10');
+      const html = view.html();
+      for (const text of ['Hortas em Jirau', 'Agroecologia', 'EEEFM Bolívar', 'Ana Autora', '26/10/2026', 'Projetos aguardando (12)']) assert.ok(html.includes(text), text);
+      assert.ok(view.nodes().some(node => node.props.alt === 'Capa de Hortas em Jirau' && node.props.src === 'https://x.com/capa.jpg'));
+      assert.doesNotMatch(html, /01251667708/);
+      await view.click('Próxima');
+      await view.act(settle);
+      assert.equal(view.calls.at(-1)!.url.searchParams.get('page'), '2');
+    } finally { await view.restore(); }
+  });
+  it('projeto sem capa não quebra e "Ver detalhes" abre relato, membros e anexos', async () => {
+    const view = await mount(() => list([{ ...projeto, imagem_url: null }]));
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /Sem capa/);
+      assert.doesNotMatch(view.html(), /Relato completo/);
+      await view.click('Ver detalhes de Hortas em Jirau');
+      const html = view.html();
+      for (const text of ['Relato completo', 'Maria Ribeiro · Mediadora', 'relatorio.pdf', 'Porto Velho']) assert.ok(html.includes(text), text);
+      assert.doesNotMatch(html, /01251667708/);
+      assert.equal(view.nodes().find(node => node.props['aria-label'] === 'Ocultar detalhes de Hortas em Jirau')?.props['aria-expanded'], true);
+      await view.click('Ocultar detalhes de Hortas em Jirau');
+      assert.doesNotMatch(view.html(), /Relato completo/);
+    } finally { await view.restore(); }
+  });
+  for (const [operation, label, text] of [['publicar', 'Publicar', 'publicado'], ['reprovar', 'Reprovar', 'reprovado']] as const) {
+    it(`${label} usa a rota própria, recarrega, avisa o menu e esvazia a fila`, async () => {
+      let items: unknown[] = [projeto];
+      const view = await mount((_url, options) => {
+        if (options.method === 'PATCH') { items = []; return reply({ ...projeto, status: 'publicada' }); }
+        return list(items);
+      });
+      try {
+        await view.act(settle);
+        await view.click(`${label} Hortas em Jirau`);
+        await view.act(settle);
+        const patch = view.calls.find(call => call.options.method === 'PATCH')!;
+        assert.ok(patch.url.pathname.endsWith(`/pj_projetos/7/${operation}`));
+        assert.equal(patch.options.body, undefined, 'Não existe motivo de reprovação');
+        assert.ok(view.html().includes(`projeto ${text}`));
+        assert.match(view.html(), /Nenhum projeto aguardando aprovação/);
+      } finally { await view.restore(); }
+    });
+  }
+  it('403 na listagem vira "sem permissão", sem fingir fila vazia', async () => {
+    const view = await mount(proibido);
+    try {
+      await view.act(settle);
+      assert.match(view.html(), /role="alert"/); assert.match(view.html(), /Sem permissão/);
+      assert.doesNotMatch(view.html(), /Nenhum projeto aguardando/);
+    } finally { await view.restore(); }
+  });
+  it('403 ao moderar vira "sem permissão" e o projeto continua na fila', async () => {
+    const view = await mount((_url, options) => options.method === 'PATCH' ? proibido() : list([projeto]));
+    try {
+      await view.act(settle);
+      await view.click('Publicar Hortas em Jirau');
+      await view.act(settle);
+      assert.match(view.html(), /Sem permissão/);
+      assert.match(view.html(), /Hortas em Jirau/);
+      assert.doesNotMatch(view.html(), /projeto publicado/);
+    } finally { await view.restore(); }
+  });
+  it('o contador conta só os aguardando, relê ao ser avisado e some com 403', async () => {
+    let total = 3; let falhar = false;
+    function Contador() { return createElement('output', null, String(useProjetosPendentes(true))); }
+    const view = await mountCategories(async () => falhar ? proibido() : list([], total), false, { component: Contador, allowedPaths: /\/pj_projetos$/ });
+    try {
+      await view.act(settle);
+      assert.equal(view.html(), '<output>3</output>');
+      assert.equal(view.calls[0].url.searchParams.get('q[n_status_noticia_slug_eq]'), 'aguardando');
+      assert.equal(view.calls[0].url.searchParams.get('per_page'), '1');
+      total = 2;
+      await view.act(() => notifyProjetosPendentes());
+      await view.act(settle);
+      assert.equal(view.html(), '<output>2</output>');
+      falhar = true;
+      await view.act(() => notifyProjetosPendentes());
+      await view.act(settle);
+      assert.equal(view.html(), '<output>null</output>');
     } finally { await view.restore(); }
   });
 });

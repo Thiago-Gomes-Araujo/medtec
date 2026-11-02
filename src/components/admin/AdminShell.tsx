@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useAdminTheme } from '@/components/admin/useAdminTheme';
 import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
+import { useProjetosPendentes } from '@/components/admin/useProjetosPendentes';
 import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter from '@/components/admin/MobileDrawerFooter';
 import { filterAdminNavigation } from '@/lib/admin-navigation-filter';
@@ -35,7 +36,7 @@ import { buildAdminMenu, SECTION_CONFIG, type AdminSection } from '@/lib/admin-n
 export { SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
 export function getFolderIdForSection(sec: AdminSection): string | null {
-  if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'projetosTemas', 'projetosMembros', 'duvidas', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
+  if (['noticias', 'avisos', 'fotos', 'galeria', 'projetos', 'projetosTemas', 'projetosMembros', 'projetosAprovacao', 'duvidas', 'professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'].includes(sec)) return 'publicacoes';
   if (['kanban'].includes(sec)) return 'aprovacao';
   if (['siteInfo', 'redes', 'estadosCidades'].includes(sec)) return 'dados';
   if (['usuarios'].includes(sec)) return 'usuarios';
@@ -228,6 +229,7 @@ export default function AdminShell({
   const canAccessFaqs = canAccessDuvidas(userSession);
   // A sessão local não tem token: a consulta só devolveria 401.
   const duvidasPendentes = useDuvidasPendentes(canAccessFaqs && !!userSession.apiUser);
+  const projetosPendentes = useProjetosPendentes(canAccessProjects && !!userSession.apiUser);
   const canAccessProfessores =
     userSession.isGestor ||
     userSession.profileType === 'Operador de Conteúdo' ||
@@ -257,7 +259,7 @@ export default function AdminShell({
     redes: canAccessSocials,
     estadosCidades: canAccessEstados,
     usuarios: canAccessUsers,
-  }, { duvidas: duvidasPendentes.count || undefined, ...badges });
+  }, { duvidas: duvidasPendentes.count || undefined, projetosAprovacao: projetosPendentes || undefined, ...badges });
 
   // Pesquisa rápida da Sidebar
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
@@ -287,7 +289,7 @@ export default function AdminShell({
       ? canAccessPhotos
       : activeSection === 'galeria'
       ? canAccessGallery
-      : activeSection === 'projetos' || activeSection === 'projetosTemas' || activeSection === 'projetosMembros'
+      : activeSection === 'projetos' || activeSection === 'projetosTemas' || activeSection === 'projetosMembros' || activeSection === 'projetosAprovacao'
       ? canAccessProjects
       : activeSection === 'duvidas'
       ? canAccessFaqs

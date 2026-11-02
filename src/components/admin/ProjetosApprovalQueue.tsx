@@ -2,6 +2,7 @@
 
 import { medtecApi, type PjProjeto } from '@/lib/api';
 import { buttonClass, panelClass, renderFeedback, renderModerationButtons, useAdminAction, useApiList, type ModeracaoAction } from './communityAdminUi';
+import { notifyProjetosPendentes } from './useProjetosPendentes';
 
 const AGUARDANDO = { page: 'all', 'q[n_status_noticia_slug_eq]': 'aguardando' };
 const readProjetos = (signal: AbortSignal) => medtecApi.projetos.list(AGUARDANDO, signal);
@@ -15,7 +16,7 @@ export default function ProjetosApprovalQueue() {
       await medtecApi.projetos[operation](item.id);
       return operation === 'publicar' ? 'Projeto publicado.' : 'Projeto reprovado.';
     });
-    if (done) projetos.reload();
+    if (done) { projetos.reload(); notifyProjetosPendentes(); }
   }
 
   return (

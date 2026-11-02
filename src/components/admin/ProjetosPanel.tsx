@@ -21,6 +21,7 @@ import {
   useEscolaOptions,
   type ModeracaoAction,
 } from './communityAdminUi';
+import { notifyProjetosPendentes } from './useProjetosPendentes';
 
 interface ProjetoForm {
   id?: number;
@@ -133,7 +134,7 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
       const value = form.id ? await medtecApi.projetos.update(form.id, data) : await medtecApi.projetos.create(data);
       return `Projeto salvo. Situação: ${value.status_nome}.`;
     });
-    if (saved) { setForm(null); reload(); }
+    if (saved) { setForm(null); reload(); notifyProjetosPendentes(); }
   }
 
   async function removeAnexo() {
@@ -153,7 +154,7 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
       await medtecApi.projetos[operation](item.id);
       return operation === 'publicar' ? 'Projeto publicado.' : operation === 'reprovar' ? 'Projeto reprovado.' : 'Projeto retirado do site.';
     });
-    if (done) reload();
+    if (done) { reload(); notifyProjetosPendentes(); }
   }
 
   async function remove() {
@@ -164,6 +165,7 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
     });
     setDeleting(null);
     if (removed) {
+      notifyProjetosPendentes();
       if (items.length === 1 && page > 1) setPage(page - 1);
       else reload();
     }

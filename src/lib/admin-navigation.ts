@@ -3,6 +3,7 @@ import {
   BarChart3,
   BookOpen,
   CheckCircle2,
+  ClipboardCheck,
   FolderKanban,
   GraduationCap,
   HelpCircle,
@@ -37,6 +38,7 @@ export type AdminSection =
   | 'projetos'
   | 'projetosTemas'
   | 'projetosMembros'
+  | 'projetosAprovacao'
   | 'duvidas'
   | 'estadosCidades'
   | 'professores'
@@ -78,6 +80,12 @@ export const SECTION_CONFIG: Record<
     title: 'Membros de Projeto',
     subtitle: 'Cadastre as pessoas que participam dos projetos. O CPF não aparece no site.',
     href: '/admin/projetos/membros',
+  },
+  projetosAprovacao: {
+    group: 'Publicações do Site',
+    title: 'Aprovação de Projetos',
+    subtitle: 'Confira os projetos aguardando e publique ou reprove cada um.',
+    href: '/admin/projetos/aprovacao',
   },
   duvidas: {
     group: 'Publicações do Site',
@@ -171,6 +179,7 @@ export const SECTION_HREFS = new Map<AdminSection, string>([
   ['projetos', SECTION_CONFIG.projetos.href],
   ['projetosTemas', SECTION_CONFIG.projetosTemas.href],
   ['projetosMembros', SECTION_CONFIG.projetosMembros.href],
+  ['projetosAprovacao', SECTION_CONFIG.projetosAprovacao.href],
   ['duvidas', SECTION_CONFIG.duvidas.href],
   ['usuarios', SECTION_CONFIG.usuarios.href],
   ['kanban', SECTION_CONFIG.kanban.href],
@@ -227,6 +236,7 @@ const ADMIN_MENU: AdminMenuFolder[] = [
       { section: 'projetos', access: 'projetos', label: 'Projetos Pedagógicos', tooltip: 'Cadastrar e gerenciar projetos pedagógicos das escolas', icon: Lightbulb },
       { section: 'projetosTemas', access: 'projetos', label: 'Temas de Projeto', tooltip: 'Cadastrar e gerenciar temas de projeto', icon: Shapes },
       { section: 'projetosMembros', access: 'projetos', label: 'Membros de Projeto', tooltip: 'Cadastrar e gerenciar membros de projeto', icon: UserRound },
+      { section: 'projetosAprovacao', access: 'projetos', label: 'Aprovação de Projetos', tooltip: 'Publicar ou reprovar projetos aguardando', icon: ClipboardCheck },
       { section: 'duvidas', access: 'duvidas', label: 'Dúvidas Frequentes (FAQ)', tooltip: 'Cadastrar e gerenciar perguntas frequentes do portal', icon: HelpCircle },
       { section: 'avisos', access: 'avisos', label: 'Avisos e Comunicados', tooltip: 'Publicar alertas no mural', icon: Megaphone },
       { section: 'fotos', access: 'fotos', label: 'Banners da Página Inicial', tooltip: 'Trocar imagens do topo da Home', icon: Presentation },
@@ -290,6 +300,7 @@ export const ADMIN_SUBROUTE_GROUPS: { label: string; items: { section: AdminSect
       { section: 'projetos', label: 'Projetos' },
       { section: 'projetosTemas', label: 'Temas' },
       { section: 'projetosMembros', label: 'Membros' },
+      { section: 'projetosAprovacao', label: 'Aprovação' },
     ],
   },
   {
