@@ -834,3 +834,21 @@ export interface PublicoProjetosParams {
   page?: number | 'all';
   per_page?: number;
 }
+
+// Banners da home — contrato docs/ROTAS_BANNERS.md. `imagem` já vem como URL completa.
+export interface BBanner {
+  id: number;
+  imagem: string | null;
+  imagem_url: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type BBannerInput = { imagem: File; imagem_url?: never } | { imagem_url: string; imagem?: never };
+
+export interface BannerPublico {
+  id: number;
+  imagem: string;
+}

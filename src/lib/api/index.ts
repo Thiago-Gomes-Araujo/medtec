@@ -28,6 +28,7 @@ import { escolasService } from './services/escolas.service';
 import { disciplinasProfessorService, professoresService, relatosService, professoresPublicosService } from './services/professores.service';
 import { categoriasConquistaService, conquistasService, conquistasPublicasService } from './services/conquistas.service';
 import { temasProjetoService, membrosProjetoService, projetosService, projetosPublicosService } from './services/projetos.service';
+import { bannersService, bannersPublicosService } from './services/banners.service';
 
 export const medtecApi = {
   // Autenticação e Sessão (/auth)
@@ -93,6 +94,10 @@ export const medtecApi = {
   membrosProjeto: membrosProjetoService,
   projetos: projetosService,
   projetosPublicos: projetosPublicosService,
+
+  // Banners do carrossel da home (/b_banners)
+  banners: bannersService,
+  bannersPublicos: bannersPublicosService,
 };
 
 // Exportações de infraestrutura e utilitários

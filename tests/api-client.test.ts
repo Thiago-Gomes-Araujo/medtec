@@ -11163,6 +11163,62 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
   });
 });
 
+describe('Banners — service', () => {
+  const headers = { 'content-type': 'application/json' };
+  const json = (body: unknown, status = 200) => new Response(status === 204 ? null : JSON.stringify(body), { status, headers });
+  const FILE_URL = 'http://172.16.107.63:3001/rails/active_storage/blobs/redirect/x/banner.png';
+  const banner = { id: 1, imagem: FILE_URL, imagem_url: null };
+  async function capture<T>(reply: Response, run: () => Promise<T>) {
+    const calls: { url: URL; options: RequestInit }[] = [];
+    const spy = mock.method(globalThis, 'fetch', async (target: RequestInfo | URL, options: RequestInit = {}) => { calls.push({ url: new URL(String(target)), options }); return reply; });
+    setStoredTokens({ access_token: 'banner-user', refresh_token: 'banner-refresh' });
+    try { return { result: await run(), calls }; } finally { spy.mock.restore(); clearStoredTokens(); }
+  }
+
+  it('lista com page=all, vê e exclui nas rotas do contrato, com Bearer', async () => {
+    const list = await capture(json({ success: true, data: { items: [banner], pagination: { current_page: 1, total_pages: 1, total_count: 1, per_page: 1 } } }), () => medtecApi.banners.list({ page: 'all' }));
+    assert.ok(list.calls[0].url.pathname.endsWith('/b_banners')); assert.equal(list.calls[0].url.searchParams.get('page'), 'all');
+    assert.equal(new Headers(list.calls[0].options.headers).get('Authorization'), 'Bearer banner-user');
+    const get = await capture(json(banner), () => medtecApi.banners.get(1));
+    assert.ok(get.calls[0].url.pathname.endsWith('/b_banners/1'));
+    const removed = await capture(json(null, 204), () => medtecApi.banners.delete(1));
+    assert.equal(removed.calls[0].options.method, 'DELETE'); assert.ok(removed.calls[0].url.pathname.endsWith('/b_banners/1')); assert.equal(removed.result, undefined);
+  });
+  it('lista vazia com page=all não vira resposta inválida', async () => {
+    const { result } = await capture(json({ success: true, data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: 0, per_page: 0 } } }), () => medtecApi.banners.list({ page: 'all' }));
+    assert.deepEqual(result.data.items, []);
+  });
+  it('link vai em JSON e arquivo em multipart, tanto ao criar quanto ao trocar', async () => {
+    const link = await capture(json(banner, 201), () => medtecApi.banners.create({ imagem_url: 'https://x.com/b.jpg' }));
+    assert.equal(link.calls[0].options.method, 'POST');
+    assert.deepEqual(JSON.parse(String(link.calls[0].options.body)), { b_banner: { imagem_url: 'https://x.com/b.jpg' } });
+    assert.equal(new Headers(link.calls[0].options.headers).get('Content-Type'), 'application/json');
+    const arquivo = new File(['x'], 'banner.png', { type: 'image/png' });
+    const upload = await capture(json(banner), () => medtecApi.banners.update(1, { imagem: arquivo }));
+    assert.equal(upload.calls[0].options.method, 'PATCH'); assert.ok(upload.calls[0].url.pathname.endsWith('/b_banners/1'));
+    const form = upload.calls[0].options.body as FormData;
+    assert.ok(form instanceof FormData); assert.equal((form.get('b_banner[imagem]') as File).name, 'banner.png');
+    assert.deepEqual([...form.keys()], ['b_banner[imagem]']);
+    assert.equal(new Headers(upload.calls[0].options.headers).has('Content-Type'), false, 'O navegador define o boundary');
+  });
+  it('não junta a URL da imagem com a base da API', async () => {
+    const cms = await capture(json(banner), () => medtecApi.banners.get(1));
+    assert.equal(cms.result.imagem, FILE_URL);
+    const publico = await capture(json({ success: true, message: 'Banners encontrados', data: [{ id: 1, imagem: FILE_URL }, { id: 2, imagem: 'https://x.com/b.jpg', extra: 'x' }] }), () => medtecApi.bannersPublicos.list());
+    assert.deepEqual(publico.result.data, [{ id: 1, imagem: FILE_URL }, { id: 2, imagem: 'https://x.com/b.jpg' }], 'Mantém a ordem e só os campos do contrato');
+  });
+  it('rota pública não envia token nem cookie', async () => {
+    const { calls } = await capture(json({ success: true, data: [] }), () => medtecApi.bannersPublicos.list());
+    assert.ok(calls[0].url.pathname.endsWith('/publico/b_banners'));
+    assert.equal(new Headers(calls[0].options.headers).has('Authorization'), false); assert.equal(calls[0].options.credentials, 'omit');
+  });
+  it('resposta pública fora do contrato é recusada', async () => {
+    for (const body of [{ success: true, data: null }, { success: false, data: [] }, { success: true, data: [{ id: 1 }] }, { success: true, data: [{ id: 'x', imagem: 'a' }] }, { success: true, data: [{ id: 1, imagem: '' }] }]) {
+      await assert.rejects(capture(json(body), () => medtecApi.bannersPublicos.list()), /API pública de Banners/);
+    }
+  });
+});
+
 describe('Projetos — site público', () => {
   const headers = { 'content-type': 'application/json' };
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
