@@ -75,7 +75,7 @@ import PublicDuvidasPage from '../src/app/duvidas/page';
 import FaqSection from '../src/components/FaqSection';
 import DuvidaCategoriesManager from '../src/components/admin/DuvidaCategoriesManager';
 import type { DCategoriaDuvida, DDuvida, DDuvidaInput } from '../src/lib/api/types';
-import type { DDuvidaVisitante, PjProjetoInput, PjProjetoMembro } from '../src/lib/api/types';
+import type { BannerPublico, DDuvidaVisitante, PjProjetoInput, PjProjetoMembro } from '../src/lib/api/types';
 import { diffProjetoMembros, formatCpf, formatFileSize, getProjetoImageSrc, hasMembroDuplicado, isValidCpf, maskCpf, PROJETO_ANEXO_MAX_BYTES, validateProjetoAnexo } from '../src/lib/projetos-content';
 import type { DuvidaPublica, CategoriaDuvidaPublica, DuvidaVisitantePublicaInput } from '../src/lib/api/types';
 import ProjetosPanel from '../src/components/admin/ProjetosPanel';
@@ -160,6 +160,7 @@ import ProfessorDetalhePage from '../src/app/professores/[id]/page';
 import ProjetoDetalhePage, { generateMetadata as projetoMetadata } from '../src/app/projetos/[id]/page';
 import ProjetosView from '../src/components/ProjetosView';
 import HomeBannerCarousel from '../src/components/HomeBannerCarousel';
+import { readHomeBanners } from '../src/lib/home-banners';
 import type { ConquistaPublica, ProfessorPublico } from '../src/lib/api/types';
 import {
   CONQUISTA_IMAGE_MAX_BYTES,
@@ -10680,8 +10681,8 @@ describe('Banners — carrossel da home', () => {
   const FILE_URL = 'http://172.16.107.63:3001/rails/active_storage/blobs/redirect/x/banner.png';
   const tres = [{ id: 7, imagem: FILE_URL }, { id: 3, imagem: 'https://exemplo.com/b.jpg' }, { id: 9, imagem: 'https://outro.org/c.webp' }];
   const reply = (data: unknown) => async () => json({ success: true, message: 'Banners encontrados', data });
-  const mount = (fetcher: () => Promise<Response>, windowExtras?: Record<string, unknown>) => mountCategories(fetcher, false, {
-    component: () => HomeBannerCarousel(), allowedPaths: /\/publico\/b_banners$/, anonymous: true, windowExtras,
+  const mount = (banners: BannerPublico[], windowExtras?: Record<string, unknown>) => mountCategories(async () => { throw new Error('O carrossel não consulta a API no navegador'); }, false, {
+    component: () => HomeBannerCarousel({ banners }), allowedPaths: /$^/, windowExtras,
   });
   type View = Awaited<ReturnType<typeof mount>>;
   const images = (view: View) => view.nodes().filter(node => node.type === NextImage);
@@ -10691,24 +10692,53 @@ describe('Banners — carrossel da home', () => {
   const fire = (view: View, name: string, event: unknown = {}) => view.act(() => Reflect.apply(region(view).props[name] as (value: unknown) => unknown, undefined, [event]));
   const reduced = (matches: boolean) => ({ matchMedia: () => ({ matches, addEventListener() {}, removeEventListener() {} }) });
 
-  it('sem banners ou com falha na API não mostra nada nem erro', async () => {
+  it('leitura no servidor: lista da API, e qualquer falha vira lista vazia sem erro', async () => {
     const warn = mock.method(console, 'warn', () => {});
+    const read = async (fetcher: () => Promise<Response>) => {
+      const spy = mock.method(globalThis, 'fetch', fetcher);
+      try { return await readHomeBanners(); } finally { spy.mock.restore(); }
+    };
     try {
-      for (const fetcher of [reply([]), async () => json({ success: false, errors: ['x'] }, 500), async () => { throw new TypeError('fetch failed'); }, reply([{ id: 1 }])]) {
-        const view = await mount(fetcher);
-        try {
-          await view.act(settle);
-          assert.equal(view.html(), '');
-        } finally { await view.restore(); }
+      assert.deepEqual(await read(reply(tres)), { banners: tres, failed: false });
+      assert.deepEqual(await read(reply([])), { banners: [], failed: false });
+      for (const fetcher of [async () => json({ success: false, errors: ['x'] }, 500), async () => { throw new TypeError('fetch failed'); }, reply([{ id: 1 }])]) {
+        assert.deepEqual(await read(fetcher), { banners: [], failed: true });
       }
     } finally { warn.mock.restore(); }
   });
-  it('a home mantém o topo atual e coloca o carrossel antes dele', () => {
-    const source = readFileSync('src/app/page.tsx', 'utf8');
-    assert.ok(source.indexOf('<HomeBannerCarousel />') > 0 && source.indexOf('<HomeBannerCarousel />') < source.indexOf('id="inicio"'));
+  it('a leitura tem tempo limite: API travada não segura a home', async () => {
+    const warn = mock.method(console, 'warn', () => {});
+    const timeout = mock.method(AbortSignal, 'timeout', () => { const controller = new AbortController(); controller.abort(); return controller.signal; });
+    const spy = mock.method(globalThis, 'fetch', (_input: RequestInfo | URL, options: RequestInit = {}) => new Promise<Response>((_resolve, reject) => {
+      if (options.signal?.aborted) reject(new DOMException('Tempo esgotado', 'TimeoutError'));
+    }));
+    try {
+      assert.deepEqual(await readHomeBanners(), { banners: [], failed: true });
+      assert.equal(timeout.mock.calls[0].arguments[0], 2500);
+    } finally { spy.mock.restore(); timeout.mock.restore(); warn.mock.restore(); }
+  });
+  it('o servidor usa cache curto, e a home passa a lista pronta para o carrossel antes do topo', () => {
+    const cached = readFileSync('src/lib/home-banners.ts', 'utf8');
+    assert.match(cached, /getHomeBanners\(\)[^{]*\{\s*'use cache';/);
+    assert.match(cached, /cacheLife\(\{ stale: 300, revalidate: failed \? 30 : 300 \}\)/);
+    const page = readFileSync('src/app/page.tsx', 'utf8');
+    assert.doesNotMatch(page, /use client/); assert.match(page, /await getHomeBanners\(\)/);
+    const source = readFileSync('src/components/HomePageClient.tsx', 'utf8');
+    assert.ok(source.indexOf('<HomeBannerCarousel banners={banners} />') > 0 && source.indexOf('<HomeBannerCarousel banners={banners} />') < source.indexOf('id="inicio"'));
+  });
+  it('lista vazia não reserva espaço nem mostra nada', async () => {
+    const view = await mount([]);
+    try { assert.equal(view.html(), ''); assert.equal(view.calls.length, 0); } finally { await view.restore(); }
+  });
+  it('vem pronto no HTML do servidor, sem consultar a API no navegador', async () => {
+    const html = renderToStaticMarkup(createElement(HomeBannerCarousel, { banners: tres }));
+    assert.match(html, /aria-roledescription="carrossel"/); assert.match(html, /alt="Banner 1 de 3"/);
+    assert.match(html, /fetchPriority="high"/);
+    const view = await mount(tres);
+    try { await view.act(settle); assert.equal(view.calls.length, 0); } finally { await view.restore(); }
   });
   it('um banner não tem controles nem troca automática', async () => {
-    const view = await mount(reply([tres[0]]));
+    const view = await mount([tres[0]]);
     try {
       await view.act(settle);
       assert.equal(images(view).length, 1); assert.equal(images(view)[0].props.alt, 'Banner 1 de 1');
@@ -10716,7 +10746,7 @@ describe('Banners — carrossel da home', () => {
     } finally { await view.restore(); }
   });
   it('um slide por item, na ordem recebida, sem juntar URL e sem otimização', async () => {
-    const view = await mount(reply(tres));
+    const view = await mount(tres);
     try {
       await view.act(settle);
       assert.deepEqual(view.nodes().filter(node => node.props['aria-roledescription'] === 'slide').map(node => node.props['aria-label']), ['Banner 1 de 3', 'Banner 2 de 3', 'Banner 3 de 3']);
@@ -10727,7 +10757,7 @@ describe('Banners — carrossel da home', () => {
   });
   it('a primeira imagem é prioritária e as demais são lazy; distantes nem são montadas', async () => {
     const cinco = [1, 2, 3, 4, 5].map(id => ({ id, imagem: 'https://x.com/' + id + '.jpg' }));
-    const view = await mount(reply(cinco));
+    const view = await mount(cinco);
     try {
       await view.act(settle);
       const mounted = images(view);
@@ -10737,7 +10767,7 @@ describe('Banners — carrossel da home', () => {
     } finally { await view.restore(); }
   });
   it('botões, indicadores e setas do teclado trocam o slide, circulando', async () => {
-    const view = await mount(reply(tres));
+    const view = await mount(tres);
     try {
       await view.act(settle);
       assert.equal(activeLabel(view), 'Banner 1 de 3');
@@ -10757,7 +10787,7 @@ describe('Banners — carrossel da home', () => {
   });
   it('troca sozinho e pausa com o mouse, o foco e o botão', async () => {
     mock.timers.enable({ apis: ['setInterval'] });
-    const view = await mount(reply(tres));
+    const view = await mount(tres);
     const tick = () => view.act(() => mock.timers.tick(6000));
     try {
       await view.act(settle);
@@ -10773,7 +10803,7 @@ describe('Banners — carrossel da home', () => {
   });
   it('prefers-reduced-motion desliga a troca automática, sem tirar os controles', async () => {
     mock.timers.enable({ apis: ['setInterval'] });
-    const view = await mount(reply(tres), reduced(true));
+    const view = await mount(tres, reduced(true));
     try {
       await view.act(settle);
       await view.act(() => mock.timers.tick(30000));

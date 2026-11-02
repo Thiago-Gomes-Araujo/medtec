@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore, type KeyboardEvent } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
-import { medtecApi, type BannerPublico } from '@/lib/api';
+import type { BannerPublico } from '@/lib/api';
 
 const AUTOPLAY_MS = 6000;
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
@@ -21,9 +21,8 @@ function readReducedMotion() {
 
 const controlClass = 'grid h-9 w-9 place-items-center rounded-full bg-slate-950/70 text-white hover:bg-slate-950/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white cursor-pointer';
 
-// Sem banners ou com a API fora do ar, nada é mostrado: o topo institucional da home continua igual.
-export default function HomeBannerCarousel() {
-  const [banners, setBanners] = useState<BannerPublico[]>([]);
+// A lista chega pronta do servidor. Sem banners, nada é mostrado: o topo institucional continua igual.
+export default function HomeBannerCarousel({ banners }: { banners: BannerPublico[] }) {
   const [active, setActive] = useState(0);
   const [hovering, setHovering] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -32,16 +31,6 @@ export default function HomeBannerCarousel() {
   const total = banners.length;
   const autoplay = total > 1 && !paused && !reducedMotion;
   const running = autoplay && !hovering && !focused;
-
-  useEffect(() => {
-    const controller = new AbortController();
-    medtecApi.bannersPublicos.list(controller.signal).then(response => {
-      if (!controller.signal.aborted) setBanners(response.data);
-    }).catch((cause: unknown) => {
-      if (!controller.signal.aborted) console.warn('Banners indisponíveis; mantendo o topo da home:', cause);
-    });
-    return () => controller.abort();
-  }, []);
 
   // `active` nas dependências reinicia o tempo depois de uma troca manual.
   useEffect(() => {
