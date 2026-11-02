@@ -33,7 +33,7 @@ import { getAdminStaticAlias } from '@/lib/admin-aliases';
 import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
 import { useBannersTotal } from '@/components/admin/useBannersTotal';
 import { useProjetosResumo } from '@/components/admin/useProjetosResumo';
-import { canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
+import { canAccessBanners, canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminEditorialDestination } from '@/lib/admin-auth-navigation';
 import { buildAdminMenu, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
 import {
@@ -289,7 +289,7 @@ export default function AdminDashboardPage() {
 
   // Permissões por Atribuição de Perfil
   const canAccessNews = userSession.isGestor || userSession.profileType === 'Editor de Notícias' || userSession.profileType === 'Operador de Conteúdo';
-  const canAccessPhotos = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
+  const canAccessPhotos = canAccessBanners(userSession);
   const canAccessAnnouncements = userSession.isGestor || userSession.profileType === 'Publicador de Avisos' || userSession.profileType === 'Operador de Conteúdo';
   const canAccessGallery = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
   const canAccessProjects = canAccessProjetos(userSession);

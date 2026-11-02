@@ -12,7 +12,7 @@ export function getAdminEditorialDestination(
 ): AdminEditorialDestination | null {
   if (isGestor) return null;
   if (profileType === 'Curador de Fotos') {
-    return { method: 'replace', href: '/admin/banners' };
+    return { method: 'replace', href: '/admin/galeria' };
   }
   if (profileType === 'Publicador de Avisos') {
     return { method: 'push', href: '/admin/avisos' };

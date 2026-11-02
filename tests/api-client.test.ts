@@ -161,6 +161,7 @@ import ProjetoDetalhePage, { generateMetadata as projetoMetadata } from '../src/
 import ProjetosView from '../src/components/ProjetosView';
 import HomeBannerCarousel from '../src/components/HomeBannerCarousel';
 import { readHomeBanners } from '../src/lib/home-banners';
+import { canAccessBanners } from '../src/lib/admin-session';
 import type { ConquistaPublica, ProfessorPublico } from '../src/lib/api/types';
 import {
   CONQUISTA_IMAGE_MAX_BYTES,
@@ -353,7 +354,7 @@ const editorialProfileCases: {
   { label: 'gestor sem perfil', isGestor: true, profileType: undefined, expected: null },
   { label: 'Administrador Rails inativo', isGestor: true, profileType: 'Administrador', expected: null, inactive: true },
   { label: 'Editor', isGestor: false, profileType: 'Editor de Notícias', expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'Curador', isGestor: false, profileType: 'Curador de Fotos', expected: { method: 'replace', href: '/admin/banners' } },
+  { label: 'Curador', isGestor: false, profileType: 'Curador de Fotos', expected: { method: 'replace', href: '/admin/galeria' } },
   { label: 'Publicador', isGestor: false, profileType: 'Publicador de Avisos', expected: { method: 'push', href: '/admin/avisos' } },
   { label: 'Operador', isGestor: false, profileType: 'Operador de Conteúdo', expected: { method: 'replace', href: '/admin/noticias' } },
   { label: 'Gestor literal', isGestor: false, profileType: 'Gestor', expected: { method: 'replace', href: '/admin/noticias' } },
@@ -405,7 +406,7 @@ describe('Decisão editorial pura (12D-5 Lote 3)', () => {
         assert.deepEqual(getAdminEditorialDestination(false, profile, params), { method: 'replace', href });
         assert.deepEqual(getAdminEditorialDestination(false, profile, params), { method: 'replace', href });
       }
-      assert.deepEqual(getAdminEditorialDestination(false, 'Curador de Fotos', params), { method: 'replace', href: '/admin/banners' });
+      assert.deepEqual(getAdminEditorialDestination(false, 'Curador de Fotos', params), { method: 'replace', href: '/admin/galeria' });
       assert.deepEqual(getAdminEditorialDestination(false, 'Publicador de Avisos', params), { method: 'push', href: '/admin/avisos' });
       assert.equal(getAdminEditorialDestination(true, 'Administrador', params), null);
       assert.equal(params.toString(), before);
@@ -988,7 +989,7 @@ describe('Integração dos aliases estáticos no dashboard (12D-4B)', () => {
   it('mantém o encaminhamento por perfil das sessões Rails e local separado dos aliases', async () => {
     const profiles = [
       { name: 'Editor de Notícias', method: 'replace', href: '/admin/noticias?action=new' },
-      { name: 'Curador de Fotos', method: 'replace', href: '/admin/banners' },
+      { name: 'Curador de Fotos', method: 'replace', href: '/admin/galeria' },
       { name: 'Publicador de Avisos', method: 'push', href: '/admin/avisos' },
       { name: 'Operador de Conteúdo', method: 'replace', href: '/admin/noticias?action=new' },
     ];
@@ -1669,7 +1670,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[1].resolve(railsSession('Curador de Fotos')));
       assert.equal(page.loading, false);
       assert.equal(page.session?.profileType, 'Curador de Fotos');
-      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/banners' }]);
+      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/galeria' }]);
     } finally { await page.restore(); }
   });
 
@@ -1796,7 +1797,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[0].resolve(railsSession('Curador de Fotos')));
       assert.equal(page.session?.profileType, 'Curador de Fotos');
       assert.equal(page.loading, false);
-      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/banners' }]);
+      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/galeria' }]);
     } finally { await page.restore(); }
   });
 
@@ -1863,7 +1864,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.overviewRequests.length, expected ? 14 : 0, label);
         const profile = fields.perfil_nome;
         assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
-          ? [{ method: 'replace', href: '/admin/banners' }] : profile === 'Publicador de Avisos'
+          ? [{ method: 'replace', href: '/admin/galeria' }] : profile === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
         page.assertRetained();
       } finally { await page.restore(); }
@@ -1903,7 +1904,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.localRequests.length, 0, label);
         assert.equal(page.overviewRequests.length, expected.isGestor ? 14 : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
-          ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
+          ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
       } finally { await page.restore(); }
     }
@@ -1925,7 +1926,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         if (!pageRenderError) assert.equal(page.loading, false, label);
         assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? 14 : 9) : 0, label);
         assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
-          ? [{ method: 'replace', href: '/admin/banners' }] : expected.profileType === 'Publicador de Avisos'
+          ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
           ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
         assert.equal(page.warn.mock.callCount(), source === 'Rails' ? 1 : 0);
       } finally { parse.mock.restore(); await page.restore(); }
@@ -1949,7 +1950,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
     for (const source of ['Rails', 'local']) {
       for (const [profile, method, href] of [
         ['Editor de Notícias', 'replace', '/admin/noticias?action=new'],
-        ['Curador de Fotos', 'replace', '/admin/banners'],
+        ['Curador de Fotos', 'replace', '/admin/galeria'],
         ['Publicador de Avisos', 'push', '/admin/avisos'],
         ['Operador de Conteúdo', 'replace', '/admin/noticias?action=new'],
       ]) {
@@ -2154,7 +2155,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             });
             assert.equal(page.loading, false);
             assert.deepEqual(page.calls, [
-              { method: 'replace', href: '/admin/banners' }, { method: 'replace', href: '/admin/banners' },
+              { method: 'replace', href: '/admin/banners' }, { method: 'replace', href: '/admin/galeria' },
             ]);
             page.assertRetained();
           } finally { await page.restore(); }
@@ -2785,7 +2786,7 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     ['Rails', 'Administrador', 'usuarios', true],
     ['Rails', 'Editor de Notícias', 'noticias', true],
     ['Rails', 'Editor de Notícias', 'redes', false],
-    ['Rails', 'Curador de Fotos', 'fotos', true],
+    ['Rails', 'Curador de Fotos', 'fotos', false],
     ['Rails', 'Curador de Fotos', 'galeria', true],
     ['Rails', 'Publicador de Avisos', 'avisos', true],
     ['Rails', 'Publicador de Avisos', 'noticias', true],
@@ -3004,6 +3005,28 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
       assert.equal(shell.view?.loading, true);
       assert.deepEqual(shell.calls, [{ method: 'push', href: '/admin/login' }]);
     } finally { await shell.restore(); }
+  });
+
+  for (const [source, profile, allowed] of [['Rails', 'Administrador', true], ['Rails', 'Gestor', true], ['Rails', 'Jornalista', false], ['Rails', 'Curador de Fotos', false], ['Rails', 'Operador de Conteúdo', false], ['Rails', 'Editor de Notícias', false]] as const) {
+    it('banners seguem os perfis do seed Rails: ' + profile, async () => {
+      let renders = 0;
+      const shell = await mountShell({ source, section: 'fotos', pathname: '/admin/banners', children: () => { renders++; return 'B2: conteúdo protegido'; } });
+      try {
+        await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
+        assert.equal(shell.view?.content, allowed);
+        assert.equal(shell.view?.restricted, !allowed);
+        assert.equal(renders > 0, allowed);
+      } finally { await shell.restore(); }
+    });
+  }
+
+  it('menu de banners acompanha a regra nos dois menus, e o Curador entra pela galeria', () => {
+    for (const file of ['src/components/admin/AdminShell.tsx', 'src/app/admin/page.tsx']) {
+      assert.match(readFileSync(file, 'utf8'), /const canAccessPhotos = canAccessBanners\(userSession\);/, file);
+    }
+    assert.equal(canAccessBanners({ isGestor: true, profileType: 'Administrador' }), true);
+    assert.equal(canAccessBanners({ isGestor: false, profileType: 'Gestor' }), true);
+    for (const profileType of ['Curador de Fotos', 'Operador de Conteúdo', 'Jornalista', undefined]) assert.equal(canAccessBanners({ isGestor: false, profileType }), false, String(profileType));
   });
 
   for (const [profile, allowed] of [['Administrador', true], ['Gestor', true], ['Jornalista', false], ['Operador de Conteúdo', false], ['Editor de Notícias', false]] as const) {

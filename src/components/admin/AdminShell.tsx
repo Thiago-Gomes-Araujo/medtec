@@ -27,7 +27,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { medtecApi, clearStoredTokens, type AuthUser } from '@/lib/api';
-import { canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
+import { canAccessBanners, canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
 import { buildAdminMenu, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
@@ -215,10 +215,7 @@ export default function AdminShell({
     userSession.isGestor ||
     userSession.profileType === 'Editor de Notícias' ||
     userSession.profileType === 'Operador de Conteúdo';
-  const canAccessPhotos =
-    userSession.isGestor ||
-    userSession.profileType === 'Curador de Fotos' ||
-    userSession.profileType === 'Operador de Conteúdo';
+  const canAccessPhotos = canAccessBanners(userSession);
   const canAccessAnnouncements =
     userSession.isGestor ||
     userSession.profileType === 'Publicador de Avisos' ||
