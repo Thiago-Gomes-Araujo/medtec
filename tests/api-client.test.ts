@@ -3,7 +3,7 @@
  * Executado pelo test runner nativo do Node.js: npx tsx --test tests/api-client.test.ts
  */
 
-import { describe, it, beforeEach, mock } from 'node:test';
+import { describe, it, beforeEach, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
@@ -5713,6 +5713,62 @@ describe('5. Cliente HTTP apiFetch (Respostas, 204 e Renovação de Token)', () 
     delete process.env.BACKEND_ADMIN_PASSWORD;
     let requests = 0;
     globalThis.fetch = async () => { requests++; return new Response('{}', { status: 200 }); };
+  describe('login com a API de autenticação fora do ar', () => {
+    const tentarLogin = (username = '12345678900', password = 'x') => authRoutePost(new Request('http://localhost:3000/api/auth', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }),
+    }));
+    const API_INDISPONIVEL = 'Serviço de autenticação indisponível. Tente novamente em instantes.';
+
+    afterEach(() => {
+      globalThis.fetch = originalFetch;
+    });
+
+    it('timeout da API não é apresentado como senha incorreta', async () => {
+      globalThis.fetch = async () => { throw new DOMException('The operation was aborted due to timeout', 'TimeoutError'); };
+      const response = await tentarLogin();
+      assert.equal(response.status, 503);
+      assert.equal((await response.json()).error, API_INDISPONIVEL);
+    });
+
+    it('erro 5xx no login da API também é indisponibilidade', async () => {
+      globalThis.fetch = async () => new Response('', { status: 502 });
+      const response = await tentarLogin();
+      assert.equal(response.status, 503);
+      assert.equal((await response.json()).error, API_INDISPONIVEL);
+    });
+
+    it('falha em /auth/me depois de um login aceito não acusa senha incorreta', async () => {
+      globalThis.fetch = async (input) => String(input).endsWith('/auth/login')
+        ? new Response(JSON.stringify({ success: true, data: { access_token: 'a', refresh_token: 'r' } }), { status: 200 })
+        : new Response('', { status: 500 });
+      const response = await tentarLogin();
+      assert.equal(response.status, 503);
+      assert.equal((await response.json()).error, API_INDISPONIVEL);
+    });
+
+    it('credencial recusada pela API continua sendo 401 de senha incorreta', async () => {
+      globalThis.fetch = async () => new Response(JSON.stringify({ success: false }), { status: 401 });
+      const response = await tentarLogin();
+      assert.equal(response.status, 401);
+      assert.equal((await response.json()).error, 'Usuário/CPF ou senha incorretos');
+    });
+
+    it('o acesso local do gestor segue funcionando sem a API', async () => {
+      const saved = { user: process.env.ADMIN_USER, password: process.env.ADMIN_PASSWORD };
+      process.env.ADMIN_USER = 'gestor-teste';
+      process.env.ADMIN_PASSWORD = 'senha-teste';
+      globalThis.fetch = async () => { throw new TypeError('fetch failed'); };
+      try {
+        const response = await tentarLogin('gestor-teste', 'senha-teste');
+        assert.equal(response.status, 200);
+        assert.match(response.headers.get('set-cookie') ?? '', /medtec_admin_session=/);
+      } finally {
+        if (saved.user === undefined) delete process.env.ADMIN_USER; else process.env.ADMIN_USER = saved.user;
+        if (saved.password === undefined) delete process.env.ADMIN_PASSWORD; else process.env.ADMIN_PASSWORD = saved.password;
+      }
+    });
+  });
+
     try {
       await assert.rejects(railsApiFetch('/usuarios'), /defina BACKEND_ADMIN_CPF e BACKEND_ADMIN_PASSWORD/);
       assert.equal(requests, 0);

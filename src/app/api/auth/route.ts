@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     const backendUrl = getApiBaseUrl();
     let backendTokens: { access_token: string; refresh_token: string } | null = null;
     let backendUser: { id: number; nome: string; cpf: string; perfil_nome: string } | null = null;
+    let backendUnavailable = false;
 
     try {
       const backendRes = await fetch(`${backendUrl}/auth/login`, {
@@ -53,10 +54,15 @@ export async function POST(request: Request) {
           if (meRes.ok) {
             const meJson = await meRes.json();
             backendUser = meJson.data;
+          } else {
+            backendUnavailable = true;
           }
         }
+      } else if (backendRes.status >= 500) {
+        backendUnavailable = true;
       }
     } catch (err) {
+      backendUnavailable = true;
       console.warn('API Backend indisponível para validação de login, recorrendo à validação local:', err);
     }
 
@@ -119,6 +125,11 @@ export async function POST(request: Request) {
       });
 
       return response;
+    }
+
+    // Sem resposta da API, a senha não foi avaliada: não dá para acusá-la de incorreta.
+    if (backendUnavailable) {
+      return NextResponse.json({ success: false, error: 'Serviço de autenticação indisponível. Tente novamente em instantes.' }, { status: 503 });
     }
 
     return NextResponse.json({ success: false, error: authResult.error || 'Usuário/CPF ou senha inválidos' }, { status: 401 });
