@@ -86,7 +86,7 @@ import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG,
 import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
 import { useAdminTheme } from '../src/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '../src/lib/admin-navigation-filter';
-import type { FaqItem, NewsItem } from '../src/types';
+import type { FaqItem, NewsItem, SocialLinks } from '../src/types';
 
 import {
   buildQueryString,
@@ -162,6 +162,9 @@ import ProjetoDetalhePage, { generateMetadata as projetoMetadata } from '../src/
 import ProjetosView from '../src/components/ProjetosView';
 import HomeBannerCarousel from '../src/components/HomeBannerCarousel';
 import { readHomeBanners } from '../src/lib/home-banners';
+import { CANAIS_PADRAO, canaisFromApi, YOUTUBE_URL_OFICIAL } from '../src/lib/site-channels';
+import { readSiteChannels } from '../src/lib/site-channels-server';
+import { SiteChannelsProvider } from '../src/components/SiteChannelsProvider';
 import { canAccessBanners } from '../src/lib/admin-session';
 import type { ConquistaPublica, ProfessorPublico } from '../src/lib/api/types';
 import {
@@ -3167,6 +3170,8 @@ describe('Avisos públicos Lote B — apresentação e limites', () => {
       let reloads = 0;
       const location = { href, reload() { reloads++; } };
       Object.defineProperty(globalThis, 'window', { configurable: true, value: { location } });
+      // Chamado fora de uma renderização: o contexto dos canais precisa ser simulado.
+      const context = mock.method(React, 'useContext', () => CANAIS_PADRAO);
       try {
         const tree = name === 'avisos'
           ? inspectView([], null, 'Falha HTTP 503')
@@ -3180,6 +3185,7 @@ describe('Avisos públicos Lote B — apresentação e limites', () => {
         assert.equal(reloads, 1);
         assert.equal(location.href, href);
       } finally {
+        context.mock.restore();
         if (descriptor) Object.defineProperty(globalThis, 'window', descriptor);
         else Reflect.deleteProperty(globalThis, 'window');
       }
@@ -5707,12 +5713,6 @@ describe('5. Cliente HTTP apiFetch (Respostas, 204 e Renovação de Token)', () 
     }
   });
 
-  it('rotas do servidor exigem credenciais do ambiente, sem valores padrão versionados', async () => {
-    const saved = { cpf: process.env.BACKEND_ADMIN_CPF, password: process.env.BACKEND_ADMIN_PASSWORD };
-    delete process.env.BACKEND_ADMIN_CPF;
-    delete process.env.BACKEND_ADMIN_PASSWORD;
-    let requests = 0;
-    globalThis.fetch = async () => { requests++; return new Response('{}', { status: 200 }); };
   describe('login com a API de autenticação fora do ar', () => {
     const tentarLogin = (username = '12345678900', password = 'x') => authRoutePost(new Request('http://localhost:3000/api/auth', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }),
@@ -5769,6 +5769,12 @@ describe('5. Cliente HTTP apiFetch (Respostas, 204 e Renovação de Token)', () 
     });
   });
 
+  it('rotas do servidor exigem credenciais do ambiente, sem valores padrão versionados', async () => {
+    const saved = { cpf: process.env.BACKEND_ADMIN_CPF, password: process.env.BACKEND_ADMIN_PASSWORD };
+    delete process.env.BACKEND_ADMIN_CPF;
+    delete process.env.BACKEND_ADMIN_PASSWORD;
+    let requests = 0;
+    globalThis.fetch = async () => { requests++; return new Response('{}', { status: 200 }); };
     try {
       await assert.rejects(railsApiFetch('/usuarios'), /defina BACKEND_ADMIN_CPF e BACKEND_ADMIN_PASSWORD/);
       assert.equal(requests, 0);
@@ -8813,7 +8819,8 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
       assert.equal(getStoredAccessToken(), 'admin-session-token');
       assert.equal(getStoredRefreshToken(), 'admin-session-refresh');
       assert.doesNotMatch(html, /999999999/);
-      assert.match(html, /instagram\.com\/governoro|facebook\.com\/governoderondonia|youtube\.com\/@SeducRondonia/);
+      assert.match(html, /instagram\.com\/governoro|facebook\.com\/governoderondonia/);
+      assert.doesNotMatch(html, /youtube\.com/);
     } finally {
       fetchMock.mock.restore();
       clearStoredTokens();
@@ -8904,6 +8911,84 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
     });
   });
 
+  describe('Canais de contato do site', () => {
+    const headers = { 'content-type': 'application/json' };
+    const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers });
+    const YT = 'https://www.youtube.com/@CanalDaApi';
+    const api = [
+      { rede: 'youtube', valor: YT }, { rede: 'instagram', valor: 'https://www.instagram.com/api/' },
+      { rede: 'whatsapp', valor: 'https://wa.me/556900000000' }, { rede: 'telefone', valor: '(69) 0000-0000' },
+      { rede: 'email', valor: 'api@seduc.ro.gov.br' }, { rede: 'endereco', valor: 'Endereço da API' },
+    ];
+    const value = canaisFromApi(api);
+    const provided = (element: React.ComponentType, channels: SocialLinks = value) => renderToStaticMarkup(
+      createElement(PathnameContext.Provider, { value: '/' }, createElement(SiteChannelsProvider as React.ComponentType<{ value: SocialLinks; children?: ReactNode }>, { value: channels }, createElement(element))));
+
+    it('a API prevalece, e o que ela não devolve foi desativado', () => {
+      assert.deepEqual(value, { instagram: 'https://www.instagram.com/api/', youtube: YT, facebook: '', whatsapp: 'https://wa.me/556900000000', email: 'api@seduc.ro.gov.br', phone: '(69) 0000-0000', address: 'Endereço da API' });
+    });
+    it('lista vazia usa os valores de reserva, e valor que não é link não vira link', () => {
+      assert.deepEqual(canaisFromApi([]), CANAIS_PADRAO);
+      const links = canaisFromApi([{ rede: 'youtube', valor: 'javascript:alert(1)' }, { rede: 'instagram', valor: '@medtec' }, { rede: 'whatsapp', valor: '+55 69 0000-0000' }]);
+      assert.equal(links.youtube, ''); assert.equal(links.instagram, ''); assert.equal(links.whatsapp, '');
+    });
+    it('o link do YouTube fica em um único ponto do código', () => {
+      assert.equal(CANAIS_PADRAO.youtube, YOUTUBE_URL_OFICIAL);
+      for (const file of ['src/app/ao-vivo/page.tsx', 'src/app/redes/page.tsx', 'src/components/SocialSection.tsx', 'src/components/LiveBroadcastSection.tsx', 'src/components/FloatingSocialRotator.tsx', 'src/data/db.json', 'src/data/initialData.json']) {
+        assert.doesNotMatch(readFileSync(file, 'utf8'), /youtube\.com\/@/, file);
+      }
+    });
+    it('service usa a rota pública sem token e recusa resposta fora do contrato', async () => {
+      setStoredTokens({ access_token: 'admin-session-token', refresh_token: 'admin-session-refresh' });
+      const calls: { url: URL; options: RequestInit }[] = [];
+      const ok = mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, options: RequestInit = {}) => { calls.push({ url: new URL(String(input)), options }); return reply({ success: true, data: [{ rede: 'email', valor: 'a@b.c', extra: 1 }] }); });
+      try {
+        assert.deepEqual((await medtecApi.canaisPublicos.list()).data, [{ rede: 'email', valor: 'a@b.c' }]);
+        assert.ok(calls[0].url.pathname.endsWith('/publico/canais_contato'));
+        assert.equal(new Headers(calls[0].options.headers).has('Authorization'), false); assert.equal(calls[0].options.credentials, 'omit');
+      } finally { ok.mock.restore(); clearStoredTokens(); }
+      const bad = mock.method(globalThis, 'fetch', async () => reply({ success: true, data: [{ rede: 1 }] }));
+      try { await assert.rejects(medtecApi.canaisPublicos.list(), /Canais de Contato/); } finally { bad.mock.restore(); }
+    });
+    it('falha ou API travada usa os valores de reserva, com tempo limite e cache curto', async () => {
+      const warn = mock.method(console, 'warn', () => {});
+      const timeout = mock.method(AbortSignal, 'timeout', () => new AbortController().signal);
+      try {
+        for (const fetcher of [async () => reply({ success: false, errors: ['x'] }, 500), async () => { throw new TypeError('fetch failed'); }]) {
+          const spy = mock.method(globalThis, 'fetch', fetcher);
+          try { assert.deepEqual(await readSiteChannels(), { canais: CANAIS_PADRAO, failed: true }); } finally { spy.mock.restore(); }
+        }
+        const ok = mock.method(globalThis, 'fetch', async () => reply({ success: true, data: api }));
+        try { assert.deepEqual(await readSiteChannels(), { canais: value, failed: false }); } finally { ok.mock.restore(); }
+        assert.equal(timeout.mock.calls[0].arguments[0], 2500);
+      } finally { timeout.mock.restore(); warn.mock.restore(); }
+      const cached = readFileSync('src/lib/site-channels-server.ts', 'utf8');
+      assert.match(cached, /getSiteChannels\(\)[^{]*\{\s*'use cache';/);
+      assert.match(cached, /cacheLife\(\{ stale: 300, revalidate: failed \? 30 : 300 \}\)/);
+      assert.match(readFileSync('src/app/layout.tsx', 'utf8'), /<SiteChannelsProvider value=\{await getSiteChannels\(\)\}>/);
+    });
+    it('rodapé, redes e botões flutuantes mostram os valores da API', () => {
+      const footer = provided(SiteFooter);
+      for (const text of ['(69) 0000-0000', 'api@seduc.ro.gov.br', 'Endereço da API']) assert.ok(footer.includes(text), text);
+      assert.ok(!footer.includes('mediacaotecnologica'));
+      const social = provided(SocialSection);
+      assert.ok(social.includes(YT)); assert.ok(social.includes('https://wa.me/556900000000')); assert.match(social, /Canal no YouTube/);
+      assert.doesNotMatch(social, /Página no Facebook|facebook\.com/, 'Canal desativado não aparece');
+      assert.ok(provided(LiveBroadcastSection as React.ComponentType).includes(YT));
+      const floating = provided(FloatingSocialRotator);
+      assert.ok(floating.includes('instagram.com/api') || floating.includes(YT));
+    });
+    it('sem link de YouTube, nenhum botão de YouTube aparece', () => {
+      const semYoutube = { ...value, youtube: '' };
+      assert.doesNotMatch(provided(SocialSection, semYoutube), /Canal no YouTube|youtube\.com/);
+      assert.doesNotMatch(provided(LiveBroadcastSection as React.ComponentType, semYoutube), /Assistir no YouTube|youtube\.com/);
+      assert.doesNotMatch(provided(FloatingSocialRotator, semYoutube), /youtube\.com/);
+    });
+    it('sem nenhuma rede, os botões flutuantes somem', () => {
+      assert.equal(provided(FloatingSocialRotator, { ...value, youtube: '', instagram: '', facebook: '' }), '');
+    });
+  });
+
   it('/redes não chama /canais_contato, preserva sessão admin e apresenta canais institucionais sem WhatsApp fictício', async () => {
     setStoredTokens({ access_token: 'admin-session-token', refresh_token: 'admin-session-refresh' });
     let calls = 0;
@@ -8919,7 +9004,7 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
       const section = noticeNodes(tree).find(node => node.type === SocialSection);
       assert.ok(section);
       const html = renderToStaticMarkup(section);
-      assert.match(html, /youtube\.com\/@SeducRondonia/);
+      assert.doesNotMatch(html, /youtube\.com|Canal no YouTube/, 'Sem link oficial, o botão não aparece');
       assert.match(html, /instagram\.com\/governoro/);
       assert.match(html, /facebook\.com\/governoderondonia/);
       assert.match(html, /\(69\) 3216-5300/);
@@ -8947,7 +9032,7 @@ describe('Lote E1 — correção das chamadas públicas e isolamento de sessão'
     const customWhatsappHtml = renderToStaticMarkup(createElement(SocialSection, {
       socials: {
         instagram: 'https://www.instagram.com/governoro/',
-        youtube: 'https://www.youtube.com/@SeducRondonia',
+        youtube: 'https://www.youtube.com/@CanalDeTeste',
         facebook: 'https://www.facebook.com/governoderondonia',
         whatsapp: 'https://wa.me/556932165300',
         email: 'mediacaotecnologica@seduc.ro.gov.br',

@@ -868,3 +868,9 @@ export interface PublicoGaleriaParams {
   page?: number | 'all';
   per_page?: number;
 }
+
+// Só canais ativos, na ordem definida no painel. `valor` é link, telefone, e-mail ou endereço.
+export interface CanalPublico {
+  rede: CanalRedeFixa;
+  valor: string;
+}

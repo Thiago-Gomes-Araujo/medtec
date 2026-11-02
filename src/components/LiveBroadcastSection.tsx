@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { SocialLinks, NewsItem } from '@/types';
+import { useSiteChannels } from '@/components/SiteChannelsProvider';
 import type { AvisoPublico } from '@/lib/api/types';
 import { 
   Satellite, 
@@ -41,7 +42,8 @@ export default function LiveBroadcastSection({
   announcementsError = null,
 }: LiveBroadcastSectionProps) {
   // Derivação de dados: utiliza diretamente as props passadas
-  const effectiveSocials = propSocials || null;
+  const channels = useSiteChannels();
+  const socials = propSocials ?? channels;
   const effectiveAnnouncements = propAnnouncements.length > 0 
     ? propAnnouncements 
     : EMPTY_ANNOUNCEMENTS;
@@ -76,10 +78,8 @@ export default function LiveBroadcastSection({
 
   const recentNews: NewsItem[] = effectiveNews.slice(0, 2);
 
-  const socials = effectiveSocials;
-
-  const youtubeUrl = socials?.youtube?.trim() || 'https://www.youtube.com/@SeducRondonia';
-  const whatsappUrl = socials?.whatsapp?.trim() || '';
+  const youtubeUrl = socials.youtube?.trim() || '';
+  const whatsappUrl = socials.whatsapp?.trim() || '';
 
   return (
     <section 
@@ -154,6 +154,7 @@ export default function LiveBroadcastSection({
 
                 {/* Ações de Transmissão */}
                 <div className="pt-2 flex flex-wrap items-center gap-3">
+                  {youtubeUrl && (
                   <a
                     href={youtubeUrl}
                     target="_blank"
@@ -165,6 +166,7 @@ export default function LiveBroadcastSection({
                     <span>Assistir no YouTube</span>
                     <ExternalLink className="h-3 w-3 opacity-80 shrink-0" aria-hidden="true" />
                   </a>
+                  )}
 
                   {whatsappUrl ? (
                     <a
@@ -183,7 +185,7 @@ export default function LiveBroadcastSection({
                       className="inline-flex items-center justify-center gap-2 min-h-[44px] rounded-lg border border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-white/5 px-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300"
                     >
                       <WhatsAppIcon size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span>Suporte SEDUC: {socials?.phone || '(69) 3216-5300'}</span>
+                      <span>Suporte SEDUC: {socials.phone}</span>
                     </span>
                   )}
                 </div>

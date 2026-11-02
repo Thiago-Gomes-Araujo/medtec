@@ -21,7 +21,7 @@ import { perfisService } from './services/perfis.service';
 import { estadosService, cidadesService } from './services/geografia.service';
 import { avisosService, tiposAvisoService } from './services/avisos.service';
 import { categoriasGaleriaService, fotosGaleriaService, galeriaPublicaService } from './services/galeria.service';
-import { canaisService } from './services/canais.service';
+import { canaisService, canaisPublicosService } from './services/canais.service';
 import { noticiasService } from './services/noticias.service';
 import { categoriasDuvidaService, duvidasService, duvidasVisitanteService, duvidasPublicasService } from './services/duvidas.service';
 import { escolasService } from './services/escolas.service';
@@ -66,6 +66,7 @@ export const medtecApi = {
 
   // Canais de Contato (/canais_contato)
   canaisContato: canaisService,
+  canaisPublicos: canaisPublicosService,
 
   // Notícias e Fila Editorial (Contrato Previsto)
   noticias: noticiasService,
