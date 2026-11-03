@@ -128,5 +128,6 @@ export * from './types';
 export * from './errors';
 export * from './tokens';
 export * from './client';
+export * from './permissoes';
 
 export default medtecApi;

@@ -21,6 +21,7 @@ import {
   getMediaUrl,
 } from '@/lib/api';
 import FileButton from './FileButton';
+import { usePermissoes } from '@/components/admin/usePermissoes';
 import AdminLiveSimulator, { PreviewGalleryData } from '@/components/AdminLiveSimulator';
 
 export interface GalleryModuleProps {
@@ -55,6 +56,7 @@ export default function GalleryModule({
 }: GalleryModuleProps) {
   // Modos de visualização internos da Galeria
   const [galleryViewMode, setGalleryViewMode] = useState<'lista' | 'editor'>('lista');
+  const { pode } = usePermissoes();
   const [categoriaSelection, setSelectedCategoriaId] = useState<number | null>(null);
   const [editingPhotoId, setEditingPhotoId] = useState<number | null>(null);
   const [galleryFile, setGalleryFile] = useState<File | null>(null);
@@ -305,7 +307,7 @@ export default function GalleryModule({
             <span>Fotos no Acervo ({displayFotosCount})</span>
           </button>
 
-          <button
+          {pode('fotos_galeria', 'create') && <button
             type="button"
             onClick={() => {
               handleNewPhoto();
@@ -319,9 +321,9 @@ export default function GalleryModule({
           >
             <Plus className="h-4 w-4" />
             <span>{editingPhotoId ? 'Editar Foto' : 'Adicionar Foto'}</span>
-          </button>
+          </button>}
 
-          <button
+          {(pode('categorias_galeria', 'create') || pode('categorias_galeria', 'update')) && <button
             type="button"
             onClick={() => setShowCategoriaManager(!showCategoriaManager)}
             className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
@@ -332,10 +334,10 @@ export default function GalleryModule({
           >
             <Layers className="h-4 w-4 text-sky-500" />
             <span>Categorias da Galeria ({apiCategorias.length})</span>
-          </button>
+          </button>}
         </div>
 
-        {galleryViewMode === 'lista' && !showCategoriaManager && (
+        {galleryViewMode === 'lista' && !showCategoriaManager && pode('fotos_galeria', 'create') && (
           <button
             type="button"
             onClick={handleNewPhoto}
@@ -470,7 +472,7 @@ export default function GalleryModule({
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button
+                  {pode('categorias_galeria', 'update') && <button
                     type="button"
                     onClick={() => {
                       setEditingCategoria(cat);
@@ -485,15 +487,15 @@ export default function GalleryModule({
                     title="Editar categoria"
                   >
                     <Edit3 size={13} />
-                  </button>
-                  <button
+                  </button>}
+                  {pode('categorias_galeria', 'destroy') && <button
                     type="button"
                     onClick={() => handleDeleteCategoria(cat.id)}
                     className="p-1.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600"
                     title="Excluir categoria"
                   >
                     <Trash2 size={13} />
-                  </button>
+                  </button>}
                 </div>
               </div>
             ))}
@@ -849,22 +851,22 @@ export default function GalleryModule({
                             >
                               <Eye size={14} />
                             </button>
-                            <button
+                            {pode('fotos_galeria', 'update') && <button
                               type="button"
                               onClick={() => handleEditPhoto(photo)}
                               className="text-slate-500 hover:text-[#004A99] p-1 cursor-pointer"
                               title="Editar foto"
                             >
                               <Edit3 size={14} />
-                            </button>
-                            <button
+                            </button>}
+                            {pode('fotos_galeria', 'destroy') && <button
                               type="button"
                               onClick={() => handleDeletePhoto(photo.id)}
                               className="text-rose-600 hover:text-rose-800 dark:text-rose-400 p-1 cursor-pointer"
                               title="Excluir foto"
                             >
                               <Trash2 size={14} />
-                            </button>
+                            </button>}
                           </div>
                         </div>
                       </div>

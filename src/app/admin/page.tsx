@@ -35,13 +35,18 @@ import { useAprovacoesPendentes } from '@/components/admin/useAprovacoesPendente
 import { useRelatosPendentes } from '@/components/admin/useRelatosPendentes';
 import { useBannersTotal } from '@/components/admin/useBannersTotal';
 import { useProjetosResumo } from '@/components/admin/useProjetosResumo';
-import { canAccessBanners, canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
+import { getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminEditorialDestination } from '@/lib/admin-auth-navigation';
-import { buildAdminMenu, getActiveMenuSection, getFolderIdForSection, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
+import { buildAdminMenu, getActiveMenuSection, getFolderIdForSection, getModulosAprovacaoContaveis, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
+import { usePermissoes } from '@/components/admin/usePermissoes';
 import { sidebarIconButtonClass, sidebarPortalLinkClass, sidebarSearchInputClass } from '@/components/admin/adminTheme';
 import {
   medtecApi,
   clearStoredTokens,
+  definirPermissoes,
+  limparPermissoes,
+  obterPermissoes,
+  pode as podeEm,
   fetchWithTimeout,
   isConnectionFailure,
   isTimeoutError,
@@ -155,17 +160,13 @@ export default function AdminDashboardPage() {
   }, [router]);
 
   const [userSession, setUserSession] = useState<{
-    isGestor: boolean;
     username?: string;
     name?: string;
     profileType?: string;
-    editorialProfile?: string;
-  }>({ isGestor: false });
+  }>({});
   const [authFailed, setAuthFailed] = useState(false);
   const [authAttempt, setAuthAttempt] = useState(0);
-
-  // A sessão Rails confirma o perfil editorial; permissões de edição não aprovam notícias.
-  const canAccessKanban = userSession.isGestor && userSession.editorialProfile === 'Administrador';
+  const { sessao, pode } = usePermissoes();
   const {
     loadingNews, errorNews, totalNews,
     loadingAvisos, errorAvisos, totalAvisos,
@@ -189,7 +190,6 @@ export default function AdminDashboardPage() {
     let sessionUnreachable = false;
     try {
       let authenticated = false;
-      let overviewAuthorized = false;
 
       // 1. Tenta validar token JWT na API Backend v1 (/auth/me)
       if (medtecApi.auth.isAuthenticated()) {
@@ -198,19 +198,17 @@ export default function AdminDashboardPage() {
           if (!isCurrent()) return;
           if (meRes.success && meRes.data) {
             authenticated = true;
-            const { isGestor, username, name, profileType } = getRailsSessionFields(meRes.data);
-            overviewAuthorized = isGestor;
+            definirPermissoes(meRes.data);
+            const { username, name, profileType } = getRailsSessionFields(meRes.data);
             setIsLoggedIn(true);
             setUserSession({
-              isGestor,
               username,
               name,
               profileType,
-              editorialProfile: meRes.data.perfil_nome,
             });
 
             const destination = getAdminEditorialDestination(
-              isGestor, profileType, new URLSearchParams(window.location.search),
+              podeEm('n_noticias', 'create'), new URLSearchParams(window.location.search),
             );
             if (destination) {
               if (destination.method === 'push') router.push(destination.href);
@@ -236,12 +234,12 @@ export default function AdminDashboardPage() {
         if (authRes.ok) {
           const authJson = await authRes.json();
           if (!isCurrent()) return;
-          const { isGestor, username, name, profileType } = getLocalSessionFields(authJson);
-          overviewAuthorized = isGestor;
+          // O login local não passa pelo /auth/me: nenhuma permissão.
+          limparPermissoes();
+          const { username, name, profileType } = getLocalSessionFields(authJson);
 
           setIsLoggedIn(true);
           setUserSession({
-            isGestor,
             username,
             name,
             profileType,
@@ -249,7 +247,7 @@ export default function AdminDashboardPage() {
           authenticated = true;
 
           const destination = getAdminEditorialDestination(
-            isGestor, profileType, new URLSearchParams(window.location.search),
+            podeEm('n_noticias', 'create'), new URLSearchParams(window.location.search),
           );
           if (destination) {
             if (destination.method === 'push') router.push(destination.href);
@@ -269,7 +267,7 @@ export default function AdminDashboardPage() {
 
       // A autenticação e os redirecionamentos acima continuam pertencendo à página.
       if (!isCurrent()) return;
-      await loadOverview(overviewAuthorized);
+      await loadOverview(obterPermissoes());
     } catch (err) {
       if (!isCurrent()) return;
       console.error(err);
@@ -290,6 +288,7 @@ export default function AdminDashboardPage() {
       console.warn('Erro ao chamar logout da API v1:', err);
     }
     clearStoredTokens();
+    limparPermissoes();
     try {
       await fetchWithTimeout('/api/auth', { method: 'DELETE' });
     } catch (err) {
@@ -298,47 +297,19 @@ export default function AdminDashboardPage() {
     router.push('/admin/login');
   };
 
-  // Permissões por Atribuição de Perfil
-  const canAccessNews = userSession.isGestor || userSession.profileType === 'Editor de Notícias' || userSession.profileType === 'Operador de Conteúdo';
-  const canAccessPhotos = canAccessBanners(userSession);
-  const canAccessAnnouncements = userSession.isGestor || userSession.profileType === 'Publicador de Avisos' || userSession.profileType === 'Operador de Conteúdo';
-  const canAccessGallery = userSession.isGestor || userSession.profileType === 'Curador de Fotos' || userSession.profileType === 'Operador de Conteúdo';
-  const canAccessProjects = canAccessProjetos(userSession);
-  const canAccessFaqs = canAccessDuvidas(userSession);
-  // A sessão local não tem token, e o Gestor sai desta página: o AdminShell conta para ele.
-  const canReadApiCounters = userSession.isGestor && medtecApi.auth.isAuthenticated();
-  const duvidasPendentes = useDuvidasPendentes(canReadApiCounters);
-  const relatosPendentes = useRelatosPendentes(canReadApiCounters);
-  const aprovacoesPendentes = useAprovacoesPendentes(canReadApiCounters && canAccessKanban);
-  const projetosResumo = useProjetosResumo(canReadApiCounters);
-  const bannersTotal = useBannersTotal(canReadApiCounters);
-  const canAccessProfessores =
-    userSession.isGestor ||
-    userSession.profileType === 'Editor de Notícias' ||
-    userSession.profileType === 'Operador de Conteúdo';
-  const canAccessAlunos =
-    userSession.isGestor ||
-    userSession.profileType === 'Editor de Notícias' ||
-    userSession.profileType === 'Operador de Conteúdo';
-  const canAccessSocials = userSession.isGestor;
-  const canAccessUsers = userSession.isGestor;
-  const canAccessEstados = userSession.isGestor;
+  // Os contadores só consultam módulos com index, e só depois de a página confirmar a sessão.
+  const lista = (modulo: string) => isLoggedIn && pode(modulo, 'index');
+  const duvidasPendentes = useDuvidasPendentes(lista('d_duvidas_visitante'));
+  const relatosPendentes = useRelatosPendentes(lista('p_relatos'));
+  // A Fila soma só os módulos que a pessoa publica.
+  const aprovacoesPendentes = useAprovacoesPendentes(isLoggedIn ? getModulosAprovacaoContaveis(sessao) : []);
+  const projetosResumo = useProjetosResumo(lista('pj_projetos'));
+  const bannersTotal = useBannersTotal(lista('b_banners'));
+  // Sem permissões (ex.: login local ADMIN_USER), não há pendências para ler na API.
+  const canReadApiCounters = Object.keys(sessao.permissoes).length > 0;
 
   // Árvore de Navegação em Pastas Expansíveis (Didático - Estilo Accordion JOER SEDUC-RO)
-  const folders = buildAdminMenu({
-    noticias: canAccessNews,
-    projetos: canAccessProjects,
-    duvidas: canAccessFaqs,
-    avisos: canAccessAnnouncements,
-    fotos: canAccessPhotos,
-    galeria: canAccessGallery,
-    professores: canAccessProfessores,
-    alunos: canAccessAlunos,
-    kanban: canAccessKanban,
-    redes: canAccessSocials,
-    estadosCidades: canAccessEstados,
-    usuarios: canAccessUsers,
-  }, {
+  const folders = buildAdminMenu(sessao, {
     noticias: errorNews ? undefined : (loadingNews ? undefined : (totalNews ?? undefined)),
     avisos: errorAvisos ? undefined : (loadingAvisos ? undefined : (totalAvisos ?? undefined)),
     galeria: errorFotos ? undefined : (loadingFotos ? undefined : (totalFotos ?? undefined)),
@@ -346,7 +317,6 @@ export default function AdminDashboardPage() {
     estadosCidades: totalEstados !== null && totalEstados > 0 ? totalEstados : undefined,
     usuarios: errorUsers ? undefined : (totalUsers ?? undefined),
     duvidasPublico: duvidasPendentes.count || undefined,
-    projetosAprovacao: projetosResumo.pending || undefined,
     professores: relatosPendentes.count || undefined,
   });
 
@@ -465,7 +435,7 @@ export default function AdminDashboardPage() {
         {/* Corpo Navegável com Árvore Expansível (Accordion) */}
         <nav aria-label="Menu do painel" className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-4 scrollbar-thin">
           {/* 1. Início (Resumo do Painel) - Item Direto no Topo */}
-          {userSession.isGestor && homeMatchesSearch && (
+          {homeMatchesSearch && (
             <div className="space-y-1">
               <SidebarNavItem
                 label="Início"
@@ -543,7 +513,7 @@ export default function AdminDashboardPage() {
                     {userSession.name || userSession.username || 'Administrador'}
                   </p>
                   <p className="text-[11px] text-admin-muted truncate leading-tight">
-                    {userSession.isGestor ? 'Gestor Geral' : (userSession.profileType || 'Operador')}
+                    {userSession.profileType || 'Operador'}
                   </p>
                 </div>
               )}
@@ -620,7 +590,7 @@ export default function AdminDashboardPage() {
 
             {/* Lista Mobile com Accordion */}
             <nav aria-label="Menu do painel" className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-4 scrollbar-thin">
-              {userSession.isGestor && homeMatchesSearch && (
+              {homeMatchesSearch && (
                 <div className="space-y-1">
                   <SidebarNavItem
                     label="Início"
@@ -674,7 +644,7 @@ export default function AdminDashboardPage() {
 
             <MobileDrawerFooter
               userName={userSession.name || userSession.username}
-              roleLabel={userSession.isGestor ? 'Gestor Geral' : (userSession.profileType || 'Operador')}
+              roleLabel={userSession.profileType || 'Operador'}
               onLogout={handleLogout}
             />
           </div>
@@ -741,7 +711,7 @@ export default function AdminDashboardPage() {
         <main id="conteudo-principal" className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
           
           {/* Barra de Topo do Módulo com Botão "← Voltar para o Início" */}
-          {currentSection !== 'visaoGeral' && userSession.isGestor && (
+          {currentSection !== 'visaoGeral' && (
             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-admin-border">
               <button
                 type="button"
@@ -776,7 +746,7 @@ export default function AdminDashboardPage() {
           {/* ========================================================
               VISÃO PRINCIPAL: PAINEL DO GESTOR (HUB DE MÓDULOS)
           ======================================================== */}
-          {currentSection === 'visaoGeral' && userSession.isGestor && (
+          {currentSection === 'visaoGeral' && (
             <AdminOverview
               indicators={{
                 loadingNews, errorNews, totalNews, apiNewsPublishedCount, apiNewsDraftCount,
@@ -789,14 +759,16 @@ export default function AdminDashboardPage() {
               menu={folders}
               userName={userSession.name || userSession.username}
               pendencias={canReadApiCounters ? {
-                // O mesmo valor do item Aprovações do menu, conforme o acesso à Fila.
-                aprovacoes: canAccessKanban ? aprovacoesPendentes : { count: projetosResumo.pending, error: projetosResumo.error },
+                // O mesmo valor do item Aprovações do menu.
+                aprovacoes: aprovacoesPendentes,
                 duvidas: duvidasPendentes,
                 relatos: relatosPendentes,
               } : undefined}
               totalEstados={totalEstados}
               projetosResumo={canReadApiCounters ? projetosResumo : undefined}
               bannersTotal={canReadApiCounters ? bannersTotal : undefined}
+              canCreateNews={pode('n_noticias', 'create')}
+              canCreateProject={pode('pj_projetos', 'create')}
               onCreateNews={() => router.push('/admin/noticias?action=new')}
             />
           )}

@@ -29,6 +29,9 @@ export interface AdminOverviewProps {
   totalEstados?: number | null;
   projetosResumo?: ProjetosResumo;
   bannersTotal?: { count: number | null; error: string | null };
+  /** Atalhos "Nova notícia" e "Novo projeto": exigem a permissão create do módulo. */
+  canCreateNews?: boolean;
+  canCreateProject?: boolean;
   onCreateNews: () => void;
 }
 
@@ -72,13 +75,14 @@ function AttentionSkeleton() {
 }
 
 export default function AdminOverview({
-  indicators, menu, userName, pendencias, totalEstados, projetosResumo, bannersTotal, onCreateNews,
+  indicators, menu, userName, pendencias, totalEstados, projetosResumo, bannersTotal,
+  canCreateNews = false, canCreateProject = false, onCreateNews,
 }: AdminOverviewProps) {
   const { loadingNews, errorNews, apiNewsDraftCount, loadingAvisos, errorAvisos, apiAvisosAtivosCount,
     loadingFotos, errorFotos, totalCategorias, loadingFaqs, errorFaqs, apiFaqsPendingCount, usersCountLabel } = indicators;
   const visibleItems = menu.flatMap(folder => folder.items.filter(item => item.visible));
   const canSee = (section: AdminSection) => visibleItems.some(item => item.section === section);
-  const aprovacoes = visibleItems.find(item => item.section === 'kanban' || item.section === 'projetosAprovacao');
+  const aprovacoes = visibleItems.find(item => item.section === 'kanban');
 
   const sem = { count: null, error: null };
   const cards = [
@@ -106,7 +110,6 @@ export default function AdminOverview({
     duvidas: aguardando(apiFaqsPendingCount, !!(loadingFaqs || errorFaqs), value => `${value} aguardando`),
     duvidasPublico: aguardando(pendencias?.duvidas.count, false, value => `${value} sem resposta`),
     kanban: aprovacoesContador,
-    projetosAprovacao: aprovacoesContador,
     estadosCidades: detalhe(totalEstados, false, value => plural(value, 'estado', 'estados')),
     usuarios: { text: `${usersCountLabel} usuários`, pendentes: 0 },
   };
@@ -119,13 +122,13 @@ export default function AdminOverview({
           <p className="text-xs text-admin-muted">Veja o que precisa de atenção e escolha o que deseja fazer.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-          {canSee('noticias') && (
+          {canCreateNews && (
             <button type="button" onClick={onCreateNews} className={adminPrimaryButtonClass}>
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Nova notícia</span>
             </button>
           )}
-          {canSee('projetos') && (
+          {canCreateProject && (
             <Link href="/admin/projetos?action=new" className={adminSecondaryButtonClass}>
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               <span>Novo projeto</span>
@@ -172,7 +175,7 @@ export default function AdminOverview({
             <h3 id="inicio-resumo" className="text-sm font-semibold text-admin-text">Resumo do site</h3>
             <p className="text-xs text-admin-muted">Quantos conteúdos o site tem hoje.</p>
           </div>
-          <OverviewStats indicators={indicators} projetosResumo={projetosResumo} bannersTotal={bannersTotal} />
+          <OverviewStats indicators={indicators} projetosResumo={projetosResumo} bannersTotal={bannersTotal} canSee={canSee} />
         </section>
       </div>
 

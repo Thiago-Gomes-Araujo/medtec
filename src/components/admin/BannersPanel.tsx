@@ -6,6 +6,7 @@ import { medtecApi, type BBanner } from '@/lib/api';
 import { isHttpsUrl, validateConquistaImage } from '@/lib/community-content';
 import FileButton from './FileButton';
 import { buttonClass, inputClass, panelClass, renderFeedback, useAdminAction, useApiList } from './communityAdminUi';
+import { usePermissoes } from './usePermissoes';
 
 interface BannerForm {
   id?: number;
@@ -26,6 +27,7 @@ export default function BannersPanel() {
   const [form, setForm] = useState<BannerForm | null>(null);
   const [deleting, setDeleting] = useState<{ banner: BBanner; numero: number } | null>(null);
   const action = useAdminAction();
+  const { pode } = usePermissoes();
   const blocked = action.busy || form !== null || deleting !== null;
 
   // Arquivo e link são alternativos: escolher um descarta o outro.
@@ -71,9 +73,9 @@ export default function BannersPanel() {
           <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Banners da página inicial</h2>
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">O topo da home alterna todos os banners como fundo, na ordem do cadastro, escurecidos e atrás do título. Use artes largas e evite texto na imagem.</p>
         </div>
-        <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
+        {pode('b_banners', 'create') && <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
           setForm(NEW_FORM); action.setError(null); action.setSuccess(null);
-        }}>Novo banner</button>
+        }}>Novo banner</button>}
       </header>
 
       {loading && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Carregando banners...</p>}
@@ -116,12 +118,12 @@ export default function BannersPanel() {
             <div className="flex flex-wrap items-center justify-between gap-2 p-3">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Banner {numero}</span>
               <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={blocked} aria-label={`Trocar imagem do banner ${numero}`} className={buttonClass} onClick={() => {
+                {pode('b_banners', 'update') && <button type="button" disabled={blocked} aria-label={`Trocar imagem do banner ${numero}`} className={buttonClass} onClick={() => {
                   setForm({ ...NEW_FORM, id: item.id, numero, atual: imageOf(item) }); action.setError(null); action.setSuccess(null);
-                }}>Trocar imagem</button>
-                <button type="button" disabled={blocked} aria-label={`Excluir banner ${numero}`} className={buttonClass} onClick={() => {
+                }}>Trocar imagem</button>}
+                {pode('b_banners', 'destroy') && <button type="button" disabled={blocked} aria-label={`Excluir banner ${numero}`} className={buttonClass} onClick={() => {
                   setDeleting({ banner: item, numero }); action.setError(null); action.setSuccess(null);
-                }}>Excluir</button>
+                }}>Excluir</button>}
               </div>
             </div>
           </li>;

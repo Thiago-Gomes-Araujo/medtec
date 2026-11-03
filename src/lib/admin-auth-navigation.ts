@@ -5,21 +5,16 @@ export type AdminEditorialDestination = {
 
 // Define somente o destino editorial. A página mantém a coordenação de aliases,
 // a validade da execução e a decisão de quando efetuar a navegação.
+// Todo usuário logado tem o Início; o atalho de nova notícia só vale com a permissão
+// create de n_noticias, que o chamador confere com pode().
 export function getAdminEditorialDestination(
-  isGestor: boolean,
-  profileType: string | null | undefined,
+  canCreateNews: boolean,
   params: URLSearchParams,
 ): AdminEditorialDestination | null {
-  if (isGestor) return null;
-  if (profileType === 'Curador de Fotos') {
-    return { method: 'replace', href: '/admin/galeria' };
-  }
-  if (profileType === 'Publicador de Avisos') {
-    return { method: 'push', href: '/admin/avisos' };
-  }
-
   const createNews = params.get('action') === 'new' || ['editor', 'new', 'nova'].includes(params.get('mode') || '');
-  return { method: 'replace', href: createNews ? '/admin/noticias?action=new' : '/admin/noticias' };
+  return createNews && canCreateNews
+    ? { method: 'replace', href: '/admin/noticias?action=new' }
+    : null;
 }
 
 // Recebe o primeiro redirect já extraído da query do login. Não decodifica

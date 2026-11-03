@@ -2,10 +2,11 @@
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { medtecApi, ApiError, type NNoticia, type NCategoriaNoticia, getMediaUrl } from '@/lib/api';
+import { medtecApi, ApiError, listaVaziaSeSemPermissao, type NNoticia, type NCategoriaNoticia, getMediaUrl } from '@/lib/api';
 import NewsModule from '@/components/admin/NewsModule';
 import { notifyAprovacoesPendentes } from '@/components/admin/useAprovacoesPendentes';
 import AdminShell, { type AdminSession } from '@/components/admin/AdminShell';
+import { usePermissoes } from '@/components/admin/usePermissoes';
 import type { NewsItem } from '@/types';
 import { AdminPreviewModal, type PreviewContentType, type PreviewItemData } from '@/components/AdminLiveSimulator';
 
@@ -23,8 +24,8 @@ function NewsContent({ session }: { session: AdminSession }) {
   const [apiNewsCategories, setApiNewsCategories] = useState<NCategoriaNoticia[]>([]);
   const [loadingNews, setLoadingNews] = useState(true);
   const [errorNews, setErrorNews] = useState<string | null>(null);
-  // /auth/me supplies the current profile; never infer publishing from isGestor or user IDs.
-  const [permissions, setPermissions] = useState<string[]>([]);
+  // Cada botão segue a ação liberada no /auth/me para n_noticias.
+  const { pode } = usePermissoes();
   const [previewModal, setPreviewModal] = useState<{
     isOpen: boolean; type: PreviewContentType; data: PreviewItemData;
   }>({ isOpen: false, type: 'noticia', data: {} });
@@ -34,7 +35,7 @@ function NewsContent({ session }: { session: AdminSession }) {
     setErrorNews(null);
     try {
       const [catsRes, newsRes] = await Promise.all([
-        medtecApi.noticias.listCategorias({ page: 'all', 'q[ativo_true]': 1 }),
+        medtecApi.noticias.listCategorias({ page: 'all', 'q[ativo_true]': 1 }).catch(listaVaziaSeSemPermissao<NCategoriaNoticia>),
         medtecApi.noticias.list({ page: 'all' }),
       ]);
       if (!catsRes.success || !Array.isArray(catsRes.data?.items) ||
@@ -53,34 +54,12 @@ function NewsContent({ session }: { session: AdminSession }) {
   useEffect(() => {
     let active = true;
     async function initialize() {
-      const user = session.apiUser;
-      // These are the documented profile defaults. If the permission matrix is available,
-      // replace them with the effective per-user grants (profile OR extra).
-      let grants = user?.perfil_nome === 'Administrador'
-        ? ['create', 'update', 'destroy', 'publicar', 'despublicar']
-        : user?.perfil_nome === 'Gestor' ? ['create', 'update', 'destroy'] : [];
-      if (user) {
-        try {
-          const response = await medtecApi.usuarios.getPermissoesExtras(user.id);
-          if (response.success && Array.isArray(response.data)) {
-            const newsModule = response.data.find((item) =>
-              ['noticias', 'nnoticias'].includes(item.nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/gi, '').toLowerCase())
-            );
-            grants = newsModule?.regras.filter((rule) => rule.do_perfil || rule.extra).map((rule) => rule.acao) || [];
-          }
-        } catch (err) {
-          // Reading the administrative permission matrix may itself be forbidden.
-          // Every business operation still requires its own Rails authorization.
-          if (!(err instanceof ApiError) || err.status !== 403) grants = [];
-        }
-      }
-      if (!active) return;
-      setPermissions(grants);
-      await loadNewsData();
+      await Promise.resolve();
+      if (active) await loadNewsData();
     }
     void initialize();
     return () => { active = false; };
-  }, [session.apiUser, loadNewsData]);
+  }, [loadNewsData]);
 
   // Adaptador de notícias para visualização e formulários
   const effectiveNews: NewsItem[] = useMemo(() => {
@@ -107,7 +86,7 @@ function NewsContent({ session }: { session: AdminSession }) {
     const current = apiNews.find((item) => item.id === Number(id));
     if (!current) return;
     const action = current.status === 'publicada' ? 'despublicar' : 'publicar';
-    if (!permissions.includes(action)) return;
+    if (!pode('n_noticias', action)) return;
     try {
       await medtecApi.noticias[action](current.id);
       alert(action === 'publicar' ? 'Notícia publicada com sucesso!' : 'Notícia despublicada. Ela retornou à fila de aprovação.');
@@ -120,7 +99,7 @@ function NewsContent({ session }: { session: AdminSession }) {
 
   return (
     <>
-      {!loadingNews && !errorNews && newsViewMode === 'editor' && !(editId ? permissions.includes('update') : permissions.includes('create')) && (
+      {!loadingNews && !errorNews && newsViewMode === 'editor' && !(editId ? pode('n_noticias', 'update') : pode('n_noticias', 'create')) && (
         <p role="alert">Você não possui permissão para esta ação.</p>
       )}
       {!loadingNews && !errorNews && editId && !effectiveNews.some((item) => item.id === editId) ? (
@@ -134,11 +113,11 @@ function NewsContent({ session }: { session: AdminSession }) {
         loadingNews={loadingNews}
         errorNews={errorNews}
         userSession={session}
-        canCreate={permissions.includes('create')}
-        canEdit={permissions.includes('update')}
-        canDelete={permissions.includes('destroy')}
-        canPublish={permissions.includes('publicar')}
-        canUnpublish={permissions.includes('despublicar')}
+        canCreate={pode('n_noticias', 'create')}
+        canEdit={pode('n_noticias', 'update')}
+        canDelete={pode('n_noticias', 'destroy')}
+        canPublish={pode('n_noticias', 'publicar')}
+        canUnpublish={pode('n_noticias', 'despublicar')}
         newsViewMode={newsViewMode}
         setNewsViewMode={setNewsViewMode}
         onRefresh={async () => { await loadNewsData(); notifyAprovacoesPendentes(); }}

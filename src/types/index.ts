@@ -90,14 +90,11 @@ export interface SiteInfo {
   videoUrl?: string;
 }
 
-export type UserProfileType = 
+// Perfis do seed da API; o acesso de cada um vem das permissões do /auth/me.
+export type UserProfileType =
   | 'Administrador'
   | 'Gestor'
   | 'Jornalista'
-  | 'Editor de Notícias' 
-  | 'Curador de Fotos' 
-  | 'Publicador de Avisos' 
-  | 'Operador de Conteúdo'
   | string;
 
 export interface UserAccount {

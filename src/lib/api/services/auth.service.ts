@@ -3,7 +3,8 @@
  * Conforme especificações de docs/rotas_front.md seção 5
  */
 
-import { apiFetch } from '../client';
+import { apiFetch, reloadPermissions } from '../client';
+import { definirPermissoes, limparPermissoes } from '../permissoes';
 import { ApiResponse, AuthTokens, AuthUser, TokenPayload } from '../types';
 import {
   setStoredTokens,
@@ -31,6 +32,8 @@ export const authService = {
 
     if (res.success && res.data) {
       setStoredTokens(res.data);
+      // O login não devolve as permissões: elas vêm do /auth/me.
+      await reloadPermissions(res.data.access_token);
     }
 
     return res;
@@ -55,6 +58,7 @@ export const authService = {
 
     if (res.success && res.data) {
       setStoredTokens(res.data);
+      await reloadPermissions(res.data.access_token);
     }
 
     return res;
@@ -65,7 +69,10 @@ export const authService = {
    * Endpoint: GET /auth/me
    */
   async me(): Promise<ApiResponse<AuthUser>> {
-    return apiFetch<ApiResponse<AuthUser>>('/auth/me', { method: 'GET' });
+    const res = await apiFetch<ApiResponse<AuthUser>>('/auth/me', { method: 'GET' });
+    // Toda leitura do usuário logado atualiza o que a tela pode mostrar.
+    if (res.success && res.data) definirPermissoes(res.data);
+    return res;
   },
 
   /**
@@ -77,6 +84,7 @@ export const authService = {
       await apiFetch<ApiResponse<null>>('/auth/logout', { method: 'DELETE' });
     } finally {
       clearStoredTokens();
+      limparPermissoes();
     }
   },
 

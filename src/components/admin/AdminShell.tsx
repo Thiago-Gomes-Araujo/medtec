@@ -4,7 +4,6 @@ import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useAdminTheme } from '@/components/admin/useAdminTheme';
 import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
 import { useAprovacoesPendentes } from '@/components/admin/useAprovacoesPendentes';
-import { useProjetosPendentes } from '@/components/admin/useProjetosPendentes';
 import { useRelatosPendentes } from '@/components/admin/useRelatosPendentes';
 import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter from '@/components/admin/MobileDrawerFooter';
@@ -29,30 +28,24 @@ import {
   Info,
   Lock,
 } from 'lucide-react';
-import { medtecApi, clearStoredTokens, fetchWithTimeout, isConnectionFailure, isTimeoutError, type AuthUser } from '@/lib/api';
+import { medtecApi, clearStoredTokens, definirPermissoes, limparPermissoes, fetchWithTimeout, isConnectionFailure, isTimeoutError, type AuthUser } from '@/lib/api';
 import AdminSessionError from '@/components/admin/AdminSessionError';
-import { canAccessBanners, canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
+import { getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
+import { usePermissoes } from '@/components/admin/usePermissoes';
 import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
-import { buildAdminMenu, getActiveMenuSection, getFolderIdForSection, PENDING_BADGE_SECTIONS, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
+import { buildAdminMenu, getActiveMenuSection, getFolderIdForSection, getModulosAprovacaoContaveis, PENDING_BADGE_SECTIONS, podeAcessarSecao, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 import { adminPrimaryButtonClass, sidebarBadgeClass, sidebarFolderClass, sidebarIconButtonClass, sidebarIconClass, sidebarItemClass, sidebarPortalLinkClass, sidebarSearchInputClass } from '@/components/admin/adminTheme';
 
 export { getFolderIdForSection, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 
+// O que cada pessoa pode fazer vem de usePermissoes(); a sessão só identifica quem entrou.
 export interface AdminSession {
-  isGestor: boolean;
   username?: string;
   role?: string;
   name?: string;
   profileType?: string;
   apiUser?: AuthUser;
-}
-
-// O contrato Rails documenta Administrador como perfil com todas as permissões.
-// A sessão local e as heurísticas por ID não autorizam gestão de contas.
-export function canAccessAdminUsers(session: Pick<AdminSession, 'isGestor' | 'apiUser'>): boolean {
-  return session.isGestor && session.apiUser?.ativo === true &&
-    session.apiUser.perfil_nome === 'Administrador';
 }
 
 export interface AdminShellProps {
@@ -95,7 +88,8 @@ export default function AdminShell({
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [authFailed, setAuthFailed] = useState(false);
   const [authAttempt, setAuthAttempt] = useState(0);
-  const [userSession, setUserSession] = useState<AdminSession>({ isGestor: false });
+  const [userSession, setUserSession] = useState<AdminSession>({});
+  const { sessao, pode } = usePermissoes();
 
   // Sincronização do tema escuro
   const { isDark, toggleTheme } = useAdminTheme();
@@ -119,10 +113,10 @@ export default function AdminShell({
             if (!active) return;
             if (meRes.success && meRes.data) {
               authenticated = true;
-              const { isGestor, username, name, profileType } = getRailsSessionFields(meRes.data);
+              definirPermissoes(meRes.data);
+              const { username, name, profileType } = getRailsSessionFields(meRes.data);
               setIsLoggedIn(true);
               setUserSession({
-                isGestor,
                 username,
                 role: meRes.data.perfil_nome,
                 name,
@@ -146,10 +140,11 @@ export default function AdminShell({
           if (authRes.ok) {
             const authJson = await authRes.json();
             if (!active) return;
-            const { isGestor, username, name, profileType } = getLocalSessionFields(authJson);
+            // O login local não passa pelo /auth/me: nenhuma permissão.
+            limparPermissoes();
+            const { username, name, profileType } = getLocalSessionFields(authJson);
             setIsLoggedIn(true);
             setUserSession({
-              isGestor,
               username,
               role: authJson.role,
               name,
@@ -197,6 +192,7 @@ export default function AdminShell({
       console.warn('AdminShell: Erro ao chamar logout da API v1:', err);
     }
     clearStoredTokens();
+    limparPermissoes();
     try {
       await fetchWithTimeout('/api/auth', { method: 'DELETE' });
     } catch (err) {
@@ -216,58 +212,15 @@ export default function AdminShell({
     });
   };
 
-  // Permissões por perfil
-  const canAccessNews =
-    userSession.profileType === 'Gestor' ||
-    userSession.isGestor ||
-    userSession.profileType === 'Editor de Notícias' ||
-    userSession.profileType === 'Operador de Conteúdo';
-  const canAccessPhotos = canAccessBanners(userSession);
-  const canAccessAnnouncements =
-    userSession.isGestor ||
-    userSession.profileType === 'Publicador de Avisos' ||
-    userSession.profileType === 'Operador de Conteúdo';
-  const canAccessGallery =
-    userSession.isGestor ||
-    userSession.profileType === 'Curador de Fotos' ||
-    userSession.profileType === 'Operador de Conteúdo';
-  const canAccessProjects = canAccessProjetos(userSession);
-  const canAccessFaqs = canAccessDuvidas(userSession);
-  // A sessão local não tem token: a consulta só devolveria 401.
-  const duvidasPendentes = useDuvidasPendentes(canAccessFaqs && !!userSession.apiUser);
-  const canAccessProfessores =
-    userSession.isGestor ||
-    userSession.profileType === 'Operador de Conteúdo' ||
-    userSession.profileType === 'Editor de Notícias';
-  const relatosPendentes = useRelatosPendentes(canAccessProfessores && !!userSession.apiUser);
-  const canAccessAlunos =
-    userSession.isGestor ||
-    userSession.profileType === 'Operador de Conteúdo' ||
-    userSession.profileType === 'Editor de Notícias';
-  const canAccessSocials = userSession.isGestor;
-  const canAccessSiteInfo = userSession.isGestor;
-  const canAccessKanban = userSession.isGestor && userSession.apiUser?.perfil_nome === 'Administrador';
-  // Quem tem a Fila vê o total; quem só aprova projetos vê os projetos.
-  const aprovacoesPendentes = useAprovacoesPendentes(canAccessKanban);
-  const projetosPendentes = useProjetosPendentes(canAccessProjects && !canAccessKanban && !!userSession.apiUser);
-  const canAccessUsers = canAccessAdminUsers(userSession);
-  const canAccessEstados = userSession.isGestor;
+  // Contadores só consultam módulos com index (sem 403) e só depois de confirmar a sessão.
+  const lista = (modulo: string) => isLoggedIn && pode(modulo, 'index');
+  const duvidasPendentes = useDuvidasPendentes(lista('d_duvidas_visitante'));
+  const relatosPendentes = useRelatosPendentes(lista('p_relatos'));
+  // A Fila soma só os módulos que a pessoa publica.
+  const aprovacoesPendentes = useAprovacoesPendentes(isLoggedIn ? getModulosAprovacaoContaveis(sessao) : []);
 
   // Definição da Árvore de Pastas da Sidebar
-  const folders = buildAdminMenu({
-    noticias: canAccessNews,
-    projetos: canAccessProjects,
-    duvidas: canAccessFaqs,
-    avisos: canAccessAnnouncements,
-    fotos: canAccessPhotos,
-    galeria: canAccessGallery,
-    professores: canAccessProfessores,
-    alunos: canAccessAlunos,
-    kanban: canAccessKanban,
-    redes: canAccessSocials,
-    estadosCidades: canAccessEstados,
-    usuarios: canAccessUsers,
-  }, { duvidasPublico: duvidasPendentes.count || undefined, kanban: aprovacoesPendentes.count || undefined, projetosAprovacao: projetosPendentes.count || undefined, professores: relatosPendentes.count || undefined, ...badges });
+  const folders = buildAdminMenu(sessao, { duvidasPublico: duvidasPendentes.count || undefined, kanban: aprovacoesPendentes.count || undefined, professores: relatosPendentes.count || undefined, ...badges });
 
   // Pesquisa rápida da Sidebar
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);
@@ -299,36 +252,7 @@ export default function AdminShell({
   }
 
   // Verificação de autorização para a seção ativa
-  const isAuthorized =
-    activeSection === 'visaoGeral'
-      ? userSession.isGestor
-      : activeSection === 'avisos'
-      ? canAccessAnnouncements
-      : activeSection === 'noticias'
-      ? typeof children === 'function' || canAccessNews
-      : activeSection === 'fotos'
-      ? canAccessPhotos
-      : activeSection === 'galeria'
-      ? canAccessGallery
-      : activeSection === 'projetos' || activeSection === 'projetosTemas' || activeSection === 'projetosMembros' || activeSection === 'projetosAprovacao'
-      ? canAccessProjects
-      : activeSection === 'duvidas' || activeSection === 'duvidasPublico'
-      ? canAccessFaqs
-      : activeSection === 'siteInfo'
-      ? canAccessSiteInfo
-      : activeSection === 'redes'
-      ? canAccessSocials
-      : activeSection === 'kanban'
-      ? canAccessKanban
-      : activeSection === 'usuarios'
-      ? canAccessUsers
-      : activeSection === 'estadosCidades'
-      ? canAccessEstados
-      : activeSection === 'professores' || activeSection === 'professoresDisciplinas' || activeSection === 'professoresRelatos'
-      ? canAccessProfessores
-      : activeSection === 'alunos' || activeSection === 'alunosCategorias'
-      ? canAccessAlunos
-      : true;
+  const isAuthorized = podeAcessarSecao(activeSection, sessao);
 
   const currentConfig = SECTION_CONFIG[activeSection] || SECTION_CONFIG.visaoGeral;
 
@@ -406,7 +330,7 @@ export default function AdminShell({
         {/* Corpo Navegável com Árvore Expansível */}
         <nav aria-label="Menu do painel" className="flex-1 min-h-0 overflow-y-auto py-3 px-3 space-y-4 scrollbar-thin">
           {/* 1. Início */}
-          {userSession.isGestor && homeMatchesSearch && (
+          {homeMatchesSearch && (
             <div className="space-y-1">
               <Link
                 href="/admin"
@@ -519,7 +443,7 @@ export default function AdminShell({
                   {userSession.name || userSession.username}
                 </p>
                 <p className="text-[11px] text-admin-muted truncate">
-                  {userSession.isGestor ? 'Gestor Geral' : userSession.profileType || 'Operador'}
+                  {userSession.profileType || 'Operador'}
                 </p>
               </div>
             ) : null}
@@ -582,7 +506,7 @@ export default function AdminShell({
             </div>
 
             <nav aria-label="Menu do painel" className="flex-1 overflow-y-auto p-3 space-y-4">
-              {userSession.isGestor && homeMatchesSearch && (
+              {homeMatchesSearch && (
                 <Link
                   href="/admin"
                   onClick={() => setIsMobileOpen(false)}
@@ -640,7 +564,7 @@ export default function AdminShell({
 
             <MobileDrawerFooter
               userName={userSession.name || userSession.username}
-              roleLabel={userSession.isGestor ? 'Gestor Geral' : userSession.profileType || 'Operador'}
+              roleLabel={userSession.profileType || 'Operador'}
               onLogout={handleLogout}
             />
           </div>
@@ -701,7 +625,7 @@ export default function AdminShell({
         ======================================================== */}
         <main id="conteudo-principal" className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto flex-1 space-y-6 pb-20">
           {/* Barra de Topo do Módulo com Botão "← Voltar para o Início" */}
-          {activeSection !== 'visaoGeral' && userSession.isGestor && (
+          {activeSection !== 'visaoGeral' && (
             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-admin-border">
               <Link
                 href="/admin"

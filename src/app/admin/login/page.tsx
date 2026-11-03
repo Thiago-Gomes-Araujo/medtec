@@ -17,7 +17,7 @@ import {
   Info
 } from 'lucide-react';
 
-import { fetchWithTimeout, setStoredTokens } from '@/lib/api';
+import { definirPermissoes, fetchWithTimeout, setStoredTokens } from '@/lib/api';
 import { getSafeAdminReturnTarget } from '@/lib/admin-auth-navigation';
 
 // /api/auth espera até 5 s em cada uma das duas consultas à API antes de responder.
@@ -56,6 +56,8 @@ export default function AdminLoginPage() {
       if (res.ok && data.success) {
         if (data.tokens) {
           setStoredTokens(data.tokens);
+          // O servidor já consultou o /auth/me: o painel abre com as permissões certas.
+          definirPermissoes(data.user);
         }
         const searchParams = new URLSearchParams(window.location.search);
         const redirectTarget = getSafeAdminReturnTarget(searchParams.get('redirect'));

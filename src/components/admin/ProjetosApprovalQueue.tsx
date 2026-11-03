@@ -3,6 +3,7 @@
 import { medtecApi, type PjProjeto } from '@/lib/api';
 import { buttonClass, panelClass, renderFeedback, renderModerationButtons, useAdminAction, useApiList, type ModeracaoAction } from './communityAdminUi';
 import { notifyProjetosPendentes } from './useProjetosPendentes';
+import { usePermissoes } from './usePermissoes';
 
 const AGUARDANDO = { page: 'all', 'q[n_status_noticia_slug_eq]': 'aguardando' };
 const readProjetos = (signal: AbortSignal) => medtecApi.projetos.list(AGUARDANDO, signal);
@@ -10,6 +11,7 @@ const readProjetos = (signal: AbortSignal) => medtecApi.projetos.list(AGUARDANDO
 export default function ProjetosApprovalQueue() {
   const projetos = useApiList<PjProjeto>(readProjetos);
   const action = useAdminAction();
+  const { pode } = usePermissoes();
 
   async function moderate(item: PjProjeto, operation: ModeracaoAction) {
     const done = await action.run(async () => {
@@ -38,7 +40,7 @@ export default function ProjetosApprovalQueue() {
           <p className="break-words text-sm font-semibold text-slate-900 dark:text-white">{item.titulo}</p>
           <p className="text-xs text-slate-600 dark:text-slate-400">{item.tema_nome} · {item.escola_nome} · {item.cidade_nome}</p>
           <p className="line-clamp-3 whitespace-pre-line break-words text-sm text-slate-700 dark:text-slate-200">{item.relato}</p>
-          <div className="flex flex-wrap gap-2">{renderModerationButtons(item.status, item.titulo, action.busy, operation => void moderate(item, operation))}</div>
+          <div className="flex flex-wrap gap-2">{renderModerationButtons(item.status, item.titulo, action.busy, operation => void moderate(item, operation), acao => pode('pj_projetos', acao))}</div>
         </li>)}
       </ul>}
     </section>

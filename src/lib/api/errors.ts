@@ -3,7 +3,7 @@
  * Conforme convenções de erros de docs/rotas_front.md
  */
 
-import { ApiErrorResponse } from './types';
+import type { ApiErrorResponse, ApiResponse, PaginatedData } from './types';
 
 // O navegador não diferencia bloqueio de CORS de falha de rede: os dois chegam como erro de fetch.
 export const API_UNREACHABLE_MESSAGE = 'API inacessível: sem conexão com o servidor (rede, CORS ou URL incorreta).';
@@ -108,6 +108,13 @@ export class ApiError extends Error {
       if (error.errors.includes('sem_permissao')) {
         return 'Você não possui permissão para executar esta operação.';
       }
+      // Outros 403 têm texto próprio da API (usuario_administrador e as regras de permissões extras).
+      if (error.status === 403 && error.message && error.message !== 'Sem permissão') {
+        return error.message;
+      }
+      if (error.errors.includes('usuario_administrador')) {
+        return 'Somente o Administrador pode alterar administradores.';
+      }
       if (error.errors.includes('muitas_tentativas')) {
         return 'Muitas tentativas em pouco tempo. Aguarde 1 minuto e tente novamente.';
       }
@@ -195,4 +202,19 @@ export class ApiError extends Error {
       data
     );
   }
+}
+
+/**
+ * Lista auxiliar (tipos, categorias) sem permissão vira lista vazia: um 403 nela
+ * não derruba a tela principal. Qualquer outro erro continua sendo lançado.
+ */
+export function listaVaziaSeSemPermissao<T>(error: unknown): ApiResponse<PaginatedData<T>> {
+  if (error instanceof ApiError && error.status === 403) {
+    return {
+      success: true,
+      message: error.message,
+      data: { items: [], pagination: { current_page: 1, total_pages: 0, total_count: 0, per_page: 1 } },
+    };
+  }
+  throw error;
 }

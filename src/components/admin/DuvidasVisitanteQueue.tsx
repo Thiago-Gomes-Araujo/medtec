@@ -6,6 +6,7 @@ import { SECTION_CONFIG } from '@/lib/admin-navigation';
 import { medtecApi, type DDuvidaVisitante } from '@/lib/api';
 import { buttonClass, panelClass, renderFeedback, useAdminAction, useApiList } from './communityAdminUi';
 import { notifyDuvidasPendentes } from './useDuvidasPendentes';
+import { usePermissoes } from './usePermissoes';
 
 const NAO_RESPONDIDAS = { page: 'all', 'q[respondida_false]': 1 };
 const readPendentes = (signal: AbortSignal) => medtecApi.duvidasVisitante.list(NAO_RESPONDIDAS, signal);
@@ -14,6 +15,7 @@ const readPendentes = (signal: AbortSignal) => medtecApi.duvidasVisitante.list(N
 export default function DuvidasVisitanteQueue() {
   const pendentes = useApiList<DDuvidaVisitante>(readPendentes);
   const action = useAdminAction();
+  const { pode } = usePermissoes();
   const [respondidas, setRespondidas] = useState<DDuvidaVisitante[]>([]);
   const [confirming, setConfirming] = useState<number | null>(null);
 
@@ -44,7 +46,7 @@ export default function DuvidasVisitanteQueue() {
         {pendentes.items.map(item => <li key={item.id} className="space-y-2 py-3">
           <p className="text-xs text-slate-600 dark:text-slate-400"><strong className="text-slate-900 dark:text-white">{item.nome}</strong> · {item.email}{item.telefone ? ` · ${item.telefone}` : ''}</p>
           <p className="whitespace-pre-line break-words text-sm text-slate-700 dark:text-slate-200">{item.descricao}</p>
-          <button type="button" className={buttonClass} disabled={action.busy || confirming !== null} aria-label={`Marcar como respondida: ${item.nome}`} onClick={() => { setConfirming(item.id); action.setError(null); action.setSuccess(null); }}>Marcar como respondida</button>
+          {pode('d_duvidas_visitante', 'responder') && <button type="button" className={buttonClass} disabled={action.busy || confirming !== null} aria-label={`Marcar como respondida: ${item.nome}`} onClick={() => { setConfirming(item.id); action.setError(null); action.setSuccess(null); }}>Marcar como respondida</button>}
           {confirming === item.id && <div role="group" aria-label="Confirmar atendimento" className="space-y-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
             <p>Marcar a dúvida de <strong className="break-words">{item.nome}</strong> como respondida? Nenhuma mensagem é enviada: confirme só depois de responder por e-mail ou telefone.</p>
             <div className="flex flex-wrap gap-2">

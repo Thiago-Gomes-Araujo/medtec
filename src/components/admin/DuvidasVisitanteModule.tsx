@@ -6,6 +6,7 @@ import { SECTION_CONFIG } from '@/lib/admin-navigation';
 import { ApiError, medtecApi, type DDuvidaVisitante, type PaginationMeta } from '@/lib/api';
 import { dateLabel, mailtoHref, telHref } from '@/lib/community-content';
 import { notifyDuvidasPendentes } from './useDuvidasPendentes';
+import { usePermissoes } from './usePermissoes';
 
 const buttonClass = 'rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
 type VisitanteSituacao = 'pendentes' | 'respondidas';
@@ -33,6 +34,7 @@ export default function DuvidasVisitanteModule() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { pode } = usePermissoes();
   const [confirming, setConfirming] = useState<DDuvidaVisitante | null>(null);
   const [deleting, setDeleting] = useState<DDuvidaVisitante | null>(null);
   const mounted = useRef(false);
@@ -163,9 +165,9 @@ export default function DuvidasVisitanteModule() {
           Respondida{item.respondida_por_nome ? ` por ${item.respondida_por_nome}` : ''} em {dateLabel(item.respondida_em)}
         </p>}
         <div className="flex flex-wrap gap-2">
-          {!item.respondida && <button type="button" disabled={blocked} className={buttonClass} aria-label={`Marcar como respondida: ${item.nome}`} onClick={() => { setConfirming(item); setActionError(null); setSuccess(null); }}>Marcar como respondida</button>}
+          {!item.respondida && pode('d_duvidas_visitante', 'responder') && <button type="button" disabled={blocked} className={buttonClass} aria-label={`Marcar como respondida: ${item.nome}`} onClick={() => { setConfirming(item); setActionError(null); setSuccess(null); }}>Marcar como respondida</button>}
           {item.respondida && <Link href={`${SECTION_CONFIG.duvidas.href}?visitante=${item.id}`} className={`inline-block ${buttonClass}`} aria-label={`Transformar em FAQ: ${item.nome}`}>Transformar em FAQ</Link>}
-          <button type="button" disabled={blocked} className={buttonClass} aria-label={`Excluir envio de ${item.nome}`} onClick={() => { setDeleting(item); setActionError(null); setSuccess(null); }}>Excluir</button>
+          {pode('d_duvidas_visitante', 'destroy') && <button type="button" disabled={blocked} className={buttonClass} aria-label={`Excluir envio de ${item.nome}`} onClick={() => { setDeleting(item); setActionError(null); setSuccess(null); }}>Excluir</button>}
         </div>
         {confirming?.id === item.id && <div role="group" aria-label="Confirmar atendimento" className="space-y-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
           <p>Marcar a dúvida de <strong className="break-words">{item.nome}</strong> como respondida? Nenhuma mensagem é enviada: confirme só depois de responder por e-mail ou telefone.</p>

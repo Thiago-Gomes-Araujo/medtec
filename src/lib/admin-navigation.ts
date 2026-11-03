@@ -17,6 +17,7 @@ import {
   UserCog,
   type LucideIcon,
 } from 'lucide-react';
+import { obterPermissoes, pode, type SessaoPermissoes } from '@/lib/api/permissoes';
 
 export type AdminSection =
   | 'visaoGeral'
@@ -197,25 +198,57 @@ export const SECTION_HREFS = new Map<AdminSection, string>([
   ['redes', SECTION_CONFIG.redes.href],
 ]);
 
-export type AdminMenuAccess =
-  | 'noticias'
-  | 'projetos'
-  | 'duvidas'
-  | 'avisos'
-  | 'fotos'
-  | 'galeria'
-  | 'professores'
-  | 'alunos'
-  | 'kanban'
-  | 'redes'
-  | 'estadosCidades'
-  | 'usuarios';
+// Módulo da API (nome da rota em ROTAS_FRONT.md) que libera cada tela com `index`.
+const SECTION_MODULO: Record<Exclude<AdminSection, 'visaoGeral' | 'kanban' | 'siteInfo'>, string> = {
+  noticias: 'n_noticias',
+  projetos: 'pj_projetos',
+  projetosTemas: 'pj_temas',
+  projetosMembros: 'pj_membros',
+  projetosAprovacao: 'pj_projetos',
+  duvidas: 'd_duvidas',
+  duvidasPublico: 'd_duvidas_visitante',
+  avisos: 'a_avisos',
+  fotos: 'b_banners',
+  galeria: 'fotos_galeria',
+  professores: 'p_professores',
+  professoresDisciplinas: 'p_disciplinas',
+  professoresRelatos: 'p_relatos',
+  alunos: 'c_conquistas_aluno',
+  alunosCategorias: 'c_categorias_conquista_aluno',
+  redes: 'canais_contato',
+  usuarios: 'usuarios',
+  estadosCidades: 'g_estados',
+};
+
+export function getSectionModulo(section: AdminSection): string | null {
+  return section in SECTION_MODULO ? SECTION_MODULO[section as keyof typeof SECTION_MODULO] : null;
+}
+
+// Módulos com a ação publicar: cada um tem seu bloco na Fila de Aprovação.
+export const MODULOS_APROVACAO = ['n_noticias', 'd_duvidas', 'c_conquistas_aluno', 'p_relatos', 'pj_projetos'] as const;
+
+export function podeAprovarAlgo(sessao: SessaoPermissoes = obterPermissoes()): boolean {
+  return MODULOS_APROVACAO.some(modulo => pode(modulo, 'publicar', sessao));
+}
+
+// O contador de pendências lista cada módulo: precisa de publicar e de index.
+export function getModulosAprovacaoContaveis(sessao: SessaoPermissoes = obterPermissoes()) {
+  return MODULOS_APROVACAO.filter(modulo => pode(modulo, 'publicar', sessao) && pode(modulo, 'index', sessao));
+}
+
+// Fonte única de menu, guardas, abas e Início: tudo sai do /auth/me, nunca do nome do perfil.
+export function podeAcessarSecao(section: AdminSection, sessao: SessaoPermissoes = obterPermissoes()): boolean {
+  if (section === 'visaoGeral') return true;
+  // Os Quatro Pilares só simulam a home e não têm módulo na API.
+  if (section === 'siteInfo') return sessao.admin;
+  if (section === 'kanban') return podeAprovarAlgo(sessao);
+  if (section === 'projetosAprovacao') return pode('pj_projetos', 'publicar', sessao);
+  const modulo = getSectionModulo(section);
+  return modulo !== null && pode(modulo, 'index', sessao);
+}
 
 interface AdminMenuItem {
   section: AdminSection;
-  access: AdminMenuAccess;
-  /** Esconde o item de quem tem este outro acesso: evita dois itens para a mesma tarefa. */
-  hiddenWithAccess?: AdminMenuAccess;
   label: string;
   tooltip: string;
   /** Frase simples do que a tela faz, mostrada no Início. */
@@ -239,14 +272,14 @@ const ADMIN_MENU: AdminMenuFolder[] = [
     label: 'Conteúdo do site',
     icon: FolderKanban,
     items: [
-      { section: 'noticias', access: 'noticias', label: 'Notícias', tooltip: 'Criar e editar notícias e matérias', summary: 'Escreva e publique as notícias do site.', action: 'Abrir Notícias', icon: Newspaper },
-      { section: 'avisos', access: 'avisos', label: 'Avisos', tooltip: 'Publicar avisos e comunicados', summary: 'Publique comunicados e avisos urgentes.', action: 'Abrir Avisos', icon: Megaphone },
-      { section: 'fotos', access: 'fotos', label: 'Banners', tooltip: 'Trocar as imagens do topo da página inicial', summary: 'Troque as imagens do topo da página inicial.', action: 'Abrir Banners', icon: Presentation },
-      { section: 'galeria', access: 'galeria', label: 'Galeria de fotos', tooltip: 'Adicionar fotos das escolas', summary: 'Adicione fotos das escolas e dos eventos.', action: 'Abrir Galeria', icon: Images },
-      { section: 'projetos', access: 'projetos', label: 'Projetos', tooltip: 'Projetos das escolas, temas e membros', summary: 'Cadastre os projetos das escolas.', action: 'Abrir Projetos', icon: Lightbulb },
-      { section: 'professores', access: 'professores', label: 'Professores', tooltip: 'Professores e mediadores, disciplinas e relatos dos alunos', summary: 'Cadastre professores e modere os relatos dos alunos.', action: 'Abrir Professores', icon: GraduationCap },
-      { section: 'alunos', access: 'alunos', label: 'Alunos que Inspiram', tooltip: 'Conquistas dos alunos e categorias', summary: 'Mostre as conquistas dos alunos.', action: 'Abrir Alunos', icon: Award },
-      { section: 'duvidas', access: 'duvidas', label: 'Perguntas frequentes', tooltip: 'Perguntas e respostas do site (FAQ) e categorias', summary: 'Mantenha as respostas da Central de Dúvidas.', action: 'Abrir Perguntas', icon: HelpCircle },
+      { section: 'noticias', label: 'Notícias', tooltip: 'Criar e editar notícias e matérias', summary: 'Escreva e publique as notícias do site.', action: 'Abrir Notícias', icon: Newspaper },
+      { section: 'avisos', label: 'Avisos', tooltip: 'Publicar avisos e comunicados', summary: 'Publique comunicados e avisos urgentes.', action: 'Abrir Avisos', icon: Megaphone },
+      { section: 'fotos', label: 'Banners', tooltip: 'Trocar as imagens do topo da página inicial', summary: 'Troque as imagens do topo da página inicial.', action: 'Abrir Banners', icon: Presentation },
+      { section: 'galeria', label: 'Galeria de fotos', tooltip: 'Adicionar fotos das escolas', summary: 'Adicione fotos das escolas e dos eventos.', action: 'Abrir Galeria', icon: Images },
+      { section: 'projetos', label: 'Projetos', tooltip: 'Projetos das escolas, temas e membros', summary: 'Cadastre os projetos das escolas.', action: 'Abrir Projetos', icon: Lightbulb },
+      { section: 'professores', label: 'Professores', tooltip: 'Professores e mediadores, disciplinas e relatos dos alunos', summary: 'Cadastre professores e modere os relatos dos alunos.', action: 'Abrir Professores', icon: GraduationCap },
+      { section: 'alunos', label: 'Alunos que Inspiram', tooltip: 'Conquistas dos alunos e categorias', summary: 'Mostre as conquistas dos alunos.', action: 'Abrir Alunos', icon: Award },
+      { section: 'duvidas', label: 'Perguntas frequentes', tooltip: 'Perguntas e respostas do site (FAQ) e categorias', summary: 'Mantenha as respostas da Central de Dúvidas.', action: 'Abrir Perguntas', icon: HelpCircle },
     ],
   },
   {
@@ -254,10 +287,8 @@ const ADMIN_MENU: AdminMenuFolder[] = [
     label: 'Atendimento',
     icon: Headphones,
     items: [
-      { section: 'duvidasPublico', access: 'duvidas', label: 'Dúvidas do público', tooltip: 'Ver e registrar o atendimento das dúvidas enviadas pelo site', summary: 'Veja as dúvidas enviadas pelo site e registre o atendimento.', action: 'Responder dúvidas', icon: MessagesSquare },
-      { section: 'kanban', access: 'kanban', label: 'Aprovações', tooltip: 'Notícias, projetos, conquistas e relatos aguardando aprovação', summary: 'Publique ou recuse o que está aguardando.', action: 'Ver aprovações', icon: ClipboardCheck },
-      // Quem aprova projetos, mas não tem a Fila, chega direto à aprovação de projetos.
-      { section: 'projetosAprovacao', access: 'projetos', hiddenWithAccess: 'kanban', label: 'Aprovações', tooltip: 'Projetos aguardando aprovação', summary: 'Publique ou recuse os projetos que estão aguardando.', action: 'Ver aprovações', icon: ClipboardCheck },
+      { section: 'duvidasPublico', label: 'Dúvidas do público', tooltip: 'Ver e registrar o atendimento das dúvidas enviadas pelo site', summary: 'Veja as dúvidas enviadas pelo site e registre o atendimento.', action: 'Responder dúvidas', icon: MessagesSquare },
+      { section: 'kanban', label: 'Aprovações', tooltip: 'Notícias, perguntas, projetos, conquistas e relatos aguardando aprovação', summary: 'Publique ou recuse o que está aguardando.', action: 'Ver aprovações', icon: ClipboardCheck },
     ],
   },
   {
@@ -265,9 +296,9 @@ const ADMIN_MENU: AdminMenuFolder[] = [
     label: 'Configurações',
     icon: Settings,
     items: [
-      { section: 'redes', access: 'redes', label: 'Redes sociais', tooltip: 'Links de YouTube, Instagram, WhatsApp e contatos', summary: 'Atualize os links das redes sociais e os contatos.', action: 'Abrir Redes sociais', icon: Share2 },
-      { section: 'estadosCidades', access: 'estadosCidades', label: 'Estados e municípios', tooltip: 'Cadastrar estados (UF) e municípios', summary: 'Cadastre os estados e os municípios atendidos.', action: 'Abrir Estados', icon: MapPin },
-      { section: 'usuarios', access: 'usuarios', label: 'Usuários e acessos', tooltip: 'Cadastrar a equipe por CPF, senhas e permissões', summary: 'Cadastre a equipe e defina os acessos.', action: 'Abrir Usuários', icon: UserCog },
+      { section: 'redes', label: 'Redes sociais', tooltip: 'Links de YouTube, Instagram, WhatsApp e contatos', summary: 'Atualize os links das redes sociais e os contatos.', action: 'Abrir Redes sociais', icon: Share2 },
+      { section: 'estadosCidades', label: 'Estados e municípios', tooltip: 'Cadastrar estados (UF) e municípios', summary: 'Cadastre os estados e os municípios atendidos.', action: 'Abrir Estados', icon: MapPin },
+      { section: 'usuarios', label: 'Usuários e acessos', tooltip: 'Cadastrar a equipe por CPF, senhas e permissões', summary: 'Cadastre a equipe e defina os acessos.', action: 'Abrir Usuários', icon: UserCog },
     ],
   },
 ];
@@ -297,15 +328,15 @@ export const PENDING_BADGE_SECTIONS: ReadonlySet<AdminSection> = new Set<AdminSe
 
 // Fonte única da árvore da sidebar; cada tela informa as próprias permissões e contadores.
 export function buildAdminMenu(
-  access: Record<AdminMenuAccess, boolean>,
+  sessao: SessaoPermissoes,
   badges: Partial<Record<AdminSection, number | string>> = {},
 ) {
   return ADMIN_MENU.map(folder => {
-    const items = folder.items.map(({ access: rule, hiddenWithAccess, ...item }) => ({
+    const items = folder.items.map(item => ({
       ...item,
       href: SECTION_CONFIG[item.section].href,
       badge: badges[item.section],
-      visible: access[rule] && !(hiddenWithAccess && access[hiddenWithAccess]),
+      visible: podeAcessarSecao(item.section, sessao),
     }));
     return { ...folder, items, visible: items.some(item => item.visible) };
   });

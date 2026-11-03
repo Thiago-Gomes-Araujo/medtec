@@ -4,8 +4,9 @@
  * autenticação por Bearer token, suporte a FormData, e mutex de renovação de token.
  */
 
-import { ApiResponse, AuthTokens, QueryParams } from './types';
+import { ApiResponse, AuthTokens, AuthUser, QueryParams } from './types';
 import { API_TIMEOUT_MESSAGE, API_UNREACHABLE_MESSAGE, ApiError } from './errors';
+import { definirPermissoes } from './permissoes';
 import {
   getStoredAccessToken,
   getStoredRefreshToken,
@@ -150,6 +151,23 @@ function timeoutError(): ApiError {
 // Mutex de renovação concorrente de tokens: apenas 1 chamada a /auth/refresh_token por vez
 let activeRefreshPromise: Promise<boolean> | null = null;
 
+/**
+ * As permissões não ficam no token: cada refresh relê o GET /auth/me.
+ * Se a leitura falhar, as permissões atuais continuam até a próxima confirmação.
+ */
+export async function reloadPermissions(accessToken: string): Promise<void> {
+  try {
+    const response = await fetchWithTimeout(`${getApiBaseUrl()}/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) return;
+    const data = (await response.json()) as ApiResponse<AuthUser>;
+    if (data.success && data.data) definirPermissoes(data.data);
+  } catch {
+    // Mantém as permissões já confirmadas.
+  }
+}
+
 async function executeTokenRefresh(): Promise<boolean> {
   const refreshToken = getStoredRefreshToken();
   if (!refreshToken) {
@@ -174,6 +192,7 @@ async function executeTokenRefresh(): Promise<boolean> {
     const data = (await response.json()) as ApiResponse<AuthTokens>;
     if (data.success && data.data?.access_token && data.data?.refresh_token) {
       setStoredTokens(data.data);
+      await reloadPermissions(data.data.access_token);
       return true;
     }
 
@@ -216,10 +235,12 @@ export async function apiFetch<T>(
   }
 
   // Injeta Authorization: Bearer <token>
+  let sentToken: string | null = null;
   if (!skipAuth) {
     const token = getStoredAccessToken();
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
+      sentToken = token;
     }
   }
 
@@ -254,12 +275,17 @@ export async function apiFetch<T>(
 
     const firstError = errorJson?.errors?.[0];
     if (firstError === 'token_expirado') {
-      // Aciona o mutex de refresh garantindo execução única
-      activeRefreshPromise ??= executeTokenRefresh().finally(() => {
-        activeRefreshPromise = null;
-      });
+      // Um único refresh para várias requisições expiradas juntas: quem chega durante
+      // o refresh espera por ele, e quem chega depois só repete com o token já trocado.
+      const currentToken = getStoredAccessToken();
+      const alreadyRenewed = !activeRefreshPromise && sentToken !== null && currentToken !== null && currentToken !== sentToken;
+      if (!alreadyRenewed) {
+        activeRefreshPromise ??= executeTokenRefresh().finally(() => {
+          activeRefreshPromise = null;
+        });
+      }
 
-      const refreshSuccess = await activeRefreshPromise;
+      const refreshSuccess = alreadyRenewed || await activeRefreshPromise;
       if (refreshSuccess) {
         // Repete a requisição original apenas uma vez com os novos tokens
         return apiFetch<T>(endpoint, options, true);

@@ -3,6 +3,7 @@
 import { useCallback, useId, useState, type FormEvent } from 'react';
 import type { ApiResponse, PaginatedData } from '@/lib/api';
 import { buttonClass, inputClass, labelClass, panelClass, renderFeedback, renderPagination, useAdminAction, useApiList } from './communityAdminUi';
+import { usePermissoes } from './usePermissoes';
 
 interface TaxonomyItem {
   id: number;
@@ -25,8 +26,10 @@ export interface TaxonomyService {
 }
 
 // CRUD comum a disciplinas, categorias de conquista e temas de projeto: mesmos campos e regras.
-export default function CommunityTaxonomyManager({ heading, singular, plural, deleteHint, service, masculine = false }: {
+export default function CommunityTaxonomyManager({ heading, singular, plural, deleteHint, service, modulo, masculine = false }: {
   heading: string;
+  /** Módulo da API cujas ações liberam criar, editar e excluir. */
+  modulo: string;
   singular: string;
   plural: string;
   deleteHint: string;
@@ -41,6 +44,7 @@ export default function CommunityTaxonomyManager({ heading, singular, plural, de
   const read = useCallback((signal: AbortSignal) => service.list({ page, per_page: 10 }, signal), [page, service]);
   const { items, pagination, loading, error, reload } = useApiList<TaxonomyItem>(read);
   const action = useAdminAction();
+  const { pode } = usePermissoes();
   const blocked = action.busy || form !== null || deleting !== null;
 
   async function save(event: FormEvent) {
@@ -84,9 +88,9 @@ export default function CommunityTaxonomyManager({ heading, singular, plural, de
           <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">{heading}</h2>
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Cada ação exige permissão do seu perfil.</p>
         </div>
-        <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
+        {pode(modulo, 'create') && <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
           setForm({ nome: '', slug: '', ativo: true }); action.setError(null); action.setSuccess(null);
-        }}>{`Nov${a} ${singular}`}</button>
+        }}>{`Nov${a} ${singular}`}</button>}
       </header>
 
       {loading && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Carregando {plural}...</p>}
@@ -135,9 +139,9 @@ export default function CommunityTaxonomyManager({ heading, singular, plural, de
             <p className="break-all text-xs text-slate-600 dark:text-slate-400">{item.slug} · {item.ativo ? `Ativ${a}` : `Inativ${a}`}</p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
-            <button type="button" disabled={blocked} aria-label={`Editar ${item.nome}`} className={buttonClass} onClick={() => setForm({ id: item.id, nome: item.nome, slug: item.slug, ativo: item.ativo })}>Editar</button>
-            <button type="button" disabled={blocked} aria-label={`${item.ativo ? 'Desativar' : 'Ativar'} ${item.nome}`} className={buttonClass} onClick={() => void toggle(item)}>{item.ativo ? 'Desativar' : 'Ativar'}</button>
-            <button type="button" disabled={blocked} aria-label={`Excluir ${item.nome}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>
+            {pode(modulo, 'update') && <button type="button" disabled={blocked} aria-label={`Editar ${item.nome}`} className={buttonClass} onClick={() => setForm({ id: item.id, nome: item.nome, slug: item.slug, ativo: item.ativo })}>Editar</button>}
+            {pode(modulo, 'update') && <button type="button" disabled={blocked} aria-label={`${item.ativo ? 'Desativar' : 'Ativar'} ${item.nome}`} className={buttonClass} onClick={() => void toggle(item)}>{item.ativo ? 'Desativar' : 'Ativar'}</button>}
+            {pode(modulo, 'destroy') && <button type="button" disabled={blocked} aria-label={`Excluir ${item.nome}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>}
           </div>
         </li>)}
       </ul>}

@@ -5,7 +5,8 @@ import { ApiError, medtecApi, type Perfil, type Usuario } from '@/lib/api';
 
 // Compartilha a leitura oficial com o gerenciador e os indicadores do painel.
 // A autorização de cada operação continua sendo verificada pelo Rails.
-export function useAdminUsers({ enabled }: { enabled: boolean }) {
+// Sem index em perfis, a lista de perfis nem é consultada (evita o 403).
+export function useAdminUsers({ enabled, perfis = enabled }: { enabled: boolean; perfis?: boolean }) {
   const [apiUsers, setApiUsers] = useState<Usuario[]>([]);
   const [profiles, setProfiles] = useState<Perfil[]>([]);
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
@@ -39,6 +40,10 @@ export function useAdminUsers({ enabled }: { enabled: boolean }) {
 
   const reloadProfiles = useCallback(async (): Promise<void> => {
     if (!enabled) return;
+    if (!perfis) {
+      setLoadingProfiles(false);
+      return;
+    }
     const request = ++profilesRequest.current;
     setLoadingProfiles(true);
     setErrorProfiles(null);
@@ -53,7 +58,7 @@ export function useAdminUsers({ enabled }: { enabled: boolean }) {
     } finally {
       if (request === profilesRequest.current) setLoadingProfiles(false);
     }
-  }, [enabled]);
+  }, [enabled, perfis]);
 
   useEffect(() => {
     let cancelled = false;

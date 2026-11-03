@@ -19,6 +19,8 @@ export interface SocialChannelsModuleProps {
   onSave: (e: React.FormEvent) => Promise<void>;
   saving: boolean;
   canSave: boolean;
+  /** Sem a permissão update_all de canais_contato, o botão de salvar some. */
+  canEdit?: boolean;
 }
 
 export default function SocialChannelsModule({
@@ -27,6 +29,7 @@ export default function SocialChannelsModule({
   onSave,
   saving,
   canSave,
+  canEdit = true,
 }: SocialChannelsModuleProps) {
   const FIXED_REDES_CONFIG = [
     {
@@ -230,14 +233,14 @@ export default function SocialChannelsModule({
           <span className="text-xs text-slate-400">
             Somente as alterações serão enviadas. Para ocultar um canal, desative sua visibilidade.
           </span>
-          <button
+          {canEdit && <button
             type="submit"
             disabled={saving || !canSave}
             className="px-6 py-2.5 rounded-xl bg-primary hover:bg-[#003875] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition cursor-pointer disabled:opacity-50"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
             <span>{saving ? 'Salvando alterações...' : 'Salvar alterações'}</span>
-          </button>
+          </button>}
         </div>
       </form>
     </div>

@@ -43,6 +43,15 @@ export interface AuthTokens {
   refresh_token: string;
 }
 
+/** Ações que o /auth/me libera em cada módulo (ROTAS_FRONT.md, seção 5). */
+export type AcaoPermissao =
+  | 'index' | 'show' | 'create' | 'update' | 'destroy'
+  | 'publicar' | 'reprovar' | 'despublicar'
+  | 'responder' | 'remover_anexo' | 'update_all';
+
+/** Módulo (nome da rota, ex.: n_noticias) → ações do perfil somadas às permissões extras. */
+export type Permissoes = Record<string, string[]>;
+
 export interface AuthUser {
   id: number;
   nome: string;
@@ -50,6 +59,10 @@ export interface AuthUser {
   ativo: boolean;
   perfil_id: number;
   perfil_nome: string;
+  /** true só para o perfil Administrador, o único que altera administradores. */
+  admin?: boolean;
+  /** Módulo sem nenhuma ação não aparece. */
+  permissoes?: Permissoes;
 }
 
 export interface TokenPayload {

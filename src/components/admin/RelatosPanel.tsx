@@ -15,6 +15,7 @@ import {
   useApiList,
   type ModeracaoAction,
 } from './communityAdminUi';
+import { usePermissoes } from './usePermissoes';
 import { notifyRelatosPendentes } from './useRelatosPendentes';
 
 const readProfessores = (signal: AbortSignal) => medtecApi.professores.list({ page: 'all' }, signal);
@@ -32,6 +33,7 @@ export default function RelatosPanel() {
   const { items, pagination, loading, error, reload } = useApiList<PRelato>(read);
   const professores = useApiList<PProfessor>(readProfessores);
   const action = useAdminAction();
+  const { pode } = usePermissoes();
   const blocked = action.busy || deleting !== null;
 
   async function moderate(item: PRelato, operation: ModeracaoAction) {
@@ -100,8 +102,8 @@ export default function RelatosPanel() {
           <p className="text-xs text-slate-600 dark:text-slate-400">{`Professor: ${item.professor_nome} · Enviado em ${dateLabel(item.created_at)}`}</p>
           <p className="whitespace-pre-line break-words text-sm text-slate-700 dark:text-slate-200">{item.texto}</p>
           <div className="flex flex-wrap gap-2">
-            {renderModerationButtons(item.status, `relato de ${item.nome}`, blocked, operation => void moderate(item, operation))}
-            <button type="button" disabled={blocked} aria-label={`Excluir relato de ${item.nome}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>
+            {renderModerationButtons(item.status, `relato de ${item.nome}`, blocked, operation => void moderate(item, operation), acao => pode('p_relatos', acao))}
+            {pode('p_relatos', 'destroy') && <button type="button" disabled={blocked} aria-label={`Excluir relato de ${item.nome}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>}
           </div>
           {deleting?.id === item.id && <div role="group" aria-label="Confirmar exclusão" className="space-y-3 rounded-xl bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-800 dark:text-red-200">
             <p>Excluir o relato de <strong className="break-words">{item.nome}</strong>?</p>

@@ -7,6 +7,7 @@ import { medtecApi, type PjMembro } from '@/lib/api';
 import { formatCpf, isValidCpf, maskCpf, onlyDigits } from '@/lib/projetos-content';
 import MembroCadastroModal from './MembroCadastroModal';
 import { buttonClass, inputClass, labelClass, panelClass, renderFeedback, renderPagination, useAdminAction, useApiList } from './communityAdminUi';
+import { usePermissoes } from './usePermissoes';
 
 // O membro é reaproveitado entre projetos; a função fica no vínculo de cada projeto.
 export default function MembrosProjetoPanel() {
@@ -22,6 +23,7 @@ export default function MembrosProjetoPanel() {
   }, signal), [page, filters]);
   const { items, pagination, loading, error, reload } = useApiList<PjMembro>(read);
   const action = useAdminAction();
+  const { pode } = usePermissoes();
   const blocked = action.busy || form !== null || deleting !== null || cadastrando;
 
   function search(event: FormEvent) {
@@ -66,9 +68,9 @@ export default function MembrosProjetoPanel() {
           <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Membros de projeto</h2>
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Cada pessoa é cadastrada uma vez. O CPF não aparece no site.</p>
         </div>
-        <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
+        {pode('pj_membros', 'create') && <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
           setCadastrando(true); action.setError(null); action.setSuccess(null);
-        }}>Cadastrar membro</button>
+        }}>Cadastrar membro</button>}
       </header>
 
       <form aria-label="Filtrar membros" className="grid gap-3 sm:grid-cols-3" onSubmit={search}>
@@ -124,10 +126,10 @@ export default function MembrosProjetoPanel() {
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             <Link href={`${SECTION_CONFIG.projetos.href}?membro=${item.id}`} aria-label={`Ver projetos de ${item.nome}`} className={buttonClass}>Ver projetos</Link>
-            <button type="button" disabled={blocked} aria-label={`Editar ${item.nome}`} className={buttonClass} onClick={() => {
+            {pode('pj_membros', 'update') && <button type="button" disabled={blocked} aria-label={`Editar ${item.nome}`} className={buttonClass} onClick={() => {
               setForm({ id: item.id, nome: item.nome, cpf: formatCpf(item.cpf) }); action.setError(null); action.setSuccess(null);
-            }}>Editar</button>
-            <button type="button" disabled={blocked} aria-label={`Excluir ${item.nome}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>
+            }}>Editar</button>}
+            {pode('pj_membros', 'destroy') && <button type="button" disabled={blocked} aria-label={`Excluir ${item.nome}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>}
           </div>
         </li>)}
       </ul>}

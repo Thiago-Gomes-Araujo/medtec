@@ -12,6 +12,7 @@ import {
   Save,
 } from 'lucide-react';
 import { medtecApi, Estado, Cidade } from '@/lib/api';
+import { usePermissoes } from '@/components/admin/usePermissoes';
 
 export interface EstadosCidadesModuleProps {
   apiEstados: Estado[];
@@ -30,6 +31,7 @@ export default function EstadosCidadesModule({
   const [apiCidades, setApiCidades] = useState<Cidade[]>([]);
   const [loadingCidades, setLoadingCidades] = useState(false);
   const [cidadeSearch, setCidadeSearch] = useState('');
+  const { pode } = usePermissoes();
 
   // Modal de Estado
   const [showEstadoModal, setShowEstadoModal] = useState(false);
@@ -201,7 +203,7 @@ export default function EstadosCidadesModule({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
+          {pode('g_estados', 'create') && <button
             type="button"
             onClick={() => {
               setEditingEstado(null);
@@ -213,7 +215,7 @@ export default function EstadosCidadesModule({
           >
             <Plus size={16} />
             <span>Novo Estado (UF)</span>
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -274,7 +276,7 @@ export default function EstadosCidadesModule({
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                      <button
+                      {pode('g_estados', 'update') && <button
                         type="button"
                         onClick={() => {
                           setEditingEstado(est);
@@ -290,15 +292,15 @@ export default function EstadosCidadesModule({
                         className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition cursor-pointer"
                       >
                         <Edit3 size={14} />
-                      </button>
-                      <button
+                      </button>}
+                      {pode('g_estados', 'destroy') && <button
                         type="button"
                         onClick={() => handleDeleteEstado(est.id)}
                         title="Excluir Estado"
                         className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition cursor-pointer"
                       >
                         <Trash2 size={14} />
-                      </button>
+                      </button>}
                     </div>
                   </div>
                 );
@@ -325,7 +327,7 @@ export default function EstadosCidadesModule({
             </div>
 
             <div className="flex items-center gap-2">
-              <button
+              {pode('g_cidades', 'create') && <button
                 type="button"
                 disabled={!effectiveEstadoId}
                 onClick={() => {
@@ -339,7 +341,7 @@ export default function EstadosCidadesModule({
               >
                 <Plus size={14} />
                 <span>Novo Município</span>
-              </button>
+              </button>}
             </div>
           </div>
 
@@ -387,7 +389,7 @@ export default function EstadosCidadesModule({
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">
-                    <button
+                    {pode('g_cidades', 'update') && <button
                       type="button"
                       onClick={() => {
                         setEditingCidade(cid);
@@ -403,15 +405,15 @@ export default function EstadosCidadesModule({
                       className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 transition cursor-pointer"
                     >
                       <Edit3 size={13} />
-                    </button>
-                    <button
+                    </button>}
+                    {pode('g_cidades', 'destroy') && <button
                       type="button"
                       onClick={() => handleDeleteCidade(cid.id)}
                       title="Excluir Município"
                       className="p-1 rounded-lg text-slate-400 hover:text-red-600 hover:bg-white dark:hover:bg-slate-800 transition cursor-pointer"
                     >
                       <Trash2 size={13} />
-                    </button>
+                    </button>}
                   </div>
                 </div>
               ))}
