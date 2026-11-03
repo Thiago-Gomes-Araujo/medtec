@@ -22,6 +22,7 @@ import {
   useEscolaOptions,
   type ModeracaoAction,
 } from './communityAdminUi';
+import { usePermissoes } from './usePermissoes';
 import { notifyProjetosPendentes } from './useProjetosPendentes';
 
 interface ProjetoForm {
@@ -75,6 +76,7 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
   const escolasFiltro = useEscolaOptions(filters.cidadeId);
   const escolasForm = useEscolaOptions(form?.cidadeId ?? '');
   const action = useAdminAction();
+  const { pode } = usePermissoes();
   const blocked = action.busy || form !== null || deleting !== null;
   const imagemPreview = form?.imagemPreview;
 
@@ -197,9 +199,9 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
           <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Projetos pedagógicos</h2>
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">O site mostra só os publicados. A cidade vem da escola.</p>
         </div>
-        <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
+        {pode('pj_projetos', 'create') && <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
           setForm(EMPTY_FORM); action.setError(null); action.setSuccess(null);
-        }}>Novo projeto</button>
+        }}>Novo projeto</button>}
       </header>
 
       <form aria-label="Filtrar projetos" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={event => {
@@ -308,7 +310,7 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
             {form.anexosAtuais.length > 0 && <ul aria-label="Anexos atuais" className="divide-y divide-slate-200 dark:divide-slate-800">
               {form.anexosAtuais.map(item => <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
                 <a href={getMediaUrl(item.url)} target="_blank" rel="noopener noreferrer" className="min-w-0 break-all text-slate-900 underline dark:text-white">{item.nome} ({formatFileSize(item.tamanho)})</a>
-                <button type="button" aria-label={`Remover anexo ${item.nome}`} className={buttonClass} onClick={() => setRemovingAnexo(item)}>Remover</button>
+                {pode('pj_projetos', 'remover_anexo') && <button type="button" aria-label={`Remover anexo ${item.nome}`} className={buttonClass} onClick={() => setRemovingAnexo(item)}>Remover</button>}
               </li>)}
             </ul>}
             {removingAnexo && <div role="group" aria-label="Confirmar remoção do anexo" className="space-y-3 rounded-xl bg-red-50 dark:bg-red-950/30 p-4 text-sm text-red-800 dark:text-red-200">
@@ -358,10 +360,10 @@ export default function ProjetosPanel({ startNew = false, membroId = '' }: { sta
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
-            {renderModerationButtons(item.status, item.titulo, blocked, operation => void moderate(item, operation))}
+            {renderModerationButtons(item.status, item.titulo, blocked, operation => void moderate(item, operation), acao => pode('pj_projetos', acao))}
             {item.status === 'publicada' && <Link href={`/projetos/${item.id}`} target="_blank" rel="noopener noreferrer" aria-label={`Ver ${item.titulo} no site`} className={buttonClass}>Ver no site</Link>}
-            <button type="button" disabled={blocked} aria-label={`Editar ${item.titulo}`} className={buttonClass} onClick={() => void edit(item)}>Editar</button>
-            <button type="button" disabled={blocked} aria-label={`Excluir ${item.titulo}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>
+            {pode('pj_projetos', 'update') && <button type="button" disabled={blocked} aria-label={`Editar ${item.titulo}`} className={buttonClass} onClick={() => void edit(item)}>Editar</button>}
+            {pode('pj_projetos', 'destroy') && <button type="button" disabled={blocked} aria-label={`Excluir ${item.titulo}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>}
           </div>
         </li>)}
       </ul>}

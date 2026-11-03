@@ -1,4 +1,4 @@
-import { ApiError, medtecApi, type AAviso, type ApiResponse, type NNoticia, type PaginatedData } from '@/lib/api';
+import { ApiError, medtecApi, pode, type AAviso, type ApiResponse, type NNoticia, type PaginatedData, type SessaoPermissoes } from '@/lib/api';
 
 interface OverviewCollection<T> {
   items: T[];
@@ -8,13 +8,14 @@ interface OverviewCollection<T> {
 interface OverviewData {
   news: OverviewCollection<NNoticia>;
   avisos: OverviewCollection<AAviso>;
-  gallery: { total: number; categories: number };
+  gallery: { total: number; categories: number | null };
   faqs: { total: number; pending: number; published: number };
   users: number;
   states: number;
 }
 
-type ReadResult<T> = { data: T; error: null } | { data: null; error: string };
+// Sem index no módulo, a leitura nem é feita: fica sem dado e sem erro, e a tela não mostra o item.
+type ReadResult<T> = { data: T; error: null } | { data: null; error: string | null };
 type OverviewSnapshot = { [K in keyof OverviewData]: ReadResult<OverviewData[K]> };
 interface Resource<T> { data: T | null; loading: boolean; error: string | null }
 export type AdminOverviewState = { [K in keyof OverviewData]: Resource<OverviewData[K]> };
@@ -61,20 +62,22 @@ async function settle<T>(read: () => Promise<T>): Promise<ReadResult<T>> {
   }
 }
 
-// O chamador confirma o acesso antes da leitura; a autorização definitiva continua no Rails.
-async function readOverview(authorized: boolean): Promise<OverviewSnapshot | null> {
-  if (!authorized) return null;
+// Só consulta os módulos com permissão index: os demais dariam 403. A autorização definitiva continua no Rails.
+async function readOverview(sessao: SessaoPermissoes): Promise<OverviewSnapshot> {
+  const lista = (modulo: string) => pode(modulo, 'index', sessao);
+  const when = <T>(modulo: string, read: () => Promise<T>): Promise<ReadResult<T>> =>
+    lista(modulo) ? settle(read) : Promise.resolve({ data: null, error: null });
   const [news, avisos, gallery, faqs, users, states] = await Promise.all([
-    settle(() => collection(medtecApi.noticias.list({ page: 'all' }))),
-    settle(() => collection(medtecApi.avisos.list({ page: 'all' }))),
-    settle(async () => {
+    when('n_noticias', () => collection(medtecApi.noticias.list({ page: 'all' }))),
+    when('a_avisos', () => collection(medtecApi.avisos.list({ page: 'all' }))),
+    when('fotos_galeria', async () => {
       const [photos, categories] = await Promise.all([
         collection(medtecApi.fotosGaleria.list({ page: 1, per_page: 1 })),
-        collection(medtecApi.categoriasGaleria.list({ page: 1, per_page: 1 })),
+        lista('categorias_galeria') ? collection(medtecApi.categoriasGaleria.list({ page: 1, per_page: 1 })) : null,
       ]);
-      return { total: photos.total, categories: categories.total };
+      return { total: photos.total, categories: categories?.total ?? null };
     }),
-    settle(async () => {
+    when('d_duvidas', async () => {
       const [all, pending, published] = await Promise.all([
         collection(medtecApi.duvidas.list({ page: 1, per_page: 1 })),
         collection(medtecApi.duvidas.list({ page: 1, per_page: 1, 'q[n_status_noticia_slug_eq]': 'aguardando' })),
@@ -82,19 +85,18 @@ async function readOverview(authorized: boolean): Promise<OverviewSnapshot | nul
       ]);
       return { total: all.total, pending: pending.total, published: published.total };
     }),
-    settle(async () => (await collection(medtecApi.usuarios.list({ page: 1, per_page: 1 }))).total),
-    settle(async () => (await collection(medtecApi.estados.list({ page: 1, per_page: 1 }))).total),
+    when('usuarios', async () => (await collection(medtecApi.usuarios.list({ page: 1, per_page: 1 }))).total),
+    when('g_estados', async () => (await collection(medtecApi.estados.list({ page: 1, per_page: 1 }))).total),
   ]);
   return { news, avisos, gallery, faqs, users, states };
 }
 
 // Uma leitura em andamento por proprietário, compartilhada por chamadas concorrentes.
 export function createAdminOverviewLoader() {
-  let pending: Promise<OverviewSnapshot | null> | null = null;
-  return (authorized: boolean): Promise<OverviewSnapshot | null> => {
-    if (!authorized) return Promise.resolve(null);
+  let pending: Promise<OverviewSnapshot> | null = null;
+  return (sessao: SessaoPermissoes): Promise<OverviewSnapshot> => {
     if (pending) return pending;
-    pending = readOverview(true).finally(() => { pending = null; });
+    pending = readOverview(sessao).finally(() => { pending = null; });
     return pending;
   };
 }

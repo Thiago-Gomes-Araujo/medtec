@@ -12,6 +12,17 @@ import {
   SEM_PERMISSOES, definirPermissoes, lerPermissoes, limparPermissoes, obterPermissoes, pode,
 } from '../src/lib/api/permissoes';
 import type { AuthUser, Permissoes } from '../src/lib/api/types';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { buildAdminMenu, podeAcessarSecao, SECTION_CONFIG, type AdminSection } from '../src/lib/admin-navigation';
+import { getAdminEditorialDestination } from '../src/lib/admin-auth-navigation';
+import { createAdminOverviewLoader } from '../src/lib/admin-overview';
+import AdminOverview from '../src/components/admin/AdminOverview';
+import type { OverviewStatsIndicators } from '../src/components/admin/OverviewStats';
+import { CommunitySubrouteLayout, renderModerationButtons } from '../src/components/admin/communityAdminUi';
+import ProjetosPanel from '../src/components/admin/ProjetosPanel';
+import BannersPanel from '../src/components/admin/BannersPanel';
+import DisciplinasPanel from '../src/components/admin/DisciplinasPanel';
 
 const TODAS = ['index', 'show', 'create', 'update', 'destroy'];
 const MODERACAO = [...TODAS, 'publicar', 'reprovar', 'despublicar'];
@@ -156,5 +167,100 @@ describe('Sessão: permissões do /auth/me', () => {
     definirPermissoes(usuarioMe('Gestor'));
     limparPermissoes();
     assert.equal(pode('usuarios', 'index'), false);
+  });
+});
+
+const sessaoDe = (perfil: keyof typeof PERFIS) => lerPermissoes(PERFIS[perfil]);
+const menuVisivel = (perfil: keyof typeof PERFIS | null) =>
+  buildAdminMenu(perfil ? sessaoDe(perfil) : SEM_PERMISSOES).flatMap(folder => folder.items.filter(item => item.visible).map(item => item.section)).sort();
+const render = (element: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(element);
+
+describe('Fonte única: menu, guardas, Início e botões por pode()', () => {
+  afterEach(() => { globalThis.fetch = originalFetch; limparPermissoes(); });
+
+  it('menu mostra só os módulos com index de cada perfil', () => {
+    assert.deepEqual(menuVisivel('Jornalista'), ['avisos', 'galeria']);
+    assert.deepEqual(menuVisivel('Gestor'), ['duvidas', 'duvidasPublico', 'fotos', 'noticias', 'projetos', 'projetosAprovacao', 'usuarios']);
+    assert.deepEqual(menuVisivel('Administrador'), ['alunos', 'avisos', 'duvidas', 'duvidasPublico', 'estadosCidades', 'fotos', 'galeria', 'kanban', 'noticias', 'professores', 'projetos', 'redes', 'usuarios']);
+    assert.deepEqual(menuVisivel(null), [], 'login local não vê nenhum módulo');
+  });
+
+  it('guardas usam a mesma regra do menu, inclusive nas subrotas', () => {
+    const secoes = Object.keys(SECTION_CONFIG) as AdminSection[];
+    const liberadas = (perfil: keyof typeof PERFIS | null) => secoes.filter(secao => podeAcessarSecao(secao, perfil ? sessaoDe(perfil) : SEM_PERMISSOES)).sort();
+    assert.deepEqual(liberadas(null), ['visaoGeral']);
+    assert.deepEqual(liberadas('Jornalista'), ['avisos', 'galeria', 'visaoGeral']);
+    assert.deepEqual(liberadas('Gestor'), ['duvidas', 'duvidasPublico', 'fotos', 'noticias', 'professoresRelatos', 'projetos', 'projetosAprovacao', 'projetosMembros', 'projetosTemas', 'usuarios', 'visaoGeral']);
+    assert.equal(liberadas('Administrador').length, secoes.length);
+  });
+
+  it('abas das subrotas escondem as telas sem index', () => {
+    definirPermissoes(PERFIS.Gestor);
+    const html = render(createElement(CommunitySubrouteLayout, { active: 'professoresRelatos', children: 'conteúdo' }));
+    assert.doesNotMatch(html, /Seções de professores/, 'só sobra a aba atual: a navegação some');
+    definirPermissoes(PERFIS.Administrador);
+    const admin = render(createElement(CommunitySubrouteLayout, { active: 'professoresRelatos', children: 'conteúdo' }));
+    for (const aba of ['Professores', 'Disciplinas', 'Relatos dos alunos']) assert.match(admin, new RegExp(`>${aba}<`));
+  });
+
+  it('Início: atalhos exigem create e o resumo só traz módulos com index', () => {
+    const html = (perfil: keyof typeof PERFIS) => render(createElement(AdminOverview, {
+      indicators: { usersCountLabel: '3' } as OverviewStatsIndicators, menu: buildAdminMenu(sessaoDe(perfil)),
+      canCreateNews: pode('n_noticias', 'create', sessaoDe(perfil)), canCreateProject: pode('pj_projetos', 'create', sessaoDe(perfil)),
+      onCreateNews() {},
+    }));
+    const jornalista = html('Jornalista');
+    assert.doesNotMatch(jornalista, /Nova notícia|Novo projeto|Abrir Notícias|Abrir Usuários/);
+    assert.match(jornalista, /Abrir Avisos/);
+    assert.match(jornalista, /<dt[^>]*>Avisos<\/dt>/);
+    assert.doesNotMatch(jornalista, /<dt[^>]*>(Notícias|Projetos|Banners|Perguntas)<\/dt>/);
+    const gestor = html('Gestor');
+    assert.match(gestor, /Nova notícia/);
+    assert.match(gestor, /Novo projeto/);
+    assert.match(gestor, /Abrir Usuários/);
+  });
+
+  it('Início não chama a API de módulos sem index (sem 403 nos contadores)', async () => {
+    const urls: string[] = [];
+    globalThis.fetch = async (input) => {
+      urls.push(String(input).replace(/^.*\/api\/v1/, '').replace(/\?.*$/, ''));
+      return json({ success: true, data: { items: [], pagination: { current_page: 1, total_pages: 1, total_count: 0, per_page: 1 } } });
+    };
+    await createAdminOverviewLoader()(sessaoDe('Jornalista'));
+    assert.deepEqual([...new Set(urls)].sort(), ['/a_avisos', '/categorias_galeria', '/fotos_galeria']);
+    urls.length = 0;
+    await createAdminOverviewLoader()(SEM_PERMISSOES);
+    assert.deepEqual(urls, []);
+  });
+
+  it('redirecionamento de "nova notícia" exige create', () => {
+    const params = new URLSearchParams('action=new');
+    assert.equal(getAdminEditorialDestination(sessaoDe('Jornalista'), params), null);
+    assert.deepEqual(getAdminEditorialDestination(sessaoDe('Gestor'), params), { method: 'replace', href: '/admin/noticias?action=new' });
+    assert.equal(getAdminEditorialDestination(sessaoDe('Administrador'), new URLSearchParams()), null);
+  });
+
+  it('botões de criar seguem a ação create do módulo', () => {
+    definirPermissoes(PERFIS.Jornalista);
+    assert.doesNotMatch(render(createElement(ProjetosPanel)), /Novo projeto/);
+    assert.doesNotMatch(render(createElement(BannersPanel)), /Novo banner/);
+    assert.doesNotMatch(render(createElement(DisciplinasPanel)), /Nova disciplina/);
+    definirPermissoes(PERFIS.Gestor);
+    assert.match(render(createElement(ProjetosPanel)), /Novo projeto/);
+    assert.match(render(createElement(BannersPanel)), /Novo banner/);
+    assert.doesNotMatch(render(createElement(DisciplinasPanel)), /Nova disciplina/, 'Gestor não tem p_disciplinas');
+    definirPermissoes(PERFIS.Administrador);
+    assert.match(render(createElement(DisciplinasPanel)), /Nova disciplina/);
+  });
+
+  it('Publicar, Reprovar e Despublicar seguem a ação de cada um', () => {
+    const botoes = (status: 'aguardando' | 'publicada', acoes: string[]) =>
+      render(createElement('div', null, renderModerationButtons(status, 'Projeto X', false, () => {}, acao => acoes.includes(acao))));
+    assert.equal(botoes('aguardando', []), '<div></div>');
+    assert.match(botoes('aguardando', ['publicar']), /Publicar Projeto X/);
+    assert.doesNotMatch(botoes('aguardando', ['publicar']), /Reprovar/);
+    assert.match(botoes('aguardando', ['publicar', 'reprovar']), /Reprovar Projeto X/);
+    assert.doesNotMatch(botoes('publicada', ['publicar', 'reprovar']), /Despublicar/);
+    assert.match(botoes('publicada', ['despublicar']), /Despublicar Projeto X/);
   });
 });

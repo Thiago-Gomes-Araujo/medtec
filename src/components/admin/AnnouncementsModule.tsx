@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { medtecApi, AAviso, ATipoAviso } from '@/lib/api';
+import { usePermissoes } from '@/components/admin/usePermissoes';
 import { AnnouncementItem, AnnouncementType } from '@/types';
 import AdminLiveSimulator, { PreviewAnnouncementData } from '@/components/AdminLiveSimulator';
 
@@ -42,6 +43,7 @@ export default function AnnouncementsModule({
 }: AnnouncementsModuleProps) {
   // Modos de visualização interna
   const [announcementViewMode, setAnnouncementViewMode] = useState<'lista' | 'editor'>(initialMode);
+  const { pode } = usePermissoes();
   const [tipoAvisoSelection, setSelectedTipoAvisoId] = useState<number | null>(null);
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<number | null>(null);
   const [savingAnnouncement, setSavingAnnouncement] = useState(false);
@@ -298,7 +300,7 @@ export default function AnnouncementsModule({
             <span>Avisos Oficiais ({displayAvisosCount})</span>
           </button>
 
-          <button
+          {pode('a_avisos', 'create') && <button
             type="button"
             onClick={() => {
               handleNewAnnouncement();
@@ -312,9 +314,9 @@ export default function AnnouncementsModule({
           >
             <Plus className="h-4 w-4" />
             <span>{editingAnnouncementId ? 'Editar Aviso' : 'Novo Comunicado'}</span>
-          </button>
+          </button>}
 
-          <button
+          {(pode('a_tipos_aviso', 'create') || pode('a_tipos_aviso', 'update')) && <button
             type="button"
             onClick={() => setShowTipoAvisoManager(!showTipoAvisoManager)}
             className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
@@ -325,10 +327,10 @@ export default function AnnouncementsModule({
           >
             <Palette className="h-4 w-4 text-amber-500" />
             <span>Tipos e Cores de Aviso ({apiTiposAviso.length})</span>
-          </button>
+          </button>}
         </div>
 
-        {announcementViewMode === 'lista' && !showTipoAvisoManager && (
+        {announcementViewMode === 'lista' && !showTipoAvisoManager && pode('a_avisos', 'create') && (
           <button
             type="button"
             onClick={handleNewAnnouncement}
@@ -480,7 +482,7 @@ export default function AnnouncementsModule({
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button
+                  {pode('a_tipos_aviso', 'update') && <button
                     type="button"
                     onClick={() => {
                       setEditingTipoAviso(tipo);
@@ -496,15 +498,15 @@ export default function AnnouncementsModule({
                     title="Editar tipo"
                   >
                     <Edit3 size={13} />
-                  </button>
-                  <button
+                  </button>}
+                  {pode('a_tipos_aviso', 'destroy') && <button
                     type="button"
                     onClick={() => handleDeleteTipoAviso(tipo.id)}
                     className="p-1.5 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600"
                     title="Excluir tipo"
                   >
                     <Trash2 size={13} />
-                  </button>
+                  </button>}
                 </div>
               </div>
             ))}
@@ -862,29 +864,29 @@ export default function AnnouncementsModule({
                           <Eye size={13} />
                           <span className="hidden md:inline">Ver Prévia</span>
                         </button>
-                        <button
+                        {pode('a_avisos', 'update') && <button
                           type="button"
                           onClick={() => handleEditAnnouncement(item)}
                           className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 cursor-pointer"
                           title="Editar"
                         >
                           <Edit3 size={15} />
-                        </button>
-                        <button
+                        </button>}
+                        {pode('a_avisos', 'update') && <button
                           type="button"
                           onClick={() => handleToggleAnnouncementActive(item.id)}
                           className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition cursor-pointer"
                         >
                           {itemActive ? 'Ocultar' : 'Exibir'}
-                        </button>
-                        <button
+                        </button>}
+                        {pode('a_avisos', 'destroy') && <button
                           type="button"
                           onClick={() => handleDeleteAnnouncement(item.id)}
                           className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-slate-600 dark:text-slate-300 hover:text-rose-600 transition cursor-pointer"
                           title="Excluir"
                         >
                           <Trash2 size={15} />
-                        </button>
+                        </button>}
                       </div>
                     </div>
                   );

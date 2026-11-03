@@ -6,6 +6,7 @@ import { getMediaUrl, medtecApi, type PjProjeto } from '@/lib/api';
 import { formatFileSize, getProjetoImageSrc } from '@/lib/projetos-content';
 import { buttonClass, panelClass, renderFeedback, renderModerationButtons, renderPagination, useAdminAction, useApiList, type ModeracaoAction } from './communityAdminUi';
 import { notifyProjetosPendentes } from './useProjetosPendentes';
+import { usePermissoes } from './usePermissoes';
 
 function formatarData(value: string): string {
   const date = new Date(value);
@@ -22,6 +23,7 @@ export default function ProjetosAprovacaoPanel() {
   }, signal), [page]);
   const { items, pagination, loading, error, reload } = useApiList<PjProjeto>(read);
   const action = useAdminAction();
+  const { pode } = usePermissoes();
 
   async function moderate(item: PjProjeto, operation: ModeracaoAction) {
     const done = await action.run(async () => {
@@ -66,7 +68,7 @@ export default function ProjetosAprovacaoPanel() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" aria-expanded={aberto} aria-controls={`${id}-detalhe-${item.id}`} aria-label={`${aberto ? 'Ocultar' : 'Ver'} detalhes de ${item.titulo}`} className={buttonClass} onClick={() => setDetalhe(aberto ? null : item.id)}>{aberto ? 'Ocultar detalhes' : 'Ver detalhes'}</button>
-              {renderModerationButtons(item.status, item.titulo, action.busy, operation => void moderate(item, operation))}
+              {renderModerationButtons(item.status, item.titulo, action.busy, operation => void moderate(item, operation), acao => pode('pj_projetos', acao))}
             </div>
             {aberto && <div id={`${id}-detalhe-${item.id}`} className="space-y-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-700 dark:bg-[#071324] dark:text-slate-200">
               <p className="text-xs text-slate-600 dark:text-slate-400">Município: {item.cidade_nome}</p>

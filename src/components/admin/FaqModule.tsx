@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { ApiError, medtecApi, type DCategoriaDuvida, type DDuvida, type DDuvidaInput, type PaginationMeta } from '@/lib/api';
+import { usePermissoes } from './usePermissoes';
 
 const buttonClass = 'rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
 const inputClass = 'w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#071324] px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#004A99] dark:focus:ring-sky-400';
@@ -31,6 +32,7 @@ export default function FaqModule({ active = true, prefill = null }: { active?: 
   const [actionError, setActionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { pode } = usePermissoes();
   const [form, setForm] = useState<DuvidaForm | null>(null);
   const [deleting, setDeleting] = useState<DDuvida | null>(null);
   const lifecycle = useRef(0);
@@ -187,8 +189,8 @@ export default function FaqModule({ active = true, prefill = null }: { active?: 
         <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Dúvidas recorrentes</h2>
         <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Gerencie perguntas, respostas e aprovação. Cada ação exige permissão do seu perfil.</p>
       </div>
-      <button type="button" className={buttonClass} disabled={blocked || loading || categoriesLoading || !!categoriesError || categories.length === 0}
-        onClick={() => { setForm({ d_categoria_duvida_id: 0, pergunta: '', resposta: '' }); setActionError(null); setSuccess(null); }}>Nova dúvida</button>
+      {pode('d_duvidas', 'create') && <button type="button" className={buttonClass} disabled={blocked || loading || categoriesLoading || !!categoriesError || categories.length === 0}
+        onClick={() => { setForm({ d_categoria_duvida_id: 0, pergunta: '', resposta: '' }); setActionError(null); setSuccess(null); }}>Nova dúvida</button>}
     </header>
 
     {categoriesLoading && <p role="status" className="text-xs text-slate-600 dark:text-slate-400">Carregando categorias...</p>}
@@ -280,11 +282,11 @@ export default function FaqModule({ active = true, prefill = null }: { active?: 
         <h3 className="break-words text-sm font-bold text-slate-900 dark:text-white">{item.pergunta}</h3>
         <p className="whitespace-pre-line break-words text-sm text-slate-600 dark:text-slate-300 line-clamp-3">{item.resposta}</p>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className={buttonClass} disabled={blocked || categoriesLoading || !!categoriesError} aria-label={`Editar ${item.pergunta}`} onClick={() => void edit(item)}>Editar</button>
-          <button type="button" className={buttonClass} disabled={blocked} aria-label={`Excluir ${item.pergunta}`} onClick={() => { setDeleting(item); setActionError(null); setSuccess(null); }}>Excluir</button>
-          {item.status !== 'publicada' && <button type="button" className={buttonClass} disabled={blocked} aria-label={`Publicar ${item.pergunta}`} onClick={() => void decide(item, 'publicar')}>Publicar</button>}
-          {item.status === 'aguardando' && <button type="button" className={buttonClass} disabled={blocked} aria-label={`Reprovar ${item.pergunta}`} onClick={() => void decide(item, 'reprovar')}>Reprovar</button>}
-          {item.status === 'publicada' && <button type="button" className={buttonClass} disabled={blocked} aria-label={`Despublicar ${item.pergunta}`} onClick={() => void decide(item, 'despublicar')}>Despublicar</button>}
+          {pode('d_duvidas', 'update') && <button type="button" className={buttonClass} disabled={blocked || categoriesLoading || !!categoriesError} aria-label={`Editar ${item.pergunta}`} onClick={() => void edit(item)}>Editar</button>}
+          {pode('d_duvidas', 'destroy') && <button type="button" className={buttonClass} disabled={blocked} aria-label={`Excluir ${item.pergunta}`} onClick={() => { setDeleting(item); setActionError(null); setSuccess(null); }}>Excluir</button>}
+          {item.status !== 'publicada' && pode('d_duvidas', 'publicar') && <button type="button" className={buttonClass} disabled={blocked} aria-label={`Publicar ${item.pergunta}`} onClick={() => void decide(item, 'publicar')}>Publicar</button>}
+          {item.status === 'aguardando' && pode('d_duvidas', 'reprovar') && <button type="button" className={buttonClass} disabled={blocked} aria-label={`Reprovar ${item.pergunta}`} onClick={() => void decide(item, 'reprovar')}>Reprovar</button>}
+          {item.status === 'publicada' && pode('d_duvidas', 'despublicar') && <button type="button" className={buttonClass} disabled={blocked} aria-label={`Despublicar ${item.pergunta}`} onClick={() => void decide(item, 'despublicar')}>Despublicar</button>}
         </div>
       </li>)}
     </ul>}

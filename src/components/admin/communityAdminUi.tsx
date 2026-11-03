@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ADMIN_SUBROUTE_GROUPS, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
+import { ADMIN_SUBROUTE_GROUPS, podeAcessarSecao, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 import { medtecApi, type ApiResponse, type Escola, type ModeracaoStatus, type PaginatedData, type PaginationMeta } from '@/lib/api';
 import { communityErrorMessage } from '@/lib/community-content';
 import { adminFocusClass } from './adminTheme';
+import { usePermissoes } from './usePermissoes';
 
 export const buttonClass = `rounded-lg border border-admin-border px-3 py-2 text-xs font-semibold text-admin-text hover:bg-admin-surface-muted disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${adminFocusClass}`;
 export const inputClass = 'w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#071324] px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#004A99] dark:focus:ring-sky-400';
@@ -15,12 +16,15 @@ export const panelClass = 'space-y-4 rounded-2xl border border-admin-border bg-a
 export type ModeracaoAction = 'publicar' | 'reprovar' | 'despublicar';
 
 // Abas dos módulos de professores e alunos: cada uma é uma subrota, com a ativa destacada.
+// Só aparecem as abas que a guarda do shell também liberaria.
 export function CommunitySubrouteLayout({ active, children }: { active: AdminSection; children: ReactNode }) {
+  const { sessao } = usePermissoes();
   const group = ADMIN_SUBROUTE_GROUPS.find(item => item.items.some(({ section }) => section === active));
+  const tabs = group?.items.filter(({ section }) => section === active || podeAcessarSecao(section, sessao)) ?? [];
   return (
     <div className="space-y-6">
-      {group && <nav aria-label={group.label} className="flex flex-wrap gap-2">
-        {group.items.map(({ section, label }) => <Link key={section} href={SECTION_CONFIG[section].href} aria-current={section === active ? 'page' : undefined}
+      {group && tabs.length > 1 && <nav aria-label={group.label} className="flex flex-wrap gap-2">
+        {tabs.map(({ section, label }) => <Link key={section} href={SECTION_CONFIG[section].href} aria-current={section === active ? 'page' : undefined}
           className={`rounded-lg px-4 py-2 text-xs font-semibold cursor-pointer ${adminFocusClass} ${section === active
             ? 'bg-admin-accent text-admin-accent-fg' : 'border border-admin-border text-admin-text hover:bg-admin-surface-muted'}`}>
           {label}
@@ -63,7 +67,7 @@ export function useApiList<T>(read: (signal: AbortSignal) => Promise<ApiResponse
   return { items, pagination, loading, error, reload };
 }
 
-// Sem matriz de ações no front: cada operação depende da autorização do Rails.
+// Os botões seguem pode(); a autorização definitiva de cada operação continua no Rails.
 export function useAdminAction() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,12 +139,12 @@ export function renderStatusBadge(status: ModeracaoStatus, label: string) {
   return <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${STATUS_CLASS[status] ?? ''}`}>{label}</span>;
 }
 
-// Os botões seguem o campo `status` devolvido pela API.
-export function renderModerationButtons(status: ModeracaoStatus, name: string, disabled: boolean, onAction: (action: ModeracaoAction) => void) {
+// Os botões seguem o campo `status` devolvido pela API e as ações liberadas para o módulo.
+export function renderModerationButtons(status: ModeracaoStatus, name: string, disabled: boolean, onAction: (action: ModeracaoAction) => void, allowed: (action: ModeracaoAction) => boolean) {
   return <>
-    {status !== 'publicada' && <button type="button" className={buttonClass} disabled={disabled} aria-label={`Publicar ${name}`} onClick={() => onAction('publicar')}>Publicar</button>}
-    {status === 'aguardando' && <button type="button" className={buttonClass} disabled={disabled} aria-label={`Reprovar ${name}`} onClick={() => onAction('reprovar')}>Reprovar</button>}
-    {status === 'publicada' && <button type="button" className={buttonClass} disabled={disabled} aria-label={`Despublicar ${name}`} onClick={() => onAction('despublicar')}>Despublicar</button>}
+    {status !== 'publicada' && allowed('publicar') && <button type="button" className={buttonClass} disabled={disabled} aria-label={`Publicar ${name}`} onClick={() => onAction('publicar')}>Publicar</button>}
+    {status === 'aguardando' && allowed('reprovar') && <button type="button" className={buttonClass} disabled={disabled} aria-label={`Reprovar ${name}`} onClick={() => onAction('reprovar')}>Reprovar</button>}
+    {status === 'publicada' && allowed('despublicar') && <button type="button" className={buttonClass} disabled={disabled} aria-label={`Despublicar ${name}`} onClick={() => onAction('despublicar')}>Despublicar</button>}
   </>;
 }
 

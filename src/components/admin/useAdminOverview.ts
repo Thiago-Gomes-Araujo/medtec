@@ -3,19 +3,19 @@
 import { useCallback, useRef, useState } from 'react';
 import { applyOverviewSnapshot, createAdminOverviewLoader, createInitialOverviewState,
   getOverviewHighlights, getOverviewMetrics, startOverviewLoading } from '@/lib/admin-overview';
+import type { SessaoPermissoes } from '@/lib/api';
 
-// Sem efeitos de leitura: a página inicia a carga somente após sua autorização existente.
+// Sem efeitos de leitura: a página inicia a carga depois de confirmar a sessão e as permissões.
 export function useAdminOverview() {
   const [state, setState] = useState(createInitialOverviewState);
   const [read] = useState(createAdminOverviewLoader);
   const pending = useRef<Promise<void> | null>(null);
 
-  const reload = useCallback((authorized: boolean): Promise<void> => {
-    if (!authorized) return Promise.resolve();
+  const reload = useCallback((sessao: SessaoPermissoes): Promise<void> => {
     if (pending.current) return pending.current;
     setState(startOverviewLoading);
-    const request = read(true).then((snapshot) => {
-      if (snapshot) setState((previous) => applyOverviewSnapshot(previous, snapshot));
+    const request = read(sessao).then((snapshot) => {
+      setState((previous) => applyOverviewSnapshot(previous, snapshot));
     }).finally(() => { pending.current = null; });
     pending.current = request;
     return request;

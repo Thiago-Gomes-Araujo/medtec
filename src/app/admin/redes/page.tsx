@@ -5,9 +5,11 @@ import { Loader2 } from 'lucide-react';
 import { ApiError, type CanalContato } from '@/lib/api';
 import SocialChannelsModule from '@/components/admin/SocialChannelsModule';
 import AdminShell from '@/components/admin/AdminShell';
+import { usePermissoes } from '@/components/admin/usePermissoes';
 import { getChannelChanges, readAdminChannels, saveAdminChannels } from '@/lib/admin-channels';
 
 function ChannelsContent() {
+  const { pode } = usePermissoes();
   const [official, setOfficial] = useState<CanalContato[] | null>(null);
   const [apiCanais, setApiCanais] = useState<CanalContato[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +46,7 @@ function ChannelsContent() {
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (loading || readError || !official || savePending.current) return;
+    if (loading || readError || !official || savePending.current || !pode('canais_contato', 'update_all')) return;
     savePending.current = true;
     setSaving(true);
     setSaveError(null);
@@ -95,6 +97,7 @@ function ChannelsContent() {
         onSave={handleSave}
         saving={saving}
         canSave={getChannelChanges(official, apiCanais).length > 0}
+        canEdit={pode('canais_contato', 'update_all')}
       />
     </div>
   );

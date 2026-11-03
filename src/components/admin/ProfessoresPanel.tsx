@@ -13,6 +13,7 @@ import {
   useApiList,
   useEscolaOptions,
 } from './communityAdminUi';
+import { usePermissoes } from './usePermissoes';
 
 interface ProfessorForm {
   id?: number;
@@ -51,6 +52,7 @@ export default function ProfessoresPanel() {
   const disciplinas = useApiList<PDisciplina>(readDisciplinas);
   const escolas = useEscolaOptions(form?.cidadeId ?? '');
   const action = useAdminAction();
+  const { pode } = usePermissoes();
   const blocked = action.busy || form !== null || deleting !== null;
 
   function updateFilters(next: Partial<typeof filters>) {
@@ -124,9 +126,9 @@ export default function ProfessoresPanel() {
           <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Professores e Mediadores</h2>
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Gerenciamento editorial do corpo docente: professores ministrantes no estúdio SEDUC e mediadores presenciais nas salas de aula de Rondônia. O município exibido no site vem da escola. Cada ação exige permissão do seu perfil.</p>
         </div>
-        <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
+        {pode('p_professores', 'create') && <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
           setForm(EMPTY_FORM); setFieldErrors({}); action.setError(null); action.setSuccess(null);
-        }}>Novo professor</button>
+        }}>Novo professor</button>}
       </header>
 
       <form aria-label="Filtrar professores" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" onSubmit={event => { event.preventDefault(); updateFilters({ busca: buscaInput.trim() }); }}>
@@ -235,8 +237,8 @@ export default function ProfessoresPanel() {
             <p className="text-xs text-slate-600 dark:text-slate-400">{item.disciplinas.map(disciplina => disciplina.nome).join(', ')}</p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
-            <button type="button" disabled={blocked} aria-label={`Editar ${item.nome}`} className={buttonClass} onClick={() => void edit(item)}>Editar</button>
-            <button type="button" disabled={blocked} aria-label={`Excluir ${item.nome}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>
+            {pode('p_professores', 'update') && <button type="button" disabled={blocked} aria-label={`Editar ${item.nome}`} className={buttonClass} onClick={() => void edit(item)}>Editar</button>}
+            {pode('p_professores', 'destroy') && <button type="button" disabled={blocked} aria-label={`Excluir ${item.nome}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>}
           </div>
         </li>)}
       </ul>}

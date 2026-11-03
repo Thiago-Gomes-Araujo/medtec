@@ -21,6 +21,7 @@ import {
   useEscolaOptions,
   type ModeracaoAction,
 } from './communityAdminUi';
+import { usePermissoes } from './usePermissoes';
 
 interface ConquistaForm {
   id?: number;
@@ -64,6 +65,7 @@ export default function ConquistasPanel() {
   const categorias = useApiList<CCategoriaConquista>(readCategorias);
   const escolas = useEscolaOptions(form?.cidadeId ?? '');
   const action = useAdminAction();
+  const { pode } = usePermissoes();
   const blocked = action.busy || form !== null || deleting !== null;
   const imagemPreview = form?.imagemPreview;
 
@@ -161,9 +163,9 @@ export default function ConquistasPanel() {
           <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Conquistas</h2>
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">O site mostra só as publicadas. A cidade vem da escola.</p>
         </div>
-        <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
+        {pode('c_conquistas_aluno', 'create') && <button type="button" disabled={blocked || loading} className={buttonClass} onClick={() => {
           setForm(EMPTY_FORM); action.setError(null); action.setSuccess(null);
-        }}>Nova conquista</button>
+        }}>Nova conquista</button>}
       </header>
 
       <form aria-label="Filtrar conquistas" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6" onSubmit={event => {
@@ -282,9 +284,9 @@ export default function ConquistasPanel() {
             <p className="text-xs text-slate-600 dark:text-slate-400">{item.nome_aluno} · {item.categoria_nome} · {item.escola_nome} · {item.cidade_nome}</p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
-            {renderModerationButtons(item.status, item.titulo, blocked, operation => void moderate(item, operation))}
-            <button type="button" disabled={blocked} aria-label={`Editar ${item.titulo}`} className={buttonClass} onClick={() => void edit(item)}>Editar</button>
-            <button type="button" disabled={blocked} aria-label={`Excluir ${item.titulo}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>
+            {renderModerationButtons(item.status, item.titulo, blocked, operation => void moderate(item, operation), acao => pode('c_conquistas_aluno', acao))}
+            {pode('c_conquistas_aluno', 'update') && <button type="button" disabled={blocked} aria-label={`Editar ${item.titulo}`} className={buttonClass} onClick={() => void edit(item)}>Editar</button>}
+            {pode('c_conquistas_aluno', 'destroy') && <button type="button" disabled={blocked} aria-label={`Excluir ${item.titulo}`} className={buttonClass} onClick={() => setDeleting(item)}>Excluir</button>}
           </div>
         </li>)}
       </ul>}

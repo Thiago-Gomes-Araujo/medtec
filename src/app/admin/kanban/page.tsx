@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import AdminShell, { type AdminSession } from '@/components/admin/AdminShell';
+import AdminShell from '@/components/admin/AdminShell';
+import { usePermissoes } from '@/components/admin/usePermissoes';
 import EditorialKanban from '@/components/EditorialKanban';
 import { useEditorialNews } from '@/components/admin/useEditorialNews';
 import CommunityApprovalQueue from '@/components/admin/CommunityApprovalQueue';
@@ -9,11 +10,14 @@ import DuvidasVisitanteQueue from '@/components/admin/DuvidasVisitanteQueue';
 import ProjetosApprovalQueue from '@/components/admin/ProjetosApprovalQueue';
 
 // Montado pelo shell somente depois da verificação da sessão e da autorização.
-function KanbanContent({ session }: { session: AdminSession }) {
-  const canModerate = session.isGestor && session.apiUser?.perfil_nome === 'Administrador';
+function KanbanContent() {
+  const { pode } = usePermissoes();
+  const canApprove = pode('n_noticias', 'publicar');
+  const canReject = pode('n_noticias', 'reprovar');
+  const canModerate = canApprove || canReject;
   const {
     effectiveNews, loadingNews, errorNews, reload, approveNews, rejectNews,
-  } = useEditorialNews({ canApprove: canModerate, canReject: canModerate });
+  } = useEditorialNews({ canApprove, canReject });
 
   useEffect(() => {
     let active = true;
@@ -33,8 +37,8 @@ function KanbanContent({ session }: { session: AdminSession }) {
         error={errorNews}
         onApproveNews={approveNews}
         onRejectNews={rejectNews}
-        canApprove={canModerate}
-        canReject={canModerate}
+        canApprove={canApprove}
+        canReject={canReject}
       />
       <CommunityApprovalQueue />
       <ProjetosApprovalQueue />
@@ -46,7 +50,7 @@ function KanbanContent({ session }: { session: AdminSession }) {
 export default function AdminKanbanSubroutePage() {
   return (
     <AdminShell activeSection="kanban">
-      {(session) => <KanbanContent session={session} />}
+      {() => <KanbanContent />}
     </AdminShell>
   );
 }

@@ -4,6 +4,7 @@ import { medtecApi, type CConquistaAluno, type PRelato } from '@/lib/api';
 import { buttonClass, panelClass, renderFeedback, renderModerationButtons, useAdminAction, useApiList, type ModeracaoAction } from './communityAdminUi';
 import { notifyAprovacoesPendentes } from './useAprovacoesPendentes';
 import { notifyRelatosPendentes } from './useRelatosPendentes';
+import { usePermissoes } from './usePermissoes';
 
 const AGUARDANDO = { page: 'all', 'q[n_status_noticia_slug_eq]': 'aguardando' };
 const readConquistas = (signal: AbortSignal) => medtecApi.conquistas.list(AGUARDANDO, signal);
@@ -14,6 +15,7 @@ export default function CommunityApprovalQueue() {
   const conquistas = useApiList<CConquistaAluno>(readConquistas);
   const relatos = useApiList<PRelato>(readRelatos);
   const action = useAdminAction();
+  const { pode } = usePermissoes();
 
   async function moderateConquista(item: CConquistaAluno, operation: ModeracaoAction) {
     const done = await action.run(async () => {
@@ -52,7 +54,7 @@ export default function CommunityApprovalQueue() {
             {conquistas.items.map(item => <li key={item.id} className="space-y-2 py-3">
               <p className="break-words text-sm font-semibold text-slate-900 dark:text-white">{item.titulo}</p>
               <p className="text-xs text-slate-600 dark:text-slate-400">{item.nome_aluno} · {item.categoria_nome} · {item.escola_nome}</p>
-              <div className="flex flex-wrap gap-2">{renderModerationButtons(item.status, item.titulo, action.busy, operation => void moderateConquista(item, operation))}</div>
+              <div className="flex flex-wrap gap-2">{renderModerationButtons(item.status, item.titulo, action.busy, operation => void moderateConquista(item, operation), acao => pode('c_conquistas_aluno', acao))}</div>
             </li>)}
           </ul>}
         </div>
@@ -69,7 +71,7 @@ export default function CommunityApprovalQueue() {
             {relatos.items.map(item => <li key={item.id} className="space-y-2 py-3">
               <p className="text-xs text-slate-600 dark:text-slate-400"><strong className="text-slate-900 dark:text-white">{item.nome}</strong> sobre {item.professor_nome} · {item.email} · {item.telefone}</p>
               <p className="whitespace-pre-line break-words text-sm text-slate-700 dark:text-slate-200">{item.texto}</p>
-              <div className="flex flex-wrap gap-2">{renderModerationButtons(item.status, `relato de ${item.nome}`, action.busy, operation => void moderateRelato(item, operation))}</div>
+              <div className="flex flex-wrap gap-2">{renderModerationButtons(item.status, `relato de ${item.nome}`, action.busy, operation => void moderateRelato(item, operation), acao => pode('p_relatos', acao))}</div>
             </li>)}
           </ul>}
         </div>

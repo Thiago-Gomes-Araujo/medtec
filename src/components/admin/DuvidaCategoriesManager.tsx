@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { ApiError, medtecApi, type DCategoriaDuvida, type PaginationMeta } from '@/lib/api';
+import { usePermissoes } from './usePermissoes';
 
 const buttonClass = 'rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004A99] dark:focus-visible:ring-sky-400 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer';
 const inputClass = 'w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#071324] px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#004A99] dark:focus:ring-sky-400';
@@ -23,6 +24,7 @@ export default function DuvidaCategoriesManager() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { pode } = usePermissoes();
   const [form, setForm] = useState<{ id?: number; nome: string; slug: string; ativo: boolean } | null>(null);
   const [deleting, setDeleting] = useState<DCategoriaDuvida | null>(null);
   const lifecycle = useRef(0);
@@ -134,9 +136,9 @@ export default function DuvidaCategoriesManager() {
           <h2 id={`${id}-heading`} className="text-base font-bold text-slate-900 dark:text-white">Categorias de dúvidas</h2>
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Organize os assuntos do FAQ. Cada ação exige permissão do seu perfil.</p>
         </div>
-        <button type="button" disabled={busy || loading || form !== null || deleting !== null} className={buttonClass} onClick={() => {
+        {pode('d_categorias_duvida', 'create') && <button type="button" disabled={busy || loading || form !== null || deleting !== null} className={buttonClass} onClick={() => {
           setForm({ nome: '', slug: '', ativo: true }); setDeleting(null); setActionError(null); setSuccess(null);
-        }}>Nova categoria</button>
+        }}>Nova categoria</button>}
       </header>
 
       {loading && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Carregando categorias...</p>}
@@ -187,11 +189,11 @@ export default function DuvidaCategoriesManager() {
             <p className="break-all text-xs text-slate-600 dark:text-slate-400">{item.slug} · {item.ativo ? 'Ativa' : 'Inativa'}</p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
-            <button type="button" disabled={busy || form !== null || deleting !== null} aria-label={`Editar ${item.nome}`} className={buttonClass} onClick={() => void edit(item)}>Editar</button>
-            <button type="button" disabled={busy || form !== null || deleting !== null} aria-label={`${item.ativo ? 'Desativar' : 'Ativar'} ${item.nome}`} className={buttonClass} onClick={() => void toggle(item)}>{item.ativo ? 'Desativar' : 'Ativar'}</button>
-            <button type="button" disabled={busy || form !== null || deleting !== null} aria-label={`Excluir ${item.nome}`} className={buttonClass} onClick={() => {
+            {pode('d_categorias_duvida', 'update') && <button type="button" disabled={busy || form !== null || deleting !== null} aria-label={`Editar ${item.nome}`} className={buttonClass} onClick={() => void edit(item)}>Editar</button>}
+            {pode('d_categorias_duvida', 'update') && <button type="button" disabled={busy || form !== null || deleting !== null} aria-label={`${item.ativo ? 'Desativar' : 'Ativar'} ${item.nome}`} className={buttonClass} onClick={() => void toggle(item)}>{item.ativo ? 'Desativar' : 'Ativar'}</button>}
+            {pode('d_categorias_duvida', 'destroy') && <button type="button" disabled={busy || form !== null || deleting !== null} aria-label={`Excluir ${item.nome}`} className={buttonClass} onClick={() => {
               setDeleting(item); setForm(null); setActionError(null); setSuccess(null);
-            }}>Excluir</button>
+            }}>Excluir</button>}
           </div>
         </li>)}
       </ul>}
