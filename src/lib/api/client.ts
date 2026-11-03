@@ -4,8 +4,9 @@
  * autenticação por Bearer token, suporte a FormData, e mutex de renovação de token.
  */
 
-import { ApiResponse, AuthTokens, QueryParams } from './types';
+import { ApiResponse, AuthTokens, AuthUser, QueryParams } from './types';
 import { API_TIMEOUT_MESSAGE, API_UNREACHABLE_MESSAGE, ApiError } from './errors';
+import { definirPermissoes } from './permissoes';
 import {
   getStoredAccessToken,
   getStoredRefreshToken,
@@ -150,6 +151,23 @@ function timeoutError(): ApiError {
 // Mutex de renovação concorrente de tokens: apenas 1 chamada a /auth/refresh_token por vez
 let activeRefreshPromise: Promise<boolean> | null = null;
 
+/**
+ * As permissões não ficam no token: cada refresh relê o GET /auth/me.
+ * Se a leitura falhar, as permissões atuais continuam até a próxima confirmação.
+ */
+export async function reloadPermissions(accessToken: string): Promise<void> {
+  try {
+    const response = await fetchWithTimeout(`${getApiBaseUrl()}/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) return;
+    const data = (await response.json()) as ApiResponse<AuthUser>;
+    if (data.success && data.data) definirPermissoes(data.data);
+  } catch {
+    // Mantém as permissões já confirmadas.
+  }
+}
+
 async function executeTokenRefresh(): Promise<boolean> {
   const refreshToken = getStoredRefreshToken();
   if (!refreshToken) {
@@ -174,6 +192,7 @@ async function executeTokenRefresh(): Promise<boolean> {
     const data = (await response.json()) as ApiResponse<AuthTokens>;
     if (data.success && data.data?.access_token && data.data?.refresh_token) {
       setStoredTokens(data.data);
+      await reloadPermissions(data.data.access_token);
       return true;
     }
 

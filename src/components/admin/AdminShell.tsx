@@ -29,7 +29,7 @@ import {
   Info,
   Lock,
 } from 'lucide-react';
-import { medtecApi, clearStoredTokens, fetchWithTimeout, isConnectionFailure, isTimeoutError, type AuthUser } from '@/lib/api';
+import { medtecApi, clearStoredTokens, definirPermissoes, limparPermissoes, fetchWithTimeout, isConnectionFailure, isTimeoutError, type AuthUser } from '@/lib/api';
 import AdminSessionError from '@/components/admin/AdminSessionError';
 import { canAccessBanners, canAccessDuvidas, canAccessProjetos, getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
@@ -119,6 +119,7 @@ export default function AdminShell({
             if (!active) return;
             if (meRes.success && meRes.data) {
               authenticated = true;
+              definirPermissoes(meRes.data);
               const { isGestor, username, name, profileType } = getRailsSessionFields(meRes.data);
               setIsLoggedIn(true);
               setUserSession({
@@ -146,6 +147,8 @@ export default function AdminShell({
           if (authRes.ok) {
             const authJson = await authRes.json();
             if (!active) return;
+            // O login local não passa pelo /auth/me: nenhuma permissão.
+            limparPermissoes();
             const { isGestor, username, name, profileType } = getLocalSessionFields(authJson);
             setIsLoggedIn(true);
             setUserSession({

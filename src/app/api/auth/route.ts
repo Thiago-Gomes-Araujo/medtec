@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getApiBaseUrl } from '@/lib/api/client';
+import { lerPermissoes } from '@/lib/api/permissoes';
+import type { AuthUser } from '@/lib/api/types';
 import {
   AUTH_COOKIE_NAME,
   SESSION_MAX_AGE_SECONDS,
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
     // 1. Tenta autenticar na mesma API que o navegador usará com o token emitido aqui
     const backendUrl = getApiBaseUrl();
     let backendTokens: { access_token: string; refresh_token: string } | null = null;
-    let backendUser: { id: number; nome: string; cpf: string; perfil_nome: string } | null = null;
+    let backendUser: Pick<AuthUser, 'id' | 'nome' | 'cpf' | 'perfil_nome' | 'admin' | 'permissoes'> | null = null;
     let backendUnavailable = false;
 
     try {
@@ -69,7 +71,9 @@ export async function POST(request: Request) {
     // Se o backend autenticou com sucesso
     if (backendUser && backendTokens) {
       const userLogin = backendUser.cpf;
-      const role = backendUser.perfil_nome === 'Administrador' ? 'gestor' : 'operador';
+      // O papel do cookie local segue o campo admin do /auth/me, nunca o nome do perfil.
+      const { admin, permissoes } = lerPermissoes(backendUser);
+      const role = admin ? 'gestor' : 'operador';
       const name = backendUser.nome;
       const profileType = backendUser.perfil_nome;
       const token = createSessionToken(userLogin, role, name, profileType);
@@ -77,7 +81,7 @@ export async function POST(request: Request) {
       const response = NextResponse.json({
         success: true,
         message: 'Autenticado com sucesso!',
-        user: { username: userLogin, role, name, profileType },
+        user: { username: userLogin, role, name, profileType, admin, permissoes },
         tokens: backendTokens,
       });
 

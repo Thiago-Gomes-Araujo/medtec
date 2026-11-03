@@ -42,6 +42,8 @@ import { sidebarIconButtonClass, sidebarPortalLinkClass, sidebarSearchInputClass
 import {
   medtecApi,
   clearStoredTokens,
+  definirPermissoes,
+  limparPermissoes,
   fetchWithTimeout,
   isConnectionFailure,
   isTimeoutError,
@@ -198,6 +200,7 @@ export default function AdminDashboardPage() {
           if (!isCurrent()) return;
           if (meRes.success && meRes.data) {
             authenticated = true;
+            definirPermissoes(meRes.data);
             const { isGestor, username, name, profileType } = getRailsSessionFields(meRes.data);
             overviewAuthorized = isGestor;
             setIsLoggedIn(true);
@@ -236,6 +239,8 @@ export default function AdminDashboardPage() {
         if (authRes.ok) {
           const authJson = await authRes.json();
           if (!isCurrent()) return;
+          // O login local não passa pelo /auth/me: nenhuma permissão.
+          limparPermissoes();
           const { isGestor, username, name, profileType } = getLocalSessionFields(authJson);
           overviewAuthorized = isGestor;
 

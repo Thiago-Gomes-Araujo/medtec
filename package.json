@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test tests/api-client.test.ts"
+    "test": "tsx --test tests/api-client.test.ts tests/permissoes.test.ts"
   },
   "dependencies": {
     "framer-motion": "^14.3.0",
