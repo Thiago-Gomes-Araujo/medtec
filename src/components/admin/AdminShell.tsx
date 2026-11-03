@@ -4,7 +4,6 @@ import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { useAdminTheme } from '@/components/admin/useAdminTheme';
 import { useDuvidasPendentes } from '@/components/admin/useDuvidasPendentes';
 import { useAprovacoesPendentes } from '@/components/admin/useAprovacoesPendentes';
-import { useProjetosPendentes } from '@/components/admin/useProjetosPendentes';
 import { useRelatosPendentes } from '@/components/admin/useRelatosPendentes';
 import DesktopSidebarContainer from '@/components/admin/DesktopSidebarContainer';
 import MobileDrawerFooter from '@/components/admin/MobileDrawerFooter';
@@ -35,7 +34,7 @@ import { getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-sessio
 import { usePermissoes } from '@/components/admin/usePermissoes';
 import { getAdminLoginHref } from '@/lib/admin-auth-navigation';
 import { AdminPreviewModal, PreviewContentType, PreviewItemData } from '@/components/AdminLiveSimulator';
-import { buildAdminMenu, getActiveMenuSection, getFolderIdForSection, PENDING_BADGE_SECTIONS, podeAcessarSecao, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
+import { buildAdminMenu, getActiveMenuSection, getFolderIdForSection, getModulosAprovacaoContaveis, PENDING_BADGE_SECTIONS, podeAcessarSecao, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
 import { adminPrimaryButtonClass, sidebarBadgeClass, sidebarFolderClass, sidebarIconButtonClass, sidebarIconClass, sidebarItemClass, sidebarPortalLinkClass, sidebarSearchInputClass } from '@/components/admin/adminTheme';
 
 export { getFolderIdForSection, SECTION_CONFIG, type AdminSection } from '@/lib/admin-navigation';
@@ -193,6 +192,7 @@ export default function AdminShell({
       console.warn('AdminShell: Erro ao chamar logout da API v1:', err);
     }
     clearStoredTokens();
+    limparPermissoes();
     try {
       await fetchWithTimeout('/api/auth', { method: 'DELETE' });
     } catch (err) {
@@ -212,16 +212,15 @@ export default function AdminShell({
     });
   };
 
-  // Contadores só consultam módulos com index: sem permissão, nenhuma chamada recebe 403.
-  const canSeeKanban = podeAcessarSecao('kanban', sessao);
-  const duvidasPendentes = useDuvidasPendentes(pode('d_duvidas_visitante', 'index'));
-  const relatosPendentes = useRelatosPendentes(pode('p_relatos', 'index'));
-  // Quem tem a Fila vê o total; quem só aprova projetos vê os projetos.
-  const aprovacoesPendentes = useAprovacoesPendentes(canSeeKanban);
-  const projetosPendentes = useProjetosPendentes(!canSeeKanban && podeAcessarSecao('projetosAprovacao', sessao));
+  // Contadores só consultam módulos com index (sem 403) e só depois de confirmar a sessão.
+  const lista = (modulo: string) => isLoggedIn && pode(modulo, 'index');
+  const duvidasPendentes = useDuvidasPendentes(lista('d_duvidas_visitante'));
+  const relatosPendentes = useRelatosPendentes(lista('p_relatos'));
+  // A Fila soma só os módulos que a pessoa publica.
+  const aprovacoesPendentes = useAprovacoesPendentes(isLoggedIn ? getModulosAprovacaoContaveis(sessao) : []);
 
   // Definição da Árvore de Pastas da Sidebar
-  const folders = buildAdminMenu(sessao, { duvidasPublico: duvidasPendentes.count || undefined, kanban: aprovacoesPendentes.count || undefined, projetosAprovacao: projetosPendentes.count || undefined, professores: relatosPendentes.count || undefined, ...badges });
+  const folders = buildAdminMenu(sessao, { duvidasPublico: duvidasPendentes.count || undefined, kanban: aprovacoesPendentes.count || undefined, professores: relatosPendentes.count || undefined, ...badges });
 
   // Pesquisa rápida da Sidebar
   const { isSearching, homeMatchesSearch, filteredFolders, hasAnySearchResult } = filterAdminNavigation(folders, sidebarSearch);

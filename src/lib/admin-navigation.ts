@@ -224,20 +224,31 @@ export function getSectionModulo(section: AdminSection): string | null {
   return section in SECTION_MODULO ? SECTION_MODULO[section as keyof typeof SECTION_MODULO] : null;
 }
 
+// Módulos com a ação publicar: cada um tem seu bloco na Fila de Aprovação.
+export const MODULOS_APROVACAO = ['n_noticias', 'd_duvidas', 'c_conquistas_aluno', 'p_relatos', 'pj_projetos'] as const;
+
+export function podeAprovarAlgo(sessao: SessaoPermissoes = obterPermissoes()): boolean {
+  return MODULOS_APROVACAO.some(modulo => pode(modulo, 'publicar', sessao));
+}
+
+// O contador de pendências lista cada módulo: precisa de publicar e de index.
+export function getModulosAprovacaoContaveis(sessao: SessaoPermissoes = obterPermissoes()) {
+  return MODULOS_APROVACAO.filter(modulo => pode(modulo, 'publicar', sessao) && pode(modulo, 'index', sessao));
+}
+
 // Fonte única de menu, guardas, abas e Início: tudo sai do /auth/me, nunca do nome do perfil.
 export function podeAcessarSecao(section: AdminSection, sessao: SessaoPermissoes = obterPermissoes()): boolean {
   if (section === 'visaoGeral') return true;
   // Os Quatro Pilares só simulam a home e não têm módulo na API.
   if (section === 'siteInfo') return sessao.admin;
-  if (section === 'kanban') return pode('n_noticias', 'publicar', sessao);
+  if (section === 'kanban') return podeAprovarAlgo(sessao);
+  if (section === 'projetosAprovacao') return pode('pj_projetos', 'publicar', sessao);
   const modulo = getSectionModulo(section);
   return modulo !== null && pode(modulo, 'index', sessao);
 }
 
 interface AdminMenuItem {
   section: AdminSection;
-  /** Esconde o item de quem acessa esta outra tela: evita dois itens para a mesma tarefa. */
-  hiddenWithSection?: AdminSection;
   label: string;
   tooltip: string;
   /** Frase simples do que a tela faz, mostrada no Início. */
@@ -277,9 +288,7 @@ const ADMIN_MENU: AdminMenuFolder[] = [
     icon: Headphones,
     items: [
       { section: 'duvidasPublico', label: 'Dúvidas do público', tooltip: 'Ver e registrar o atendimento das dúvidas enviadas pelo site', summary: 'Veja as dúvidas enviadas pelo site e registre o atendimento.', action: 'Responder dúvidas', icon: MessagesSquare },
-      { section: 'kanban', label: 'Aprovações', tooltip: 'Notícias, projetos, conquistas e relatos aguardando aprovação', summary: 'Publique ou recuse o que está aguardando.', action: 'Ver aprovações', icon: ClipboardCheck },
-      // Quem aprova projetos, mas não tem a Fila, chega direto à aprovação de projetos.
-      { section: 'projetosAprovacao', hiddenWithSection: 'kanban', label: 'Aprovações', tooltip: 'Projetos aguardando aprovação', summary: 'Publique ou recuse os projetos que estão aguardando.', action: 'Ver aprovações', icon: ClipboardCheck },
+      { section: 'kanban', label: 'Aprovações', tooltip: 'Notícias, perguntas, projetos, conquistas e relatos aguardando aprovação', summary: 'Publique ou recuse o que está aguardando.', action: 'Ver aprovações', icon: ClipboardCheck },
     ],
   },
   {
@@ -323,11 +332,11 @@ export function buildAdminMenu(
   badges: Partial<Record<AdminSection, number | string>> = {},
 ) {
   return ADMIN_MENU.map(folder => {
-    const items = folder.items.map(({ hiddenWithSection, ...item }) => ({
+    const items = folder.items.map(item => ({
       ...item,
       href: SECTION_CONFIG[item.section].href,
       badge: badges[item.section],
-      visible: podeAcessarSecao(item.section, sessao) && !(hiddenWithSection && podeAcessarSecao(hiddenWithSection, sessao)),
+      visible: podeAcessarSecao(item.section, sessao),
     }));
     return { ...folder, items, visible: items.some(item => item.visible) };
   });

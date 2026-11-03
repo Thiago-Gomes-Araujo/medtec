@@ -37,7 +37,7 @@ import { useBannersTotal } from '@/components/admin/useBannersTotal';
 import { useProjetosResumo } from '@/components/admin/useProjetosResumo';
 import { getRailsSessionFields, getLocalSessionFields } from '@/lib/admin-session';
 import { getAdminEditorialDestination } from '@/lib/admin-auth-navigation';
-import { buildAdminMenu, getActiveMenuSection, getFolderIdForSection, podeAcessarSecao, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
+import { buildAdminMenu, getActiveMenuSection, getFolderIdForSection, getModulosAprovacaoContaveis, SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '@/lib/admin-navigation';
 import { usePermissoes } from '@/components/admin/usePermissoes';
 import { sidebarIconButtonClass, sidebarPortalLinkClass, sidebarSearchInputClass } from '@/components/admin/adminTheme';
 import {
@@ -46,6 +46,7 @@ import {
   definirPermissoes,
   limparPermissoes,
   obterPermissoes,
+  pode as podeEm,
   fetchWithTimeout,
   isConnectionFailure,
   isTimeoutError,
@@ -207,7 +208,7 @@ export default function AdminDashboardPage() {
             });
 
             const destination = getAdminEditorialDestination(
-              obterPermissoes(), new URLSearchParams(window.location.search),
+              podeEm('n_noticias', 'create'), new URLSearchParams(window.location.search),
             );
             if (destination) {
               if (destination.method === 'push') router.push(destination.href);
@@ -246,7 +247,7 @@ export default function AdminDashboardPage() {
           authenticated = true;
 
           const destination = getAdminEditorialDestination(
-            obterPermissoes(), new URLSearchParams(window.location.search),
+            podeEm('n_noticias', 'create'), new URLSearchParams(window.location.search),
           );
           if (destination) {
             if (destination.method === 'push') router.push(destination.href);
@@ -287,6 +288,7 @@ export default function AdminDashboardPage() {
       console.warn('Erro ao chamar logout da API v1:', err);
     }
     clearStoredTokens();
+    limparPermissoes();
     try {
       await fetchWithTimeout('/api/auth', { method: 'DELETE' });
     } catch (err) {
@@ -295,14 +297,16 @@ export default function AdminDashboardPage() {
     router.push('/admin/login');
   };
 
-  // Os contadores só consultam módulos com index: a sessão local não tem nenhum.
-  const canSeeKanban = podeAcessarSecao('kanban', sessao);
-  const duvidasPendentes = useDuvidasPendentes(pode('d_duvidas_visitante', 'index'));
-  const relatosPendentes = useRelatosPendentes(pode('p_relatos', 'index'));
-  const aprovacoesPendentes = useAprovacoesPendentes(canSeeKanban);
-  const projetosResumo = useProjetosResumo(pode('pj_projetos', 'index'));
-  const bannersTotal = useBannersTotal(pode('b_banners', 'index'));
-  const canReadApiCounters = medtecApi.auth.isAuthenticated();
+  // Os contadores só consultam módulos com index, e só depois de a página confirmar a sessão.
+  const lista = (modulo: string) => isLoggedIn && pode(modulo, 'index');
+  const duvidasPendentes = useDuvidasPendentes(lista('d_duvidas_visitante'));
+  const relatosPendentes = useRelatosPendentes(lista('p_relatos'));
+  // A Fila soma só os módulos que a pessoa publica.
+  const aprovacoesPendentes = useAprovacoesPendentes(isLoggedIn ? getModulosAprovacaoContaveis(sessao) : []);
+  const projetosResumo = useProjetosResumo(lista('pj_projetos'));
+  const bannersTotal = useBannersTotal(lista('b_banners'));
+  // Sem permissões (ex.: login local ADMIN_USER), não há pendências para ler na API.
+  const canReadApiCounters = Object.keys(sessao.permissoes).length > 0;
 
   // Árvore de Navegação em Pastas Expansíveis (Didático - Estilo Accordion JOER SEDUC-RO)
   const folders = buildAdminMenu(sessao, {
@@ -313,7 +317,6 @@ export default function AdminDashboardPage() {
     estadosCidades: totalEstados !== null && totalEstados > 0 ? totalEstados : undefined,
     usuarios: errorUsers ? undefined : (totalUsers ?? undefined),
     duvidasPublico: duvidasPendentes.count || undefined,
-    projetosAprovacao: projetosResumo.pending || undefined,
     professores: relatosPendentes.count || undefined,
   });
 
@@ -756,8 +759,8 @@ export default function AdminDashboardPage() {
               menu={folders}
               userName={userSession.name || userSession.username}
               pendencias={canReadApiCounters ? {
-                // O mesmo valor do item Aprovações do menu, conforme o acesso à Fila.
-                aprovacoes: canSeeKanban ? aprovacoesPendentes : { count: projetosResumo.pending, error: projetosResumo.error },
+                // O mesmo valor do item Aprovações do menu.
+                aprovacoes: aprovacoesPendentes,
                 duvidas: duvidasPendentes,
                 relatos: relatosPendentes,
               } : undefined}

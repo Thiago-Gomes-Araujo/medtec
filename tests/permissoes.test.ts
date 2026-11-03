@@ -21,6 +21,8 @@ import AdminOverview from '../src/components/admin/AdminOverview';
 import type { OverviewStatsIndicators } from '../src/components/admin/OverviewStats';
 import { CommunitySubrouteLayout, renderModerationButtons } from '../src/components/admin/communityAdminUi';
 import ProjetosPanel from '../src/components/admin/ProjetosPanel';
+import FilaAprovacao from '../src/components/admin/FilaAprovacao';
+import { getModulosAprovacaoContaveis, podeAprovarAlgo } from '../src/lib/admin-navigation';
 import BannersPanel from '../src/components/admin/BannersPanel';
 import DisciplinasPanel from '../src/components/admin/DisciplinasPanel';
 
@@ -180,7 +182,7 @@ describe('Fonte única: menu, guardas, Início e botões por pode()', () => {
 
   it('menu mostra só os módulos com index de cada perfil', () => {
     assert.deepEqual(menuVisivel('Jornalista'), ['avisos', 'galeria']);
-    assert.deepEqual(menuVisivel('Gestor'), ['duvidas', 'duvidasPublico', 'fotos', 'noticias', 'projetos', 'projetosAprovacao', 'usuarios']);
+    assert.deepEqual(menuVisivel('Gestor'), ['duvidas', 'duvidasPublico', 'fotos', 'kanban', 'noticias', 'projetos', 'usuarios']);
     assert.deepEqual(menuVisivel('Administrador'), ['alunos', 'avisos', 'duvidas', 'duvidasPublico', 'estadosCidades', 'fotos', 'galeria', 'kanban', 'noticias', 'professores', 'projetos', 'redes', 'usuarios']);
     assert.deepEqual(menuVisivel(null), [], 'login local não vê nenhum módulo');
   });
@@ -190,7 +192,7 @@ describe('Fonte única: menu, guardas, Início e botões por pode()', () => {
     const liberadas = (perfil: keyof typeof PERFIS | null) => secoes.filter(secao => podeAcessarSecao(secao, perfil ? sessaoDe(perfil) : SEM_PERMISSOES)).sort();
     assert.deepEqual(liberadas(null), ['visaoGeral']);
     assert.deepEqual(liberadas('Jornalista'), ['avisos', 'galeria', 'visaoGeral']);
-    assert.deepEqual(liberadas('Gestor'), ['duvidas', 'duvidasPublico', 'fotos', 'noticias', 'professoresRelatos', 'projetos', 'projetosAprovacao', 'projetosMembros', 'projetosTemas', 'usuarios', 'visaoGeral']);
+    assert.deepEqual(liberadas('Gestor'), ['duvidas', 'duvidasPublico', 'fotos', 'kanban', 'noticias', 'professoresRelatos', 'projetos', 'projetosAprovacao', 'projetosMembros', 'projetosTemas', 'usuarios', 'visaoGeral']);
     assert.equal(liberadas('Administrador').length, secoes.length);
   });
 
@@ -262,5 +264,39 @@ describe('Fonte única: menu, guardas, Início e botões por pode()', () => {
     assert.match(botoes('aguardando', ['publicar', 'reprovar']), /Reprovar Projeto X/);
     assert.doesNotMatch(botoes('publicada', ['publicar', 'reprovar']), /Despublicar/);
     assert.match(botoes('publicada', ['despublicar']), /Despublicar Projeto X/);
+  });
+});
+
+describe('Aprovações: Fila e blocos por módulo com publicar', () => {
+  afterEach(() => { limparPermissoes(); });
+  const blocos = (html: string) => [
+    ['notícias', /Decisão Editorial do Gestor/],
+    ['perguntas', /Perguntas frequentes aguardando/],
+    ['conquistas', /Conquistas \(/],
+    ['relatos', /Relatos \(/],
+    ['projetos', /Projetos aguardando/],
+    ['dúvidas do público', /Dúvidas de visitantes/],
+  ].filter(([, pattern]) => (pattern as RegExp).test(html)).map(([nome]) => nome);
+
+  it('Fila só aparece com publicar em algum módulo', () => {
+    assert.equal(podeAprovarAlgo(sessaoDe('Jornalista')), false);
+    assert.equal(podeAprovarAlgo(lerPermissoes({ permissoes: { d_duvidas: ['publicar'] } })), true);
+    assert.equal(podeAcessarSecao('kanban', sessaoDe('Gestor')), true);
+    assert.equal(podeAcessarSecao('projetosAprovacao', lerPermissoes({ permissoes: { pj_projetos: ['index'] } })), false, 'aprovar projetos exige publicar');
+  });
+
+  it('cada bloco só aparece para os módulos com publicar', () => {
+    definirPermissoes(PERFIS.Gestor);
+    assert.deepEqual(blocos(render(createElement(FilaAprovacao))), ['perguntas', 'relatos', 'projetos', 'dúvidas do público']);
+    definirPermissoes(PERFIS.Administrador);
+    assert.deepEqual(blocos(render(createElement(FilaAprovacao))), ['notícias', 'perguntas', 'conquistas', 'relatos', 'projetos', 'dúvidas do público']);
+    definirPermissoes({ permissoes: { c_conquistas_aluno: ['index', 'publicar'] } });
+    assert.deepEqual(blocos(render(createElement(FilaAprovacao))), ['conquistas']);
+  });
+
+  it('contador de pendências só lista módulos com publicar e index', () => {
+    assert.deepEqual(getModulosAprovacaoContaveis(sessaoDe('Jornalista')), []);
+    assert.deepEqual(getModulosAprovacaoContaveis(sessaoDe('Gestor')), ['d_duvidas', 'p_relatos', 'pj_projetos']);
+    assert.deepEqual(getModulosAprovacaoContaveis(lerPermissoes({ permissoes: { n_noticias: ['publicar'] } })), [], 'sem index, a contagem daria 403');
   });
 });

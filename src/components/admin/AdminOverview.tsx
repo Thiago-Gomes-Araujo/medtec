@@ -82,7 +82,7 @@ export default function AdminOverview({
     loadingFotos, errorFotos, totalCategorias, loadingFaqs, errorFaqs, apiFaqsPendingCount, usersCountLabel } = indicators;
   const visibleItems = menu.flatMap(folder => folder.items.filter(item => item.visible));
   const canSee = (section: AdminSection) => visibleItems.some(item => item.section === section);
-  const aprovacoes = visibleItems.find(item => item.section === 'kanban' || item.section === 'projetosAprovacao');
+  const aprovacoes = visibleItems.find(item => item.section === 'kanban');
 
   const sem = { count: null, error: null };
   const cards = [
@@ -110,7 +110,6 @@ export default function AdminOverview({
     duvidas: aguardando(apiFaqsPendingCount, !!(loadingFaqs || errorFaqs), value => `${value} aguardando`),
     duvidasPublico: aguardando(pendencias?.duvidas.count, false, value => `${value} sem resposta`),
     kanban: aprovacoesContador,
-    projetosAprovacao: aprovacoesContador,
     estadosCidades: detalhe(totalEstados, false, value => plural(value, 'estado', 'estados')),
     usuarios: { text: `${usersCountLabel} usuários`, pendentes: 0 },
   };
