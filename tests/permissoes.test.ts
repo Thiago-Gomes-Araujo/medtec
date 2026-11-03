@@ -22,6 +22,11 @@ import type { OverviewStatsIndicators } from '../src/components/admin/OverviewSt
 import { CommunitySubrouteLayout, renderModerationButtons } from '../src/components/admin/communityAdminUi';
 import ProjetosPanel from '../src/components/admin/ProjetosPanel';
 import FilaAprovacao from '../src/components/admin/FilaAprovacao';
+import UserManager from '../src/components/UserManager';
+import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
+import { getChaveDoModulo, podeConcederRegra } from '../src/lib/admin-usuarios';
+import { ApiError } from '../src/lib/api/errors';
+import type { Perfil, Usuario } from '../src/lib/api/types';
 import { getModulosAprovacaoContaveis, podeAprovarAlgo } from '../src/lib/admin-navigation';
 import BannersPanel from '../src/components/admin/BannersPanel';
 import DisciplinasPanel from '../src/components/admin/DisciplinasPanel';
@@ -298,5 +303,67 @@ describe('Aprovações: Fila e blocos por módulo com publicar', () => {
     assert.deepEqual(getModulosAprovacaoContaveis(sessaoDe('Jornalista')), []);
     assert.deepEqual(getModulosAprovacaoContaveis(sessaoDe('Gestor')), ['d_duvidas', 'p_relatos', 'pj_projetos']);
     assert.deepEqual(getModulosAprovacaoContaveis(lerPermissoes({ permissoes: { n_noticias: ['publicar'] } })), [], 'sem index, a contagem daria 403');
+  });
+});
+
+describe('Usuários: administradores e permissões extras', () => {
+  afterEach(() => { limparPermissoes(); });
+  const perfis: Perfil[] = [
+    { id: 1, nome: 'Jornalista', ativo: true }, { id: 2, nome: 'Gestor', ativo: true }, { id: 3, nome: 'Administrador', ativo: true },
+  ];
+  const usuario = (id: number, perfil: Perfil): Usuario => ({
+    id, nome: `Pessoa ${id}`, cpf: `0000000000${id}`, ativo: true, perfil_id: perfil.id, perfil_nome: perfil.nome, created_at: '', updated_at: '',
+  });
+  const management = (): AdminUsersData => ({
+    apiUsers: [usuario(1, perfis[0]), usuario(3, perfis[2])], profiles: perfis, totalUsers: 2,
+    loadingUsers: false, loadingProfiles: false, errorUsers: null, errorProfiles: null,
+    reloadUsers: async () => {}, reloadProfiles: async () => {},
+  });
+  const html = () => render(createElement(UserManager, { management: management() }));
+  // Cada linha da lista vai do nome ao fim do bloco de ações.
+  const linha = (markup: string, nome: string) => markup.slice(markup.indexOf(`>${nome}<`), markup.indexOf(`>${nome}<`) + 4000).split('Perfil:')[1] ?? '';
+
+  it('Gestor não vê o perfil Administrador no select nem editar/excluir de administradores', () => {
+    definirPermissoes(PERFIS.Gestor);
+    const markup = html();
+    assert.doesNotMatch(markup, /<option value="3"/);
+    assert.match(markup, /<option value="1"[^>]*>Jornalista/);
+    assert.match(linha(markup, 'Pessoa 1'), /title="Excluir Usuário"/);
+    assert.match(linha(markup, 'Pessoa 1'), /title="Redefinir Senha"/);
+    assert.doesNotMatch(linha(markup, 'Pessoa 3').split('</button>').slice(0, 3).join(''), /title="Excluir Usuário"|title="Redefinir Senha"|Desativar/);
+    assert.match(linha(markup, 'Pessoa 3'), /Só o Administrador altera/);
+  });
+
+  it('Administrador vê tudo, inclusive o perfil Administrador', () => {
+    definirPermissoes(PERFIS.Administrador);
+    const markup = html();
+    assert.match(markup, /<option value="3"[^>]*>Administrador/);
+    assert.equal(markup.match(/title="Excluir Usuário"/g)?.length, 2);
+    assert.doesNotMatch(markup, /Só o Administrador altera/);
+  });
+
+  it('Jornalista sem usuarios não vê cadastro nem ações', () => {
+    definirPermissoes(PERFIS.Jornalista);
+    const markup = html();
+    assert.doesNotMatch(markup, /Cadastrar Novo Usuário|title="Excluir Usuário"|title="Redefinir Senha"|>Extras<|Perfis e Permissões/);
+  });
+
+  it('permissões extras: só concede as regras que o usuário logado tem', () => {
+    assert.equal(getChaveDoModulo('Usuarios Permissoes Extras'), 'usuarios_permissoes_extras');
+    assert.equal(getChaveDoModulo('N Notícias'), 'n_noticias');
+    const gestor = sessaoDe('Gestor');
+    assert.equal(podeConcederRegra(gestor, { nome: 'Usuarios' }, { acao: 'destroy' }), true);
+    assert.equal(podeConcederRegra(gestor, { nome: 'N Noticias' }, { acao: 'publicar' }), false);
+    assert.equal(podeConcederRegra(gestor, { nome: 'Modulo Desconhecido' }, { acao: 'index' }), false);
+    assert.equal(podeConcederRegra(sessaoDe('Administrador'), { nome: 'Modulo Desconhecido' }, { acao: 'index' }), true);
+  });
+
+  it('403 usuario_administrador e as mensagens da seção 9 mostram o texto da API', () => {
+    const erro = (message: string, errors: string[]) => ApiError.getFriendlyMessage(ApiError.fromResponse(403, { success: false, message, errors }));
+    assert.equal(erro('Somente o Administrador pode alterar administradores', ['usuario_administrador']), 'Somente o Administrador pode alterar administradores');
+    assert.equal(erro('Você não pode alterar suas próprias permissões', ['sem_permissao']), 'Você não pode alterar suas próprias permissões');
+    assert.equal(erro('Você só pode conceder permissões que você tem', []), 'Você só pode conceder permissões que você tem');
+    assert.equal(ApiError.getFriendlyMessage(ApiError.fromResponse(403, { errors: ['usuario_administrador'] })), 'Somente o Administrador pode alterar administradores.');
+    assert.equal(erro('Sem permissão', ['sem_permissao']), 'Você não possui permissão para executar esta operação.');
   });
 });

@@ -18,6 +18,8 @@ import {
   Info
 } from 'lucide-react';
 import type { AdminUsersData } from '@/components/admin/useAdminUsers';
+import { usePermissoes } from '@/components/admin/usePermissoes';
+import { getPerfisSelecionaveis, isPerfilAdministrador, podeAlterarUsuario, podeConcederRegra } from '@/lib/admin-usuarios';
 import {
   medtecApi,
   ApiError,
@@ -44,6 +46,8 @@ export default function UserManager({ management }: UserManagerProps) {
     apiUsers, profiles, loadingUsers, loadingProfiles, errorUsers, errorProfiles,
     reloadUsers: loadUsers, reloadProfiles: loadProfiles,
   } = management;
+  // Botões e opções seguem o /auth/me; quem não é Administrador não mexe em administradores.
+  const { sessao, pode } = usePermissoes();
   // Aba ativa: 'usuarios' ou 'perfis'
   const [activeTab, setActiveTab] = useState<'usuarios' | 'perfis'>('usuarios');
 
@@ -97,6 +101,10 @@ export default function UserManager({ management }: UserManagerProps) {
   const [profilePermsError, setProfilePermsError] = useState('');
   const [profilePermsSuccess, setProfilePermsSuccess] = useState('');
 
+  const selectableProfiles = getPerfisSelecionaveis(sessao, profiles);
+  const createProfileId = selectableProfiles.some((p) => p.id === userProfileId) ? userProfileId : selectableProfiles[0]?.id;
+  const canEditExtras = !!selectedUserForExtras && pode('usuarios_permissoes_extras', 'update') && podeAlterarUsuario(sessao, selectedUserForExtras);
+
   // Usuários exibidos com filtro de busca local se necessário
   const displayUsers = useMemo(() => {
     const filteredUsers = onlyActive ? apiUsers.filter((user) => user.ativo) : apiUsers;
@@ -132,13 +140,18 @@ export default function UserManager({ management }: UserManagerProps) {
       return;
     }
 
+    if (createProfileId === undefined) {
+      setUserFormError('Escolha um perfil de acesso.');
+      return;
+    }
+
     setSubmittingUser(true);
     try {
       await medtecApi.usuarios.create({
         nome: userName,
         cpf: cleanCpf,
         password: userPassword,
-        perfil_id: userProfileId,
+        perfil_id: createProfileId,
         ativo: true,
       });
 
@@ -407,7 +420,7 @@ export default function UserManager({ management }: UserManagerProps) {
             >
               Usuários e Senhas
             </button>
-            <button
+            {pode('perfis', 'index') && <button
               type="button"
               onClick={() => setActiveTab('perfis')}
               className={`px-3.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
@@ -417,7 +430,7 @@ export default function UserManager({ management }: UserManagerProps) {
               }`}
             >
               Perfis e Permissões
-            </button>
+            </button>}
           </div>
         </div>
       </div>
@@ -428,7 +441,7 @@ export default function UserManager({ management }: UserManagerProps) {
       {activeTab === 'usuarios' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Formulário de Cadastro */}
-          <div className="lg:col-span-5 bg-white dark:bg-[#0C1E38] border border-slate-200/90 dark:border-[#1A365D] rounded-2xl p-6 shadow-sm">
+          {pode('usuarios', 'create') && <div className="lg:col-span-5 bg-white dark:bg-[#0C1E38] border border-slate-200/90 dark:border-[#1A365D] rounded-2xl p-6 shadow-sm">
             <div className="flex items-center gap-2 pb-3 mb-5 border-b border-slate-100 dark:border-[#1A365D]">
               <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-[#004A99] dark:text-cyan-400 flex items-center justify-center">
                 <UserPlus size={18} />
@@ -488,11 +501,11 @@ export default function UserManager({ management }: UserManagerProps) {
                   Perfil de Acesso *
                 </label>
                 <select
-                  value={userProfileId}
+                  value={createProfileId ?? ''}
                   onChange={(e) => setUserProfileId(Number(e.target.value))}
                   className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 dark:border-[#1A365D] text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-[#061224] focus:ring-2 focus:ring-[#004A99]/20"
                 >
-                  {profiles.map((p) => (
+                  {selectableProfiles.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.nome} {p.descricao ? `— ${p.descricao}` : ''}
                     </option>
@@ -541,14 +554,14 @@ export default function UserManager({ management }: UserManagerProps) {
 
               <button
                 type="submit"
-                disabled={submittingUser || loadingProfiles || !!errorProfiles || profiles.length === 0}
+                disabled={submittingUser || loadingProfiles || !!errorProfiles || selectableProfiles.length === 0}
                 className="w-full mt-2 py-2.5 px-4 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white font-bold text-xs shadow-xs transition cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 <UserPlus size={16} />
                 <span>{submittingUser ? 'Cadastrando na API...' : 'Cadastrar Usuário'}</span>
               </button>
             </form>
-          </div>
+          </div>}
 
           {/* Listagem de Usuários */}
           <div className="lg:col-span-7 space-y-4">
@@ -626,8 +639,11 @@ export default function UserManager({ management }: UserManagerProps) {
 
                       {/* Ações por Usuário */}
                       <div className="flex items-center gap-1.5 self-end sm:self-center">
+                        {!podeAlterarUsuario(sessao, user) && (
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400">Só o Administrador altera</span>
+                        )}
                         {/* Permissões Extras */}
-                        <button
+                        {pode('usuarios_permissoes_extras', 'show') && <button
                           type="button"
                           onClick={() => handleOpenExtrasModal(user)}
                           title="Permissões Extras do Usuário"
@@ -635,20 +651,20 @@ export default function UserManager({ management }: UserManagerProps) {
                         >
                           <SlidersHorizontal size={13} />
                           <span>Extras</span>
-                        </button>
+                        </button>}
 
                         {/* Trocar Senha */}
-                        <button
+                        {pode('usuarios', 'update') && podeAlterarUsuario(sessao, user) && <button
                           type="button"
                           onClick={() => setSelectedUserForPassword(user)}
                           title="Redefinir Senha"
                           className="p-1.5 rounded-md border border-slate-200 dark:border-[#1A365D] bg-white dark:bg-[#0C1E38] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                         >
                           <KeyRound size={14} />
-                        </button>
+                        </button>}
 
                         {/* Alternar Ativo */}
-                        <button
+                        {pode('usuarios', 'update') && podeAlterarUsuario(sessao, user) && <button
                           type="button"
                           onClick={() => handleToggleUserStatus(user)}
                           title={user.ativo ? 'Desativar usuário' : 'Ativar usuário'}
@@ -659,17 +675,17 @@ export default function UserManager({ management }: UserManagerProps) {
                           }`}
                         >
                           {user.ativo ? 'Desativar' : 'Ativar'}
-                        </button>
+                        </button>}
 
                         {/* Excluir */}
-                        <button
+                        {pode('usuarios', 'destroy') && podeAlterarUsuario(sessao, user) && <button
                           type="button"
                           onClick={() => handleDeleteUser(user)}
                           title="Excluir Usuário"
                           className="p-1.5 rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer"
                         >
                           <Trash2 size={14} />
-                        </button>
+                        </button>}
                       </div>
                     </div>
                   ))}
@@ -694,7 +710,7 @@ export default function UserManager({ management }: UserManagerProps) {
                 Cada perfil define o conjunto padrão de permissões atribuído aos usuários.
               </p>
             </div>
-            <button
+            {pode('perfis', 'create') && <button
               type="button"
               onClick={() => {
                 setEditingProfile(null);
@@ -707,7 +723,7 @@ export default function UserManager({ management }: UserManagerProps) {
             >
               <Plus size={15} />
               <span>Novo Perfil</span>
-            </button>
+            </button>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -735,17 +751,17 @@ export default function UserManager({ management }: UserManagerProps) {
                 </div>
 
                 <div className="mt-5 pt-3 border-t border-slate-100 dark:border-[#1A365D] flex items-center justify-between gap-2">
-                  <button
+                  {pode('perfis_permissoes', 'show') && <button
                     type="button"
                     onClick={() => handleOpenProfilePermsModal(p)}
                     className="inline-flex items-center gap-1 text-xs font-bold text-[#004A99] dark:text-[#00D8FF] hover:underline cursor-pointer"
                   >
                     <SlidersHorizontal size={13} />
                     <span>Permissões</span>
-                  </button>
+                  </button>}
 
                   <div className="flex items-center gap-1">
-                    <button
+                    {pode('perfis', 'update') && <button
                       type="button"
                       onClick={() => {
                         setEditingProfile(p);
@@ -758,8 +774,8 @@ export default function UserManager({ management }: UserManagerProps) {
                       title="Editar Perfil"
                     >
                       <Edit3 size={14} />
-                    </button>
-                    {p.nome !== 'Administrador' && (
+                    </button>}
+                    {!isPerfilAdministrador(p) && pode('perfis', 'destroy') && (
                       <button
                         type="button"
                         onClick={() => handleDeleteProfile(p)}
@@ -883,6 +899,13 @@ export default function UserManager({ management }: UserManagerProps) {
               </button>
             </div>
 
+            {!podeAlterarUsuario(sessao, selectedUserForExtras) && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded-lg text-xs flex items-center gap-2">
+                <Info size={15} className="shrink-0" />
+                <span>Somente o Administrador pode alterar administradores.</span>
+              </div>
+            )}
+
             {extrasError && (
               <div className="p-3 bg-red-50 text-red-700 rounded-lg text-xs">{extrasError}</div>
             )}
@@ -907,12 +930,14 @@ export default function UserManager({ management }: UserManagerProps) {
                       {mod.regras.map((regra) => {
                         const isInherited = regra.do_perfil;
                         const isExtraChecked = selectedExtraIds.includes(regra.id);
+                        // Só se concede o que se tem; linhas de administradores ficam travadas para quem não é admin.
+                        const isLocked = !canEditExtras || !podeConcederRegra(sessao, mod, regra);
 
                         return (
                           <label
                             key={regra.id}
                             className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer select-none transition ${
-                              isInherited
+                              isInherited || isLocked
                                 ? 'bg-slate-100 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 opacity-80 cursor-not-allowed'
                                 : isExtraChecked
                                 ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800'
@@ -921,10 +946,10 @@ export default function UserManager({ management }: UserManagerProps) {
                           >
                             <input
                               type="checkbox"
-                              disabled={isInherited}
+                              disabled={isInherited || isLocked}
                               checked={isInherited || isExtraChecked}
                               onChange={(e) => {
-                                if (isInherited) return;
+                                if (isInherited || isLocked) return;
                                 if (e.target.checked) {
                                   setSelectedExtraIds([...selectedExtraIds, regra.id]);
                                 } else {
@@ -959,7 +984,7 @@ export default function UserManager({ management }: UserManagerProps) {
 
             <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-[#1A365D]">
               <span className="text-[11px] text-slate-500">
-                Regras marcadas do perfil não podem ser desativadas nesta tela.
+                Regras do perfil e regras que você não tem não podem ser alteradas nesta tela.
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -972,7 +997,7 @@ export default function UserManager({ management }: UserManagerProps) {
                 <button
                   type="button"
                   onClick={handleSaveExtras}
-                  disabled={savingExtras || loadingExtras}
+                  disabled={savingExtras || loadingExtras || !canEditExtras}
                   className="px-4 py-2 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold cursor-pointer disabled:opacity-60"
                 >
                   {savingExtras ? 'Salvando...' : 'Salvar Permissões Extras'}
@@ -1015,7 +1040,7 @@ export default function UserManager({ management }: UserManagerProps) {
               <div className="p-3 bg-emerald-50 text-emerald-800 rounded-lg text-xs">{profilePermsSuccess}</div>
             )}
 
-            {selectedProfileForPerms.nome === 'Administrador' && (
+            {isPerfilAdministrador(selectedProfileForPerms) && (
               <div className="p-3 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40 rounded-lg text-xs flex items-center gap-2">
                 <Info size={15} className="shrink-0" />
                 <span>O perfil Administrador possui todas as permissões do sistema de forma imutável.</span>
@@ -1038,7 +1063,7 @@ export default function UserManager({ management }: UserManagerProps) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {mod.regras.map((regra) => {
                         const isChecked = selectedProfileRegraIds.includes(regra.id);
-                        const isAdmin = selectedProfileForPerms.nome === 'Administrador';
+                        const isAdmin = isPerfilAdministrador(selectedProfileForPerms) || !pode('perfis_permissoes', 'update');
 
                         return (
                           <label
@@ -1090,7 +1115,7 @@ export default function UserManager({ management }: UserManagerProps) {
                 <button
                   type="button"
                   onClick={handleSaveProfilePerms}
-                  disabled={savingProfilePerms || loadingProfilePerms || selectedProfileForPerms.nome === 'Administrador'}
+                  disabled={savingProfilePerms || loadingProfilePerms || isPerfilAdministrador(selectedProfileForPerms) || !pode('perfis_permissoes', 'update')}
                   className="px-4 py-2 rounded-lg bg-[#004A99] hover:bg-[#003875] text-white text-xs font-bold cursor-pointer disabled:opacity-50"
                 >
                   {savingProfilePerms ? 'Salvando...' : 'Salvar Permissões'}

@@ -108,6 +108,13 @@ export class ApiError extends Error {
       if (error.errors.includes('sem_permissao')) {
         return 'Você não possui permissão para executar esta operação.';
       }
+      // Outros 403 têm texto próprio da API (usuario_administrador e as regras de permissões extras).
+      if (error.status === 403 && error.message && error.message !== 'Sem permissão') {
+        return error.message;
+      }
+      if (error.errors.includes('usuario_administrador')) {
+        return 'Somente o Administrador pode alterar administradores.';
+      }
       if (error.errors.includes('muitas_tentativas')) {
         return 'Muitas tentativas em pouco tempo. Aguarde 1 minuto e tente novamente.';
       }

@@ -8,7 +8,7 @@ import { usePermissoes } from '@/components/admin/usePermissoes';
 // O shell monta este conteúdo somente após verificar sessão e autorização.
 function UsersContent() {
   const { pode } = usePermissoes();
-  const management = useAdminUsers({ enabled: pode('usuarios', 'index') });
+  const management = useAdminUsers({ enabled: pode('usuarios', 'index'), perfis: pode('perfis', 'index') });
 
   return <UserManager management={management} />;
 }
