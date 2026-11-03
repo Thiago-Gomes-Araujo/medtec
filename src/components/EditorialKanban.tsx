@@ -751,10 +751,12 @@ export default function EditorialKanban({
 
             <div className="space-y-1.5">
               <label htmlFor="rejectReasonInput" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Motivo da recusa (opcional para orientar a equipe):
+                Motivo da recusa (obrigatório, orienta a equipe na correção):
               </label>
               <textarea
                 id="rejectReasonInput"
+                required
+                aria-required="true"
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Ex.: Necessita revisão do texto, verificar fontes ou adequar imagem..."
@@ -777,9 +779,9 @@ export default function EditorialKanban({
               </button>
               <button
                 type="button"
-                disabled={!canReject || !!approvingId || !!rejectingId}
+                disabled={!canReject || !!approvingId || !!rejectingId || !rejectReason.trim()}
                 onClick={handleConfirmReject}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Sim, recusar notícia</span>

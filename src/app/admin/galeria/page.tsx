@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ApiError, medtecApi, FotoGaleria, CategoriaGaleria } from '@/lib/api';
+import { ApiError, listaVaziaSeSemPermissao, medtecApi, FotoGaleria, CategoriaGaleria } from '@/lib/api';
 import GalleryModule from '@/components/admin/GalleryModule';
 import AdminShell from '@/components/admin/AdminShell';
 import { PreviewItemData, PreviewContentType } from '@/components/AdminLiveSimulator';
@@ -27,7 +27,7 @@ export default function AdminGaleriaSubroutePage() {
     setErrorFotos(null);
     try {
       const [catsRes, fotosRes] = await Promise.all([
-        medtecApi.categoriasGaleria.list({ page: 'all' }),
+        medtecApi.categoriasGaleria.list({ page: 'all' }).catch(listaVaziaSeSemPermissao<CategoriaGaleria>),
         medtecApi.fotosGaleria.list({ page: 'all' }),
       ]);
       if (!catsRes.success || !Array.isArray(catsRes.data?.items) ||
@@ -48,7 +48,7 @@ export default function AdminGaleriaSubroutePage() {
     const fetchGalleryInitial = async () => {
       try {
         const [catsRes, fotosRes] = await Promise.all([
-          medtecApi.categoriasGaleria.list({ page: 'all' }),
+          medtecApi.categoriasGaleria.list({ page: 'all' }).catch(listaVaziaSeSemPermissao<CategoriaGaleria>),
           medtecApi.fotosGaleria.list({ page: 'all' }),
         ]);
         if (!active) return;

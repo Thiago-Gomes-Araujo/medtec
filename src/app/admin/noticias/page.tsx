@@ -2,7 +2,7 @@
 
 import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { medtecApi, ApiError, type NNoticia, type NCategoriaNoticia, getMediaUrl } from '@/lib/api';
+import { medtecApi, ApiError, listaVaziaSeSemPermissao, type NNoticia, type NCategoriaNoticia, getMediaUrl } from '@/lib/api';
 import NewsModule from '@/components/admin/NewsModule';
 import { notifyAprovacoesPendentes } from '@/components/admin/useAprovacoesPendentes';
 import AdminShell, { type AdminSession } from '@/components/admin/AdminShell';
@@ -35,7 +35,7 @@ function NewsContent({ session }: { session: AdminSession }) {
     setErrorNews(null);
     try {
       const [catsRes, newsRes] = await Promise.all([
-        medtecApi.noticias.listCategorias({ page: 'all', 'q[ativo_true]': 1 }),
+        medtecApi.noticias.listCategorias({ page: 'all', 'q[ativo_true]': 1 }).catch(listaVaziaSeSemPermissao<NCategoriaNoticia>),
         medtecApi.noticias.list({ page: 'all' }),
       ]);
       if (!catsRes.success || !Array.isArray(catsRes.data?.items) ||

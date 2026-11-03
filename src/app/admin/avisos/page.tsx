@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { ApiError, medtecApi, AAviso, ATipoAviso } from '@/lib/api';
+import { ApiError, listaVaziaSeSemPermissao, medtecApi, AAviso, ATipoAviso } from '@/lib/api';
 import AnnouncementsModule from '@/components/admin/AnnouncementsModule';
 import AdminShell from '@/components/admin/AdminShell';
 import { PreviewItemData, PreviewContentType } from '@/components/AdminLiveSimulator';
@@ -27,7 +27,7 @@ export default function AdminAvisosSubroutePage() {
     setErrorAvisos(null);
     try {
       const [tiposRes, avisosRes] = await Promise.all([
-        medtecApi.tiposAviso.list({ page: 'all' }),
+        medtecApi.tiposAviso.list({ page: 'all' }).catch(listaVaziaSeSemPermissao<ATipoAviso>),
         medtecApi.avisos.list({ page: 'all' }),
       ]);
       if (!tiposRes.success || !Array.isArray(tiposRes.data?.items) ||
@@ -48,7 +48,7 @@ export default function AdminAvisosSubroutePage() {
     const fetchAvisosInitial = async () => {
       try {
         const [tiposRes, avisosRes] = await Promise.all([
-          medtecApi.tiposAviso.list({ page: 'all' }),
+          medtecApi.tiposAviso.list({ page: 'all' }).catch(listaVaziaSeSemPermissao<ATipoAviso>),
           medtecApi.avisos.list({ page: 'all' }),
         ]);
         if (!active) return;

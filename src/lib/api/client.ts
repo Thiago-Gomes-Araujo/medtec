@@ -235,10 +235,12 @@ export async function apiFetch<T>(
   }
 
   // Injeta Authorization: Bearer <token>
+  let sentToken: string | null = null;
   if (!skipAuth) {
     const token = getStoredAccessToken();
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
+      sentToken = token;
     }
   }
 
@@ -273,12 +275,17 @@ export async function apiFetch<T>(
 
     const firstError = errorJson?.errors?.[0];
     if (firstError === 'token_expirado') {
-      // Aciona o mutex de refresh garantindo execução única
-      activeRefreshPromise ??= executeTokenRefresh().finally(() => {
-        activeRefreshPromise = null;
-      });
+      // Um único refresh para várias requisições expiradas juntas: quem chega durante
+      // o refresh espera por ele, e quem chega depois só repete com o token já trocado.
+      const currentToken = getStoredAccessToken();
+      const alreadyRenewed = !activeRefreshPromise && sentToken !== null && currentToken !== null && currentToken !== sentToken;
+      if (!alreadyRenewed) {
+        activeRefreshPromise ??= executeTokenRefresh().finally(() => {
+          activeRefreshPromise = null;
+        });
+      }
 
-      const refreshSuccess = await activeRefreshPromise;
+      const refreshSuccess = alreadyRenewed || await activeRefreshPromise;
       if (refreshSuccess) {
         // Repete a requisição original apenas uma vez com os novos tokens
         return apiFetch<T>(endpoint, options, true);

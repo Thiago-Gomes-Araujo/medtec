@@ -31,6 +31,7 @@ export async function POST(request: Request) {
     let backendTokens: { access_token: string; refresh_token: string } | null = null;
     let backendUser: Pick<AuthUser, 'id' | 'nome' | 'cpf' | 'perfil_nome' | 'admin' | 'permissoes'> | null = null;
     let backendUnavailable = false;
+    let tooManyAttempts = false;
 
     try {
       const backendRes = await fetch(`${backendUrl}/auth/login`, {
@@ -60,6 +61,8 @@ export async function POST(request: Request) {
             backendUnavailable = true;
           }
         }
+      } else if (backendRes.status === 429) {
+        tooManyAttempts = true;
       } else if (backendRes.status >= 500) {
         backendUnavailable = true;
       }
@@ -100,6 +103,11 @@ export async function POST(request: Request) {
       });
 
       return response;
+    }
+
+    // Mais de 10 tentativas por minuto: a API bloqueia e a senha nem foi conferida (ROTAS_FRONT.md, seção 5).
+    if (tooManyAttempts) {
+      return NextResponse.json({ success: false, error: 'Muitas tentativas de login. Aguarde 1 minuto e tente novamente.' }, { status: 429 });
     }
 
     // 2. Validação local (fallback para Gestor Geral ou banco local)

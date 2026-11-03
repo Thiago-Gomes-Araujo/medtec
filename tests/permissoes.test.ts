@@ -11,10 +11,11 @@ import { medtecApi } from '../src/lib/api/index';
 import {
   SEM_PERMISSOES, definirPermissoes, lerPermissoes, limparPermissoes, obterPermissoes, pode,
 } from '../src/lib/api/permissoes';
-import type { AuthUser, Permissoes } from '../src/lib/api/types';
+import type { AuthUser, Perfil, Permissoes, Usuario } from '../src/lib/api/types';
+import { PERFIS, usuarioMe } from './fixtures/permissoes';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { buildAdminMenu, podeAcessarSecao, SECTION_CONFIG, type AdminSection } from '../src/lib/admin-navigation';
+import { buildAdminMenu, getModulosAprovacaoContaveis, podeAcessarSecao, podeAprovarAlgo, SECTION_CONFIG, type AdminSection } from '../src/lib/admin-navigation';
 import { getAdminEditorialDestination } from '../src/lib/admin-auth-navigation';
 import { createAdminOverviewLoader } from '../src/lib/admin-overview';
 import AdminOverview from '../src/components/admin/AdminOverview';
@@ -25,70 +26,17 @@ import FilaAprovacao from '../src/components/admin/FilaAprovacao';
 import UserManager from '../src/components/UserManager';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
 import { getChaveDoModulo, podeConcederRegra } from '../src/lib/admin-usuarios';
-import { ApiError } from '../src/lib/api/errors';
-import type { Perfil, Usuario } from '../src/lib/api/types';
-import { getModulosAprovacaoContaveis, podeAprovarAlgo } from '../src/lib/admin-navigation';
+import { ApiError, listaVaziaSeSemPermissao } from '../src/lib/api/errors';
+import { POST as authRoutePost } from '../src/app/api/auth/route';
 import BannersPanel from '../src/components/admin/BannersPanel';
 import DisciplinasPanel from '../src/components/admin/DisciplinasPanel';
-
-const TODAS = ['index', 'show', 'create', 'update', 'destroy'];
-const MODERACAO = [...TODAS, 'publicar', 'reprovar', 'despublicar'];
-
-// Permissões simuladas no formato do /auth/me: perfil somado às extras.
-export const PERFIS: Record<'Jornalista' | 'Gestor' | 'Administrador', Pick<AuthUser, 'perfil_id' | 'perfil_nome' | 'admin' | 'permissoes'>> = {
-  Jornalista: {
-    perfil_id: 1, perfil_nome: 'Jornalista', admin: false,
-    permissoes: {
-      a_avisos: ['index', 'show', 'create', 'update'],
-      a_tipos_aviso: ['index'],
-      fotos_galeria: ['index', 'show', 'create'],
-      categorias_galeria: ['index'],
-    },
-  },
-  Gestor: {
-    perfil_id: 2, perfil_nome: 'Gestor', admin: false,
-    permissoes: {
-      n_noticias: ['create', 'destroy', 'index', 'show', 'update'],
-      n_categorias_noticia: ['index'],
-      pj_projetos: [...MODERACAO, 'remover_anexo'],
-      pj_temas: TODAS, pj_membros: TODAS,
-      d_duvidas: MODERACAO, d_categorias_duvida: TODAS,
-      d_duvidas_visitante: ['index', 'show', 'responder'],
-      p_relatos: ['index', 'show', 'publicar', 'reprovar', 'despublicar'],
-      b_banners: TODAS,
-      g_cidades: ['index'],
-      usuarios: TODAS,
-      usuarios_permissoes_extras: ['show', 'update'],
-      perfis: ['index'],
-    },
-  },
-  Administrador: {
-    perfil_id: 3, perfil_nome: 'Administrador', admin: true,
-    permissoes: Object.fromEntries([
-      'n_noticias', 'd_duvidas', 'p_relatos', 'c_conquistas_aluno', 'pj_projetos',
-    ].map(modulo => [modulo, [...MODERACAO, ...(modulo === 'pj_projetos' ? ['remover_anexo'] : [])]]).concat([
-      'n_categorias_noticia', 'a_avisos', 'a_tipos_aviso', 'fotos_galeria', 'categorias_galeria', 'b_banners',
-      'p_professores', 'p_disciplinas', 'c_categorias_conquista_aluno', 'pj_temas', 'pj_membros',
-      'd_categorias_duvida', 'g_estados', 'g_cidades', 'usuarios', 'perfis',
-    ].map(modulo => [modulo, TODAS]), [
-      ['d_duvidas_visitante', ['index', 'show', 'destroy', 'responder']],
-      ['canais_contato', ['index', 'update_all']],
-      ['usuarios_permissoes_extras', ['show', 'update']],
-      ['perfis_permissoes', ['show', 'update']],
-    ])) as Permissoes,
-  },
-};
-
-export function usuarioMe(perfil: keyof typeof PERFIS, overrides: Partial<AuthUser> = {}): AuthUser {
-  return { id: 10 + PERFIS[perfil].perfil_id, nome: `${perfil} de teste`, cpf: '00000000000', ativo: true, ...PERFIS[perfil], ...overrides };
-}
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const originalFetch = globalThis.fetch;
 
 describe('Sessão: permissões do /auth/me', () => {
-  beforeEach(() => { clearStoredTokens(); });
-  afterEach(() => { globalThis.fetch = originalFetch; clearStoredTokens(); });
+  beforeEach(() => { clearStoredTokens(); limparPermissoes(); });
+  afterEach(() => { globalThis.fetch = originalFetch; clearStoredTokens(); limparPermissoes(); });
 
   it('pode(modulo, acao) só libera as ações listadas', () => {
     definirPermissoes(usuarioMe('Gestor'));
@@ -106,7 +54,8 @@ describe('Sessão: permissões do /auth/me', () => {
     assert.deepEqual(lerPermissoes(undefined), { admin: false, permissoes: {} });
     assert.deepEqual(lerPermissoes({ admin: 'true' as unknown as boolean, permissoes: ['index'] as unknown as Permissoes }), { admin: false, permissoes: {} });
     assert.deepEqual(lerPermissoes({ permissoes: { n_noticias: 'index' as unknown as string[], a_avisos: ['index', 3 as unknown as string] } }), { admin: false, permissoes: { a_avisos: ['index'] } });
-    definirPermissoes({ id: 1, nome: 'Sem campos novos', cpf: '0', ativo: true, perfil_id: 3, perfil_nome: 'Administrador' });
+    const semCamposNovos: AuthUser = { id: 1, nome: 'Sem campos novos', cpf: '0', ativo: true, perfil_id: 3, perfil_nome: 'Administrador' };
+    definirPermissoes(semCamposNovos);
     assert.equal(pode('n_noticias', 'index'), false, 'o nome do perfil não libera nada');
   });
 
@@ -167,9 +116,11 @@ describe('Sessão: permissões do /auth/me', () => {
     assert.equal(pode('usuarios', 'index'), true);
   });
 
-  it('sem tokens (logout ou login local) não há nenhuma permissão', () => {
+  it('logout e login local não deixam nenhuma permissão', async () => {
     definirPermissoes(usuarioMe('Administrador'));
-    clearStoredTokens();
+    setStoredTokens({ access_token: 'a', refresh_token: 'r' });
+    globalThis.fetch = async () => json({ success: true, message: 'Sessão encerrada com sucesso.', data: null });
+    await medtecApi.auth.logout();
     assert.equal(obterPermissoes(), SEM_PERMISSOES);
     definirPermissoes(usuarioMe('Gestor'));
     limparPermissoes();
@@ -203,10 +154,10 @@ describe('Fonte única: menu, guardas, Início e botões por pode()', () => {
 
   it('abas das subrotas escondem as telas sem index', () => {
     definirPermissoes(PERFIS.Gestor);
-    const html = render(createElement(CommunitySubrouteLayout, { active: 'professoresRelatos', children: 'conteúdo' }));
+    const html = render(createElement(CommunitySubrouteLayout, { active: 'professoresRelatos' } as Parameters<typeof CommunitySubrouteLayout>[0], 'conteúdo'));
     assert.doesNotMatch(html, /Seções de professores/, 'só sobra a aba atual: a navegação some');
     definirPermissoes(PERFIS.Administrador);
-    const admin = render(createElement(CommunitySubrouteLayout, { active: 'professoresRelatos', children: 'conteúdo' }));
+    const admin = render(createElement(CommunitySubrouteLayout, { active: 'professoresRelatos' } as Parameters<typeof CommunitySubrouteLayout>[0], 'conteúdo'));
     for (const aba of ['Professores', 'Disciplinas', 'Relatos dos alunos']) assert.match(admin, new RegExp(`>${aba}<`));
   });
 
@@ -242,9 +193,10 @@ describe('Fonte única: menu, guardas, Início e botões por pode()', () => {
 
   it('redirecionamento de "nova notícia" exige create', () => {
     const params = new URLSearchParams('action=new');
-    assert.equal(getAdminEditorialDestination(sessaoDe('Jornalista'), params), null);
-    assert.deepEqual(getAdminEditorialDestination(sessaoDe('Gestor'), params), { method: 'replace', href: '/admin/noticias?action=new' });
-    assert.equal(getAdminEditorialDestination(sessaoDe('Administrador'), new URLSearchParams()), null);
+    const criar = (perfil: keyof typeof PERFIS) => pode('n_noticias', 'create', sessaoDe(perfil));
+    assert.equal(getAdminEditorialDestination(criar('Jornalista'), params), null);
+    assert.deepEqual(getAdminEditorialDestination(criar('Gestor'), params), { method: 'replace', href: '/admin/noticias?action=new' });
+    assert.equal(getAdminEditorialDestination(criar('Administrador'), new URLSearchParams()), null);
   });
 
   it('botões de criar seguem a ação create do módulo', () => {
@@ -275,7 +227,7 @@ describe('Fonte única: menu, guardas, Início e botões por pode()', () => {
 describe('Aprovações: Fila e blocos por módulo com publicar', () => {
   afterEach(() => { limparPermissoes(); });
   const blocos = (html: string) => [
-    ['notícias', /Decisão Editorial do Gestor/],
+    ['notícias', /Carregando notícias para aprovação/],
     ['perguntas', /Perguntas frequentes aguardando/],
     ['conquistas', /Conquistas \(/],
     ['relatos', /Relatos \(/],
@@ -345,7 +297,7 @@ describe('Usuários: administradores e permissões extras', () => {
   it('Jornalista sem usuarios não vê cadastro nem ações', () => {
     definirPermissoes(PERFIS.Jornalista);
     const markup = html();
-    assert.doesNotMatch(markup, /Cadastrar Novo Usuário|title="Excluir Usuário"|title="Redefinir Senha"|>Extras<|Perfis e Permissões/);
+    assert.doesNotMatch(markup, /Cadastrar Novo Usuário|title="Excluir Usuário"|title="Redefinir Senha"|>Extras<|>Perfis e Permissões</);
   });
 
   it('permissões extras: só concede as regras que o usuário logado tem', () => {
@@ -361,9 +313,89 @@ describe('Usuários: administradores e permissões extras', () => {
   it('403 usuario_administrador e as mensagens da seção 9 mostram o texto da API', () => {
     const erro = (message: string, errors: string[]) => ApiError.getFriendlyMessage(ApiError.fromResponse(403, { success: false, message, errors }));
     assert.equal(erro('Somente o Administrador pode alterar administradores', ['usuario_administrador']), 'Somente o Administrador pode alterar administradores');
-    assert.equal(erro('Você não pode alterar suas próprias permissões', ['sem_permissao']), 'Você não pode alterar suas próprias permissões');
+    assert.equal(erro('Você não pode alterar suas próprias permissões', ['alterar_proprias_permissoes']), 'Você não pode alterar suas próprias permissões');
     assert.equal(erro('Você só pode conceder permissões que você tem', []), 'Você só pode conceder permissões que você tem');
     assert.equal(ApiError.getFriendlyMessage(ApiError.fromResponse(403, { errors: ['usuario_administrador'] })), 'Somente o Administrador pode alterar administradores.');
     assert.equal(erro('Sem permissão', ['sem_permissao']), 'Você não possui permissão para executar esta operação.');
+  });
+});
+
+describe('Erros: 403, motivo da reprovação, refresh único e 429', () => {
+  beforeEach(() => { clearStoredTokens(); });
+  afterEach(() => { globalThis.fetch = originalFetch; clearStoredTokens(); });
+
+  it('403 sem_permissao vira mensagem clara e lista auxiliar vazia não derruba a tela', async () => {
+    globalThis.fetch = async () => json({ success: false, message: 'Sem permissão', errors: ['sem_permissao'] }, 403);
+    const erro = await apiFetch('/a_tipos_aviso').catch((cause: unknown) => cause);
+    assert.equal(ApiError.getFriendlyMessage(erro), 'Você não possui permissão para executar esta operação.');
+    const vazia = listaVaziaSeSemPermissao(erro);
+    assert.deepEqual(vazia.data.items, []);
+    assert.throws(() => listaVaziaSeSemPermissao(ApiError.fromResponse(500, {})), ApiError);
+  });
+
+  it('reprovar notícia sem motivo não chega à API', async () => {
+    let chamadas = 0;
+    globalThis.fetch = async () => { chamadas++; return json({}); };
+    await assert.rejects(medtecApi.noticias.reprovar(1, '   '), /motivo da reprovação é obrigatório/);
+    assert.equal(chamadas, 0);
+    globalThis.fetch = async (_input, init) => { chamadas++; assert.deepEqual(JSON.parse(String(init?.body)), { motivo: 'Falta a fonte' }); return json({ id: 1 }); };
+    await medtecApi.noticias.reprovar(1, ' Falta a fonte ');
+    assert.equal(chamadas, 1);
+  });
+
+  it('várias requisições expiradas juntas fazem um único refresh', async () => {
+    setStoredTokens({ access_token: 'velho', refresh_token: 'r1' });
+    let refreshes = 0;
+    let liberarRefresh!: () => void;
+    const refreshPronto = new Promise<void>(resolve => { liberarRefresh = resolve; });
+    globalThis.fetch = async (input, init) => {
+      const url = String(input).replace(/^.*\/api\/v1/, '');
+      if (url === '/auth/refresh_token') {
+        refreshes++;
+        assert.deepEqual(JSON.parse(String(init?.body)), { refresh_token: 'r1' });
+        await refreshPronto;
+        return json({ success: true, data: { access_token: 'novo', refresh_token: 'r2' } });
+      }
+      if (url === '/auth/me') return json({ success: true, data: usuarioMe('Gestor') });
+      if (new Headers(init?.headers).get('Authorization') === 'Bearer velho') return json({ success: false, errors: ['token_expirado'] }, 401);
+      return json({ success: true, data: url });
+    };
+    const juntas = Promise.all(['/a', '/b', '/c'].map(url => apiFetch<{ data: string }>(url)));
+    await new Promise(resolve => setTimeout(resolve, 10));
+    liberarRefresh();
+    assert.deepEqual((await juntas).map(res => res.data), ['/a', '/b', '/c']);
+    assert.equal(refreshes, 1);
+  });
+
+  it('requisição expirada que chega depois do refresh só repete com o token novo', async () => {
+    setStoredTokens({ access_token: 'velho', refresh_token: 'r1' });
+    let refreshes = 0;
+    let atrasada: (() => void) | null = null;
+    globalThis.fetch = async (input, init) => {
+      const url = String(input).replace(/^.*\/api\/v1/, '');
+      if (url === '/auth/refresh_token') { refreshes++; return json({ success: true, data: { access_token: 'novo', refresh_token: 'r2' } }); }
+      if (url === '/auth/me') return json({ success: true, data: usuarioMe('Gestor') });
+      if (new Headers(init?.headers).get('Authorization') === 'Bearer velho') {
+        // A resposta de /lenta só chega depois que /rapida já renovou os tokens.
+        if (url === '/lenta') await new Promise<void>(resolve => { atrasada = resolve; });
+        return json({ success: false, errors: ['token_expirado'] }, 401);
+      }
+      return json({ success: true, data: url });
+    };
+    const lenta = apiFetch<{ data: string }>('/lenta');
+    await apiFetch('/rapida');
+    (atrasada as unknown as () => void)();
+    assert.equal((await lenta).data, '/lenta');
+    assert.equal(refreshes, 1);
+  });
+
+  it('429 no login pede para aguardar 1 minuto', async () => {
+    globalThis.fetch = async () => json({ success: false, message: 'Muitas tentativas', errors: ['muitas_tentativas'] }, 429);
+    const response = await authRoutePost(new Request('http://localhost:3000/api/auth', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: '00000000000', password: 'x' }),
+    }));
+    assert.equal(response.status, 429);
+    assert.match((await response.json()).error, /Aguarde 1 minuto/);
+    assert.match(ApiError.getFriendlyMessage(ApiError.fromResponse(429, { errors: ['muitas_tentativas'] })), /Aguarde 1 minuto/);
   });
 });

@@ -91,8 +91,8 @@ import { useProjetosPendentes, notifyProjetosPendentes } from '../src/components
 import { useRelatosPendentes, notifyRelatosPendentes } from '../src/components/admin/useRelatosPendentes';
 import { useAprovacoesPendentes, notifyAprovacoesPendentes } from '../src/components/admin/useAprovacoesPendentes';
 import type { AdminUsersData } from '../src/components/admin/useAdminUsers';
-import AdminShell, { canAccessAdminUsers, getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
-import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, getActiveMenuSection, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
+import AdminShell, { getFolderIdForSection, SECTION_CONFIG, type AdminSection as ShellAdminSection, type AdminSession, type AdminShellProps } from '../src/components/admin/AdminShell';
+import { ADMIN_SUBROUTE_GROUPS, buildAdminMenu, getActiveMenuSection, podeAcessarSecao, SECTION_CONFIG as SHARED_SECTION_CONFIG, SECTION_HREFS, type AdminSection } from '../src/lib/admin-navigation';
 import { useAdminTheme } from '../src/components/admin/useAdminTheme';
 import { filterAdminNavigation } from '../src/lib/admin-navigation-filter';
 import type { FaqItem, NewsItem, SocialLinks } from '../src/types';
@@ -182,7 +182,8 @@ import { readHomeBanners } from '../src/lib/home-banners';
 import { CANAIS_PADRAO, canaisFromApi, whatsappHref, YOUTUBE_URL_OFICIAL } from '../src/lib/site-channels';
 import { readSiteChannels } from '../src/lib/site-channels-server';
 import { SiteChannelsProvider } from '../src/components/SiteChannelsProvider';
-import { canAccessBanners } from '../src/lib/admin-session';
+import { definirPermissoes, lerPermissoes, pode, SEM_PERMISSOES, type SessaoPermissoes } from '../src/lib/api/permissoes';
+import { PERFIS } from './fixtures/permissoes';
 import type { ConquistaPublica, ProfessorPublico } from '../src/lib/api/types';
 import {
   CONQUISTA_IMAGE_MAX_BYTES,
@@ -193,6 +194,41 @@ import {
   formatTelefone,
   COMMUNITY_COMING_SOON,
 } from '../src/lib/community-content';
+
+// As telas seguem o /auth/me: por padrão, cada teste roda com as permissões do Administrador.
+// Os testes de perfis específicos ficam em tests/permissoes.test.ts.
+const PERMISSOES_ADMIN = lerPermissoes(PERFIS.Administrador);
+// A sessão do painel é o único estado que começa como objeto vazio.
+const isSessionState = (initial: unknown) => !!initial && typeof initial === 'object' && !Array.isArray(initial) && Object.keys(initial).length === 0;
+beforeEach(() => { definirPermissoes(PERFIS.Administrador); });
+
+// Os testes antigos descrevem o acesso por tela ({ noticias: true, kanban: false, ... }).
+// Converte esse mapa nas permissões equivalentes do /auth/me, sem publicar fora da Fila.
+const ACOES_CRUD = ['index', 'show', 'create', 'update', 'destroy'];
+const PERMISSOES_POR_ACESSO: Record<string, Record<string, string[]>> = {
+  noticias: { n_noticias: ACOES_CRUD, n_categorias_noticia: ['index'] },
+  projetos: { pj_projetos: [...ACOES_CRUD, 'remover_anexo'], pj_temas: ACOES_CRUD, pj_membros: ACOES_CRUD },
+  duvidas: { d_duvidas: ACOES_CRUD, d_categorias_duvida: ACOES_CRUD, d_duvidas_visitante: ['index', 'show', 'destroy', 'responder'] },
+  avisos: { a_avisos: ACOES_CRUD, a_tipos_aviso: ACOES_CRUD },
+  fotos: { b_banners: ACOES_CRUD },
+  galeria: { fotos_galeria: ACOES_CRUD, categorias_galeria: ACOES_CRUD },
+  professores: { p_professores: ACOES_CRUD, p_disciplinas: ACOES_CRUD, p_relatos: ['index', 'show', 'destroy'] },
+  alunos: { c_conquistas_aluno: ACOES_CRUD, c_categorias_conquista_aluno: ACOES_CRUD },
+  kanban: { n_noticias: ['index', 'publicar', 'reprovar', 'despublicar'] },
+  redes: { canais_contato: ['index', 'update_all'] },
+  estadosCidades: { g_estados: ACOES_CRUD, g_cidades: ACOES_CRUD },
+  usuarios: { usuarios: ACOES_CRUD, perfis: ACOES_CRUD, usuarios_permissoes_extras: ['show', 'update'], perfis_permissoes: ['show', 'update'] },
+};
+function sessaoPorAcesso(access: Partial<Record<string, boolean>>): SessaoPermissoes {
+  const permissoes: Record<string, string[]> = {};
+  for (const [key, allowed] of Object.entries(access)) {
+    if (!allowed) continue;
+    for (const [modulo, acoes] of Object.entries(PERMISSOES_POR_ACESSO[key] ?? {})) {
+      permissoes[modulo] = [...new Set([...(permissoes[modulo] ?? []), ...acoes])];
+    }
+  }
+  return lerPermissoes({ admin: false, permissoes });
+}
 
 // Inclui dados fora do contrato Rails para caracterizar as comparações em
 // runtime. O helper de produção continuará usando os tipos Rails existentes.
@@ -233,92 +269,63 @@ function railsClassificationReply(fields: Readonly<Record<string, unknown>>): Aw
   } }));
 }
 
-describe('Classificação Rails compartilhada (12D-5 Lote 1)', () => {
-  for (const [label, fields, expected] of railsGestorCases) {
-    it(label, async () => {
-      const { isRailsGestor } = await import('../src/lib/admin-session');
-      const input = Object.freeze({ ...fields });
-      const before = JSON.stringify(input);
-      assert.equal(Reflect.apply(isRailsGestor, undefined, [input]), expected);
-      assert.equal(Reflect.apply(isRailsGestor, undefined, [input]), expected);
-      assert.equal(JSON.stringify(input), before);
-    });
-  }
-
-  it('executa isolado sem imports de runtime, React, navegador, sessão ou serviços', () => {
-    const source = readFileSync('src/lib/admin-session.ts', 'utf8');
-    const { outputText } = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS } });
-    const isolated: { exports: { isRailsGestor?: (user: unknown) => boolean } } = { exports: {} };
-    for (const key of ['require', 'window', 'document', 'localStorage', 'sessionStorage', 'fetch',
-      'cookies', 'process', 'React', 'setTimeout', 'setInterval']) {
-      Object.defineProperty(isolated, key, { get() { throw new Error(`Acesso indevido: ${key}`); } });
-    }
-    runInNewContext(outputText, isolated, { timeout: 1000 });
-    const classify = isolated.exports.isRailsGestor;
-    assert.equal(typeof classify, 'function');
-    for (const [, fields, expected] of railsGestorCases) {
-      assert.equal(classify?.(Object.freeze({ ...fields })), expected);
-    }
-  });
-});
-
-type CommonSessionSnapshot = { isGestor: boolean; username: unknown; name: unknown; profileType: unknown };
+type CommonSessionSnapshot = { username: unknown; name: unknown; profileType: unknown };
 type SessionProjectionCase = { label: string; data: unknown; expected: CommonSessionSnapshot; role?: unknown; pageRenderError?: boolean };
 const railsSessionFieldCases: SessionProjectionCase[] = [
-  ...railsGestorCases.map(([label, fields, isGestor]) => ({
+  ...railsGestorCases.map(([label, fields]) => ({
     label, data: railsClassificationReply(fields).data,
-    expected: { isGestor, username: 'identificador-sintetico', name: 'Usuário sintético', profileType: fields.perfil_nome },
+    expected: { username: 'identificador-sintetico', name: 'Usuário sintético', profileType: fields.perfil_nome },
   })),
   { label: 'nome e identificação ausentes', data: { id: 100, perfil_id: 2, perfil_nome: 'Editor de Notícias' },
-    expected: { isGestor: false, username: undefined, name: undefined, profileType: 'Editor de Notícias' } },
+    expected: { username: undefined, name: undefined, profileType: 'Editor de Notícias' } },
   { label: 'nome e identificação vazios', data: { id: 100, perfil_id: 2, perfil_nome: 'Editor de Notícias', cpf: '', nome: '' },
-    expected: { isGestor: false, username: '', name: '', profileType: 'Editor de Notícias' } },
+    expected: { username: '', name: '', profileType: 'Editor de Notícias' } },
   { label: 'campos comuns nulos', data: { id: null, perfil_id: null, perfil_nome: null, cpf: null, nome: null },
-    expected: { isGestor: false, username: null, name: null, profileType: null } },
+    expected: { username: null, name: null, profileType: null } },
   { label: 'valores inesperados sem coerção', data: { id: '1', perfil_id: '3', perfil_nome: false, cpf: 42, nome: 17 }, pageRenderError: true,
-    expected: { isGestor: false, username: 42, name: 17, profileType: false } },
+    expected: { username: 42, name: 17, profileType: false } },
   { label: 'campos adicionais não substituem origem Rails',
     data: { perfil_nome: 'Administrador', cpf: 'rails-sintetico', nome: 'Nome Rails', role: 'Papel extra', editorialProfile: 'Perfil extra', apiUser: {}, user: 'Usuário extra' },
-    expected: { isGestor: true, username: 'rails-sintetico', name: 'Nome Rails', profileType: 'Administrador' } },
+    expected: { username: 'rails-sintetico', name: 'Nome Rails', profileType: 'Administrador' } },
   { label: 'data como texto não vazio', data: 'resposta-sintetica',
-    expected: { isGestor: false, username: undefined, name: undefined, profileType: undefined } },
+    expected: { username: undefined, name: undefined, profileType: undefined } },
   { label: 'data como array', data: [],
-    expected: { isGestor: false, username: undefined, name: undefined, profileType: undefined } },
+    expected: { username: undefined, name: undefined, profileType: undefined } },
 ];
 const localSessionFieldCases: SessionProjectionCase[] = [
   { label: 'gestora', data: { isGestor: true, user: 'local-sintetico', name: 'Nome local', profileType: 'Gestor Geral', role: 'gestor' }, role: 'gestor',
-    expected: { isGestor: true, username: 'local-sintetico', name: 'Nome local', profileType: 'Gestor Geral' } },
+    expected: { username: 'local-sintetico', name: 'Nome local', profileType: 'Gestor Geral' } },
   { label: 'isGestor false', data: { isGestor: false, user: 'local-sintetico', name: 'Editor local', profileType: 'Editor de Notícias', role: 'operador' }, role: 'operador',
-    expected: { isGestor: false, username: 'local-sintetico', name: 'Editor local', profileType: 'Editor de Notícias' } },
+    expected: { username: 'local-sintetico', name: 'Editor local', profileType: 'Editor de Notícias' } },
   { label: 'isGestor ausente', data: { user: 'local-sintetico', name: 'Nome local', profileType: 'Gestor' },
-    expected: { isGestor: true, username: 'local-sintetico', name: 'Nome local', profileType: 'Gestor' } },
+    expected: { username: 'local-sintetico', name: 'Nome local', profileType: 'Gestor' } },
   { label: 'campos ausentes', data: {},
-    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+    expected: { username: undefined, name: undefined, profileType: undefined } },
   { label: 'authenticated false', data: { authenticated: false },
-    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+    expected: { username: undefined, name: undefined, profileType: undefined } },
   { label: 'nome ausente', data: { isGestor: false, user: 'local-sintetico', profileType: 'Curador de Fotos' },
-    expected: { isGestor: false, username: 'local-sintetico', name: undefined, profileType: 'Curador de Fotos' } },
+    expected: { username: 'local-sintetico', name: undefined, profileType: 'Curador de Fotos' } },
   { label: 'nome vazio', data: { isGestor: false, user: '', name: '', profileType: 'Publicador de Avisos' },
-    expected: { isGestor: false, username: '', name: '', profileType: 'Publicador de Avisos' } },
+    expected: { username: '', name: '', profileType: 'Publicador de Avisos' } },
   { label: 'campos nulos', data: { isGestor: null, user: null, name: null, profileType: null, role: null }, role: null,
-    expected: { isGestor: true, username: null, name: null, profileType: null } },
+    expected: { username: null, name: null, profileType: null } },
   { label: 'isGestor em texto', data: { isGestor: 'false', user: 42, name: 17, profileType: false, role: 9 }, role: 9, pageRenderError: true,
-    expected: { isGestor: true, username: 42, name: 17, profileType: false } },
+    expected: { username: 42, name: 17, profileType: false } },
   { label: 'isGestor zero', data: { isGestor: 0 },
-    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+    expected: { username: undefined, name: undefined, profileType: undefined } },
   { label: 'campos adicionais não viram apiUser ou editorialProfile',
     data: { isGestor: false, user: 'local-sintetico', name: 'Operador local', profileType: 'Operador de Conteúdo', role: 'Papel local', apiUser: { perfil_nome: 'Administrador', ativo: true }, editorialProfile: 'Administrador' }, role: 'Papel local',
-    expected: { isGestor: false, username: 'local-sintetico', name: 'Operador local', profileType: 'Operador de Conteúdo' } },
+    expected: { username: 'local-sintetico', name: 'Operador local', profileType: 'Operador de Conteúdo' } },
   { label: 'nomes Rails não são aliases locais', data: { cpf: 'ignorado', nome: 'ignorado', perfil_nome: 'Administrador', username: 'ignorado' },
-    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+    expected: { username: undefined, name: undefined, profileType: undefined } },
   { label: 'resposta em texto', data: 'resposta-sintetica',
-    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+    expected: { username: undefined, name: undefined, profileType: undefined } },
   { label: 'resposta false', data: false,
-    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+    expected: { username: undefined, name: undefined, profileType: undefined } },
   { label: 'resposta zero', data: 0,
-    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+    expected: { username: undefined, name: undefined, profileType: undefined } },
   { label: 'resposta em array', data: [],
-    expected: { isGestor: true, username: undefined, name: undefined, profileType: undefined } },
+    expected: { username: undefined, name: undefined, profileType: undefined } },
 ];
 
 describe('Campos comuns de sessão (12D-5 Lote 2)', () => {
@@ -334,7 +341,7 @@ describe('Campos comuns de sessão (12D-5 Lote 2)', () => {
         assert.deepEqual(Reflect.apply(project, undefined, [input]), expected);
         assert.deepEqual(input, before);
         assert.notEqual(result, input);
-        assert.deepEqual(Object.keys(result), ['isGestor', 'username', 'name', 'profileType']);
+        assert.deepEqual(Object.keys(result), ['username', 'name', 'profileType']);
       });
     }
   }
@@ -368,29 +375,6 @@ describe('Campos comuns de sessão (12D-5 Lote 2)', () => {
 });
 
 type EditorialTestDecision = { method: 'push' | 'replace'; href: string } | null;
-const editorialProfileCases: {
-  label: string; isGestor: boolean; profileType: string | null | undefined;
-  expected: EditorialTestDecision; localOnly?: boolean; inactive?: boolean;
-}[] = [
-  { label: 'Administrador', isGestor: true, profileType: 'Administrador', expected: null },
-  { label: 'gestor por heurística com perfil Editor', isGestor: true, profileType: 'Editor de Notícias', expected: null },
-  { label: 'gestor sem perfil', isGestor: true, profileType: undefined, expected: null },
-  { label: 'Administrador Rails inativo', isGestor: true, profileType: 'Administrador', expected: null, inactive: true },
-  { label: 'Editor', isGestor: false, profileType: 'Editor de Notícias', expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'Curador', isGestor: false, profileType: 'Curador de Fotos', expected: { method: 'replace', href: '/admin/galeria' } },
-  { label: 'Publicador', isGestor: false, profileType: 'Publicador de Avisos', expected: { method: 'push', href: '/admin/avisos' } },
-  { label: 'Operador', isGestor: false, profileType: 'Operador de Conteúdo', expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'Gestor literal', isGestor: false, profileType: 'Gestor', expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'perfil desconhecido', isGestor: false, profileType: 'Perfil sintético', expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'perfil ausente', isGestor: false, profileType: undefined, expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'perfil nulo', isGestor: false, profileType: null, expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'perfil vazio', isGestor: false, profileType: '', expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'Curador em minúsculas', isGestor: false, profileType: 'curador de fotos', expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'Publicador em maiúsculas', isGestor: false, profileType: 'PUBLICADOR DE AVISOS', expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'espaço antes de Curador', isGestor: false, profileType: ' Curador de Fotos', expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'espaço depois de Publicador', isGestor: false, profileType: 'Publicador de Avisos ', expected: { method: 'replace', href: '/admin/noticias' } },
-  { label: 'Administrador local explicitamente não gestor', isGestor: false, profileType: 'Administrador', expected: { method: 'replace', href: '/admin/noticias' }, localOnly: true },
-];
 const editorialQueryCases: [string, string][] = [
   ['', '/admin/noticias'],
   ['action=new', '/admin/noticias?action=new'],
@@ -411,45 +395,26 @@ const editorialQueryCases: [string, string][] = [
   ['mode=lista&redirect=https%3A%2F%2Finvalid.example', '/admin/noticias'],
   ['tab=invalido&section=noticias&mode=nova', '/admin/noticias?action=new'],
 ];
+const podeCriarNoticia = lerPermissoes({ permissoes: { n_noticias: ['index', 'create'] } });
+const naoCriaNoticia = lerPermissoes({ permissoes: { n_noticias: ['index', 'update'] } });
+// Todo usuário logado tem o Início: só o atalho de nova notícia redireciona, e só com create.
+const editorialDecision = (href: string, sessao: SessaoPermissoes): EditorialTestDecision =>
+  href.endsWith('?action=new') && sessao.permissoes.n_noticias?.includes('create') ? { method: 'replace', href } : null;
 
 describe('Decisão editorial pura (12D-5 Lote 3)', () => {
-  for (const { label, isGestor, profileType, expected } of editorialProfileCases) {
-    it(label, async () => {
-      const { getAdminEditorialDestination } = await import('../src/lib/admin-auth-navigation');
-      const params = new URLSearchParams();
-      assert.deepEqual(Reflect.apply(getAdminEditorialDestination, undefined, [isGestor, profileType, params]), expected);
-    });
-  }
   for (const [query, href] of editorialQueryCases) {
-    it(`query ${query || '(ausente)'} mantém destino, método e entrada`, async () => {
+    it(`query ${query || '(ausente)'} só redireciona para a criação com permissão create`, async () => {
       const { getAdminEditorialDestination } = await import('../src/lib/admin-auth-navigation');
       const params = Object.freeze(new URLSearchParams(query));
       const before = params.toString();
-      for (const profile of ['Editor de Notícias', 'Operador de Conteúdo', 'Gestor', undefined]) {
-        assert.deepEqual(getAdminEditorialDestination(false, profile, params), { method: 'replace', href });
-        assert.deepEqual(getAdminEditorialDestination(false, profile, params), { method: 'replace', href });
+      for (const sessao of [podeCriarNoticia, naoCriaNoticia, SEM_PERMISSOES, PERMISSOES_ADMIN]) {
+        const canCreate = pode('n_noticias', 'create', sessao);
+        assert.deepEqual(getAdminEditorialDestination(canCreate, params), editorialDecision(href, sessao));
+        assert.deepEqual(getAdminEditorialDestination(canCreate, params), editorialDecision(href, sessao));
       }
-      assert.deepEqual(getAdminEditorialDestination(false, 'Curador de Fotos', params), { method: 'replace', href: '/admin/galeria' });
-      assert.deepEqual(getAdminEditorialDestination(false, 'Publicador de Avisos', params), { method: 'push', href: '/admin/avisos' });
-      assert.equal(getAdminEditorialDestination(true, 'Administrador', params), null);
       assert.equal(params.toString(), before);
     });
   }
-  it('executa sem navegador, router, imports, sessão, serviços ou estado externo', () => {
-    const source = readFileSync('src/lib/admin-auth-navigation.ts', 'utf8');
-    const { outputText } = transpileModule(source, { compilerOptions: { module: ModuleKind.CommonJS } });
-    const isolated: { exports: { getAdminEditorialDestination?: (isGestor: boolean, profile: unknown, params: URLSearchParams) => EditorialTestDecision } } = { exports: {} };
-    for (const key of ['require', 'window', 'document', 'localStorage', 'sessionStorage', 'fetch', 'cookies', 'router', 'process', 'React', 'setTimeout']) {
-      Object.defineProperty(isolated, key, { get() { throw new Error(`Acesso indevido: ${key}`); } });
-    }
-    runInNewContext(outputText, isolated, { timeout: 1000 });
-    const decide = isolated.exports.getAdminEditorialDestination;
-    assert.equal(typeof decide, 'function');
-    for (const { isGestor, profileType, expected } of editorialProfileCases) {
-      const result = decide?.(isGestor, profileType, new URLSearchParams());
-      assert.deepEqual(result ? { ...result } : result, expected);
-    }
-  });
 });
 
 // Os testes SSR fornecem o snapshot da query; os testes de reatividade abaixo
@@ -515,7 +480,6 @@ describe('Contêiner compartilhado da sidebar desktop', () => {
         if (index === (kind === 'page' ? 3 : 1)) return originalState(true);
         if (index === (kind === 'page' ? 1 : 4)) return originalState(true);
         if (kind === 'shell' && index === 5) return originalState(false);
-        if (initial && typeof initial === 'object' && 'isGestor' in initial) return originalState({ isGestor: true });
         return originalState(initial);
       });
       const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'desktop-container-test' };
@@ -592,16 +556,16 @@ describe('Rodapé compartilhado da gaveta mobile', () => {
   it('é usado na gaveta mobile da página e do shell com os rótulos de perfil e o logout de cada consumidor', () => {
     const originalState = React.useState;
     const sessions = [
-      { session: { isGestor: true, name: 'Ana Gestora', username: '111' }, userName: 'Ana Gestora', roleLabel: 'Gestor Geral' },
-      { session: { isGestor: false, username: '222', profileType: 'Operador de Conteúdo' }, userName: '222', roleLabel: 'Operador de Conteúdo' },
-      { session: { isGestor: false, name: 'Sem Perfil' }, userName: 'Sem Perfil', roleLabel: 'Operador' },
+      { session: { name: 'Ana Gestora', username: '111', profileType: 'Administrador' }, userName: 'Ana Gestora', roleLabel: 'Administrador' },
+      { session: { username: '222', profileType: 'Jornalista' }, userName: '222', roleLabel: 'Jornalista' },
+      { session: { name: 'Sem Perfil' }, userName: 'Sem Perfil', roleLabel: 'Operador' },
     ];
     for (const kind of ['page', 'shell'] as const) for (const expected of sessions) {
       // Abre a gaveta e conclui a autenticação invertendo apenas os estados booleanos iniciais,
       // sem depender da posição dos hooks; a sessão é identificada pelo formato do estado.
       const stateMock = mock.method(React, 'useState', (initial: unknown) => {
         if (typeof initial === 'boolean') return originalState(!initial);
-        if (initial && typeof initial === 'object' && 'isGestor' in initial) return originalState(expected.session);
+        if (isSessionState(initial)) return originalState(expected.session);
         return originalState(initial);
       });
       let tree: ReactNode;
@@ -1006,19 +970,20 @@ describe('Integração dos aliases estáticos no dashboard (12D-4B)', () => {
     } finally { nav.restore(); }
   });
 
-  it('mantém o encaminhamento por perfil das sessões Rails e local separado dos aliases', async () => {
+  it('mantém o encaminhamento por permissão das sessões Rails e local separado dos aliases', async () => {
     const profiles = [
-      { name: 'Editor de Notícias', method: 'replace', href: '/admin/noticias?action=new' },
-      { name: 'Curador de Fotos', method: 'replace', href: '/admin/galeria' },
-      { name: 'Publicador de Avisos', method: 'push', href: '/admin/avisos' },
-      { name: 'Operador de Conteúdo', method: 'replace', href: '/admin/noticias?action=new' },
-    ];
+      { name: 'Gestor', rails: [{ method: 'replace', href: '/admin/noticias?action=new' }] },
+      { name: 'Jornalista', rails: [] },
+      { name: 'Editor de Notícias', rails: [] },
+    ] as const;
     for (const source of ['Rails', 'local']) for (const profile of profiles) {
       const nav = captureNavigation();
+      const fixture = PERFIS[profile.name as keyof typeof PERFIS];
       try {
         nav.authCheck.mock.mockImplementation(() => source === 'Rails');
         nav.me.mock.mockImplementation(async () => ({ success: true, message: 'Sessão simulada', data: {
           id: 100, nome: 'Operador', cpf: '00000000000', ativo: true, perfil_id: 2, perfil_nome: profile.name,
+          ...(fixture ? { admin: fixture.admin, permissoes: fixture.permissoes } : {}),
         } }));
         nav.fetchMock.mock.mockImplementation(async () => new Response(JSON.stringify({
           isGestor: false, profileType: profile.name, user: 'operador',
@@ -1027,12 +992,10 @@ describe('Integração dos aliases estáticos no dashboard (12D-4B)', () => {
         nav.runAlias();
         assert.equal(nav.authCheck.mock.callCount(), 0);
         await nav.loadData();
-        assert.deepEqual(nav.calls, [
-          { method: profile.method, href: profile.href },
-        ], `${source}: ${profile.name}`);
+        // Só quem tem create em n_noticias segue o atalho; o login local não tem permissões.
+        assert.deepEqual(nav.calls, source === 'Rails' ? profile.rails : [], `${source}: ${profile.name}`);
         assert.equal(nav.me.mock.callCount(), source === 'Rails' ? 1 : 0);
-        assert.equal(nav.fetchMock.mock.callCount(), source === 'local' ? 1 : 0);
-        if (source === 'local') assert.equal(nav.fetchMock.mock.calls[0].arguments[0], '/api/auth');
+        assert.equal(nav.fetchMock.mock.calls.filter(call => call.arguments[0] === '/api/auth').length, source === 'local' ? 1 : 0);
       } finally { nav.restore(); }
     }
   });
@@ -1529,9 +1492,12 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
     const promise = new Promise<T>((accept, refuse) => { resolve = accept; reject = refuse; });
     return { promise, resolve, reject };
   }
+  // Perfis do seed trazem as permissões simuladas; nomes antigos não liberam nada.
   function railsSession(profile: string): RailsReply {
+    const fixture = PERFIS[profile as keyof typeof PERFIS];
     return { success: true, message: 'Sessão sintética', data: {
       id: 100, perfil_id: 2, perfil_nome: profile, nome: 'Usuário de teste', cpf: '00000000000', ativo: true,
+      ...(fixture ? { admin: fixture.admin, permissoes: fixture.permissoes } : {}),
     } };
   }
   function localSession(profile: string) {
@@ -1549,7 +1515,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
     let nextInstance = 0;
     let activations = 0;
     let unmounted = false;
-    let session: Pick<AdminSession, 'isGestor' | 'profileType'> | undefined;
+    let session: Pick<AdminSession, 'profileType'> | undefined;
     const router = {
       back() {}, forward() {}, refresh() {}, prefetch() {}, bfcacheId: 'current-session-test',
       push(href: string) { calls.push({ method: 'push', href }); },
@@ -1577,8 +1543,9 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
     // após unmount. Identifica a sessão pelo formato, sem índices de hooks.
     const stateMock = mock.method(React, 'useState', (<S,>(initial: S | (() => S)) => {
       const [value, setValue] = useState(initial);
-      if (initial && typeof initial === 'object' && 'isGestor' in initial) {
-        session = value as Pick<AdminSession, 'isGestor' | 'profileType'>;
+      // A sessão é o único estado que começa como objeto vazio.
+      if (initial && typeof initial === 'object' && !Array.isArray(initial) && Object.keys(initial).length === 0) {
+        session = value as Pick<AdminSession, 'profileType'>;
       }
       const dispatch = setValue as React.Dispatch<React.SetStateAction<unknown>>;
       if (!setters.has(dispatch)) setters.set(dispatch, next => { writes.push(next); dispatch(next); });
@@ -1669,7 +1636,6 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         await page.settle(() => page.requests[0].resolve(railsSession(profile)));
         assert.deepEqual(page.calls, []);
         assert.deepEqual(page.writes, []);
-        assert.equal(page.session?.isGestor, false);
         assert.equal(page.loading, true);
         assert.equal(page.overviewRequests.length, 0);
       } finally { await page.restore(); }
@@ -1684,13 +1650,12 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       page.calls.length = 0;
       await page.settle(() => page.requests[0].resolve(railsSession('Editor de Notícias')));
       assert.equal(page.loading, true);
-      assert.equal(page.session?.isGestor, false);
       assert.deepEqual(page.writes, []);
       assert.deepEqual(page.calls, []);
       await page.settle(() => page.requests[1].resolve(railsSession('Curador de Fotos')));
       assert.equal(page.loading, false);
       assert.equal(page.session?.profileType, 'Curador de Fotos');
-      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/galeria' }]);
+      assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
   });
 
@@ -1706,13 +1671,13 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[1].resolve(railsSession('Publicador de Avisos')));
       assert.equal(page.session?.profileType, 'Publicador de Avisos');
       assert.equal(page.loading, false);
-      assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/avisos' }]);
+      assert.deepEqual(page.calls, []);
       const writes = page.writes.length;
       await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
       assert.equal(page.session?.profileType, 'Publicador de Avisos');
       assert.equal(page.writes.length, writes);
       assert.equal(page.overviewRequests.length, 0);
-      assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/avisos' }]);
+      assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
   });
 
@@ -1817,7 +1782,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.requests[0].resolve(railsSession('Curador de Fotos')));
       assert.equal(page.session?.profileType, 'Curador de Fotos');
       assert.equal(page.loading, false);
-      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/galeria' }]);
+      assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
   });
 
@@ -1831,7 +1796,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       await page.settle(() => page.localRequests[0].resolve(localSession('Editor de Notícias')));
       assert.equal(page.session?.profileType, 'Editor de Notícias');
       assert.equal(page.loading, false);
-      assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/noticias?action=new' }]);
+      assert.deepEqual(page.calls, [], 'O login local não tem permissão de criar notícia');
     } finally { await page.restore(); }
   });
 
@@ -1863,9 +1828,9 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
     try {
       page.calls.length = 0;
       await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
-      assert.equal(page.session?.isGestor, true);
       assert.equal(page.loading, false);
-      assert.equal(page.overviewRequests.length, 19);
+      // Início (9 leituras) + dúvidas, relatos, 5 módulos da Fila, 3 de projetos e banners.
+      assert.equal(page.overviewRequests.length, 20);
       assert.equal(page.localRequests.length, 0);
       assert.deepEqual(page.calls, []);
     } finally { await page.restore(); }
@@ -1885,19 +1850,16 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
     }
   });
   it('12D-5 Lote 1: dashboard preserva classificação Rails, estados e destinos anteriores', async () => {
-    for (const [label, fields, expected] of railsGestorCases) {
+    for (const [label, fields] of railsGestorCases) {
       const page = await mountSession();
       try {
         await page.settle(() => page.requests[0].resolve(railsClassificationReply(fields)));
-        assert.equal(page.session?.isGestor, expected, label);
+        // Nome, perfil_id ou id não liberam nada: sem permissões, o Início não consulta módulos.
         assert.equal(page.session?.profileType, fields.perfil_nome, label);
         assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected ? (fields.perfil_nome === 'Administrador' ? 19 : 15) : 0, label);
-        const profile = fields.perfil_nome;
-        assert.deepEqual(page.calls, expected ? [] : profile === 'Curador de Fotos'
-          ? [{ method: 'replace', href: '/admin/galeria' }] : profile === 'Publicador de Avisos'
-          ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
+        assert.equal(page.overviewRequests.length, 0, label);
+        assert.deepEqual(page.calls, [], label);
         page.assertRetained();
       } finally { await page.restore(); }
     }
@@ -1909,7 +1871,6 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       try {
         await page.settle(() => page.requests[0].resolve(JSON.parse(JSON.stringify(reply))));
         assert.equal(page.localRequests.length, 1);
-        assert.equal(page.session?.isGestor, false);
         assert.equal(page.loading, true);
         assert.deepEqual(page.calls, []);
         await page.settle(() => page.localRequests[0].resolve(new Response('{}', { status: 401 })));
@@ -1930,14 +1891,12 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         // com valores não textuais, sem normalizá-los ou corrigir a interface.
         if (pageRenderError) await assert.rejects(settle, { name: 'TypeError', message: /substring/ });
         else await settle();
-        assert.deepEqual(page.session, { ...expected, editorialProfile: expected.profileType }, label);
+        assert.deepEqual(page.session, expected, label);
         assert.deepEqual(reply.data, before, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
         assert.equal(page.localRequests.length, 0, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? (expected.profileType === 'Administrador' ? 19 : 15) : 0, label);
-        assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
-          ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
-          ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
+        assert.equal(page.overviewRequests.length, 0, label);
+        assert.deepEqual(page.calls, [], label);
       } finally { await page.restore(); }
     }
   });
@@ -1956,10 +1915,9 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.deepEqual(page.session, expected, `${source}: ${label}`);
         assert.deepEqual(input, data, label);
         if (!pageRenderError) assert.equal(page.loading, false, label);
-        assert.equal(page.overviewRequests.length, expected.isGestor ? (source === 'Rails' && !pageRenderError ? (expected.profileType === 'Administrador' ? 19 : 15) : 9) : 0, label);
-        assert.deepEqual(page.calls, expected.isGestor ? [] : expected.profileType === 'Curador de Fotos'
-          ? [{ method: 'replace', href: '/admin/galeria' }] : expected.profileType === 'Publicador de Avisos'
-          ? [{ method: 'push', href: '/admin/avisos' }] : [{ method: 'replace', href: '/admin/noticias' }], label);
+        // O login local não tem permissões: o Início não consulta nenhum módulo.
+        assert.equal(page.overviewRequests.length, 0, label);
+        assert.deepEqual(page.calls, [], label);
         assert.equal(page.warn.mock.callCount(), source === 'Rails' ? 1 : 0);
       } finally { parse.mock.restore(); await page.restore(); }
     }
@@ -1970,7 +1928,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       const page = await mountSession({ source: 'local' });
       try {
         await page.settle(() => page.localRequests[0].resolve(new Response(body, { status: 200 })));
-        assert.deepEqual(page.session, { isGestor: false });
+        assert.deepEqual(page.session, {});
         assert.equal(page.loading, true);
         assert.equal(page.error.mock.callCount(), 1);
         assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/login' }]);
@@ -1978,28 +1936,27 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
     }
   });
 
+  // Destino depois da sessão: só o atalho de nova notícia redireciona, e só para quem tem create.
+  const resolveSession = (page: Awaited<ReturnType<typeof mountSession>>, source: string, profile: keyof typeof PERFIS, index = 0) => {
+    if (source === 'Rails') page.requests[index].resolve(railsSession(profile));
+    else page.localRequests[index].resolve(localSession(profile));
+  };
+  const editorDe = (source: string, profile: keyof typeof PERFIS, href: string) =>
+    source === 'Rails' ? editorialDecision(href, lerPermissoes(PERFIS[profile])) : null;
+
   describe('12D-5 Lote 4: retorno seguro preserva decisão editorial e E+D', () => {
     for (const source of ['Rails', 'local']) {
-      for (const [profile, method, href] of [
-        ['Editor de Notícias', 'replace', '/admin/noticias?action=new'],
-        ['Curador de Fotos', 'replace', '/admin/galeria'],
-        ['Publicador de Avisos', 'push', '/admin/avisos'],
-        ['Operador de Conteúdo', 'replace', '/admin/noticias?action=new'],
-      ]) {
-        it(`${source}, ${profile}: retorno conserva perfil, método e intenção`, async () => {
+      for (const profile of ['Gestor', 'Jornalista', 'Administrador'] as const) {
+        it(`${source}, ${profile}: retorno conserva a intenção de criar só com permissão`, async () => {
           const safe = adminAuthNavigation.getSafeAdminReturnTarget('/admin?tab=visaoGeral&action=new&redirect=x&section=faq');
           const query = new URL(safe, 'https://medtec.invalid').search.slice(1);
           assert.equal(query, 'tab=visaoGeral&action=new&section=faq');
           const page = await mountSession({ source, query });
           try {
-            await page.settle(() => {
-              if (source === 'Rails') page.requests[0].resolve(railsSession(profile));
-              else page.localRequests[0].resolve(localSession(profile));
-            });
-            assert.deepEqual(page.calls, [{ method, href }]);
-            assert.equal(page.session?.isGestor, false);
+            await page.settle(() => resolveSession(page, source, profile));
+            const expected = editorDe(source, profile, '/admin/noticias?action=new');
+            assert.deepEqual(page.calls, expected ? [expected] : []);
             assert.equal(page.session?.profileType, profile);
-            assert.equal(page.overviewRequests.length, 0);
           } finally { await page.restore(); }
         });
       }
@@ -2017,27 +1974,16 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
 
   describe('12D-5 Lote 3: caracterização editorial nos fluxos Rails e local', () => {
     for (const source of ['Rails', 'local']) {
-      it(`${source}: mesmos perfis, métodos, destinos e loading`, async () => {
-        for (const { label, isGestor, profileType, expected, localOnly, inactive } of editorialProfileCases) {
-          if (source === 'Rails' && localOnly) continue;
+      it(`${source}: sem atalho de criação, todo perfil fica no Início`, async () => {
+        for (const profile of ['Administrador', 'Gestor', 'Jornalista'] as const) {
           const page = await mountSession({ source });
           try {
-            await page.settle(() => {
-              if (source === 'Rails') page.requests[0].resolve(railsClassificationReply({
-                id: isGestor && profileType !== 'Administrador' ? 1 : 100,
-                perfil_id: 2, perfil_nome: profileType, ativo: !inactive,
-              }));
-              else page.localRequests[0].resolve(new Response(JSON.stringify({
-                isGestor, profileType, user: 'editorial-sintetico', name: 'Nome sintético',
-              }), { status: 200 }));
-            });
-            assert.deepEqual(page.calls, expected ? [expected] : [], label);
-            assert.equal(page.session?.isGestor, isGestor, label);
-            assert.equal(page.session?.profileType, profileType, label);
-            assert.equal(page.loading, false, label);
-            assert.equal(page.overviewRequests.length, isGestor ? (source === 'Rails' ? (profileType === 'Administrador' ? 19 : 15) : 9) : 0, label);
-            assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, label);
-            assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, label);
+            await page.settle(() => resolveSession(page, source, profile));
+            assert.deepEqual(page.calls, [], profile);
+            assert.equal(page.session?.profileType, profile, profile);
+            assert.equal(page.loading, false, profile);
+            assert.equal(page.requests.length, source === 'Rails' ? 1 : 0, profile);
+            assert.equal(page.localRequests.length, source === 'local' ? 1 : 0, profile);
           } finally { await page.restore(); }
         }
       });
@@ -2049,11 +1995,9 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             await page.setQuery(`tab=invalido&${query}`);
             assert.deepEqual(page.calls, []);
             assert.equal(page.authCheck.mock.callCount(), 1);
-            await page.settle(() => {
-              if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
-              else page.localRequests[0].resolve(localSession('Editor de Notícias'));
-            });
-            assert.deepEqual(page.calls, [{ method: 'replace', href }], query);
+            await page.settle(() => resolveSession(page, source, 'Gestor'));
+            const expected = editorDe(source, 'Gestor', href);
+            assert.deepEqual(page.calls, expected ? [expected] : [], query);
             assert.equal(page.loading, false);
             assert.equal(page.authCheck.mock.callCount(), 1);
             page.assertRetained();
@@ -2066,22 +2010,14 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         try {
           await page.setQuery('tab=redes&section=noticias&mode=editor');
           const writes = page.writes.length;
-          await page.settle(() => {
-            if (source === 'Rails') page.requests[0].resolve(railsSession('Publicador de Avisos'));
-            else page.localRequests[0].resolve(localSession('Publicador de Avisos'));
-          });
+          await page.settle(() => resolveSession(page, source, 'Gestor'));
           assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/redes' }]);
           assert.equal(page.writes.length, writes);
-          assert.equal(page.session?.isGestor, false);
-          await page.setQuery('tab=visaoGeral&mode=lista');
+          await page.setQuery('tab=visaoGeral&mode=nova');
           assert.equal(page.authCheck.mock.callCount(), 2);
-          await page.settle(() => {
-            if (source === 'Rails') page.requests[1].resolve(railsSession('Editor de Notícias'));
-            else page.localRequests[1].resolve(localSession('Editor de Notícias'));
-          });
-          assert.deepEqual(page.calls, [
-            { method: 'push', href: '/admin/redes' }, { method: 'replace', href: '/admin/noticias' },
-          ]);
+          await page.settle(() => resolveSession(page, source, 'Gestor', 1));
+          const expected = editorDe(source, 'Gestor', '/admin/noticias?action=new');
+          assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/redes' }, ...(expected ? [expected] : [])]);
           assert.equal(page.loading, false);
           page.assertRetained();
         } finally { await page.restore(); }
@@ -2116,7 +2052,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
           assert.equal(page.authCheck.mock.callCount(), 0);
           assert.equal(page.requests.length, 0);
           assert.equal(page.fetchMock.mock.callCount(), 0);
-          assert.equal(page.session?.isGestor, false);
+          assert.deepEqual(page.session, {});
           page.assertRetained();
         } finally { await page.restore(); }
       });
@@ -2141,17 +2077,13 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         } finally { await page.restore(); }
       });
 
-      it(`${source}: Gestor literal sem heurísticas mantém destino editorial e não vira Administrador`, async () => {
+      it(`${source}: Gestor fica no Início com as próprias permissões, sem virar Administrador`, async () => {
         const page = await mountSession({ source, query: '' });
         try {
-          await page.settle(() => {
-            if (source === 'Rails') page.requests[0].resolve(railsSession('Gestor'));
-            else page.localRequests[0].resolve(localSession('Gestor'));
-          });
-          assert.equal(page.session?.isGestor, false);
+          await page.settle(() => resolveSession(page, source, 'Gestor'));
           assert.equal(page.session?.profileType, 'Gestor');
-          assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/noticias' }]);
-          assert.equal(page.overviewRequests.length, 0);
+          assert.deepEqual(page.calls, []);
+          if (source === 'local') assert.equal(page.overviewRequests.length, 0, 'Sessão local não tem permissões');
         } finally { await page.restore(); }
       });
 
@@ -2165,7 +2097,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
               if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
               else page.localRequests[0].resolve(localSession('Editor de Notícias'));
             });
-            assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/noticias' }]);
+            assert.deepEqual(page.calls, []);
             assert.equal(page.loading, false);
             assert.equal(page.session?.profileType, 'Editor de Notícias');
             assert.equal(page.authCheck.mock.callCount(), 1);
@@ -2186,9 +2118,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
               else page.localRequests[0].resolve(localSession('Curador de Fotos'));
             });
             assert.equal(page.loading, false);
-            assert.deepEqual(page.calls, [
-              { method: 'replace', href: '/admin/banners' }, { method: 'replace', href: '/admin/galeria' },
-            ]);
+            assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/banners' }]);
             page.assertRetained();
           } finally { await page.restore(); }
         });
@@ -2208,13 +2138,9 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
           assert.equal(page.writes.length, writes);
           assert.equal(page.loading, true);
           assert.equal(page.overviewRequests.length, 0);
-          await page.settle(() => {
-            if (source === 'Rails') page.requests[1].resolve(railsSession('Editor de Notícias'));
-            else page.localRequests[1].resolve(localSession('Editor de Notícias'));
-          });
-          assert.deepEqual(page.calls, [
-            { method: 'push', href: '/admin/galeria' }, { method: 'replace', href: '/admin/noticias?action=new' },
-          ]);
+          await page.settle(() => resolveSession(page, source, 'Gestor', 1));
+          const editor = editorDe(source, 'Gestor', '/admin/noticias?action=new');
+          assert.deepEqual(page.calls, [{ method: 'push', href: '/admin/galeria' }, ...(editor ? [editor] : [])]);
           assert.equal(page.loading, false);
           await page.setQuery('tab=galeria');
           assert.deepEqual(page.calls.at(-1), { method: 'push', href: '/admin/galeria' });
@@ -2244,7 +2170,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
             else page.localRequests[0].resolve(localSession('Editor de Notícias'));
           });
-          assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/noticias' }]);
+          assert.deepEqual(page.calls, [], 'A query vigente não pede criação');
           assert.equal(page.loading, false);
         } finally { await page.restore(); }
       });
@@ -2263,7 +2189,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         await page.settle(() => page.requests[0].resolve(railsSession('Administrador')));
         assert.equal(page.writes.length, writes);
         assert.equal(page.session?.profileType, 'Publicador de Avisos');
-        assert.deepEqual(page.calls, Array.from({ length: 3 }, () => ({ method: 'push', href: '/admin/avisos' })));
+        assert.deepEqual(page.calls, Array.from({ length: 2 }, () => ({ method: 'push', href: '/admin/avisos' })), 'Só os aliases navegam');
         assert.equal(page.loading, false);
         assert.equal(page.activations, 2);
         page.assertRetained();
@@ -2282,7 +2208,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         await page.setQuery('tab=visaoGeral');
         assert.equal(page.requests.length, 1);
         await page.settle(() => page.requests[0].resolve(railsSession('Publicador de Avisos')));
-        assert.equal(page.calls.length, 3);
+        assert.equal(page.calls.length, 2, 'Perfil sem permissão não gera navegação editorial');
         assert.equal(page.loading, false);
         page.assertRetained();
       } finally { await page.restore(); }
@@ -2313,7 +2239,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
       { from: 'tab=invalido&mode=editor', to: 'tab=invalido&mode=lista', after: '/admin/noticias' },
       { from: 'tab=invalido', to: 'section=invalido&mode=nova', after: '/admin/noticias?action=new' },
     ];
-    for (const source of ['Rails', 'local']) for (const profile of ['Editor de Notícias', 'Operador de Conteúdo']) {
+    for (const source of ['Rails', 'local']) for (const profile of ['Gestor', 'Jornalista'] as const) {
       for (const transition of transitions) {
         it(`${source}, ${profile}: ${transition.from} → ${transition.to} usa a query vigente`, async () => {
           const page = await mountSession({ source, query: transition.from });
@@ -2325,12 +2251,10 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             assert.equal(page.localRequests.length, source === 'local' ? 1 : 0);
             page.assertRetained();
             assert.equal(page.activations, 1);
-            await page.settle(() => {
-              if (source === 'Rails') page.requests[0].resolve(railsSession(profile));
-              else page.localRequests[0].resolve(localSession(profile));
-            });
-            // Sem alias canônico, o único encaminhamento editorial usa a URL vigente.
-            assert.deepEqual(page.calls, [{ method: 'replace', href: transition.after }]);
+            await page.settle(() => resolveSession(page, source, profile));
+            // Sem alias canônico, o único encaminhamento editorial usa a URL vigente e exige create.
+            const expected = editorDe(source, profile, transition.after);
+            assert.deepEqual(page.calls, expected ? [expected] : []);
             assert.equal(page.session?.profileType, profile);
             assert.equal(page.loading, false);
             assert.equal(page.authCheck.mock.callCount(), 1);
@@ -2346,8 +2270,8 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         assert.equal(page.localRequests.length, 1);
         await page.setQuery('tab=invalido&mode=new');
         await page.settle(() => page.localRequests[0].resolve(localSession('Gestor')));
-        assert.deepEqual(page.calls.at(-1), { method: 'replace', href: '/admin/noticias?action=new' });
-        assert.equal(page.session?.isGestor, false);
+        assert.deepEqual(page.calls, [], 'Sessão local não tem permissão de criar');
+        assert.equal(page.session?.profileType, 'Gestor');
         assert.equal(page.requests.length, 1);
         assert.equal(page.localRequests.length, 1);
         assert.equal(page.warn.mock.callCount(), 1);
@@ -2365,7 +2289,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
           assert.equal(parse.mock.callCount(), 1);
           await page.setQuery('section=invalido&action=new');
           await page.settle(() => json.resolve({ isGestor: false, profileType: profile }));
-          assert.deepEqual(page.calls.at(-1), { method: 'replace', href: '/admin/noticias?action=new' });
+          assert.deepEqual(page.calls, [], 'Sessão local não tem permissão de criar');
           assert.equal(page.localRequests.length, 1);
           assert.equal(page.session?.profileType, profile);
         } finally { parse.mock.restore(); await page.restore(); }
@@ -2378,29 +2302,20 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
         try {
           await page.setQuery('mode=editor&action=new&tab=invalido&action=list&extra=2');
           assert.deepEqual(page.calls, []);
-          await page.settle(() => {
-            if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
-            else page.localRequests[0].resolve(localSession('Editor de Notícias'));
-          });
-          assert.deepEqual(page.calls, [
-            { method: 'replace', href: '/admin/noticias?action=new' },
-          ]);
+          await page.settle(() => resolveSession(page, source, 'Gestor'));
+          const editor = editorDe(source, 'Gestor', '/admin/noticias?action=new');
+          assert.deepEqual(page.calls, editor ? [editor] : []);
           assert.equal(page.authCheck.mock.callCount(), 1);
           page.assertRetained();
         } finally { await page.restore(); }
       });
 
-      it(`${source}: ausência atual de parâmetros editoriais retorna à lista`, async () => {
+      it(`${source}: ausência atual de parâmetros editoriais mantém o Início`, async () => {
         const page = await mountSession({ source, query: 'tab=noticias&action=new' });
         try {
           await page.setQuery('extra=sem-atalho');
-          await page.settle(() => {
-            if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
-            else page.localRequests[0].resolve(localSession('Editor de Notícias'));
-          });
-          assert.deepEqual(page.calls, [
-            { method: 'replace', href: '/admin/noticias?action=new' }, { method: 'replace', href: '/admin/noticias' },
-          ]);
+          await page.settle(() => resolveSession(page, source, 'Gestor'));
+          assert.deepEqual(page.calls, [{ method: 'replace', href: '/admin/noticias?action=new' }], 'Só o alias inicial navega');
           assert.equal(page.authCheck.mock.callCount(), 1);
         } finally { await page.restore(); }
       });
@@ -2424,13 +2339,11 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             page.calls.length = 0;
             await page.setQuery(query);
             assert.deepEqual(page.calls, aliasHref ? [{ method: aliasHref === '/admin/redes' ? 'push' : 'replace', href: aliasHref }] : []);
-            await page.settle(() => {
-              if (source === 'Rails') page.requests[0].resolve(railsSession('Editor de Notícias'));
-              else page.localRequests[0].resolve(localSession('Editor de Notícias'));
-            });
+            await page.settle(() => resolveSession(page, source, 'Gestor'));
+            const editor = editorDe(source, 'Gestor', href);
             assert.deepEqual(page.calls, aliasHref
               ? [{ method: aliasHref === '/admin/redes' ? 'push' : 'replace', href: aliasHref }]
-              : [{ method: 'replace', href }]);
+              : editor ? [editor] : []);
             assert.equal(page.authCheck.mock.callCount(), 1);
           } finally { await page.restore(); }
         }
@@ -2463,7 +2376,7 @@ describe('Execuções de sessão vigentes no dashboard (12D-4F-B1)', () => {
             });
             assert.deepEqual(page.calls, calls);
             assert.equal(page.writes.length, writes);
-            assert.equal(page.session?.isGestor, false);
+            assert.deepEqual(page.session, {});
           } finally { await page.restore(); }
         });
       }
@@ -2479,16 +2392,19 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     const promise = new Promise<T>((accept, refuse) => { resolve = accept; reject = refuse; });
     return { promise, resolve, reject };
   }
+  // Perfis do seed trazem as permissões simuladas; nomes antigos não liberam nada.
   function railsSession(profile: string, overrides: Partial<NonNullable<RailsReply['data']>> = {}): RailsReply {
+    const fixture = PERFIS[profile as keyof typeof PERFIS];
     return { success: true, message: 'Sessão sintética', data: {
-      id: 100, perfil_id: 2, perfil_nome: profile, nome: 'Usuário de teste', cpf: '00000000000', ativo: true, ...overrides,
+      id: 100, perfil_id: 2, perfil_nome: profile, nome: 'Usuário de teste', cpf: '00000000000', ativo: true,
+      ...(fixture ? { admin: fixture.admin, permissoes: fixture.permissoes } : {}), ...overrides,
     } };
   }
   function localSession(profile: string, isGestor = false) {
     return new Response(JSON.stringify({ isGestor, profileType: profile, user: 'operador-sintetico' }), { status: 200 });
   }
 
-  async function mountShell({ source = 'Rails', strict = false, section = 'redes', pathname = '/admin/redes', search = '', children = 'B2: conteúdo protegido' }: {
+  async function mountShell({ source = 'Rails', strict = false, section = source === 'local' ? 'visaoGeral' : 'redes', pathname = '/admin/redes', search = '', children = 'B2: conteúdo protegido' }: {
     source?: string; strict?: boolean; section?: AdminSection; pathname?: string; search?: string; children?: AdminShellProps['children'];
   } = {}) {
     const calls: { method: string; href: string }[] = [];
@@ -2528,7 +2444,7 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
       const [value, setValue] = useState(initial);
       // Identifica estados por seus valores iniciais, sem índices de hooks;
       // os setters preservam identidade e continuam delegando ao React.
-      if (initial && typeof initial === 'object' && 'isGestor' in initial) observed.session = value as AdminSession;
+      if (isSessionState(initial)) observed.session = value as AdminSession;
       if (initial === true) observed.loadingAuth = value as boolean;
       const dispatch = setValue as React.Dispatch<React.SetStateAction<unknown>>;
       if (!setters.has(dispatch)) setters.set(dispatch, next => { writes.push(next); dispatch(next); });
@@ -2633,7 +2549,6 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
         await shell.settle(() => shell.requests[0].resolve(railsSession('Administrador')));
         assert.equal(shell.writes.length, writes);
         assert.equal(shell.session?.apiUser, undefined);
-        assert.equal(shell.session?.isGestor, false);
         assert.equal(shell.loadingAuth, true);
         assert.deepEqual(shell.calls, []);
       } finally { await shell.restore(); }
@@ -2813,55 +2728,52 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     } finally { await shell.restore(); }
   });
 
+  // Guarda pelas permissões do /auth/me; o login local não tem nenhuma.
   for (const [source, profile, section, allowed] of [
     ['Rails', 'Administrador', 'redes', true],
     ['Rails', 'Administrador', 'usuarios', true],
-    ['Rails', 'Editor de Notícias', 'noticias', true],
-    ['Rails', 'Editor de Notícias', 'redes', false],
-    ['Rails', 'Curador de Fotos', 'fotos', false],
-    ['Rails', 'Curador de Fotos', 'galeria', true],
-    ['Rails', 'Publicador de Avisos', 'avisos', true],
-    ['Rails', 'Publicador de Avisos', 'noticias', true],
-    ['Rails', 'Operador de Conteúdo', 'avisos', true],
+    ['Rails', 'Gestor', 'noticias', true],
     ['Rails', 'Gestor', 'redes', false],
-    ['local', 'Curador de Fotos', 'galeria', true],
+    ['Rails', 'Gestor', 'fotos', true],
+    ['Rails', 'Gestor', 'galeria', false],
+    ['Rails', 'Jornalista', 'galeria', true],
+    ['Rails', 'Jornalista', 'avisos', true],
+    ['Rails', 'Jornalista', 'noticias', false],
+    ['Rails', 'Editor de Notícias', 'noticias', false],
     ['local', 'Administrador', 'usuarios', false],
+    ['local', 'Gestor Geral', 'visaoGeral', true],
   ] as const) {
     it(`B3.3: destino mantém autorização ${source}, ${profile}, ${section}`, async () => {
       const shell = await mountShell({
         source, section, pathname: `/admin/${section}`,
-        // Notícias usa conteúdo por função na rota canônica; as operações
-        // continuam dependentes das permissões do módulo, não deste marcador.
         children: section === 'noticias' ? () => 'B2: conteúdo protegido' : 'B2: conteúdo protegido',
       });
       try {
         assert.equal(shell.view?.loading, true);
         await shell.settle(() => {
           if (source === 'Rails') shell.requests[0].resolve(railsSession(profile));
-          else shell.localRequests[0].resolve(localSession(profile, profile === 'Administrador'));
+          else shell.localRequests[0].resolve(localSession(profile, true));
         });
         assert.equal(shell.view?.content, allowed);
         assert.equal(shell.view?.restricted, !allowed);
         assert.equal(shell.view?.loading, false);
         assert.deepEqual(shell.calls, []);
         if (source === 'local') assert.equal(shell.session?.apiUser, undefined);
-        if (profile === 'Gestor') assert.equal(shell.session?.isGestor, false);
       } finally { await shell.restore(); }
     });
   }
 
-  it('12D-5 Lote 1: Shell preserva classificação Rails, apiUser e autorização da seção', async () => {
-    for (const [label, fields, expected] of railsGestorCases) {
+  it('12D-5 Lote 1: nome, perfil_id ou id do perfil não liberam módulos no Shell', async () => {
+    for (const [label, fields] of railsGestorCases) {
       const shell = await mountShell({ section: 'redes' });
       const reply = railsClassificationReply(fields);
       try {
         await shell.settle(() => shell.requests[0].resolve(reply));
-        assert.equal(shell.session?.isGestor, expected, label);
         assert.equal(shell.session?.apiUser, reply.data, label);
         assert.equal(shell.session?.profileType, fields.perfil_nome, label);
         assert.equal(shell.loadingAuth, false, label);
-        assert.equal(shell.view?.content, expected, label);
-        assert.equal(shell.view?.restricted, !expected, label);
+        assert.equal(shell.view?.content, false, label);
+        assert.equal(shell.view?.restricted, true, label);
         assert.equal(shell.localRequests.length, 0, label);
         assert.deepEqual(shell.calls, [], label);
       } finally { await shell.restore(); }
@@ -2874,7 +2786,6 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
       try {
         await shell.settle(() => shell.requests[0].resolve(JSON.parse(JSON.stringify(reply))));
         assert.equal(shell.localRequests.length, 1);
-        assert.equal(shell.session?.isGestor, false);
         assert.equal(shell.loadingAuth, true);
         assert.deepEqual(shell.calls, []);
         await shell.settle(() => shell.localRequests[0].resolve(new Response('{}', { status: 401 })));
@@ -2885,7 +2796,7 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
 
   it('12D-5 Lote 2: Shell mantém campos Rails, role e apiUser original', async () => {
     for (const { label, data, expected } of railsSessionFieldCases) {
-      const shell = await mountShell({ section: 'redes' });
+      const shell = await mountShell({ section: 'visaoGeral' });
       const reply: RailsReply = JSON.parse(JSON.stringify({ success: true, message: 'Sessão sintética', data }));
       Object.freeze(reply.data);
       const before = structuredClone(reply.data);
@@ -2895,8 +2806,7 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
         assert.equal(shell.session?.apiUser, reply.data, label);
         assert.deepEqual(reply.data, before, label);
         assert.equal(shell.loadingAuth, false, label);
-        assert.equal(shell.view?.content, expected.isGestor, label);
-        assert.equal(shell.view?.restricted, !expected.isGestor, label);
+        assert.equal(shell.view?.content, true, label);
         assert.equal(shell.localRequests.length, 0, label);
         assert.deepEqual(shell.calls, [], label);
       } finally { await shell.restore(); }
@@ -2916,8 +2826,9 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
         assert.deepEqual(input, data, label);
         assert.equal(shell.session?.apiUser, undefined, label);
         assert.equal(shell.loadingAuth, false, label);
-        assert.equal(shell.view?.content, expected.isGestor, label);
-        assert.equal(shell.view?.restricted, !expected.isGestor, label);
+        // Sem /auth/me não há permissão: o módulo fica restrito mesmo para o Gestor Geral local.
+        assert.equal(shell.view?.content, false, label);
+        assert.equal(shell.view?.restricted, true, label);
         assert.equal(shell.warn.mock.callCount(), source === 'Rails' ? 1 : 0);
         assert.deepEqual(shell.calls, [], label);
       } finally { parse.mock.restore(); await shell.restore(); }
@@ -2929,7 +2840,7 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
       const shell = await mountShell({ source: 'local' });
       try {
         await shell.settle(() => shell.localRequests[0].resolve(new Response(body, { status: 200 })));
-        assert.deepEqual(shell.session, { isGestor: false });
+        assert.deepEqual(shell.session, {});
         assert.equal(shell.loadingAuth, false);
         assert.equal(shell.view?.loading, true);
         assert.equal(shell.error.mock.callCount(), 1);
@@ -2948,7 +2859,7 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
       assert.equal(shell.session?.profileType, 'Editor de Notícias');
       assert.equal(shell.session?.apiUser, undefined);
       assert.equal(shell.loadingAuth, false);
-      assert.equal(shell.view?.content, true);
+      assert.equal(shell.view?.restricted, true, 'Sem /auth/me, nenhuma permissão');
       assert.deepEqual(shell.calls, []);
     } finally { await shell.restore(); }
   });
@@ -3011,7 +2922,6 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     const shell = await mountShell({ source: 'Rails', pathname: target, section: 'redes' });
     try {
       await shell.settle(() => shell.requests[0].resolve(railsSession('Editor de Notícias')));
-      assert.equal(shell.session?.isGestor, false);
       assert.equal(shell.view?.restricted, true);
       assert.equal(shell.view?.content, false);
       assert.deepEqual(shell.calls, []);
@@ -3051,31 +2961,21 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
     } finally { await shell.restore(); }
   });
 
-  for (const [source, profile, allowed] of [['Rails', 'Administrador', true], ['Rails', 'Gestor', true], ['Rails', 'Jornalista', false], ['Rails', 'Curador de Fotos', false], ['Rails', 'Operador de Conteúdo', false], ['Rails', 'Editor de Notícias', false]] as const) {
-    it('banners seguem os perfis do seed Rails: ' + profile, async () => {
-      let renders = 0;
-      const shell = await mountShell({ source, section: 'fotos', pathname: '/admin/banners', children: () => { renders++; return 'B2: conteúdo protegido'; } });
-      try {
-        await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
-        assert.equal(shell.view?.content, allowed);
-        assert.equal(shell.view?.restricted, !allowed);
-        assert.equal(renders > 0, allowed);
-      } finally { await shell.restore(); }
-    });
-  }
-
-  it('menu de banners acompanha a regra nos dois menus, e o Curador entra pela galeria', () => {
-    for (const file of ['src/components/admin/AdminShell.tsx', 'src/app/admin/page.tsx']) {
-      assert.match(readFileSync(file, 'utf8'), /const canAccessPhotos = canAccessBanners\(userSession\);/, file);
-    }
-    assert.equal(canAccessBanners({ isGestor: true, profileType: 'Administrador' }), true);
-    assert.equal(canAccessBanners({ isGestor: false, profileType: 'Gestor' }), true);
-    for (const profileType of ['Curador de Fotos', 'Operador de Conteúdo', 'Jornalista', undefined]) assert.equal(canAccessBanners({ isGestor: false, profileType }), false, String(profileType));
-  });
-
-  for (const [profile, allowed] of [['Administrador', true], ['Gestor', true], ['Jornalista', false], ['Operador de Conteúdo', false], ['Editor de Notícias', false]] as const) {
-    it('as subrotas de projetos seguem os perfis com permissão: ' + profile, async () => {
-      for (const section of ['projetos', 'projetosTemas', 'projetosMembros', 'projetosAprovacao'] as const) {
+  // Cada guarda segue o index do módulo da tela (Gestor e Jornalista simulados em tests/fixtures).
+  const guardas: [string, AdminSection[], Record<'Administrador' | 'Gestor' | 'Jornalista', boolean>][] = [
+    ['banners', ['fotos'], { Administrador: true, Gestor: true, Jornalista: false }],
+    ['subrotas de projetos', ['projetos', 'projetosTemas', 'projetosMembros', 'projetosAprovacao'], { Administrador: true, Gestor: true, Jornalista: false }],
+    ['FAQ e dúvidas do público', ['duvidas', 'duvidasPublico'], { Administrador: true, Gestor: true, Jornalista: false }],
+    ['subrotas de professores e alunos', ['professores', 'professoresDisciplinas', 'alunos', 'alunosCategorias'], { Administrador: true, Gestor: false, Jornalista: false }],
+    ['relatos', ['professoresRelatos'], { Administrador: true, Gestor: true, Jornalista: false }],
+    ['usuários', ['usuarios'], { Administrador: true, Gestor: true, Jornalista: false }],
+    ['Fila de Aprovação', ['kanban'], { Administrador: true, Gestor: true, Jornalista: false }],
+    ['redes', ['redes'], { Administrador: true, Gestor: false, Jornalista: false }],
+  ];
+  for (const [nome, sections, porPerfil] of guardas) for (const profile of ['Administrador', 'Gestor', 'Jornalista', 'Operador de Conteúdo'] as const) {
+    const allowed = profile === 'Operador de Conteúdo' ? false : porPerfil[profile];
+    it(`guarda de ${nome} segue as permissões: ${profile}`, async () => {
+      for (const section of sections) {
         let renders = 0;
         const shell = await mountShell({ section, pathname: SHARED_SECTION_CONFIG[section].href, children: () => { renders++; return 'B2: conteúdo protegido'; } });
         try {
@@ -3084,66 +2984,18 @@ describe('Execuções de sessão vigentes no AdminShell (12D-4F-B2)', () => {
           assert.equal(shell.view?.content, allowed, section);
           assert.equal(shell.view?.restricted, !allowed, section);
           assert.equal(renders > 0, allowed, section);
+          assert.deepEqual(shell.calls, []);
         } finally { await shell.restore(); }
       }
-    });
-  }
-
-  for (const [profile, allowed] of [['Gestor', true], ['Jornalista', false]] as const) {
-    it('dúvidas de visitantes seguem os perfis do seed Rails: ' + profile, async () => {
-      const shell = await mountShell({ section: 'duvidas', pathname: '/admin/faq' });
-      try {
-        await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
-        assert.equal(shell.view?.content, allowed);
-        assert.equal(shell.view?.restricted, !allowed);
-      } finally { await shell.restore(); }
-    });
-  }
-
-  for (const [profile, allowed] of [
-    ['Administrador', true], ['Operador de Conteúdo', false], ['Editor de Notícias', false],
-    ['Curador de Fotos', false], ['Publicador de Avisos', false],
-  ] as const) {
-    it('protege as subrotas de professores e alunos na página para ' + profile, async () => {
-      for (const section of ['professores', 'professoresDisciplinas', 'professoresRelatos', 'alunos', 'alunosCategorias'] as const) {
-        let renders = 0;
-        const shell = await mountShell({ section, pathname: SHARED_SECTION_CONFIG[section].href, children: () => {
-          renders++; return 'B2: conteúdo protegido';
-        } });
-        try {
-          await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
-          const expected = profile !== 'Curador de Fotos' && profile !== 'Publicador de Avisos';
-          assert.equal(shell.view?.content, expected, section);
-          assert.equal(shell.view?.restricted, !expected, section);
-          assert.equal(renders > 0, expected, section);
-        } finally { await shell.restore(); }
-      }
-    });
-
-    it('C1 aplica a guarda do FAQ para ' + profile, async () => {
-      let renders = 0;
-      const shell = await mountShell({ section: 'duvidas', pathname: '/admin/faq', children: () => {
-        renders++; return 'B2: conteúdo protegido';
-      } });
-      try {
-        assert.equal(renders, 0);
-        await shell.settle(() => shell.requests[0].resolve(railsSession(profile)));
-        assert.equal(shell.view?.content, allowed);
-        assert.equal(shell.view?.restricted, !allowed);
-        assert.equal(renders > 0, allowed);
-      } finally { await shell.restore(); }
     });
   }
 
   for (const section of ['usuarios', 'kanban'] as const) {
-    it(`preserva a autorização de ${section} com sessões Rails e locais vigentes`, async () => {
+    it(`sessão local e nomes de perfil não liberam ${section}`, async () => {
       const cases = [
-        { source: 'Rails', profile: 'Administrador', overrides: {}, allowed: true },
-        { source: 'Rails', profile: 'Administrador', overrides: { ativo: false }, allowed: section === 'kanban' },
-        { source: 'Rails', profile: 'Editor de Notícias', overrides: {}, allowed: false },
+        { source: 'Rails', profile: 'Administrador', overrides: { permissoes: {} }, allowed: false },
         { source: 'Rails', profile: 'Editor de Notícias', overrides: { id: 1 }, allowed: false },
         { source: 'Rails', profile: 'Operador de Conteúdo', overrides: { perfil_id: 3 }, allowed: false },
-        { source: 'Rails', profile: 'Gestor', overrides: {}, allowed: false },
         { source: 'local', profile: 'Administrador', overrides: {}, allowed: false },
         { source: 'local', profile: 'Gestor Geral', overrides: {}, allowed: false },
       ];
@@ -3678,7 +3530,7 @@ describe('Componentes extraídos da navegação administrativa', () => {
       const current = index++;
       if (current === 1) return originalState(true);
       if (current === 3) return [originalState(true)[0], (value: boolean) => mobileUpdates.push(value)];
-      if (initial && typeof initial === 'object' && 'isGestor' in initial) {
+      if (isSessionState(initial)) {
         return originalState({ isGestor: true, editorialProfile: 'Administrador' });
       }
       return originalState(initial);
@@ -3839,7 +3691,7 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
         if (current === searchIndex) return [originalState(search)[0], (value: string) => { search = value; }];
         if (current === foldersIndex) return [originalState(openFolders)[0],
           (update: (previous: typeof openFolders) => typeof openFolders) => { openFolders = update(openFolders); }];
-        if (initial && typeof initial === 'object' && 'isGestor' in initial) return originalState(session);
+        if (isSessionState(initial)) return originalState(session);
         if (current === (kind === 'page' ? 1 : 4)) return originalState(true);
         if (kind === 'shell' && current === 5) return originalState(false);
         return originalState(initial);
@@ -3862,7 +3714,7 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
     };
   }
   const admin: AdminSession & { editorialProfile: string } = {
-    isGestor: true, editorialProfile: 'Administrador',
+    editorialProfile: 'Administrador', profileType: 'Administrador',
     apiUser: { id: 100, nome: 'Admin', cpf: '', ativo: true, perfil_id: 3, perfil_nome: 'Administrador' },
   };
 
@@ -3944,22 +3796,23 @@ describe('Pesquisa compartilhada da navegação administrativa', () => {
     assert.ok(!page.render().html.includes('Nada encontrado para'));
   });
 
-  it('não revela Usuários ou Kanban pela pesquisa e mantém as diferenças de autorização existentes', () => {
-    for (const session of [admin, { isGestor: true }, { isGestor: false, profileType: 'Operador de Conteúdo' }]) {
+  it('não revela Usuários ou Kanban pela pesquisa e segue as permissões de cada perfil', () => {
+    for (const [perfil, podeUsuarios, podeFila] of [['Administrador', true, true], ['Gestor', true, true], ['Jornalista', false, false]] as const) {
+      definirPermissoes(PERFIS[perfil]);
       for (const kind of ['page', 'shell'] as const) {
-        const menu = navigation(kind, session, true);
+        const menu = navigation(kind, { profileType: perfil }, true);
         menu.setSearch('Usuários e acessos');
         const users = menu.render();
         const hasUsers = kind === 'page'
           ? users.nodes.some(node => node.props.folder?.items.some(item => item.section === 'usuarios'))
           : users.nodes.some(node => node.props.href === '/admin/usuarios');
-        assert.equal(hasUsers, kind === 'page' ? session.isGestor : session === admin);
+        assert.equal(hasUsers, podeUsuarios, `${kind}: ${perfil}`);
         menu.setSearch('Aprovações');
         const kanban = menu.render();
         const hasKanban = kind === 'page'
           ? kanban.nodes.some(node => node.props.folder?.items.some(item => item.section === 'kanban'))
           : kanban.nodes.some(node => node.props.href === '/admin/kanban');
-        assert.equal(hasKanban, session === admin);
+        assert.equal(hasKanban, podeFila, `${kind}: ${perfil}`);
       }
     }
   });
@@ -3994,7 +3847,7 @@ describe('Menu do painel por tarefa e cores centralizadas', () => {
   const labels = (menu: ReturnType<typeof buildAdminMenu>) => menu.map(folder => [folder.label, folder.items.filter(item => item.visible).map(item => item.label)]);
 
   it('agrupa por tarefa, com rótulos curtos, e as telas auxiliares saem do menu', () => {
-    const menu = buildAdminMenu(access);
+    const menu = buildAdminMenu(sessaoPorAcesso(access));
     assert.deepEqual(labels(menu), [
       ['Conteúdo do site', ['Notícias', 'Avisos', 'Banners', 'Galeria de fotos', 'Projetos', 'Professores', 'Alunos que Inspiram', 'Perguntas frequentes']],
       ['Atendimento', ['Dúvidas do público', 'Aprovações']],
@@ -4007,24 +3860,23 @@ describe('Menu do painel por tarefa e cores centralizadas', () => {
       assert.ok(SECTION_HREFS.get(section), 'A subrota continua: ' + section);
     }
   });
-  it('item sem acesso não aparece, e Aprovações leva quem não tem a Fila à aprovação de projetos', () => {
-    const semFila = buildAdminMenu({ ...access, kanban: false }).flatMap(folder => folder.items).filter(item => item.visible && item.label === 'Aprovações');
-    assert.deepEqual(semFila.map(item => item.href), ['/admin/projetos/aprovacao']);
-    const comFila = buildAdminMenu(access).flatMap(folder => folder.items).filter(item => item.visible && item.label === 'Aprovações');
+  it('item sem acesso não aparece, e Aprovações só existe para quem publica em algum módulo', () => {
+    const semFila = buildAdminMenu(sessaoPorAcesso({ ...access, kanban: false })).flatMap(folder => folder.items).filter(item => item.visible && item.label === 'Aprovações');
+    assert.deepEqual(semFila.map(item => item.href), []);
+    const comFila = buildAdminMenu(sessaoPorAcesso(access)).flatMap(folder => folder.items).filter(item => item.visible && item.label === 'Aprovações');
     assert.deepEqual(comFila.map(item => item.href), ['/admin/kanban']);
-    assert.equal(buildAdminMenu({ ...access, kanban: false, projetos: false }).flatMap(folder => folder.items).some(item => item.visible && item.label === 'Aprovações'), false);
+    assert.equal(buildAdminMenu(sessaoPorAcesso({ ...access, kanban: false, projetos: false })).flatMap(folder => folder.items).some(item => item.visible && item.label === 'Aprovações'), false);
     const vazio = Object.fromEntries(Object.keys(access).map(key => [key, false])) as typeof access;
-    assert.ok(buildAdminMenu(vazio).every(folder => !folder.visible));
+    assert.ok(buildAdminMenu(sessaoPorAcesso(vazio)).every(folder => !folder.visible));
   });
   it('as telas em abas destacam o módulo no menu', () => {
-    const menu = buildAdminMenu(access);
+    const menu = buildAdminMenu(sessaoPorAcesso(access));
     for (const [section, parent] of [['projetosTemas', 'projetos'], ['projetosMembros', 'projetos'], ['projetosAprovacao', 'projetos'], ['professoresRelatos', 'professores'], ['professoresDisciplinas', 'professores'], ['alunosCategorias', 'alunos'], ['noticias', 'noticias'], ['kanban', 'kanban']] as const) {
       assert.equal(getActiveMenuSection(section, menu), parent, section);
     }
-    assert.equal(getActiveMenuSection('projetosAprovacao', buildAdminMenu({ ...access, kanban: false })), 'projetosAprovacao', 'Sem a Fila, é o próprio item');
   });
   it('a busca ainda encontra as telas que viraram abas, sem revelar item sem acesso', () => {
-    const search = (query: string, grants = access) => filterAdminNavigation(buildAdminMenu(grants), query).filteredFolders.flatMap(folder => folder.items.map(item => item.section));
+    const search = (query: string, grants = access) => filterAdminNavigation(buildAdminMenu(sessaoPorAcesso(grants)), query).filteredFolders.flatMap(folder => folder.items.map(item => item.section));
     for (const [query, section] of [['temas', 'projetos'], ['membros', 'projetos'], ['disciplinas', 'professores'], ['relatos', 'professores'], ['categorias', 'alunos']] as const) {
       assert.ok(search(query).includes(section), query);
     }
@@ -4032,7 +3884,7 @@ describe('Menu do painel por tarefa e cores centralizadas', () => {
   });
   it('contador de Aprovações soma a Fila, ignora a parte que falhou e relê ao ser avisado', async () => {
     let totals: Record<string, number> = { n_noticias: 2, c_conquistas_aluno: 1, p_relatos: 3, pj_projetos: 4 };
-    function Contador() { const { count, error } = useAprovacoesPendentes(true); return createElement('output', null, error ? 'falhou' : String(count)); }
+    function Contador() { const { count, error } = useAprovacoesPendentes(['n_noticias', 'c_conquistas_aluno', 'p_relatos', 'pj_projetos']); return createElement('output', null, error ? 'falhou' : String(count)); }
     const view = await mountCategories(async url => {
       const name = url.pathname.split('/').pop()!;
       if (!(name in totals)) return new Response(JSON.stringify({ success: false, errors: ['sem_permissao'] }), { status: 403, headers: { 'content-type': 'application/json' } });
@@ -4116,7 +3968,7 @@ describe('Caminho do topo do painel', () => {
     let login = false;
     const stateMock = mock.method(React, 'useState', (initial: unknown) => {
       if (initial === false && !login) { login = true; return originalState(true); }
-      if (initial && typeof initial === 'object' && 'isGestor' in initial) return originalState({ isGestor: true, name: 'Ana' });
+      if (isSessionState(initial)) return originalState({ isGestor: true, name: 'Ana' });
       return originalState(initial);
     });
     const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {}, bfcacheId: 'breadcrumb-test' };
@@ -4366,8 +4218,7 @@ describe('Tema administrativo compartilhado', () => {
         let index = 0;
         const stateMock = mock.method(React, 'useState', (initial: unknown) => {
           const current = index++;
-          if (initial && typeof initial === 'object' && 'isGestor' in initial) return originalState({ isGestor: true });
-          if (kind === 'page' && current === 1) return originalState(true);
+            if (kind === 'page' && current === 1) return originalState(true);
           if (kind === 'shell' && current === 4) return originalState(true);
           if (kind === 'shell' && current === 5) return originalState(false);
           return originalState(initial);
@@ -4434,7 +4285,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     // Injeta autenticação e abertura do drawer sem executar efeitos ou consultar serviços.
     const stateMock = mock.method(React, 'useState', (initial: unknown) => {
       const index = stateIndex++;
-      if (initial && typeof initial === 'object' && 'isGestor' in initial) return originalState(session);
+      if (isSessionState(initial)) return originalState(session);
       if (kind === 'page') {
         if (index === 0) return [section, (value: unknown) => selections.push(value)];
         if (index === 1) return originalState(true);
@@ -4470,7 +4321,7 @@ describe('Metadados compartilhados da navegação administrativa', () => {
   }
 
   const session: AdminSession & { editorialProfile: string } = {
-    isGestor: true, name: 'Administrador confirmado', profileType: 'Administrador', editorialProfile: 'Administrador',
+    name: 'Administrador confirmado', profileType: 'Administrador', editorialProfile: 'Administrador',
     apiUser: { id: 100, nome: 'Administrador confirmado', cpf: '', ativo: true, perfil_id: 3,
       perfil_nome: 'Administrador' },
   };
@@ -4630,7 +4481,6 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.strictEqual(SECTION_CONFIG, SHARED_SECTION_CONFIG);
     assert.equal(typeof AdminShell, 'function');
     assert.equal(getFolderIdForSection('estadosCidades'), 'configuracoes');
-    assert.equal(canAccessAdminUsers(session), true);
   });
 
   const MENU_ORDER = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico', '/admin/kanban', '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
@@ -4675,33 +4525,28 @@ describe('Metadados compartilhados da navegação administrativa', () => {
     assert.ok(capture('shell', session, false, 'estadosCidades').html.includes('href="/admin/estados-cidades"'));
   });
 
-  it('preserva diferenças de permissão para sessão local, Administrador inativo e operadores', () => {
-    for (const current of [
-      { isGestor: true },
-      { ...session, apiUser: { ...session.apiUser!, ativo: false } },
-    ]) {
-      const root = capture('page', current);
-      assert.ok(root.nodes.some(node => node.props.folder?.items.some(item => item.section === 'usuarios' && item.visible)));
+  it('menu e guardas da página e do shell seguem as permissões de cada perfil', () => {
+    const casos = [
+      { perfil: 'Administrador', usuarios: true, kanban: true, noticias: true },
+      { perfil: 'Gestor', usuarios: true, kanban: true, noticias: true },
+      { perfil: 'Jornalista', usuarios: false, kanban: false, noticias: false },
+    ] as const;
+    for (const caso of casos) {
+      definirPermissoes(PERFIS[caso.perfil]);
+      const current = { profileType: caso.perfil };
+      const items = capture('page', current).nodes.flatMap(node => node.props.folder?.items.filter(item => item.visible).map(item => item.section) || []);
+      assert.equal(items.includes('usuarios'), caso.usuarios, caso.perfil);
+      assert.equal(items.includes('kanban'), caso.kanban, caso.perfil);
+      assert.equal(items.includes('noticias'), caso.noticias, caso.perfil);
       const shell = capture('shell', current, true, 'usuarios');
-      assert.ok(shell.html.includes('Acesso Restrito'));
-      assert.ok(!shell.nodes.some(node => node.props.href === '/admin/usuarios'));
+      assert.equal(shell.html.includes('Acesso Restrito'), !caso.usuarios, caso.perfil);
+      assert.equal(shell.nodes.some(node => node.props.href === '/admin/kanban'), caso.kanban, caso.perfil);
     }
-    assert.ok(capture('shell', session, true, 'usuarios').html.includes('Conteúdo autorizado'));
-    for (const current of [
-      { isGestor: false, profileType: 'Editor de Notícias' },
-      { isGestor: false, profileType: 'Operador de Conteúdo' },
-      { isGestor: false, profileType: 'Gestor' },
-    ]) {
-      const root = capture('page', current);
-      const items = root.nodes.flatMap(node => node.props.folder?.items.filter(item => item.visible).map(item => item.section) || []);
-      assert.equal(items.includes('usuarios'), false);
-      assert.equal(items.includes('kanban'), false);
-      assert.equal(items.includes('noticias'), current.profileType !== 'Gestor');
-      const shell = capture('shell', current, true, 'noticias');
-      assert.ok(!shell.nodes.some(node => node.props.href === '/admin/usuarios'));
-      assert.ok(!shell.nodes.some(node => node.props.href === '/admin/kanban'));
-      assert.ok(shell.nodes.some(node => node.props.href === '/admin/noticias'));
-    }
+    // Sem /auth/me (login local), nenhum módulo.
+    definirPermissoes(null);
+    const local = capture('page', { profileType: 'Gestor Geral' });
+    assert.ok(!local.nodes.some(node => node.props.folder?.items.some(item => item.visible)));
+    assert.ok(capture('shell', { profileType: 'Gestor Geral' }, true, 'usuarios').html.includes('Acesso Restrito'));
   });
 
   it('preserva aliases de Início sem redirecionar a página', () => {
@@ -4724,8 +4569,8 @@ describe('Metadados compartilhados da navegação administrativa', () => {
 });
 
 
-function fullOverviewMenu(overrides: Partial<Parameters<typeof buildAdminMenu>[0]> = {}, badges: Parameters<typeof buildAdminMenu>[1] = {}) {
-  return buildAdminMenu({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, redes: true, estadosCidades: true, usuarios: true, ...overrides }, badges);
+function fullOverviewMenu(overrides: Partial<Record<string, boolean>> = {}, badges: Parameters<typeof buildAdminMenu>[1] = {}) {
+  return buildAdminMenu(sessaoPorAcesso({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, redes: true, estadosCidades: true, usuarios: true, ...overrides }), badges);
 }
 
 describe('Interface componentizada da Visão Geral', () => {
@@ -4742,6 +4587,8 @@ describe('Interface componentizada da Visão Geral', () => {
       },
       menu: fullOverviewMenu(),
       userName: 'Gestora de teste',
+      canCreateNews: true,
+      canCreateProject: true,
       pendencias: pend(10, 4, 3),
       totalEstados: 27,
       projetosResumo: { total: 9, pending: 2, published: 6, error: null },
@@ -4830,9 +4677,9 @@ describe('Interface componentizada da Visão Geral', () => {
   it('Aprovações usa o mesmo total do menu', () => {
     const page = readFileSync('src/app/admin/page.tsx', 'utf8');
     assert.match(page, /kanban: aprovacoesPendentes\.count \|\| undefined/);
-    assert.match(page, /projetosAprovacao: projetosResumo\.pending \|\| undefined/);
-    assert.match(page, /aprovacoes: canAccessKanban \? aprovacoesPendentes : \{ count: projetosResumo\.pending, error: projetosResumo\.error \}/);
-    assert.ok(secao(render({ menu: fullOverviewMenu({ kanban: false }) }), 'inicio-atencao').includes('href="/admin/projetos/aprovacao"'), 'Sem a Fila, segue o item do menu');
+    assert.match(page, /aprovacoes: aprovacoesPendentes,/);
+    assert.ok(!secao(render({ menu: fullOverviewMenu({ kanban: false }) }), 'inicio-atencao').includes('Aprovações'), 'Sem publicar, sem pendência de aprovação');
+    assert.doesNotMatch(render({ canCreateNews: false, canCreateProject: false }), /Nova notícia|Novo projeto/, 'Os atalhos exigem create');
   });
   it('"Resumo do site" é só uma faixa de números, sem botões nem links', () => {
     const resumo = secao(render(), 'inicio-resumo');
@@ -4890,7 +4737,7 @@ describe('Interface componentizada da Visão Geral', () => {
   it('o botão dos cartões é tonal, só visual, com o destino no texto, e fica abaixo de "Nova notícia"', () => {
     const textos = fullOverviewMenu().flatMap(folder => folder.items.filter(item => item.visible).map(item => item.action));
     assert.deepEqual(textos, ['Abrir Notícias', 'Abrir Avisos', 'Abrir Banners', 'Abrir Galeria', 'Abrir Projetos', 'Abrir Professores', 'Abrir Alunos', 'Abrir Perguntas', 'Responder dúvidas', 'Ver aprovações', 'Abrir Redes sociais', 'Abrir Estados', 'Abrir Usuários']);
-    assert.equal(fullOverviewMenu({ kanban: false }).flatMap(folder => folder.items).find(item => item.visible && item.section === 'projetosAprovacao')?.action, 'Ver aprovações');
+    assert.equal(fullOverviewMenu({ kanban: false }).flatMap(folder => folder.items).some(item => item.visible && item.action === 'Ver aprovações'), false, 'Sem publicar, sem Aprovações');
     const gerenciar = secao(render(), 'inicio-gerenciar');
     assert.equal((gerenciar.match(/<a\b/g) || []).length, textos.length, 'Sem link aninhado');
     assert.equal((gerenciar.match(/<button\b/g) || []).length, 0);
@@ -4934,7 +4781,7 @@ describe('Interface componentizada da Visão Geral', () => {
     assert.doesNotMatch(semDados, /undefined|null|\d+ aguardando|sem resposta|pendentes|relatos? aguardando/);
   });
   it('cartão ou seção sem acesso não aparece, nem nas ações e pendências', () => {
-    const html = render({ menu: fullOverviewMenu({ noticias: false, projetos: false, kanban: false, duvidas: false, professores: false, redes: false, estadosCidades: false, usuarios: false }) });
+    const html = render({ menu: fullOverviewMenu({ noticias: false, projetos: false, kanban: false, duvidas: false, professores: false, redes: false, estadosCidades: false, usuarios: false }), canCreateNews: false, canCreateProject: false });
     assert.ok(!html.includes('Nova notícia')); assert.ok(!html.includes('Novo projeto'));
     const atencao = secao(html, 'inicio-atencao');
     for (const text of ['Aprovações', 'Dúvidas do público', 'Relatos']) assert.ok(!atencao.includes(text), text);
@@ -4992,7 +4839,10 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
     let requests = 0;
     globalThis.fetch = async () => { requests += 1; throw new Error('Leitura não autorizada.'); };
     try {
-      assert.equal(await createAdminOverviewLoader()(false), null);
+      // Sem permissões (ex.: login local), nenhum módulo é consultado.
+      const vazio = await createAdminOverviewLoader()(SEM_PERMISSOES);
+      assert.ok(Object.values(vazio).every(result => result.data === null && result.error === null));
+      assert.equal(requests, 0);
       const state = createInitialOverviewState();
       assert.equal(state.users.loading, true);
       assert.equal(state.users.data, null);
@@ -5014,7 +4864,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
       return serve(String(input));
     };
     try {
-      const snapshot = await createAdminOverviewLoader()(true);
+      const snapshot = await createAdminOverviewLoader()(PERMISSOES_ADMIN);
       assert.ok(snapshot);
       const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
       const metrics = getOverviewMetrics(state);
@@ -5057,13 +4907,18 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
     let requests = 0;
     globalThis.fetch = async () => { requests += 1; throw new Error('Renderização não consulta a API.'); };
     try {
-      for (const editorialProfile of ['Administrador', undefined]) {
+      const todos = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico',
+        '/admin/redes', '/admin/estados-cidades', '/admin/usuarios', '/admin/kanban'];
+      for (const [perfil, expected, kanban] of [
+        ['Administrador', todos, true], ['Jornalista', ['/admin/avisos', '/admin/galeria'], false], [null, [], false],
+      ] as const) {
+        definirPermissoes(perfil ? PERFIS[perfil] : null);
         let loginInjected = false;
         const stateMock = mock.method(React, 'useState', (initial: unknown) => {
           // Injeta somente o estado inicial; os hooks e a renderização continuam reais.
           if (initial === false && !loginInjected) { loginInjected = true; return originalState(true); }
-          if (initial && typeof initial === 'object' && 'isGestor' in initial) {
-            return originalState({ isGestor: true, name: 'Sessão confirmada', editorialProfile });
+          if (isSessionState(initial)) {
+            return originalState({ name: 'Sessão confirmada', profileType: perfil ?? 'Gestor Geral' });
           }
           return originalState(initial);
         });
@@ -5075,9 +4930,10 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
         try {
           const html = renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router }, createElement(CapturePage)));
           assert.ok(html.includes('Olá, Sessão confirmada'));
-          assert.ok(html.includes('aria-label="Carregando"'));
+          if (perfil === 'Administrador') assert.ok(html.includes('aria-label="Carregando"'));
           assert.ok(!html.includes('Central Executiva') && !html.includes('API Rails'));
-          assert.ok(html.includes('Entre com seu CPF para ver as pendências'));
+          // Sem permissões (login local), não há pendências para ler na API.
+          assert.equal(html.includes('Entre com seu CPF para ver as pendências'), perfil === null);
           assert.ok(!html.includes('Autenticando e carregando painel de gestão...'));
           type NavigationProps = { children?: ReactNode; folder?: { items: { section: string; badge?: number; visible: boolean }[] };
             onSelectSection?: (section: string) => void; canAccessKanban?: boolean };
@@ -5087,7 +4943,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
             if (!isValidElement<NavigationProps>(node)) return;
             if (node.type === AdminOverview) {
               overviewFound = true;
-              assert.equal((node.props as { menu?: ReturnType<typeof buildAdminMenu> }).menu?.some(folder => folder.items.some(item => item.section === 'kanban' && item.visible)), editorialProfile === 'Administrador');
+              assert.equal((node.props as { menu?: ReturnType<typeof buildAdminMenu> }).menu?.some(folder => folder.items.some(item => item.section === 'kanban' && item.visible)), kanban);
             }
             if (node.props.folder && node.props.onSelectSection) {
               for (const item of node.props.folder.items) {
@@ -5099,11 +4955,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           }
           visit(page);
           assert.equal(overviewFound, true);
-          const expected = ['/admin/noticias', '/admin/avisos', '/admin/banners', '/admin/galeria', '/admin/projetos', '/admin/professores', '/admin/alunos', '/admin/faq', '/admin/faq/publico',
-            '/admin/redes', '/admin/estados-cidades', '/admin/usuarios'];
-          // Sem a Fila, Aprovações leva direto à aprovação de projetos.
-          expected.push(editorialProfile === 'Administrador' ? '/admin/kanban' : '/admin/projetos/aprovacao');
-          assert.deepEqual([...new Set(destinations)].sort(), expected.sort());
+          assert.deepEqual([...new Set(destinations)].sort(), [...expected].sort(), String(perfil));
         } finally { stateMock.mock.restore(); }
       }
       assert.equal(requests, 0);
@@ -5114,7 +4966,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = async (input) => serve(String(input), true);
     try {
-      const snapshot = await createAdminOverviewLoader()(true);
+      const snapshot = await createAdminOverviewLoader()(PERMISSOES_ADMIN);
       assert.ok(snapshot);
       const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
       const metrics = getOverviewMetrics(state);
@@ -5175,14 +5027,14 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
     globalThis.fetch = async (input) => { requests.push(String(input)); return serve(String(input)); };
     try {
       const read = createAdminOverviewLoader();
-      const first = read(true);
-      assert.equal(read(true), first);
-      assert.equal(await read(false), null);
+      const first = read(PERMISSOES_ADMIN);
+      assert.equal(read(PERMISSOES_ADMIN), first);
+      assert.equal(read(SEM_PERMISSOES), first, 'A leitura em andamento é compartilhada');
       assert.ok(await first);
       assert.equal(requests.length, 9);
       assert.equal(new Set(requests).size, 9);
       assert.ok(!requests.some((url) => /perfis|a_tipos_aviso|canais_contato/.test(url)));
-      await read(true);
+      await read(PERMISSOES_ADMIN);
       assert.equal(requests.length, 18);
     } finally { globalThis.fetch = originalFetch; }
   });
@@ -5192,7 +5044,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
     try {
       const read = createAdminOverviewLoader();
       globalThis.fetch = async (input) => serve(String(input));
-      const success = await read(true);
+      const success = await read(PERMISSOES_ADMIN);
       assert.ok(success);
       const previous = applyOverviewSnapshot(createInitialOverviewState(), success);
       const loading = startOverviewLoading(previous);
@@ -5209,7 +5061,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
         if (String(input).includes('/n_noticias')) throw new Error('Rede indisponível');
         return serve(String(input));
       };
-      const failure = await read(true);
+      const failure = await read(PERMISSOES_ADMIN);
       assert.ok(failure);
       const after = applyOverviewSnapshot(loading, failure);
       assert.equal(after.users.loading, false);
@@ -5237,7 +5089,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
         globalThis.fetch = async (input) => String(input).includes('/usuarios')
           ? json({ success: true, data: { items: items.usuarios, pagination: { total_count: total } } })
           : serve(String(input));
-        const snapshot = await createAdminOverviewLoader()(true);
+        const snapshot = await createAdminOverviewLoader()(PERMISSOES_ADMIN);
         assert.ok(snapshot);
         assert.ok(snapshot.users.error);
         assert.equal(snapshot.users.data, null);
@@ -5261,7 +5113,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
         } });
         return serve(String(input));
       };
-      const snapshot = await createAdminOverviewLoader()(true);
+      const snapshot = await createAdminOverviewLoader()(PERMISSOES_ADMIN);
       assert.ok(snapshot);
       const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
       assert.deepEqual(getOverviewHighlights(state), {
@@ -5289,7 +5141,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
         globalThis.fetch = async (input) => String(input).includes('/' + endpoint)
           ? json({ success: false, message: 'Serviço indisponível' }, 503) : serve(String(input));
         const read = createAdminOverviewLoader();
-        const snapshot = await read(true);
+        const snapshot = await read(PERMISSOES_ADMIN);
         assert.ok(snapshot);
         const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
         for (const [key, resource] of Object.entries(state)) {
@@ -5307,7 +5159,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           assert.ok(html.includes('href="' + href + '"'), href);
         }
         globalThis.fetch = async (input) => serve(String(input));
-        const recovered = await read(true);
+        const recovered = await read(PERMISSOES_ADMIN);
         assert.ok(recovered);
         const after = applyOverviewSnapshot(startOverviewLoading(state), recovered);
         assert.equal(after[failedResource].error, null);
@@ -5327,7 +5179,7 @@ describe('Dados e KPIs isolados da Visão Geral', () => {
           if (status === 'offline') throw new Error('Rede indisponível');
           return json({ success: false, message: 'API indisponível' }, Number(status));
         };
-        const snapshot = await createAdminOverviewLoader()(true);
+        const snapshot = await createAdminOverviewLoader()(PERMISSOES_ADMIN);
         assert.ok(snapshot);
         const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
         for (const resource of Object.values(state)) {
@@ -5709,29 +5561,12 @@ describe('FAQ administrativo migrado para Rails (C2)', () => {
 });
 
 describe('Autorização da subrota de usuários', () => {
-  const adminSession: AdminSession = {
-    isGestor: true,
-    apiUser: { id: 100, nome: '', cpf: '', ativo: true, perfil_id: 10, perfil_nome: 'Administrador' },
-  };
-
-  it('nega sessão local mesmo quando ela se identifica como gestora ou administradora', () => {
-    assert.equal(canAccessAdminUsers({ isGestor: true }), false);
-    assert.equal(canAccessAdminUsers({ isGestor: false }), false);
-  });
-
-  it('não autoriza operador por IDs legados de usuário ou perfil', () => {
-    assert.equal(canAccessAdminUsers({
-      isGestor: true,
-      apiUser: { ...adminSession.apiUser!, id: 1, perfil_id: 3, perfil_nome: 'Operador de Conteúdo' },
-    }), false);
-  });
-
-  it('exige Administrador ativo confirmado pelo Rails e preserva a restrição administrativa', () => {
-    assert.equal(canAccessAdminUsers(adminSession), true);
-    assert.equal(canAccessAdminUsers({ ...adminSession, isGestor: false }), false);
-    assert.equal(canAccessAdminUsers({
-      ...adminSession, apiUser: { ...adminSession.apiUser!, ativo: false },
-    }), false);
+  it('libera só com index em usuarios, nunca pelo nome do perfil ou por IDs legados', () => {
+    assert.equal(podeAcessarSecao('usuarios', SEM_PERMISSOES), false, 'Sessão local');
+    assert.equal(podeAcessarSecao('usuarios', lerPermissoes({ admin: false, permissoes: { perfis: ['index'] } })), false);
+    assert.equal(podeAcessarSecao('usuarios', lerPermissoes({ admin: true, permissoes: {} })), false, 'admin sem regras não abre telas');
+    assert.equal(podeAcessarSecao('usuarios', lerPermissoes({ permissoes: { usuarios: ['index'] } })), true);
+    assert.equal(podeAcessarSecao('usuarios', PERMISSOES_ADMIN), true);
   });
 
   it('direciona usuários para a subrota e mantém seu agrupamento no shell', () => {
@@ -8290,7 +8125,9 @@ describe('Visitantes C3 — interface administrativa', () => {
     assert.equal(page.props.children().type, DuvidasVisitanteModule);
     assert.equal(SHARED_SECTION_CONFIG.duvidasPublico.href, '/admin/faq/publico');
     assert.equal(getFolderIdForSection('duvidasPublico'), 'atendimento');
-    assert.match(readFileSync('src/components/admin/AdminShell.tsx', 'utf8'), /activeSection === 'duvidas' \|\| activeSection === 'duvidasPublico'\s*\? canAccessFaqs/);
+    // A guarda da subrota segue o index de d_duvidas_visitante, a mesma regra do item do menu.
+    assert.equal(podeAcessarSecao('duvidasPublico', lerPermissoes({ permissoes: { d_duvidas_visitante: ['index'] } })), true);
+    assert.equal(podeAcessarSecao('duvidasPublico', lerPermissoes({ permissoes: { d_duvidas: ['index'] } })), false);
     const workspace = AdminFaqSubroutePage().props.children();
     const html = renderToStaticMarkup(workspace); assert.match(html, />Categorias</); assert.doesNotMatch(html, />Visitantes</);
     assert.doesNotMatch(readFileSync('src/app/admin/faq/page.tsx', 'utf8'), /DuvidasVisitanteModule/);
@@ -8344,7 +8181,7 @@ describe('Visitantes C3 — interface administrativa', () => {
   });
   it('item do menu exibe o total sem depender da aba aberta', () => {
     const access = Object.fromEntries(['noticias','projetos','duvidas','avisos','fotos','galeria','professores','alunos','kanban','redes','estadosCidades','usuarios'].map(key => [key, true]));
-    const item = buildAdminMenu(access as Parameters<typeof buildAdminMenu>[0], { duvidasPublico: 7 }).flatMap(folder => folder.items).find(entry => entry.section === 'duvidasPublico');
+    const item = buildAdminMenu(sessaoPorAcesso(access), { duvidasPublico: 7 }).flatMap(folder => folder.items).find(entry => entry.section === 'duvidasPublico');
     assert.equal(item?.badge, 7);
   });
   it('Fila lista as não respondidas, responde sem corpo e tira o item da lista', async () => {
@@ -9608,7 +9445,7 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
     });
 
     try {
-      const snapshot = await createAdminOverviewLoader()(true);
+      const snapshot = await createAdminOverviewLoader()(PERMISSOES_ADMIN);
       assert.ok(snapshot);
       const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
       const metrics = getOverviewMetrics(state);
@@ -9653,7 +9490,7 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
       serveOverviewEndpoint(String(input), { emptyFaqs: true }),
     );
     try {
-      const snapshot = await createAdminOverviewLoader()(true);
+      const snapshot = await createAdminOverviewLoader()(PERMISSOES_ADMIN);
       assert.ok(snapshot);
       const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
       const metrics = getOverviewMetrics(state);
@@ -9684,7 +9521,7 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
         }),
       );
       try {
-        const snapshot = await createAdminOverviewLoader()(true);
+        const snapshot = await createAdminOverviewLoader()(PERMISSOES_ADMIN);
         assert.ok(snapshot);
         const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
         const metrics = getOverviewMetrics(state);
@@ -9734,7 +9571,7 @@ describe('Lote E2 — indicadores de FAQ na Visão Geral do painel gestor', () =
         }),
       );
       try {
-        const snapshot = await createAdminOverviewLoader()(true);
+        const snapshot = await createAdminOverviewLoader()(PERMISSOES_ADMIN);
         assert.ok(snapshot);
         const state = applyOverviewSnapshot(createInitialOverviewState(), snapshot);
         const metrics = getOverviewMetrics(state);
@@ -10332,6 +10169,13 @@ for (const kind of ['avisos', 'galeria'] as const) describe(`E5 — ${kind}`, ()
       return url.pathname.endsWith(catalogPath) ? e5List([e5Active]) : e5List([]);
     } });
     try {
+      if (failure === 403) {
+        // Catálogo auxiliar sem permissão vira lista vazia: a tela principal continua sem erro.
+        assert.doesNotMatch(manager.html(), /role="alert"/);
+        assert.match(manager.html(), isAviso ? /Nenhum aviso cadastrado/ : /Nenhuma foto cadastrada/);
+        await manager.newRecord(); await manager.fill(); assert.equal(manager.saveDisabled(), true);
+        return;
+      }
       assert.match(manager.html(), /role="alert"/);
       assert.doesNotMatch(manager.html(), /Nenhum aviso cadastrado|Nenhuma foto cadastrada/);
       await manager.newRecord(); await manager.fill(); assert.equal(manager.saveDisabled(), true); await manager.submit();
@@ -11152,7 +10996,7 @@ describe('Editor dos Quatro Pilares da Home — modelo, validação e interface 
   });
 
   it('"Números do site" sai do menu e do Início, e os números da home continuam como estão', () => {
-    const menu = buildAdminMenu({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, redes: true, estadosCidades: true, usuarios: true });
+    const menu = buildAdminMenu(sessaoPorAcesso({ noticias: true, projetos: true, duvidas: true, avisos: true, fotos: true, galeria: true, professores: true, alunos: true, kanban: true, redes: true, estadosCidades: true, usuarios: true }));
     const items = menu.flatMap(folder => folder.items);
     assert.ok(!items.some(item => item.section === 'siteInfo' || item.label === 'Números do site' || item.href === '/admin/institucional'));
     assert.equal(existsSync('src/components/admin/SiteInfoModule.tsx'), false);
@@ -12132,18 +11976,14 @@ describe('Projetos — página de aprovação', () => {
   const mount = (fetcher: (url: URL, options: RequestInit) => Response) => mountCategories(async (url, options) => fetcher(url, options), false, { component: () => ProjetosAprovacaoPanel(), allowedPaths: paths });
   const proibido = () => reply({ success: false, message: 'Sem permissão', errors: ['Sem permissão'] }, 403);
 
-  it('a subrota usa o painel e está no menu e nas abas, com contador', () => {
+  it('a subrota usa o painel e fica nas abas de projetos; a guarda exige publicar', () => {
     assert.equal(AdminProjetosAprovacaoPage().type, ProjetosAprovacaoPanel);
     assert.equal(SHARED_SECTION_CONFIG.projetosAprovacao.href, '/admin/projetos/aprovacao');
-    assert.equal(getFolderIdForSection('projetosAprovacao'), 'atendimento');
+    assert.equal(getFolderIdForSection('projetosAprovacao'), 'conteudo', 'Sem item próprio: destaca Projetos');
     assert.ok(ADMIN_SUBROUTE_GROUPS.find(group => group.label === 'Seções de projetos')!.items.some(item => item.section === 'projetosAprovacao'));
-    const access = { noticias: false, projetos: true, duvidas: false, avisos: false, fotos: false, galeria: false, professores: false, alunos: false, kanban: false, redes: false, estadosCidades: false, usuarios: false };
-    const item = buildAdminMenu(access, { projetosAprovacao: 3 }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!;
-    assert.equal(item.visible, true); assert.equal(item.badge, 3);
-    assert.equal(buildAdminMenu({ ...access, projetos: false }).flatMap(folder => folder.items).find(entry => entry.section === 'projetosAprovacao')!.visible, false);
-    const shell = readFileSync('src/components/admin/AdminShell.tsx', 'utf8');
-    assert.match(shell, /projetosAprovacao: projetosPendentes\.count \|\| undefined/);
-    assert.match(readFileSync('src/app/admin/page.tsx', 'utf8'), /projetosAprovacao: projetosResumo\.pending \|\| undefined/);
+    assert.equal(podeAcessarSecao('projetosAprovacao', sessaoPorAcesso({ projetos: true })), false);
+    assert.equal(podeAcessarSecao('projetosAprovacao', lerPermissoes({ permissoes: { pj_projetos: ['index', 'publicar'] } })), true);
+    assert.equal(buildAdminMenu(PERMISSOES_ADMIN).flatMap(folder => folder.items).some(entry => entry.section === 'projetosAprovacao'), false, 'A Fila já cobre os projetos');
   });
   it('lista só os aguardando, paginado, com capa, título, tema, escola, autor e data, sem CPF', async () => {
     const view = await mount(() => list([projeto], 12, 2));
@@ -12705,7 +12545,7 @@ describe('Professores e conquistas — integração com a API', () => {
       noticias: false, projetos: false, duvidas: false, avisos: false, fotos: false, galeria: false, professores: true,
       alunos: false, kanban: false, redes: false, estadosCidades: false, usuarios: false,
     };
-    const folders = buildAdminMenu(access, { professores: 3 });
+    const folders = buildAdminMenu(sessaoPorAcesso(access), { professores: 3 });
     assert.deepEqual(folders.map(folder => [folder.id, folder.visible]), [['conteudo', true], ['atendimento', false], ['configuracoes', false]]);
     const items = folders.flatMap(folder => folder.items);
     assert.deepEqual(items.filter(item => item.visible).map(item => item.section), ['professores']);
